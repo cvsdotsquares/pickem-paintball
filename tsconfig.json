@@ -1,0 +1,34 @@
+{
+  // This is the TypeScript configuration file for the Next.js project.
+  // It sets up the TypeScript compiler options and specifies which files to include/exclude.
+  // The "paths" option sets up absolute imports for easier module referencing.
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@utils/*": ["./utils/*"]
+    },
+    // "strictNullChecks": true,  // Uncomment for additional null checking
+    // "noImplicitAny": true,     // Uncomment to disallow implicit 'any' types
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
