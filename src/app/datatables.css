@@ -1,0 +1,147 @@
+table>thead>tr>th,
+table>tbody>tr>td {
+    @apply py-3 px-4 text-sm;
+}
+
+table>thead>tr>th.mantine-187dsit {
+    @apply bg-gray-400;
+}
+
+.datatables table tbody tr {
+    @apply border-gray-200 border bg-white;
+}
+
+.datatables table tr.mantine-1ublbff.mantine-1ublbff {
+    @apply bg-transparent;
+}
+
+.datatables table tbody tr td {
+    @apply border-b;
+}
+
+table tr .mantine-Checkbox-root {
+    @apply flex;
+}
+
+.datatables table thead tr th {
+    @apply border-b-4 bg-slate-600 text-white;
+}
+
+.datatables .table-bordered table thead tr th,
+.datatables .table-bordered table tbody tr td {
+    @apply border-2 border-solid border-gray-400;
+}
+
+.datatables .table-compact table thead tr th,
+.datatables .table-compact table tbody tr td {
+    @apply py-2 px-3;
+}
+
+.datatables .mantine-gzzjso,
+.datatables .mantine-lrzwoq {
+    @apply border-t-0 p-0 pt-5 bg-transparent;
+}
+
+.datatables.pagination-padding .mantine-gzzjso {
+    @apply px-5;
+}
+
+[dir='rtl'] .datatables .mantine-ScrollArea-root.mantine-lvjyp7 {
+    direction: rtl;
+}
+
+.mantine-Table-root[data-hover] tbody tr:hover {
+    @apply bg-gray-50;
+}
+
+.mantine-Table-root[data-striped] tbody tr:nth-of-type(odd) {
+    @apply bg-gray-400;
+}
+
+.datatables table {
+    @apply font-mono text-black;
+}
+
+.datatables .mantine-Text-root {
+    @apply flex-none font-mono text-sm font-medium;
+}
+
+.datatables thead tr th .mantine-Group-root.mantine-1d34tqu div>svg {
+    @apply text-gray-100;
+}
+
+.datatables thead tr th .mantine-Group-root.mantine-1d34tqu {
+    @apply justify-start;
+}
+
+.datatables thead tr th .mantine-Group-root.mantine-1d34tqu .mantine-oqxib5 {
+    @apply flex-grow-0;
+}
+
+.mantine-Group-root>.mantine-Text-root {
+    @apply hidden;
+}
+
+.mantine-Group-root .mantine-UnstyledButton-root {
+    @apply hover:bg-inherit border-gray-200 text-black;
+}
+
+.mantine-Table-root th.text-right .mantine-Group-root {
+    @apply justify-end;
+}
+
+.datatables .mantine-Group-root[role='navigation'] {
+    @apply flex-auto justify-end gap-1;
+}
+
+.mantine-Menu-dropdown {
+    @apply border-gray-200 bg-slate-600 text-white;
+}
+
+.mantine-Checkbox-body {
+    @apply grid h-5 w-5 place-content-center overflow-hidden rounded border-0 bg-transparent font-bold;
+}
+
+.mantine-Checkbox-inner>.mantine-Checkbox-input {
+    @apply border-2 border-gray-300;
+}
+
+.mantine-Checkbox-inner>.mantine-Checkbox-input:checked {
+    @apply border-4 bg-blue-500;
+}
+
+.mantine-y4ntz3 {
+    @apply rounded border border-gray-300 outline-0 focus:ring-2 focus:ring-gray-300/40;
+}
+
+.mantine-3xbgk5 .mantine-qo1k2 {
+    @apply p-2 text-sm;
+}
+
+.mantine-Pagination-item {
+    @apply h-9 w-9 rounded-full border border-gray-200 bg-white text-black rtl:first:rotate-180 rtl:last:rotate-180;
+}
+
+.mantine-Pagination-item[data-active] {
+    @apply bg-slate-600 text-white;
+}
+
+.mantine-Menu-item .mantine-Text-root {
+    @apply text-center font-mono text-sm;
+}
+
+.mantine-Menu-item {
+    @apply hover:bg-gray-200 hover:text-black text-black;
+}
+
+.mantine-Menu-arrow {
+    @apply border-gray-50;
+}
+
+.mantine-Menu-item:disabled {
+    @apply text-gray-100;
+}
+
+.mantine-ScrollArea-viewport>div:first-child>div {
+    @apply bg-none;
+}

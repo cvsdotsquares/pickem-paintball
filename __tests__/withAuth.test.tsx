@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import withAuth from '../components/withAuth';
-import { UserProvider } from '../contexts/UserContext';
+import withAuth from '../app/components/withAuth';
+import { UserProvider } from '../app/contexts/UserContext';
 
 jest.mock('next/router', () => ({
   useRouter: () => ({

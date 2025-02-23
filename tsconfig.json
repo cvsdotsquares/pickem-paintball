@@ -4,7 +4,11 @@
   // The "paths" option sets up absolute imports for easier module referencing.
   "compilerOptions": {
     "target": "es5",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -23,12 +27,23 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@utils/*": ["./utils/*"]
+      "@/*": [
+        "./*"
+      ],
+      "@utils/*": [
+        "app/utils/*"
+      ]
     },
     // "strictNullChecks": true,  // Uncomment for additional null checking
     // "noImplicitAny": true,     // Uncomment to disallow implicit 'any' types
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

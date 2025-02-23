@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@import './datatables.css';
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --scrollbar-bg: 255, 250, 240;
+  --scrollbar-thumb: 0, 0, 0;
+  scroll-behavior: smooth;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Custom Scrollbar Styles */
+body::-webkit-scrollbar {
+  width: 12px;
+}
+
+body::-webkit-scrollbar-track {
+  background: rgba(var(--scrollbar-bg), 0.5);
+  /* Background color of the scrollbar track */
+}
+
+body::-webkit-scrollbar-thumb {
+  background-color: rgba(var(--scrollbar-thumb), 1);
+  /* Color of the scrollbar thumb */
+  border-radius: 6px;
+  /* Rounded corners of the scrollbar thumb */
+  border: 3px solid transparent;
+  /* Space around the scrollbar thumb */
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(var(--scrollbar-thumb), 1);
+  /* Color when hovering over the scrollbar thumb */
+}
+
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
