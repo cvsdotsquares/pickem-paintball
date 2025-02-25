@@ -4,11 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/src/contexts/authProvider';
 import { signOut } from 'firebase/auth';
-import { auth } from '@/src/lib/firebaseClient';
+import { auth, db } from '@/src/lib/firebaseClient';
 import { loginWithEmail, loginWithGoogle } from '@/src/lib/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { Input } from '@/src/components/ui/input';
 import { Button } from '@/src/components/ui/button';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 
 
@@ -38,6 +39,21 @@ const LoginPage: React.FC = () => {
 
             // Check if the user's email is verified
             if (user.emailVerified) {
+                // Check if the user already exists in Firestore
+                const userRef = doc(db, 'users', user.uid);
+                const userDoc = await getDoc(userRef);
+
+                if (!userDoc.exists()) {
+                    // If the user doesn't exist, create a new document
+                    await setDoc(userRef, {
+                        email: user.email,
+                        createdAt: new Date(),
+                        pickems: {},  // Initialize with empty pickems
+                        total_points: 0,  // Initialize total points
+                    });
+                    console.log('User created in Firestore');
+                }
+
                 router.push('/dashboard');
             } else {
                 setError('Please verify your email before accessing the dashboard.');
@@ -50,9 +66,26 @@ const LoginPage: React.FC = () => {
 
     const handleGoogleLogin = async () => {
         try {
-            await loginWithGoogle();
+            const userCredential = await loginWithGoogle();
+            const user = userCredential.user;
+
+            // Check if the user already exists in Firestore
+            const userRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userRef);
+
+            if (!userDoc.exists()) {
+                // If the user doesn't exist, create a new document
+                await setDoc(userRef, {
+                    email: user.email,
+                    createdAt: new Date(),
+                    pickems: {},  // Initialize with empty pickems
+                    total_points: 0,  // Initialize total points
+                });
+                console.log('User created in Firestore');
+            }
+
             router.push('/dashboard');
-        } catch (err: any) {
+        } catch (err) {
             setError('Google login failed.');
         }
     };

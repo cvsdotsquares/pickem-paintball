@@ -1,6 +1,6 @@
 'use client';
 
-import TableData from "@/src/components/table";
+import TableData from "@/src/components/Dashboard/table";
 import Dropdown from "@/src/components/ui/dropdown";
 import { db } from "@/src/lib/firebaseClient";
 import { collection, getDocs } from "firebase/firestore";
@@ -61,16 +61,40 @@ export default function Dashboard() {
         const playersCollection = collection(db, `events/${selectedEvent.id}/players`);
         const querySnapshot = await getDocs(playersCollection);
 
-        const players: Player[] = querySnapshot.docs.map(doc => {
-          const cost = doc.get("Cost") || 0;
-          const formattedCost = `$${new Intl.NumberFormat('en-US').format(cost)}`;
+        const players: any = querySnapshot.docs.map(doc => {
+          const { Cost, ...rest } = doc.data() as Record<string, any>;  // Destructure to exclude "Cost"
+
+          // Define sort order
+          const sortOrder = [
+            "player_id",
+            "Player",
+            "Team",
+            "Rank",
+            "Player Number",
+          ];
+
+          // Sort the rest dynamically
+          const sortedRest = Object.keys(rest)
+            .sort((a, b) => {
+              const indexA = sortOrder.indexOf(a);
+              const indexB = sortOrder.indexOf(b);
+              if (indexA === -1 && indexB === -1) return 0;
+              if (indexA === -1) return 1;
+              if (indexB === -1) return -1;
+              return indexA - indexB;
+            })
+            .reduce((acc: Record<string, any>, key: string) => {
+              acc[key] = rest[key];
+              return acc;
+            }, {});
+
+          // Return sorted object
           return {
-            player_id: doc.get("player_id"),
-            player: doc.get("Player") || "Unknown",
-            team: doc.get("Team") || "No Team",
-            cost: formattedCost,
+            player_id: doc.get("player_id"), // Ensure player_id comes first
+            ...sortedRest,
           };
         });
+
 
         setRowData(players);
         console.log("Player data fetched successfully:", players);
@@ -89,7 +113,7 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col p-4 min-h-screen bg-white">
       {/* Dropdown to select event */}
-      <div className="dropdown flex flex-row items-center text-gray-600 gap-3 text-lg">
+      <div className="dropdown flex flex-row items-center text-gray-600 gap-3 md:text-lg text-sm">
         <span className="font-medium">Events</span>
         <FaGreaterThan size={16} />
         <span>

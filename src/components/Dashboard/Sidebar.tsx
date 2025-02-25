@@ -39,7 +39,7 @@ export default function Sidebar() {
 
   const menuItems = [
     { href: "/dashboard", label: "Dashboard", icon: LuLayoutDashboard },
-    { href: "/dashboard/page2", label: "Page 2", icon: LuNotebookText },
+    { href: "/dashboard/picks", label: "Pick Em", icon: LuNotebookText },
   ]
 
   const toggleSidebar = () => setIsOpen(!isOpen)
@@ -99,10 +99,10 @@ export default function Sidebar() {
         <Button
           onClick={toggleMobileMenu}
           variant="outline"
-          className="w-[30vw] rounded-tl-md h-16 flex items-center justify-center bg-white border-t border-l"
+          className=" rounded-tl-md h-16 flex items-center justify-center bg-white border-t border-l"
         >
           {isMobileMenuOpen ? <FaX className="h-6 w-6" /> : <BiMenu className="h-6 w-6" />}
-          <span className="ml-2">{isMobileMenuOpen ? 'Close' : 'Menu'}</span>
+          {/* <span className="ml-2">{isMobileMenuOpen ? 'Close' : 'Menu'}</span> */}
         </Button>
       </div>
     </>
