@@ -58,14 +58,15 @@ const Header: React.FC = () => {
             <div className="w-full max-w-[1545px] flex justify-between items-center">
                 {/* Logo Section */}
                 <div className="w-[287px] flex justify-center">
-                    <a href="/" aria-label="Go to homepage">
+                    Pickem Paintball
+                    {/* <a href="/" aria-label="Go to homepage">
                         <img
                             loading="lazy"
                             src="..."
                             alt="Company logo"
                             className="object-contain max-w-[260px] min-w-[240px] w-full"
                         />
-                    </a>
+                    </a> */}
                 </div>
                 <div className="md:hidden absolute z-[99] top-4 right-5">
                     <Drawer />
