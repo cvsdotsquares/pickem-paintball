@@ -84,18 +84,19 @@ const Drawer: React.FC = () => {
 
 
                     <div className="w-[287px] flex justify-center">
-                        <img
+                        {/* <img
                             loading="lazy"
                             src="/logo.png"
                             alt="Company logo"
                             className="object-contain max-w-[283px] min-w-[240px] w-full"
-                        />
+                        /> */}
+                        Pickem Paintball
                     </div>
 
 
                 </div>
                 <ul className="flex flex-col gap-5 pt-10 pl-10 text-stone-800 font-bold text-xl border-l-[0.5px] m-5 ">
-                    <li className="p-2.5 transform-origin-left-5 will-change-transform-opacity-filter">
+                    {/* <li className="p-2.5 transform-origin-left-5 will-change-transform-opacity-filter">
                         <a href="tel:+14165647271" onClick={handleClose} className="text-blue-800 hover:underline">+1 (416) 564-7271</a>
                     </li>
                     <li className="p-2.5 transform-origin-left-5 will-change-transform-opacity-filter">
@@ -110,11 +111,11 @@ const Drawer: React.FC = () => {
                     </li>
                     <li className="p-2.5 transform-origin-left-5 will-change-transform-opacity-filter">
                         <a href="/#reviews" onClick={handleClose}>Testimonials</a>
-                    </li>
+                    </li> */}
                     <li className="p-2.5 transform-origin-left-5 will-change-transform-opacity-filter">
                         <div className=" flex ">
                             <button onClick={handleClose} className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-bold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50">
-                                <a href="/#contact">Contact Us</a>
+                                <a href="/dashboard">Login/Register</a>
                             </button>
                         </div>
                     </li>
@@ -124,7 +125,7 @@ const Drawer: React.FC = () => {
             </nav>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className=" w-12 h-12 rounded-full bg-transparent text-black font-bold p-1"
+                className=" w-12 h-12 rounded-full bg-transparent text-white font-bold p-1"
             >
                 {isOpen ? <RiCloseLine size={40} /> : <RiMenu4Line size={40} />}
             </button>
