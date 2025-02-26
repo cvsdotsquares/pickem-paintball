@@ -33,7 +33,7 @@ export const HeroSection = () => {
                 alt="Paintball players"
                 className="object-cover absolute inset-0 brightness-[0.7] contrast-[110%] saturate-[120%] size-full"
             />
-            <h1 className="relative m-auto whitespace-break-spaces justify-center items-center font-extrabold tracking-tight text-white/90 leading-loose max-w-screen md:text-8xl text-4xl z-10">
+            <h1 className="relative m-auto whitespace-break-spaces justify-center items-center font-extrabold tracking-tight text-white/90 leading-loose max-w-screen md:text-7xl text-4xl z-10">
                 Pick&apos;em Paintball{"\n"}
                 - Every pick matters - {"\n"}
                 - Sign up now -
