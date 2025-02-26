@@ -20,7 +20,7 @@ const TableData = ({ heading, data }: TableDataProps) => {
     const [hideCols, setHideCols] = useState<any>([]);
 
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: Object.keys(data[0] || {})[0] || 'player_id',
+        columnAccessor: Object.keys(data[0] || {})[0] || 'Player',
         direction: 'asc',
     });
 
@@ -91,7 +91,7 @@ const TableData = ({ heading, data }: TableDataProps) => {
 
     // Update hideCols if the columns change
     useEffect(() => {
-        setHideCols([]); // Start with all columns visible
+        setHideCols(["player_id"]); // Start with all columns visible
     }, [columns]);
 
     return (

@@ -32,11 +32,10 @@ export const NewsTicker: React.FC = () => {
     const x = useSpring(xRaw, { mass: 1, stiffness: 150, damping: 25 }); // Smoothened spring physics
 
     const tickerItems = [
-        "strategically and socially",
-        "stay alert and ready",
-        "prepare for the match",
-        "make draft picks",
-        "Paintball drafts are thrilling games.",
+        "Pick your squad",
+        "follow the action live",
+        "collect kills",
+        "climb the leaderboard",
     ];
 
     return (

@@ -38,7 +38,7 @@ export default function Sidebar() {
   }
 
   const menuItems = [
-    { href: "/dashboard", label: "Dashboard", icon: LuLayoutDashboard },
+    { href: "/dashboard", label: "Stats", icon: LuLayoutDashboard },
     { href: "/dashboard/picks", label: "Pick Em", icon: LuNotebookText },
   ]
 

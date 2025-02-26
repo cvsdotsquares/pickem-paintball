@@ -62,11 +62,10 @@ export default function Dashboard() {
         const querySnapshot = await getDocs(playersCollection);
 
         const players: any = querySnapshot.docs.map(doc => {
-          const { Cost, ...rest } = doc.data() as Record<string, any>;  // Destructure to exclude "Cost"
+          const { Cost, player_id, ...rest } = doc.data() as Record<string, any>;  // Destructure to exclude "Cost"
 
           // Define sort order
           const sortOrder = [
-            "player_id",
             "Player",
             "Team",
             "Rank",

@@ -19,7 +19,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
     const [yourPicks, setYourPicks] = useState<any[]>([]); // Stores players to be saved
 
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: Object.keys(data[0] || {})[0] || 'player_id',
+        columnAccessor: Object.keys(data[0] || {})[0] || 'Player',
         direction: 'asc',
     });
 
@@ -117,7 +117,11 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
     const columns = useMemo(() => {
         if (data.length === 0) return [];
         const keys = Object.keys(data[0]);
-        return keys.map((key) => {
+
+        // Filter out "player_id" from the keys
+        const filteredKeys = keys.filter(key => key !== 'player_id');
+
+        return filteredKeys.map((key) => {
             const formattedTitle = key
                 .replace(/([A-Z])/g, ' $1')
                 .replace(/_/g, ' ')
@@ -137,6 +141,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
         });
     }, [data]);
 
+
     // Handle checkbox click: add or remove a player from picks
     const handleSelectPlayer = (player: any) => {
         const isSelected = selectedPlayers.some((p) => p.player_id === player.player_id);
@@ -145,11 +150,11 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
             setSelectedPlayers((prev) => prev.filter((p) => p.player_id !== player.player_id));
             setYourPicks((prev) => prev.filter((p) => p.player_id !== player.player_id));
         } else {
-            if (yourPicks.length < 7) {
+            if (yourPicks.length < 8) {
                 setSelectedPlayers((prev) => [...prev, player]);
                 setYourPicks((prev) => [...prev, player]);
             } else {
-                alert('You can only pick 7 players.');
+                alert('You can only pick 8 players.');
             }
         }
     };
@@ -202,8 +207,8 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
                             records={paginatedData}
                             columns={[
                                 {
-                                    accessor: 'action',
-                                    title: 'Action',
+                                    accessor: 'picks',
+                                    title: 'Picks',
                                     render: (item: any) => (
                                         <input
                                             type="checkbox"
@@ -234,8 +239,18 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
             {/* Your Picks Section */}
             <div className="w-1/2">
                 <div className="bg-slate-100 p-4 rounded-lg overflow-hidden">
-                    <div className="text-lg font-semibold text-slate-600 flex flex-row items-center gap-3 justify-start my-auto">
-                        Your Picks
+                    <div className='flex flex-row mx-4 items-center justify-between'>
+                        <div className="text-lg font-semibold text-slate-600 flex flex-row items-center gap-3 justify-start my-auto">
+                            Your Picks
+                        </div>
+                        <div >
+                            <button
+                                onClick={handleSavePicks}
+                                className="bg-blue-500 text-white px-4 py-2 rounded"
+                            >
+                                Save
+                            </button>
+                        </div>
                     </div>
                     <div className="datatables w-auto p-4">
                         <div className="datatables w-auto p-4">
@@ -262,14 +277,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
                         </div>
 
                     </div>
-                    <div className="mt-4">
-                        <button
-                            onClick={handleSavePicks}
-                            className="bg-blue-500 text-white px-4 py-2 rounded"
-                        >
-                            Save Picks
-                        </button>
-                    </div>
+
                 </div>
             </div>
         </div>

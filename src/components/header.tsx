@@ -57,8 +57,8 @@ const Header: React.FC = () => {
         >
             <div className="w-full max-w-[1545px] flex justify-between items-center">
                 {/* Logo Section */}
-                <div className="w-[287px] flex justify-center">
-                    Pickem Paintball
+                <div className="w-[287px] flex justify-center font-bold text-white font">
+                    Pick'em Paintball
                     {/* <a href="/" aria-label="Go to homepage">
                         <img
                             loading="lazy"
@@ -74,7 +74,7 @@ const Header: React.FC = () => {
                 {/* Navigation */}
                 <nav className="flex-grow md:flex hidden justify-center max-w-[734px]">
                     <ul className="flex space-x-12 text-md font-black font-sans uppercase">
-                        {navItems.map((item, index) => (
+                        {/* {navItems.map((item, index) => (
                             <li key={index} className="whitespace-nowrap">
                                 <button
                                     onClick={() => handleNavigation(item.id)}
@@ -83,7 +83,7 @@ const Header: React.FC = () => {
                                     {item.label}
                                 </button>
                             </li>
-                        ))}
+                        ))} */}
                     </ul>
                 </nav>
 

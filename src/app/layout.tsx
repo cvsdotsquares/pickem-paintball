@@ -24,14 +24,14 @@ export default function RootLayout({
             <NextTopLoader
               color="white"
               initialPosition={0.3}
-              crawlSpeed={500}
+              crawlSpeed={800}
               height={6}
               crawl={true}
               showSpinner={true}
               easing="ease"
               speed={400}
 
-              zIndex={1600}
+              zIndex={5000}
               showAtBottom={false}
             />
             {children}
