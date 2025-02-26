@@ -58,7 +58,7 @@ const Header: React.FC = () => {
             <div className="w-full max-w-[1545px] flex justify-between items-center">
                 {/* Logo Section */}
                 <div className="w-[287px] flex justify-center font-bold text-white font">
-                    Pick'em Paintball
+                    Pick&apos;em Paintball
                     {/* <a href="/" aria-label="Go to homepage">
                         <img
                             loading="lazy"
