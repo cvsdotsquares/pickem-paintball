@@ -125,7 +125,7 @@ const RegisterPage: React.FC = () => {
                     </DialogHeader>
                     <div className="flex flex-col items-center space-y-4">
                         <p className="text-center text-black">
-                            Please confirm your email before logging in. We've sent you a verification link.
+                            Please confirm your email before logging in. We&apos;ve sent you a verification link.
                         </p>
                         <Button onClick={() => router.push('/login')} className="w-full bg-orange-600 hover:bg-orange-700 text-white">
                             Go to Login

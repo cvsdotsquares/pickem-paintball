@@ -125,7 +125,7 @@ const LoginPage: React.FC = () => {
                             Log in
                         </Button>
                         <div className="text-center text-sm text-gray-400">
-                            Don't have an account? <a href="/register" className="text-blue-600 hover:underline">Sign up</a>
+                            Don&apos;t have an account? <a href="/register" className="text-blue-600 hover:underline">Sign up</a>
                         </div>
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">
