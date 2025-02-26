@@ -9,6 +9,7 @@ import {
     sendEmailVerification
 } from "firebase/auth";
 import { auth, googleProvider } from "./firebaseClient";
+import { NextRouter } from "next/router";
 
 // Auth operations
 export const loginWithEmail = (email: string, password: string) => {
@@ -29,7 +30,7 @@ export const logout = () => {
     return signOut(auth);
 };
 
-export const checkEmailVerification = (router: any, setError: (message: string) => void) => {
+export const checkEmailVerification = (router: NextRouter, setError: (message: string) => void) => {
     onAuthStateChanged(auth, (user) => {
         if (user) {
             if (user.emailVerified) {
