@@ -240,7 +240,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
                                                 />
                                                 <label
                                                     htmlFor={uniqueId}
-                                                    className="cursor-pointer rounded-lg border-2 border-gray-200 py-1 px-2 font-bold text-gray-200 transition-colors duration-200 ease-in-out select-none peer-checked:bg-green-500 peer-checked:text-white peer-checked:border-green-500"
+                                                    className="cursor-pointer rounded-lg border-2 border-gray-200 bg-green-500 py-1 px-2 font-bold text-gray-200 transition-colors duration-200 ease-in-out select-none peer-checked:bg-red-500 peer-checked:text-white peer-checked:border-red-500"
                                                 >
                                                     {selectedPlayers.some((p) => p.player_id === item.player_id) ? "Remove" : "Pick"}
                                                 </label>
