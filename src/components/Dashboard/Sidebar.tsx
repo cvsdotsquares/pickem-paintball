@@ -47,7 +47,7 @@ export default function Sidebar() {
 
   return (
     <>
-      <div className={`fixed inset-y-0 left-0 z-40 ${isMobile ? (isMobileMenuOpen ? 'w-64' : 'w-0') : (isOpen ? 'w-64' : 'w-16')} bg-white border-r-2 rounded-xl my-2 shadow-md transition-all duration-300 ease-in-out ${isMobile ? (isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}`}>
+      <div className={`fixed inset-y-0 left-0 z-40 ${isMobile ? (isMobileMenuOpen ? 'w-64' : 'w-0') : (isOpen ? 'w-40' : 'w-16')} bg-white border-r-2 rounded-lg  shadow-md transition-all duration-300 ease-in-out ${isMobile ? (isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}`}>
         <div className="flex flex-col h-full">
           <div className="flex-1 overflow-y-auto">
             {!isMobile && (
@@ -92,7 +92,7 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <div className={`transition-all duration-300 ease-in-out ${isMobile ? 'ml-0' : (isOpen ? 'ml-64' : 'ml-16')} pb-16 md:pb-0`}>
+      <div className={`transition-all duration-300 ease-in-out ${isMobile ? 'ml-0' : (isOpen ? 'ml-40' : 'ml-16')} pb-16 md:pb-0`}>
       </div>
 
       <div className="md:hidden fixed top-0 right-0 z-50">

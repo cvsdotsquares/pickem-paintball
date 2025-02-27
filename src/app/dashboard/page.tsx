@@ -66,10 +66,18 @@ export default function Dashboard() {
 
           // Define sort order
           const sortOrder = [
-            "Player",
-            "Team",
             "Rank",
+            "Player",
             "Player Number",
+            "Team",
+            "Total Kills",
+            "Gunfight Kills",
+            "Kills on the Break",
+            "Movement Kills",
+            "Zone Coverage Kills",
+            "Preasure Kills",
+            "Trades",
+            "Unclassified Kills",
           ];
 
           // Sort the rest dynamically
@@ -110,7 +118,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex flex-col p-4 min-h-screen bg-white">
+    <div className="w-auto flex flex-col p-4 min-h-screen bg-white">
       {/* Dropdown to select event */}
       <div className="dropdown flex flex-row items-center text-gray-600 gap-3 md:text-lg text-sm">
         <span className="font-medium">Events</span>

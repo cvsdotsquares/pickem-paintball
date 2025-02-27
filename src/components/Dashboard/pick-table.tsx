@@ -15,9 +15,8 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
     const PAGE_SIZES = [10, 20, 30, 50, 100];
     const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
     const [search, setSearch] = useState('');
-    const [selectedPlayers, setSelectedPlayers] = useState<any[]>([]); // Stores selected player objects
-    const [yourPicks, setYourPicks] = useState<any[]>([]); // Stores players to be saved
-
+    const [selectedPlayers, setSelectedPlayers] = useState<any[]>([]);
+    const [yourPicks, setYourPicks] = useState<any[]>([]);
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
         columnAccessor: Object.keys(data[0] || {})[0] || 'Player',
         direction: 'asc',
@@ -26,10 +25,11 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
     const db = getFirestore();
     const { user } = useAuth();
 
-    // NEW: State to hold the live event ID
+    // Live event ID and total cost
     const [liveEventId, setLiveEventId] = useState<string | null>(null);
+    const [totalCost, setTotalCost] = useState(0);
 
-    // NEW: Fetch the live event (where status == "live") from Firestore
+    // Fetch live event from Firestore
     useEffect(() => {
         const fetchLiveEvent = async () => {
             try {
@@ -37,7 +37,6 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
                 const q = query(eventsRef, where('status', '==', 'live'));
                 const querySnapshot = await getDocs(q);
                 if (!querySnapshot.empty) {
-                    // Assume the first live event is the one to use
                     const liveEventDoc = querySnapshot.docs[0];
                     setLiveEventId(liveEventDoc.id);
                 }
@@ -45,11 +44,10 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
                 console.error('Error fetching live event:', error);
             }
         };
-
         fetchLiveEvent();
     }, [db]);
 
-    // On mount, fetch the saved picks from Firestore (if any) for the live event
+    // Fetch saved picks from Firebase on mount or when liveEventId updates
     useEffect(() => {
         if (user && liveEventId) {
             const fetchPicks = async () => {
@@ -58,15 +56,20 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
                     const userSnap = await getDoc(userRef);
                     if (userSnap.exists()) {
                         const userData = userSnap.data();
-                        if (userData.pickems && userData.pickems[liveEventId]) {
-                            // Expecting an array of player IDs
+                        // Log userData for debugging
+                        console.log('Fetched user data:', userData);
+                        if (userData.pickems && Array.isArray(userData.pickems[liveEventId])) {
                             const savedPicksIds: string[] = userData.pickems[liveEventId];
-                            // Get the full player objects from the provided data array
                             const savedPicks = data.filter((player) =>
                                 savedPicksIds.includes(player.player_id)
                             );
                             setYourPicks(savedPicks);
                             setSelectedPlayers(savedPicks);
+                            const total = savedPicks.reduce((sum, player) => {
+                                const cost = Number(player.cost);
+                                return sum + (isNaN(cost) ? 0 : cost);
+                            }, 0);
+                            setTotalCost(total);
                         }
                     }
                 } catch (error) {
@@ -77,7 +80,25 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
         }
     }, [user, db, data, liveEventId]);
 
-    // Filter, sort, and paginate the main table data
+    // Auto-save picks on change
+    useEffect(() => {
+        const autoSave = async () => {
+            if (user && liveEventId) {
+                const picksIds = yourPicks.map((player) => player.player_id);
+                try {
+                    await updateDoc(doc(db, 'users', user.uid), {
+                        [`pickems.${liveEventId}`]: picksIds,
+                    });
+                    console.log('Auto-saved picks:', picksIds);
+                } catch (error) {
+                    console.error('Error auto-saving picks:', error);
+                }
+            }
+        };
+        autoSave();
+    }, [yourPicks, user, liveEventId]);
+
+    // Filter, sort, and paginate data
     const filteredData = useMemo(() => {
         return data.filter((item) =>
             Object.keys(item).some((key) => {
@@ -99,8 +120,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
 
     const paginatedData = useMemo(() => {
         const from = (page - 1) * pageSize;
-        const to = from + pageSize;
-        return sortedData.slice(from, to);
+        return sortedData.slice(from, from + pageSize);
     }, [sortedData, page, pageSize]);
 
     const formatDate = (date: any) => {
@@ -113,88 +133,86 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
         return '';
     };
 
-    // Create column definitions dynamically
+    // Dynamically create column definitions
     const columns = useMemo(() => {
         if (data.length === 0) return [];
         const keys = Object.keys(data[0]);
-
-        // Filter out "player_id" from the keys
         const filteredKeys = keys.filter(key => key !== 'player_id');
-
         return filteredKeys.map((key) => {
             const formattedTitle = key
                 .replace(/([A-Z])/g, ' $1')
                 .replace(/_/g, ' ')
                 .replace(/(^\w|\s\w)/g, (m) => m.toUpperCase());
-
             const column: any = {
                 accessor: key,
                 title: formattedTitle,
                 sortable: true,
             };
-
             if (key === 'dob') {
                 column.render = (item: any) => formatDate(item[key]);
             }
-
+            if (key === 'Cost') {
+                column.render = (item: any) => formatCost(Number(item[key]));
+            }
             return column;
         });
     }, [data]);
 
 
-    // Handle checkbox click: add or remove a player from picks
+    // Handle player selection and update cost
     const handleSelectPlayer = (player: any) => {
         const isSelected = selectedPlayers.some((p) => p.player_id === player.player_id);
-
+        const playerCost = Number(player.Cost);
+        if (isNaN(playerCost)) {
+            console.error('Invalid player cost for:', player);
+            alert('This player has an invalid cost and cannot be selected.');
+            return;
+        }
         if (isSelected) {
             setSelectedPlayers((prev) => prev.filter((p) => p.player_id !== player.player_id));
             setYourPicks((prev) => prev.filter((p) => p.player_id !== player.player_id));
+            setTotalCost((prev) => prev - playerCost);
         } else {
-            if (yourPicks.length < 8) {
+            if (yourPicks.length < 8 && totalCost + playerCost <= 500000) {
                 setSelectedPlayers((prev) => [...prev, player]);
                 setYourPicks((prev) => [...prev, player]);
-            } else {
+                setTotalCost((prev) => prev + playerCost);
+            } else if (yourPicks.length >= 8) {
                 alert('You can only pick 8 players.');
+            } else {
+                alert('You have exceeded the budget of $500,000.');
             }
         }
     };
 
-    // Save the current picks to Firestore under users/{uid}/pickems/{liveEventId}
-    const handleSavePicks = async () => {
-        if (!user) {
-            alert('You must be logged in to save picks.');
-            return;
-        }
-        if (!liveEventId) {
-            alert('No live event available.');
-            return;
-        }
-        const picksIds = yourPicks.map((player) => player.player_id);
-        try {
-            await updateDoc(doc(db, 'users', user.uid), {
-                [`pickems.${liveEventId}`]: picksIds,
-            });
-            alert('Picks saved successfully!');
-        } catch (error) {
-            console.error('Error saving picks:', error);
-            alert('Error saving picks. Please try again.');
-        }
+    const formatCost = (value: number) => {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
     };
 
+    const [picksSortStatus, setPicksSortStatus] = useState<DataTableSortStatus>({
+        columnAccessor: columns[0]?.accessor || 'Player',
+        direction: 'asc',
+    });
+
+    const sortedYourPicks = useMemo(() => {
+        const sorted = sortBy(yourPicks, picksSortStatus.columnAccessor);
+        return picksSortStatus.direction === 'desc' ? sorted.reverse() : sorted;
+    }, [yourPicks, picksSortStatus]);
+
     return (
-        <div className="flex gap-10">
+        <div className="flex md:flex-row flex-col gap-10">
             {/* Main Table: Available Players */}
-            <div className="w-1/2">
+            <div className="w-auto">
                 <div className="bg-slate-100 p-4 rounded-lg overflow-hidden">
                     <div className="mb-5 flex flex-col gap-5 md:flex-row items-center md:justify-between">
-                        <div className="text-lg font-semibold text-slate-600 flex flex-row items-center gap-3 justify-start my-auto">
+                        <div className="text-lg font-semibold text-slate-600 flex flex-row items-center gap-3">
                             {heading}
                         </div>
                         <div className="flex">
                             <input
                                 type="text"
                                 className="form-input text-white placeholder-slate-300 bg-slate-600 border-black border rounded-md p-2 w-auto"
-                                placeholder="Search Player/Teams...."
+                                placeholder="Search Player/Teams..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                             />
@@ -203,19 +221,32 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
                     <div className="datatables w-auto">
                         <DataTable
                             highlightOnHover
-                            className="table-hover whitespace-nowrap rounded-lg"
+                            className="whitespace-nowrap rounded-lg"
                             records={paginatedData}
                             columns={[
                                 {
                                     accessor: 'picks',
                                     title: 'Picks',
-                                    render: (item: any) => (
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedPlayers.some((p) => p.player_id === item.player_id)}
-                                            onChange={() => handleSelectPlayer(item)}
-                                        />
-                                    ),
+                                    render: (item: any) => {
+                                        const uniqueId = `choose-me-${item.player_id}`;
+                                        return (
+                                            <div className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    id={uniqueId}
+                                                    checked={selectedPlayers.some((p) => p.player_id === item.player_id)}
+                                                    onChange={() => handleSelectPlayer(item)}
+                                                    className="peer hidden"
+                                                />
+                                                <label
+                                                    htmlFor={uniqueId}
+                                                    className="cursor-pointer rounded-lg border-2 border-gray-200 py-1 px-2 font-bold text-gray-200 transition-colors duration-200 ease-in-out select-none peer-checked:bg-green-500 peer-checked:text-white peer-checked:border-green-500"
+                                                >
+                                                    {selectedPlayers.some((p) => p.player_id === item.player_id) ? "Remove" : "Pick"}
+                                                </label>
+                                            </div>
+                                        );
+                                    },
                                 },
                                 ...columns,
                             ]}
@@ -228,56 +259,63 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
                             sortStatus={sortStatus}
                             onSortStatusChange={setSortStatus}
                             minHeight={200}
-                            paginationText={({ from, to, totalRecords }) =>
-                                `Showing ${from} to ${to} of ${totalRecords} entries`
-                            }
+                            paginationText={({ from, to, totalRecords }) => `${from} to ${to} of ${totalRecords}`}
                         />
                     </div>
                 </div>
             </div>
 
             {/* Your Picks Section */}
-            <div className="w-1/2">
+            <div className="w-auto">
                 <div className="bg-slate-100 p-4 rounded-lg overflow-hidden">
-                    <div className='flex flex-row mx-4 items-center justify-between'>
-                        <div className="text-lg font-semibold text-slate-600 flex flex-row items-center gap-3 justify-start my-auto">
+                    <div className="flex flex-row mx-4 items-center justify-between">
+                        <div className="text-lg font-semibold text-slate-600 flex flex-row items-center gap-3">
                             Your Picks
                         </div>
-                        <div >
-                            <button
-                                onClick={handleSavePicks}
-                                className="bg-blue-500 text-white px-4 py-2 rounded"
-                            >
-                                Save
-                            </button>
+                        <div className="text-lg font-semibold text-slate-600">
+                            Remaining Budget: {formatCost(500000 - totalCost)}
                         </div>
                     </div>
-                    <div className="datatables w-auto p-4">
-                        <div className="datatables w-auto p-4">
-                            <DataTable
-                                highlightOnHover
-                                className="table-hover whitespace-nowrap rounded-lg"
-                                records={yourPicks}
-                                columns={columns}
-                                totalRecords={yourPicks.length}
-                                minHeight={200}
-                                withTableBorder
-                                striped
-                                stripedColor="gray"
-                                // Dummy pagination props for a table with no pagination needs:
-                                page={1}
-                                onPageChange={() => { }}
-                                recordsPerPage={yourPicks.length || 1}
-                                onRecordsPerPageChange={() => { }}
-                                recordsPerPageOptions={[yourPicks.length || 1]}
-                                paginationText={({ from, to, totalRecords }) =>
-                                    `Showing ${from} to ${to} of ${totalRecords} entries`
-                                }
-                            />
+                    <div className="datatables p-4 w-auto">
+                        <div className="table-responsive mb-5">
+                            <table className="table-striped w-auto p-4">
+                                <thead>
+                                    <tr>
+                                        {columns.map((column) => (
+                                            <th
+                                                key={column.accessor}
+                                                className="p-3 text-justify whitespace-nowrap items-center cursor-pointer"
+                                                onClick={() =>
+                                                    setPicksSortStatus((prev) => ({
+                                                        columnAccessor: column.accessor,
+                                                        direction: prev.columnAccessor === column.accessor && prev.direction === 'asc' ? 'desc' : 'asc',
+                                                    }))
+                                                }
+                                            >
+                                                {column.title}{' '}
+                                                {picksSortStatus.columnAccessor === column.accessor ? (
+                                                    picksSortStatus.direction === 'asc' ? <span className="ml-1">↑</span> : <span className="ml-1">↓</span>
+                                                ) : (
+                                                    <span className="ml-1">↕</span>
+                                                )}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {sortedYourPicks.map((pick, index) => (
+                                        <tr key={index}>
+                                            {columns.map((column) => (
+                                                <td key={column.accessor} className="whitespace-break spaces">
+                                                    {column.render ? column.render(pick) : pick[column.accessor]}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-
                     </div>
-
                 </div>
             </div>
         </div>

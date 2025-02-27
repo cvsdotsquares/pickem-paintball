@@ -58,11 +58,11 @@ export default function Pickems() {
 
         // Define sort order
         const sortOrder = [
-          "player_id",
+
           "Player",
           "Team",
           "Player Number",
-          // "Cost"
+          "Cost"
         ];
 
         // Reference to players collection

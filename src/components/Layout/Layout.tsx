@@ -14,9 +14,9 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <div className="flex flex-row w-full">
+    <div className="flex flex-row w-auto">
       <Sidebar />
-      <main className="flex-1 overflow-hidden ">
+      <main className="flex-1 overflow-hidden w-auto">
         <MantineProvider defaultColorScheme="light">{children}</MantineProvider>
       </main>
 
