@@ -49,24 +49,22 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
 
     // Fetch saved picks from Firebase on mount or when liveEventId updates
     useEffect(() => {
-        if (user && liveEventId) {
+        if (user && liveEventId && yourPicks.length === 0) {
             const fetchPicks = async () => {
                 try {
                     const userRef = doc(db, 'users', user.uid);
                     const userSnap = await getDoc(userRef);
                     if (userSnap.exists()) {
                         const userData = userSnap.data();
-                        // Log userData for debugging
-                        console.log('Fetched user data:', userData);
                         if (userData.pickems && Array.isArray(userData.pickems[liveEventId])) {
-                            const savedPicksIds: string[] = userData.pickems[liveEventId];
+                            const savedPicksIds = userData.pickems[liveEventId];
                             const savedPicks = data.filter((player) =>
                                 savedPicksIds.includes(player.player_id)
                             );
                             setYourPicks(savedPicks);
                             setSelectedPlayers(savedPicks);
                             const total = savedPicks.reduce((sum, player) => {
-                                const cost = Number(player.cost);
+                                const cost = Number(player.Cost); // Make sure to use 'Cost' (capital C)
                                 return sum + (isNaN(cost) ? 0 : cost);
                             }, 0);
                             setTotalCost(total);
@@ -78,25 +76,8 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
             };
             fetchPicks();
         }
-    }, [user, db, data, liveEventId]);
+    }, [user, liveEventId, db, data, yourPicks.length]);
 
-    // Auto-save picks on change
-    useEffect(() => {
-        const autoSave = async () => {
-            if (user && liveEventId) {
-                const picksIds = yourPicks.map((player) => player.player_id);
-                try {
-                    await updateDoc(doc(db, 'users', user.uid), {
-                        [`pickems.${liveEventId}`]: picksIds,
-                    });
-                    console.log('Auto-saved picks:', picksIds);
-                } catch (error) {
-                    console.error('Error auto-saving picks:', error);
-                }
-            }
-        };
-        autoSave();
-    }, [yourPicks, user, liveEventId]);
 
     // Filter, sort, and paginate data
     const filteredData = useMemo(() => {
@@ -160,7 +141,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
 
 
     // Handle player selection and update cost
-    const handleSelectPlayer = (player: any) => {
+    const handleSelectPlayer = async (player: any) => {
         const isSelected = selectedPlayers.some((p) => p.player_id === player.player_id);
         const playerCost = Number(player.Cost);
         if (isNaN(playerCost)) {
@@ -168,19 +149,44 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
             alert('This player has an invalid cost and cannot be selected.');
             return;
         }
+
+        let updatedSelectedPlayers = [];
+        let updatedYourPicks = [];
+        let updatedTotalCost = totalCost;
+
         if (isSelected) {
-            setSelectedPlayers((prev) => prev.filter((p) => p.player_id !== player.player_id));
-            setYourPicks((prev) => prev.filter((p) => p.player_id !== player.player_id));
-            setTotalCost((prev) => prev - playerCost);
+            updatedSelectedPlayers = selectedPlayers.filter((p) => p.player_id !== player.player_id);
+            updatedYourPicks = yourPicks.filter((p) => p.player_id !== player.player_id);
+            updatedTotalCost = totalCost - playerCost;
         } else {
             if (yourPicks.length < 8 && totalCost + playerCost <= 500000) {
-                setSelectedPlayers((prev) => [...prev, player]);
-                setYourPicks((prev) => [...prev, player]);
-                setTotalCost((prev) => prev + playerCost);
+                updatedSelectedPlayers = [...selectedPlayers, player];
+                updatedYourPicks = [...yourPicks, player];
+                updatedTotalCost = totalCost + playerCost;
             } else if (yourPicks.length >= 8) {
                 alert('You can only pick 8 players.');
+                return;
             } else {
                 alert('You have exceeded the budget of $500,000.');
+                return;
+            }
+        }
+
+        // Update the local state
+        setSelectedPlayers(updatedSelectedPlayers);
+        setYourPicks(updatedYourPicks);
+        setTotalCost(updatedTotalCost);
+
+        // Immediately save the updated picks to Firebase
+        if (user && liveEventId) {
+            const picksIds = updatedYourPicks.map((player) => player.player_id);
+            try {
+                await updateDoc(doc(db, 'users', user.uid), {
+                    [`pickems.${liveEventId}`]: picksIds,
+                });
+                console.log('Saved picks:', picksIds);
+            } catch (error) {
+                console.error('Error saving picks:', error);
             }
         }
     };
