@@ -1,6 +1,6 @@
 table>thead>tr>th,
 table>tbody>tr>td {
-    @apply py-3 px-4 text-sm whitespace-break-spaces;
+    @apply py-3 px-4 text-xs whitespace-break-spaces;
 }
 
 table>thead>tr>th.mantine-187dsit {

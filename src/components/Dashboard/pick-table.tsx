@@ -118,7 +118,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
     const columns = useMemo(() => {
         if (data.length === 0) return [];
         const keys = Object.keys(data[0]);
-        const filteredKeys = keys.filter(key => key !== 'player_id');
+        const filteredKeys = keys.filter(key => key !== 'player_id' && key !== 'Player Number');
         return filteredKeys.map((key) => {
             const formattedTitle = key
                 .replace(/([A-Z])/g, ' $1')
@@ -208,7 +208,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
     return (
         <div className="flex md:flex-row flex-col gap-10">
             {/* Main Table: Available Players */}
-            <div className="w-auto">
+            <div className="md:w-[80vw]">
                 <div className="bg-slate-100 p-4 rounded-lg overflow-hidden">
                     <div className="mb-5 flex flex-col gap-5 md:flex-row items-center md:justify-between">
                         <div className="text-lg font-semibold text-slate-600 flex flex-row items-center gap-3">
@@ -224,10 +224,10 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
                             />
                         </div>
                     </div>
-                    <div className="datatables w-auto">
+                    <div className="datatables w-auto ">
                         <DataTable
                             highlightOnHover
-                            className="whitespace-nowrap rounded-lg"
+                            className="whitespace-nowrap text-xs rounded-lg"
                             records={paginatedData}
                             columns={[
                                 {
@@ -272,17 +272,17 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
             </div>
 
             {/* Your Picks Section */}
-            <div className="w-auto">
-                <div className="bg-slate-100 p-4 rounded-lg overflow-hidden">
+            <div className="w-auto md:max-w-sm">
+                <div className="bg-slate-100 pt-3 rounded-lg overflow-hidden">
                     <div className="flex flex-row mx-4 items-center justify-between">
-                        <div className="text-lg font-semibold text-slate-600 flex flex-row items-center gap-3">
+                        <div className="text-md font-semibold text-slate-600 flex flex-row items-center gap-3">
                             Your Picks
                         </div>
-                        <div className="text-lg font-semibold text-slate-600">
+                        <div className="text-md font-semibold text-slate-600">
                             Remaining Budget: {formatCost(500000 - totalCost)}
                         </div>
                     </div>
-                    <div className="datatables p-4 w-auto">
+                    <div className="datatables px-4 pt-4 w-auto">
                         <div className="table-responsive mb-5">
                             <table className="table-striped w-auto p-4">
                                 <thead>
@@ -290,7 +290,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
                                         {columns.map((column) => (
                                             <th
                                                 key={column.accessor}
-                                                className="p-3 text-justify whitespace-nowrap items-center cursor-pointer"
+                                                className="p-3 text-justify text-xs whitespace-nowrap items-center cursor-pointer"
                                                 onClick={() =>
                                                     setPicksSortStatus((prev) => ({
                                                         columnAccessor: column.accessor,
@@ -312,7 +312,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
                                     {sortedYourPicks.map((pick, index) => (
                                         <tr key={index}>
                                             {columns.map((column) => (
-                                                <td key={column.accessor} className="whitespace-break spaces">
+                                                <td key={column.accessor} className="whitespace-break-spaces text-xs">
                                                     {column.render ? column.render(pick) : pick[column.accessor]}
                                                 </td>
                                             ))}
