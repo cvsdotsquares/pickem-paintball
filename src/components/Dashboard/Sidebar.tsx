@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LuLayoutDashboard, LuLogOut, LuNotebookText } from 'react-icons/lu'
+import { LuLayers, LuLayers3, LuLayoutDashboard, LuLogOut, LuNotebookText } from 'react-icons/lu'
 import { Button } from '../ui/button'
 import { BiChevronLeft, BiChevronRight, BiMenu } from 'react-icons/bi'
 import { FaX } from 'react-icons/fa6'
@@ -40,6 +40,8 @@ export default function Sidebar() {
   const menuItems = [
     { href: "/dashboard", label: "Stats", icon: LuLayoutDashboard },
     { href: "/dashboard/picks", label: "Pick Em", icon: LuNotebookText },
+    { href: "/dashboard/leaderboard", label: "Leaderboard", icon: LuLayers3 },
+
   ]
 
   const toggleSidebar = () => setIsOpen(!isOpen)
@@ -80,7 +82,7 @@ export default function Sidebar() {
           <div className={`flex-shrink-0 flex flex-col border-t border-gray-200 p-4 ${isMobile && !isMobileMenuOpen ? 'hidden' : ''}`}>
             <Button
               variant="destructive"
-              className={`flex-shrink-0 group block ${!isOpen && !isMobile ? 'p-0 h-8 w-8 mx-auto' : 'w-full'}`}
+              className={`flex-shrink-0 group border-gray-400 border block ${!isOpen && !isMobile ? 'p-0 h-8 w-8 mx-auto' : 'w-full'}`}
               onClick={handleLogout}
             >
               <div className={`flex items-center justify-center h-full ${isMobile || isOpen ? '' : 'w-full'}`}>

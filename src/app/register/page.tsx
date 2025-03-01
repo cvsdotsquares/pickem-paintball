@@ -4,15 +4,17 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loginWithGoogle, registerWithEmail } from '@/src/lib/auth';
 import { signOut } from 'firebase/auth';
-import { auth } from '@/src/lib/firebaseClient';
+import { app, auth } from '@/src/lib/firebaseClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { Input } from '@/src/components/ui/input';
 import { Button } from '@/src/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/src/components/ui/dialog';
-
-
+import { setDoc, doc } from 'firebase/firestore';
+import { db } from '@/src/lib/firebaseClient';
+import { getFunctions, httpsCallable } from "firebase/functions";
 
 const RegisterPage: React.FC = () => {
+    const [name, setName] = useState<string>(''); // Added state for name
     const [email, setEmail] = useState<string>('');
     const [password, setPassword] = useState<string>('');
     const [error, setError] = useState<string>('');
@@ -22,7 +24,12 @@ const RegisterPage: React.FC = () => {
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await registerWithEmail(email, password);
+            const userCredential = await registerWithEmail(email, password);
+            const user = userCredential.user;
+
+            // Save the name to Firestore under the user profile
+            await setDoc(doc(db, 'users', user.uid), { name, email });
+
             setIsDialogOpen(true);
             await signOut(auth);
         } catch (err) {
@@ -32,12 +39,26 @@ const RegisterPage: React.FC = () => {
 
     const handleGoogleLogin = async () => {
         try {
-            await loginWithGoogle();
+            const userCredential = await loginWithGoogle();
+            const user = userCredential.user;
+
+            // Extract name and email from Google account
+            const { displayName, email } = user;
+
+            // Save or update the user in Firestore
+            if (displayName) {
+                await setDoc(doc(db, 'users', user.uid), { name: displayName, email }, { merge: true });
+            }
+
             router.push('/dashboard');
         } catch (err) {
             setError('Failed to log in with Google.');
         }
     };
+
+
+
+
 
     return (
         <div className="flex items-center justify-center min-h-screen">
@@ -49,11 +70,18 @@ const RegisterPage: React.FC = () => {
             />
             <Card className="w-full max-w-md bg-transparent backdrop-blur-md text-white">
                 <CardHeader>
-                    <CardTitle className="text-2xl font-bold text-center  uppercase">Register to play!</CardTitle>
+                    <CardTitle className="text-2xl font-bold text-center uppercase">Register to play!</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleRegister} className="space-y-4">
                         <div className="space-y-2">
+                            <Input
+                                type="text"
+                                placeholder="Name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
+                            />
                             <Input
                                 type="email"
                                 placeholder="Email"
@@ -74,19 +102,20 @@ const RegisterPage: React.FC = () => {
                             Register
                         </Button>
                         <div className="text-center text-sm text-gray-400">
-                            Already have an account? <a href="/login" className="text-blue-600 hover:underline">Log in</a>
+                            Already have an account?{' '}
+                            <a href="/login" className="text-blue-600 hover:underline">Log in</a>
                         </div>
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">
                                 <span className="w-full border-t border-gray-300" />
                             </div>
                             <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-white px-2 rounded text-black font-mono font-extrabold text-xl">OR</span>
+                                <span className="bg-white px-2 rounded text-black font-inter font-extrabold text-xl">OR</span>
                             </div>
                         </div>
                         <Button
                             type="button"
-                            onClick={handleGoogleLogin}
+                            onClick={() => handleGoogleLogin()}
                             className="w-full bg-white text-black border border-gray-300 hover:bg-gray-100"
                         >
                             <svg

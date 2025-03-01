@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
-import { GiGooeyImpact } from "react-icons/gi";
+import { GiGooeyImpact, GiGooeyMolecule } from "react-icons/gi";
 import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 
 interface TickerItemProps {
@@ -11,9 +11,9 @@ interface TickerItemProps {
 const TickerItem: React.FC<TickerItemProps> = ({ text }) => {
     return (
         <div className="flex gap-6 items-center p-2 whitespace-nowrap">
-            <GiGooeyImpact
-                color="white"
-                className="bg-black rounded-full h-[26px] w-[42px] max-sm:h-[20px] max-sm:w-[20px]"
+            <GiGooeyMolecule
+                color="black"
+                className=" h-[32px] w-[50px] max-sm:h-[20px] max-sm:w-[20px]"
             />
             <span className="text-black font-bold">{text}</span>
         </div>

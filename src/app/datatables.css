@@ -59,11 +59,11 @@ table tr .mantine-Checkbox-root {
 }
 
 .datatables table {
-    @apply font-mono text-black;
+    @apply font-inter text-black;
 }
 
 .datatables .mantine-Text-root {
-    @apply flex-none font-mono text-sm font-medium;
+    @apply flex-none font-inter text-sm font-medium;
 }
 
 .datatables thead tr th .mantine-Group-root.mantine-1d34tqu div>svg {
@@ -127,7 +127,7 @@ table tr .mantine-Checkbox-root {
 }
 
 .mantine-Menu-item .mantine-Text-root {
-    @apply text-center font-mono text-sm;
+    @apply text-center font-inter text-sm;
 }
 
 .mantine-Menu-item {

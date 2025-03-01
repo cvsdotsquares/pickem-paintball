@@ -118,10 +118,10 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="w-auto flex flex-col p-4 min-h-screen bg-white">
+    <div className="w-auto flex flex-col p-4 min-h-screen font-inter bg-white">
       {/* Dropdown to select event */}
       <div className="dropdown flex flex-row items-center text-gray-600 gap-3 md:text-lg text-sm">
-        <span className="font-medium">Events</span>
+        <span className="font-medium ">Events</span>
         <FaGreaterThan size={16} />
         <span>
           {selectedEvent?.name}{" "}

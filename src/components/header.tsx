@@ -73,7 +73,7 @@ const Header: React.FC = () => {
                 </div>
                 {/* Navigation */}
                 <nav className="flex-grow md:flex hidden justify-center max-w-[734px]">
-                    <ul className="flex space-x-12 text-md font-black font-sans uppercase">
+                    <ul className="flex space-x-12 text-md font-black font-inter uppercase">
                         {/* {navItems.map((item, index) => (
                             <li key={index} className="whitespace-nowrap">
                                 <button
@@ -91,7 +91,7 @@ const Header: React.FC = () => {
                 <div className="md:flex hidden text-center">
                     <Button
                         onClick={handleGoToApp}
-                        className="bg-white text-black hover:bg-gray-300 font-extrabold font-mono    text-lg py-2 px-6 transition-colors duration-300"
+                        className="bg-white text-black hover:bg-gray-300 font-extrabold font-inter    text-lg py-2 px-6 transition-colors duration-300"
                     >
                         Register/Login
                     </Button>

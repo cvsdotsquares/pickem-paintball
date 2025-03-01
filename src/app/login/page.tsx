@@ -132,7 +132,7 @@ const LoginPage: React.FC = () => {
                                 <span className="w-full border-t border-gray-300" />
                             </div>
                             <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-white px-2 rounded text-black font-mono font-extrabold text-xl">OR</span>
+                                <span className="bg-white px-2 rounded text-black font-inter font-extrabold text-xl">OR</span>
                             </div>
                         </div>
                         <Button
