@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { db } from "@/src/lib/firebaseClient";
 import { collection, getDocs } from "firebase/firestore";
 import { Event } from "../page";
-import { FaGreaterThan } from "react-icons/fa6";
+import { DataTable } from "mantine-datatable";
 
 interface User {
   id: string;
@@ -16,6 +16,11 @@ export default function Leaderboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [liveEvent, setLiveEvent] = useState<Event | null>(null);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const PAGE_SIZES = [10, 50, 100];
 
   // Fetch all events from Firebase
   useEffect(() => {
@@ -31,8 +36,6 @@ export default function Leaderboard() {
         }));
         const activeEvent = events.find(e => e.status === "live");
         setLiveEvent(activeEvent || null);
-
-        // Select the first live event by default, or fallback to the first
       } catch (error: any) {
         console.error("Error fetching events:", error.message);
       }
@@ -44,21 +47,18 @@ export default function Leaderboard() {
   useEffect(() => {
     async function fetchLeaderboardData() {
       try {
-        console.log("Fetching top 15 users for leaderboard...");
+        console.log("Fetching users for leaderboard...");
         const usersCollection = collection(db, "users");
         const querySnapshot = await getDocs(usersCollection);
 
-        // Map data and initialize defaults if values are missing
         const userData: User[] = querySnapshot.docs.map((doc) => ({
           id: doc.id,
-          displayName: doc.get("displayName") || "Unknown User", // Default display name
-          totalPoints: doc.get("total_points") ?? 0, // Default to 0 points
+          displayName: doc.get("displayName") || "Unknown User",
+          totalPoints: doc.get("total_points") ?? 0,
         }));
 
-        // Sort users by total points in descending order and take the top 15
-        const sortedUsers = userData
-          .sort((a, b) => b.totalPoints - a.totalPoints)
-          .slice(0, 15);
+        // Sort users by points in descending order without slicing to only 15 users.
+        const sortedUsers = userData.sort((a, b) => b.totalPoints - a.totalPoints);
 
         setUsers(sortedUsers);
       } catch (error) {
@@ -75,60 +75,73 @@ export default function Leaderboard() {
     return <p className="text-center mt-4">Loading leaderboard...</p>;
   }
 
+  // Slice the users array for current page display
+  const paginatedUsers = users.slice((page - 1) * pageSize, page * pageSize);
+
   return (
-    <div className=" flex flex-col p-4 min-h-screen font-inter bg-white">
-      <h1 className="text-2xl font-bold m-4 text-left">Leaderboard </h1>
+    <div className="flex flex-col p-4 min-h-screen font-inter bg-white">
+      <h1 className="text-2xl font-bold m-4 text-left">Leaderboard</h1>
       <div className="flex flex-row w-full justify-evenly m-auto">
-        <div className="w-1/2 rounded-lg p-4 m-4 bg-slate-200 overflow-x-auto">
+        <div className=" w-full  p-4 m-4 bg-slate-200 rounded-lg overflow-hidden">
           {liveEvent ? (
-            <>
-              <span >
-                {liveEvent.name}{" "}
-                <span className="text-green-600">(live)</span>
-              </span>
-            </>
+            <span className="ml-3 ">
+              {liveEvent.name}{" "}
+              <span className="text-green-600">(live)</span>
+            </span>
           ) : (
             <span className="text-gray-400">(No live event)</span>
           )}
-          <table className=" border-collapse border border-gray-300">
-            <thead className="bg-gray-100 ">
-              <tr>
-                <th className="border-b border-l border-gray-300 px-4 py-2 text-left bg-slate-600 text-white">Rank</th>
-                <th className="border-b border-l border-gray-300 px-4 py-2 text-left bg-slate-600 text-white">Name</th>
-                <th className="border-b border-l border-gray-300 px-4 py-2 text-left bg-slate-600 text-white">Points</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user, index) => (
-                <tr key={user.id} className={`${index % 2 === 0 ? "bg-gray-50" : "bg-white"} text-balance whitespace-break-spaces`}>
-                  <td className="border-b border-gray-300 px-4 py-2">{index + 1}</td>
-                  <td className="border-b border-gray-300 px-4 py-2">{user.displayName}</td>
-                  <td className="border-b border-gray-300 px-4 py-2">{user.totalPoints}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="datatables m-2">
+            <DataTable
+              className="rounded-lg"
+              records={paginatedUsers}
+              columns={[
+                {
+                  accessor: "rank",
+                  title: "Rank",
+                  render: (record, index) => (page - 1) * pageSize + index + 1
+                },
+                { accessor: "displayName", title: "Name" },
+                { accessor: "totalPoints", title: "Points" },
+              ]}
+              totalRecords={users.length}
+              recordsPerPage={pageSize}
+              page={page}
+              onPageChange={setPage}
+              recordsPerPageOptions={PAGE_SIZES}
+              onRecordsPerPageChange={(newPageSize: number) => {
+                setPageSize(newPageSize);
+                setPage(1);
+              }}
+            />
+          </div>
         </div>
-        <div className="w-1/2 rounded-lg p-4 m-4 bg-slate-200 overflow-x-auto">
-          All Time Leaderboard
-          <table className="table border-collapse border border-gray-300">
-            <thead className="bg-gray-100 ">
-              <tr>
-                <th className="border-b border-l border-gray-300 px-4 py-2 text-left bg-slate-600 text-white">Rank</th>
-                <th className="border-b border-l border-gray-300 px-4 py-2 text-left bg-slate-600 text-white">Name</th>
-                <th className="border-b border-l border-gray-300 px-4 py-2 text-left bg-slate-600 text-white">Points</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user, index) => (
-                <tr key={user.id} className={`${index % 2 === 0 ? "bg-gray-50" : "bg-white"} text-balance whitespace-break-spaces`}>
-                  <td className="border-b  border-gray-300 px-4 py-2">{index + 1}</td>
-                  <td className="border-b border-gray-300 px-4 py-2">{user.displayName}</td>
-                  <td className="border-b border-gray-300 px-4 py-2">{user.totalPoints}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className=" w-full p-4 m-4 bg-slate-200 rounded-lg overflow-hidden">
+          <span className="ml-3 "> All Time Leaderboards</span>
+          <div className="datatables m-2">
+            <DataTable
+              className="rounded-lg"
+              records={paginatedUsers}
+              columns={[
+                {
+                  accessor: "rank",
+                  title: "Rank",
+                  render: (record, index) => (page - 1) * pageSize + index + 1
+                },
+                { accessor: "displayName", title: "Name" },
+                { accessor: "totalPoints", title: "Points" },
+              ]}
+              totalRecords={users.length}
+              recordsPerPage={pageSize}
+              page={page}
+              onPageChange={setPage}
+              recordsPerPageOptions={PAGE_SIZES}
+              onRecordsPerPageChange={(newPageSize: number) => {
+                setPageSize(newPageSize);
+                setPage(1);
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>

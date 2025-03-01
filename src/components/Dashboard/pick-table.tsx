@@ -192,7 +192,12 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
     };
 
     const formatCost = (value: number) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(value);
     };
 
     const [picksSortStatus, setPicksSortStatus] = useState<DataTableSortStatus>({
@@ -209,7 +214,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
         <div className="flex md:flex-row flex-col gap-10">
             {/* Main Table: Available Players */}
             <div className="md:w-[80vw]">
-                <div className="bg-slate-100 p-4 rounded-lg overflow-hidden">
+                <div className="bg-slate-100 p-4 rounded-lg  max-w-3xl overflow-hidden">
                     <div className="mb-5 flex flex-col gap-5 md:flex-row items-center md:justify-between">
                         <div className="text-lg font-semibold text-slate-600 flex flex-row items-center gap-3">
                             {heading}
@@ -224,7 +229,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
                             />
                         </div>
                     </div>
-                    <div className="datatables w-auto ">
+                    <div className="datatables w-auto">
                         <DataTable
                             highlightOnHover
                             className="whitespace-nowrap text-xs rounded-lg"
@@ -272,19 +277,26 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
             </div>
 
             {/* Your Picks Section */}
-            <div className="w-auto md:max-w-sm">
+            <div className="w-full">
                 <div className="bg-slate-100 pt-3 rounded-lg overflow-hidden">
                     <div className="flex flex-row mx-4 items-center justify-between">
                         <div className="text-md font-semibold text-slate-600 flex flex-row items-center gap-3">
                             Your Picks
                         </div>
-                        <div className="text-md font-semibold text-slate-600">
-                            Remaining Budget: {formatCost(500000 - totalCost)}
+                        <div className="flex flex-col text-slate-600">
+                            <div className="flex justify-between">
+                                <span className="font-medium">Remaining Budget:</span>
+                                <span>{formatCost(500000 - totalCost)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="font-medium">Remaining Picks:</span>
+                                <span>{8 - yourPicks.length}</span>
+                            </div>
                         </div>
                     </div>
-                    <div className="datatables px-4 pt-4 w-auto">
+                    <div className="datatables px-4 pt-4 w-full">
                         <div className="table-responsive mb-5">
-                            <table className="table-striped w-auto p-4">
+                            <table className="table-striped p-4">
                                 <thead>
                                     <tr>
                                         {columns.map((column) => (
@@ -306,6 +318,8 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
                                                 )}
                                             </th>
                                         ))}
+                                        {/* Add a column for Remove button */}
+                                        <th className="p-3 text-xs">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -316,6 +330,15 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
                                                     {column.render ? column.render(pick) : pick[column.accessor]}
                                                 </td>
                                             ))}
+                                            {/* Add Remove button in Action column */}
+                                            <td className="whitespace-nowrap text-center">
+                                                <button
+                                                    className="bg-red-500 text-white px-2 text-xs font-bold py-1.5 rounded-lg hover:bg-red-600"
+                                                    onClick={() => handleSelectPlayer(pick)}
+                                                >
+                                                    Remove
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

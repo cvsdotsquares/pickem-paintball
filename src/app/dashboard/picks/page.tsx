@@ -103,10 +103,10 @@ export default function Pickems() {
     <div className="flex flex-col p-4 min-h-screen bg-white">
       {/* Dropdown to select event */}
       <div className="dropdown flex flex-row items-center text-gray-600 gap-3 text-lg">
-        <span className="font-medium">Picks</span>
+
         {liveEvent ? (
           <>
-            <FaGreaterThan size={16} />
+
             <span>
               {liveEvent.name}{" "}
               <span className="text-green-600">(live)</span>

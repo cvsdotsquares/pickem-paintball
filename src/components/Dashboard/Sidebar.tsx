@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LuLayers, LuLayers3, LuLayoutDashboard, LuLogOut, LuNotebookText } from 'react-icons/lu'
+import { LuGitGraph, LuLayers, LuLayers3, LuLayoutDashboard, LuLogOut, LuNotebookText, LuTrendingUp } from 'react-icons/lu'
 import { Button } from '../ui/button'
 import { BiChevronLeft, BiChevronRight, BiMenu } from 'react-icons/bi'
 import { FaX } from 'react-icons/fa6'
@@ -38,9 +38,9 @@ export default function Sidebar() {
   }
 
   const menuItems = [
-    { href: "/dashboard", label: "Stats", icon: LuLayoutDashboard },
-    { href: "/dashboard/picks", label: "Pick Em", icon: LuNotebookText },
-    { href: "/dashboard/leaderboard", label: "Leaderboard", icon: LuLayers3 },
+    { href: "/dashboard", label: "Stats", icon: LuNotebookText },
+    { href: "/dashboard/picks", label: "Pick Em", icon: LuLayoutDashboard },
+    { href: "/dashboard/leaderboard", label: "Leaderboard", icon: LuTrendingUp },
 
   ]
 
