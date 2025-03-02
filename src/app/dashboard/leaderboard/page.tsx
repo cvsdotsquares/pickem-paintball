@@ -53,7 +53,7 @@ export default function Leaderboard() {
 
         const userData: User[] = querySnapshot.docs.map((doc) => ({
           id: doc.id,
-          displayName: doc.get("displayName") || "Unknown User",
+          displayName: doc.get("name") || "Unknown User",
           totalPoints: doc.get("total_points") ?? 0,
         }));
 
@@ -116,7 +116,7 @@ export default function Leaderboard() {
             />
           </div>
         </div>
-        <div className=" w-full p-4 m-4 bg-slate-200 rounded-lg overflow-hidden">
+        {/* <div className=" w-full p-4 m-4 bg-slate-200 rounded-lg overflow-hidden">
           <span className="ml-3 "> All Time Leaderboards</span>
           <div className="datatables m-2">
             <DataTable
@@ -142,7 +142,7 @@ export default function Leaderboard() {
               }}
             />
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

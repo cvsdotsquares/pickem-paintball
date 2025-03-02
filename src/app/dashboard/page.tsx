@@ -68,14 +68,14 @@ export default function Dashboard() {
           const sortOrder = [
             "Rank",
             "Player",
-            "Player Number",
+            "Number",
             "Team",
             "Total Kills",
             "Gunfight Kills",
             "Kills on the Break",
             "Movement Kills",
             "Zone Coverage Kills",
-            "Preasure Kills",
+            "Pressure Kills",
             "Trades",
             "Unclassified Kills",
           ];
