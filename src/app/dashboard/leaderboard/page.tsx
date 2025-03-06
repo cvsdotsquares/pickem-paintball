@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/src/lib/firebaseClient";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { Event } from "../page";
 import { DataTable } from "mantine-datatable";
+import { getAuth } from "firebase/auth";
 
 interface User {
   id: string;
@@ -21,6 +22,9 @@ export default function Leaderboard() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const PAGE_SIZES = [10, 50, 100];
+
+  const auth = getAuth();
+  const currentUserId = auth.currentUser?.uid;
 
   // Fetch all events from Firebase
   useEffect(() => {
@@ -48,28 +52,79 @@ export default function Leaderboard() {
     async function fetchLeaderboardData() {
       try {
         console.log("Fetching users for leaderboard...");
+
+        // Step 1: Fetch all users from the "users" collection
         const usersCollection = collection(db, "users");
         const querySnapshot = await getDocs(usersCollection);
 
-        const userData: User[] = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          displayName: doc.get("name") || "Unknown User",
-          totalPoints: doc.get("total_points") ?? 0,
-        }));
+        console.log("Users fetched:", querySnapshot.docs.map((doc) => doc.id));
 
-        // Sort users by points in descending order without slicing to only 15 users.
-        const sortedUsers = userData.sort((a, b) => b.totalPoints - a.totalPoints);
+        const usersData = await Promise.all(
+          querySnapshot.docs.map(async (userDoc) => {
+            const userId = userDoc.id;
+            const displayName = userDoc.get("name") || "Unknown User";
 
+            console.log(`Processing user: ${userId}, name: ${displayName}`);
+
+            // Access the pickems map and get the tampa_bay_2025 array
+            const pickems = userDoc.get("pickems") || {};
+            const playerIds = Array.isArray(pickems["tampa_bay_2025"])
+              ? pickems["tampa_bay_2025"]
+              : [];
+
+            console.log(`Player IDs for user ${userId}:`, playerIds);
+
+            // Step 2: Fetch data from events/tampa_bay_2025/players and calculate points
+            let totalPoints = 0;
+
+            await Promise.allSettled(
+              playerIds.map(async (playerId: string | null) => {
+                if (!playerId) {
+                  console.log("Invalid or missing player ID, skipping...");
+                  return; // Skip invalid player IDs
+                }
+
+                try {
+                  // Construct the document path dynamically
+                  const playerPath = `events/tampa_bay_2025/players/${playerId}`;
+                  const playerRef = doc(db, playerPath);
+                  const playerDoc = await getDoc(playerRef);
+
+                  if (playerDoc.exists()) {
+                    // Fetch "Total Kills" for this player
+                    const totalKills = playerDoc.get("Total Kills") || 0;
+                    console.log(`Player ID: ${playerId}, Total Kills: ${totalKills}`);
+                    totalPoints += totalKills; // Add kills to total points
+                  } else {
+                    console.log(`No data found for player at path: ${playerPath}`);
+                  }
+                } catch (error) {
+                  console.error(`Error fetching player data for ID: ${playerId}`, error);
+                }
+              })
+            );
+
+            console.log(`Total points for user ${userId}: ${totalPoints}`);
+            return { id: userId, displayName, totalPoints };
+          })
+        );
+
+        // Step 3: Sort users by total points
+        const sortedUsers = usersData.sort((a, b) => b.totalPoints - a.totalPoints);
+
+        console.log("Sorted leaderboard data:", sortedUsers);
         setUsers(sortedUsers);
       } catch (error) {
         console.error("Error fetching leaderboard data:", (error as Error).message);
       } finally {
         setLoading(false);
+        console.log("Leaderboard data fetching completed.");
       }
     }
 
     fetchLeaderboardData();
   }, []);
+
 
   if (loading) {
     return <p className="text-center mt-4">Loading leaderboard...</p>;
@@ -93,15 +148,25 @@ export default function Leaderboard() {
           )}
           <div className="datatables m-2">
             <DataTable
-              className="rounded-lg"
+              className="rounded-lg font-inter"
               records={paginatedUsers}
               columns={[
                 {
                   accessor: "rank",
                   title: "Rank",
-                  render: (record, index) => (page - 1) * pageSize + index + 1
+                  render: (record, index) => (page - 1) * pageSize + index + 1,
                 },
-                { accessor: "displayName", title: "Name" },
+                {
+                  accessor: "displayName",
+                  title: "Name",
+                  render: (record) => (
+                    <span
+                      className={record.id === currentUserId ? "font-bold text-blue-500" : ""}
+                    >
+                      {record.displayName}
+                    </span>
+                  ),
+                },
                 { accessor: "totalPoints", title: "Points" },
               ]}
               totalRecords={users.length}
@@ -116,33 +181,6 @@ export default function Leaderboard() {
             />
           </div>
         </div>
-        {/* <div className=" w-full p-4 m-4 bg-slate-200 rounded-lg overflow-hidden">
-          <span className="ml-3 "> All Time Leaderboards</span>
-          <div className="datatables m-2">
-            <DataTable
-              className="rounded-lg"
-              records={paginatedUsers}
-              columns={[
-                {
-                  accessor: "rank",
-                  title: "Rank",
-                  render: (record, index) => (page - 1) * pageSize + index + 1
-                },
-                { accessor: "displayName", title: "Name" },
-                { accessor: "totalPoints", title: "Points" },
-              ]}
-              totalRecords={users.length}
-              recordsPerPage={pageSize}
-              page={page}
-              onPageChange={setPage}
-              recordsPerPageOptions={PAGE_SIZES}
-              onRecordsPerPageChange={(newPageSize: number) => {
-                setPageSize(newPageSize);
-                setPage(1);
-              }}
-            />
-          </div>
-        </div> */}
       </div>
     </div>
   );

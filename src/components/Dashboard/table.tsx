@@ -20,7 +20,7 @@ const TableData = ({ heading, data }: TableDataProps) => {
     const [hideCols, setHideCols] = useState<any>([]);
 
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: Object.keys(data[0] || {})[0] || 'Player',
+        columnAccessor: Object.keys(data[0] || {})[0] || 'Rank',
         direction: 'asc',
     });
 
@@ -29,7 +29,9 @@ const TableData = ({ heading, data }: TableDataProps) => {
             prev.includes(col) ? prev.filter((d) => d !== col) : [...prev, col]
         );
     };
-
+    useEffect(() => {
+        setPage(1);
+    }, [data, search]);
 
     const filteredData = useMemo(() => {
         return data.filter((item) => {

@@ -18,7 +18,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
     const [selectedPlayers, setSelectedPlayers] = useState<any[]>([]);
     const [yourPicks, setYourPicks] = useState<any[]>([]);
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: Object.keys(data[0] || {})[0] || 'Player',
+        columnAccessor: Object.keys(data[0] || {})[0] || 'Rank',
         direction: 'asc',
     });
 
