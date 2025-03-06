@@ -28,24 +28,9 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
     // Live event ID and total cost
     const [liveEventId, setLiveEventId] = useState<string | null>(null);
     const [totalCost, setTotalCost] = useState(0);
+    const [lockDate, setLockDate] = useState<Date | null>(null); // New state for lock date
+    const [timeLeft, setTimeLeft] = useState<string>('');
 
-    // Fetch live event from Firestore
-    useEffect(() => {
-        const fetchLiveEvent = async () => {
-            try {
-                const eventsRef = collection(db, 'events');
-                const q = query(eventsRef, where('status', '==', 'live'));
-                const querySnapshot = await getDocs(q);
-                if (!querySnapshot.empty) {
-                    const liveEventDoc = querySnapshot.docs[0];
-                    setLiveEventId(liveEventDoc.id);
-                }
-            } catch (error) {
-                console.error('Error fetching live event:', error);
-            }
-        };
-        fetchLiveEvent();
-    }, [db]);
 
     // Fetch saved picks from Firebase on mount or when liveEventId updates
     useEffect(() => {
@@ -77,7 +62,64 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
             fetchPicks();
         }
     }, [user, liveEventId, db, data, yourPicks.length]);
+    // Start countdown timer
+    useEffect(() => {
+        const fetchLiveEvent = async () => {
+            try {
+                const eventsRef = collection(db, 'events');
+                const q = query(eventsRef, where('status', '==', 'live'));
+                const querySnapshot = await getDocs(q);
 
+                if (!querySnapshot.empty) {
+                    const liveEventDoc = querySnapshot.docs[0];
+                    const eventData = liveEventDoc.data();
+                    const fetchedLockDate = eventData.lockDate;
+
+                    // Ensure the fetchedLockDate is a valid Firestore Timestamp or ISO string
+                    if (fetchedLockDate && fetchedLockDate.toDate) {
+                        // Firestore Timestamp has a toDate() method that converts it to a JavaScript Date object
+                        const lockDateObject = fetchedLockDate.toDate();
+                        setLockDate(lockDateObject);
+                    } else {
+                        setLockDate(null);
+                    }
+                } else {
+                    console.log('No live event found');
+                    setLockDate(null);
+                }
+            } catch (error) {
+                console.error('Error fetching live event:', error);
+            }
+        };
+        fetchLiveEvent();
+    }, [db]);
+
+    useEffect(() => {
+        if (!lockDate || isNaN(lockDate.getTime())) {
+            setTimeLeft('Invalid lock date');
+            return;
+        }
+
+        const interval = setInterval(() => {
+            const now = new Date();
+            const timeRemaining = lockDate.getTime() - now.getTime();
+
+            if (timeRemaining <= 0) {
+                clearInterval(interval);
+                setTimeLeft('Picks locked!');
+            } else {
+                const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+                setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval); // Cleanup interval on component unmount
+    }, [lockDate]);
+
+    // New check to see if we are before lockDate
+    const isBeforeLockDate = lockDate && new Date() < lockDate;
 
     // Filter, sort, and paginate data
     const filteredData = useMemo(() => {
@@ -142,6 +184,12 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
 
     // Handle player selection and update cost
     const handleSelectPlayer = async (player: any) => {
+
+        if (!isBeforeLockDate) {
+            alert('The time to make picks has passed. Please try again later.');
+            return;
+        }
+
         const isSelected = selectedPlayers.some((p) => p.player_id === player.player_id);
         const playerCost = Number(player.Cost);
         if (isNaN(playerCost)) {
@@ -273,6 +321,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
                             paginationText={({ from, to, totalRecords }) => `${from} to ${to} of ${totalRecords}`}
                         />
                     </div>
+
                 </div>
             </div>
 
@@ -288,10 +337,16 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
                                 <span className="font-medium">Remaining Budget:</span>
                                 <span>{formatCost(500000 - totalCost)}</span>
                             </div>
+
                             <div className="flex justify-between">
                                 <span className="font-medium">Remaining Picks:</span>
                                 <span>{8 - yourPicks.length}</span>
                             </div>
+                            {lockDate && (
+                                <div className="mt-4 text-center text-sm text-red-600">
+                                    <strong>Time left to lock in your picks: </strong> {timeLeft}
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="datatables px-4 pt-4 w-full">
