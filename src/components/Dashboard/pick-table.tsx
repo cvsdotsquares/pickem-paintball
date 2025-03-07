@@ -32,36 +32,9 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
     const [timeLeft, setTimeLeft] = useState<string>('');
 
 
-    // Fetch saved picks from Firebase on mount or when liveEventId updates
-    useEffect(() => {
-        if (user && liveEventId && yourPicks.length === 0) {
-            const fetchPicks = async () => {
-                try {
-                    const userRef = doc(db, 'users', user.uid);
-                    const userSnap = await getDoc(userRef);
-                    if (userSnap.exists()) {
-                        const userData = userSnap.data();
-                        if (userData.pickems && Array.isArray(userData.pickems[liveEventId])) {
-                            const savedPicksIds = userData.pickems[liveEventId];
-                            const savedPicks = data.filter((player) =>
-                                savedPicksIds.includes(player.player_id)
-                            );
-                            setYourPicks(savedPicks);
-                            setSelectedPlayers(savedPicks);
-                            const total = savedPicks.reduce((sum, player) => {
-                                const cost = Number(player.Cost); // Make sure to use 'Cost' (capital C)
-                                return sum + (isNaN(cost) ? 0 : cost);
-                            }, 0);
-                            setTotalCost(total);
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error fetching saved picks:', error);
-                }
-            };
-            fetchPicks();
-        }
-    }, [user, liveEventId, db, data, yourPicks.length]);
+
+
+
     // Start countdown timer
     useEffect(() => {
         const fetchLiveEvent = async () => {
@@ -72,6 +45,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
 
                 if (!querySnapshot.empty) {
                     const liveEventDoc = querySnapshot.docs[0];
+                    setLiveEventId(liveEventDoc.id);
                     const eventData = liveEventDoc.data();
                     const fetchedLockDate = eventData.lockDate;
 
@@ -117,6 +91,57 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
 
         return () => clearInterval(interval); // Cleanup interval on component unmount
     }, [lockDate]);
+
+    // Fetch saved picks from Firebase on mount or when liveEventId updates
+    useEffect(() => {
+        if (user && liveEventId) {
+            const fetchPicks = async () => {
+                try {
+                    console.log('Fetching picks for user:', user.uid, 'and event:', liveEventId);
+
+                    const userRef = doc(db, 'users', user.uid);
+                    const userSnap = await getDoc(userRef);
+
+                    if (userSnap.exists()) {
+                        const userData = userSnap.data();
+                        console.log('User data fetched:', userData);
+
+                        if (userData.pickems && Array.isArray(userData.pickems[liveEventId])) {
+                            const savedPicksIds = userData.pickems[liveEventId];
+                            console.log('Saved picks IDs for event:', liveEventId, savedPicksIds);
+
+                            const savedPicks = data.filter((player) =>
+                                savedPicksIds.includes(player.player_id)
+                            );
+                            console.log('Resolved saved picks:', savedPicks);
+
+                            setYourPicks(savedPicks);
+                            setSelectedPlayers(savedPicks);
+
+                            const total = savedPicks.reduce((sum, player) => {
+                                const cost = Number(player.Cost);
+                                console.log('Adding player cost:', player, cost);
+                                return sum + (isNaN(cost) ? 0 : cost);
+                            }, 0);
+
+                            setTotalCost(total);
+                            console.log('Total cost calculated:', total);
+                        } else {
+                            console.warn(
+                                `No picks found for event ${liveEventId} in user's pickems map.`
+                            );
+                        }
+                    } else {
+                        console.warn('User document does not exist in Firestore.');
+                    }
+                } catch (error) {
+                    console.error('Error fetching picks:', error);
+                }
+            };
+
+            fetchPicks();
+        }
+    }, [user, liveEventId, db, data]); // Removed `yourPicks.length` from dependencies
 
     // New check to see if we are before lockDate
     const isBeforeLockDate = lockDate && new Date() < lockDate;
