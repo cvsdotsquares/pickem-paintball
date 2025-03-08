@@ -46,8 +46,14 @@ export default function Leaderboard() {
     }
     fetchEvents();
   }, []);
-
-  // Fetch user data from Firebase
+  const formatCost = (value: number): string => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
   useEffect(() => {
     async function fetchLeaderboardData() {
       try {
@@ -74,8 +80,10 @@ export default function Leaderboard() {
 
             console.log(`Player IDs for user ${userId}:`, playerIds);
 
-            // Step 2: Fetch data from events/tampa_bay_2025/players and calculate points
             let totalPoints = 0;
+            let mvp = { playerName: "None", kills: 0 };
+            let totalCost = 0;
+            let budget = "";
 
             await Promise.allSettled(
               playerIds.map(async (playerId: string | null) => {
@@ -93,8 +101,18 @@ export default function Leaderboard() {
                   if (playerDoc.exists()) {
                     // Fetch "Total Kills" for this player
                     const totalKills = playerDoc.get("Total Kills") || 0;
+                    const playerName = playerDoc.get("Player") || "Unknown Player";
+                    const playerCost = playerDoc.get("Cost") || 0;
+
                     console.log(`Player ID: ${playerId}, Total Kills: ${totalKills}`);
                     totalPoints += totalKills; // Add kills to total points
+                    totalCost += playerCost;
+                    totalCost = Math.round(totalCost);
+                    budget = formatCost(totalCost);
+                    // Update MVP if this player has more kills than the current MVP
+                    if (totalKills > mvp.kills) {
+                      mvp = { playerName, kills: totalKills };
+                    }
                   } else {
                     console.log(`No data found for player at path: ${playerPath}`);
                   }
@@ -104,8 +122,8 @@ export default function Leaderboard() {
               })
             );
 
-            console.log(`Total points for user ${userId}: ${totalPoints}`);
-            return { id: userId, displayName, totalPoints };
+            console.log(`Total points for user ${userId}: ${totalPoints}, MVP: ${mvp.playerName}, Budget used: ${totalCost}`);
+            return { id: userId, displayName, totalPoints, totalCost, mvp: mvp.playerName, budget };
           })
         );
 
@@ -168,6 +186,8 @@ export default function Leaderboard() {
                   ),
                 },
                 { accessor: "totalPoints", title: "Points" },
+                { accessor: "mvp", title: "MVP" },
+                { accessor: "budget", title: "Budget Spent" },
               ]}
               totalRecords={users.length}
               recordsPerPage={pageSize}
