@@ -1,6 +1,6 @@
 import Header from "../components/header";
 import { HeroSection } from "../components/hero";
-import { NewsTicker } from "../components/ticker";
+import { NewsTicker } from "../components/ui/ticker";
 
 
 export default function Home() {
