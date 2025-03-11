@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LuGitGraph, LuLayers, LuLayers3, LuLayoutDashboard, LuLogOut, LuNotebookText, LuTrendingUp } from 'react-icons/lu'
-import { Button } from '../ui/button'
+import { Button } from '../ui/Button'
 import { BiChevronLeft, BiChevronRight, BiMenu } from 'react-icons/bi'
 import { FaX } from 'react-icons/fa6'
 import { logout } from '@/src/lib/auth'

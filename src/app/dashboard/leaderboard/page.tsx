@@ -127,10 +127,8 @@ export default function Leaderboard() {
           })
         );
 
-        // Step 3: Sort users by total points
+        // Sort by totalPoints
         const sortedUsers = usersData.sort((a, b) => b.totalPoints - a.totalPoints);
-
-        console.log("Sorted leaderboard data:", sortedUsers);
         setUsers(sortedUsers);
       } catch (error) {
         console.error("Error fetching leaderboard data:", (error as Error).message);
@@ -150,12 +148,13 @@ export default function Leaderboard() {
 
   // Slice the users array for current page display
   const paginatedUsers = users.slice((page - 1) * pageSize, page * pageSize);
+  const currentUser = paginatedUsers.find(user => user.id === currentUserId);
 
   return (
     <div className="flex flex-col p-4 min-h-screen font-inter bg-white">
       <h1 className="text-2xl font-bold m-4 text-left">Leaderboard</h1>
       <div className="flex flex-row w-full justify-evenly m-auto">
-        <div className=" w-full  p-4 m-4 bg-slate-200 rounded-lg overflow-hidden">
+        <div className=" w-full flex-col flex p-4 m-4 bg-slate-200 rounded-lg overflow-hidden">
           {liveEvent ? (
             <span className="ml-3 ">
               {liveEvent.name}{" "}
@@ -165,6 +164,7 @@ export default function Leaderboard() {
             <span className="text-gray-400">(No live event)</span>
           )}
           <div className="datatables m-2">
+
             <DataTable
               className="rounded-lg font-inter"
               records={paginatedUsers}
@@ -179,9 +179,9 @@ export default function Leaderboard() {
                   title: "Name",
                   render: (record) => (
                     <span
-                      className={record.id === currentUserId ? "font-bold text-blue-500" : ""}
+                      className={record.id === currentUserId ? "hover:underline" : ""}
                     >
-                      {record.displayName}
+                      {record.displayName}{" "} {record.id === currentUserId ? "(User)" : ""}
                     </span>
                   ),
                 },
@@ -198,6 +198,7 @@ export default function Leaderboard() {
                 setPageSize(newPageSize);
                 setPage(1);
               }}
+              rowClassName={(record) => record.id === currentUserId ? "font-extrabold text-2xl text-sky-600" : ""}
             />
           </div>
         </div>

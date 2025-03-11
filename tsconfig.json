@@ -32,8 +32,11 @@
       ],
       "@utils/*": [
         "app/utils/*"
+      ],
+      "@/ui/*": [
+        "./src//components//ui/*"
       ]
-    },
+    }
     // "strictNullChecks": true,  // Uncomment for additional null checking
     // "noImplicitAny": true,     // Uncomment to disallow implicit 'any' types
   },
