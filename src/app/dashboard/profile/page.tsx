@@ -106,7 +106,7 @@ function ProfilePage() {
 
                             <div className="flex w-full flex-col items-start gap-4">
                                 <span className="w-full text-caption font-caption text-subtext-color">
-                                    Supports
+                                    Support
                                 </span>
                                 <div className="flex w-full flex-wrap items-start gap-2">
                                     <div className="flex flex-col items-start gap-4">
