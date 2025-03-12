@@ -1,18 +1,15 @@
 "use client";
-/*
- * Documentation:
- * Tabs — https://app.subframe.com/bf019fa501b5/library?component=Tabs_e1ad5091-8ad8-4319-b1f7-3e47f0256c20
- */
 
 import React from "react";
-import * as SubframeCore from "@subframe/core";
 
+// Item Component
 interface ItemProps extends React.HTMLAttributes<HTMLDivElement> {
   active?: boolean;
   disabled?: boolean;
-  icon?: SubframeCore.IconName;
+  icon?: React.ReactNode; // Accepts React nodes (e.g., SVG or custom icons)
   children?: React.ReactNode;
   className?: string;
+  "aria-label"?: string; // Added for accessibility
 }
 
 const Item = React.forwardRef<HTMLElement, ItemProps>(function Item(
@@ -22,70 +19,65 @@ const Item = React.forwardRef<HTMLElement, ItemProps>(function Item(
     icon = null,
     children,
     className,
+    "aria-label": ariaLabel = children ? String(children) : "Tab Item", // Default aria-label
     ...otherProps
   }: ItemProps,
   ref
 ) {
   return (
     <div
-      className={SubframeCore.twClassNames(
-        "group/d5612535 flex h-10 cursor-pointer items-center justify-center gap-2 border-b border-solid border-neutral-border px-2.5 py-0.5",
-        {
-          "border-b-2 border-solid border-brand-600 px-2.5 pt-0.5 pb-px hover:border-b-2 hover:border-solid hover:border-brand-600":
-            active,
-        },
-        className
-      )}
+      className={`group flex h-10 cursor-pointer items-center justify-center gap-2 border-b border-solid border-gray-200 px-2.5 py-0.5 ${active ? "border-b-2 border-solid border-blue-600 px-2.5 pt-0.5 pb-px hover:border-blue-600" : ""
+        } ${className}`}
       ref={ref as any}
+      aria-label={ariaLabel} // Accessibility improvement
       {...otherProps}
     >
-      <SubframeCore.Icon
-        className={SubframeCore.twClassNames(
-          "text-body font-body text-subtext-color group-hover/d5612535:text-default-font",
-          {
-            "text-neutral-400 group-hover/d5612535:text-neutral-400": disabled,
-            "text-brand-700 group-hover/d5612535:text-brand-700": active,
-          }
-        )}
-        name={icon}
-      />
-      {children ? (
+      {/* Icon */}
+      {React.isValidElement(icon) ? (
+        <span className="text-body text-gray-700">{icon}</span>
+      ) : (
         <span
-          className={SubframeCore.twClassNames(
-            "text-body-bold font-body-bold text-subtext-color group-hover/d5612535:text-default-font",
-            {
-              "text-neutral-400 group-hover/d5612535:text-neutral-400":
-                disabled,
-              "text-brand-700 group-hover/d5612535:text-brand-700": active,
-            }
-          )}
+          className={`text-gray-400 group-hover:text-gray-800 ${active ? "text-blue-700 group-hover:text-blue-700" : ""
+            } ${disabled ? "text-gray-300 group-hover:text-gray-300" : ""}`}
+        >
+          {icon}
+        </span>
+      )}
+      {/* Label */}
+      {children && (
+        <span
+          className={`font-semibold text-gray-700 group-hover:text-gray-800 ${active ? "text-blue-700 group-hover:text-blue-700" : ""
+            } ${disabled ? "text-gray-300 group-hover:text-gray-300" : ""}`}
         >
           {children}
         </span>
-      ) : null}
+      )}
     </div>
   );
 });
 
+// Tabs Container
 interface TabsRootProps extends React.HTMLAttributes<HTMLDivElement> {
   children?: React.ReactNode;
   className?: string;
+  "aria-label"?: string; // Added for accessibility
 }
 
 const TabsRoot = React.forwardRef<HTMLElement, TabsRootProps>(function TabsRoot(
-  { children, className, ...otherProps }: TabsRootProps,
+  { children, className, "aria-label": ariaLabel = "Tabs", ...otherProps }: TabsRootProps,
   ref
 ) {
   return (
     <div
-      className={SubframeCore.twClassNames("flex w-full items-end", className)}
+      className={`flex w-full items-end ${className}`}
       ref={ref as any}
+      aria-label={ariaLabel} // Accessibility improvement
       {...otherProps}
     >
-      {children ? (
+      {children && (
         <div className="flex items-start self-stretch">{children}</div>
-      ) : null}
-      <div className="flex grow shrink-0 basis-0 flex-col items-start gap-2 self-stretch border-b border-solid border-neutral-border" />
+      )}
+      <div className="flex grow shrink-0 basis-0 flex-col items-start gap-2 self-stretch border-b border-solid border-gray-200" />
     </div>
   );
 });

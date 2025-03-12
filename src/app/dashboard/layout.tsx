@@ -1,7 +1,7 @@
 // app/dashboard/layout.tsx
 "use client";
 
-import ProtectedRoute from "../../components/ProtectedRoute";
+import ProtectedRoute from "../../components/Layout/ProtectedRoute";
 import Layout from "../../components/Layout/Layout";
 import { ReactNode } from "react";
 

@@ -1,5 +1,5 @@
-import Header from "../components/header";
-import { HeroSection } from "../components/hero";
+import Header from "../components/Landing/header";
+import { HeroSection } from "../components/Landing/hero";
 import { NewsTicker } from "../components/ui/ticker";
 
 

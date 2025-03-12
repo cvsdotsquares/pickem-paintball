@@ -7,11 +7,10 @@ import { signOut } from 'firebase/auth';
 import { app, auth } from '@/src/lib/firebaseClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { Input } from '@/src/components/ui/input';
-import { Button } from '@/src/components/ui/Button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/src/components/ui/dialog';
 import { setDoc, doc } from 'firebase/firestore';
 import { db } from '@/src/lib/firebaseClient';
-import { getFunctions, httpsCallable } from "firebase/functions";
+import Button from '@/src/components/ui/button';
 
 const RegisterPage: React.FC = () => {
     const [name, setName] = useState<string>(''); // Added state for name

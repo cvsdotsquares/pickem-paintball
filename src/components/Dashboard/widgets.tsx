@@ -5,7 +5,7 @@ import { LuLayoutDashboard, LuLogOut, LuNotebookText } from 'react-icons/lu'
 import { BiChevronLeft, BiChevronRight, BiMenu } from 'react-icons/bi'
 import { FaX } from 'react-icons/fa6'
 import { logout } from '@/src/lib/auth'
-import { Button } from '../ui/Button'
+import Button from '../ui/button'
 
 
 export default function Widgets() {

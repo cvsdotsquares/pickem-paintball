@@ -1,12 +1,13 @@
 "use client";
 
-import AccountSettings from "@/src/components/settings";
-import { Badge } from "@/src/components/ui/Badge";
+import AccountSettings from "@/src/components/Dashboard/settings";
+import Badge from "@/src/components/ui/Badge";
 import { IconButton } from "@/src/components/ui/IconButton";
-import { IconWithBackground } from "@/src/components/ui/IconWithBackground";
-import { LinkButton } from "@/src/components/ui/LinkButton";
+
 import { Tabs } from "@/src/components/ui/Tabs";
+import Link from "next/link";
 import React, { useState } from "react";
+import { BiPlusCircle } from "react-icons/bi";
 
 
 function ProfilePage() {
@@ -17,11 +18,12 @@ function ProfilePage() {
             case "Stats":
                 return (
                     <div className="flex w-full flex-wrap items-start gap-6 rounded-md bg-neutral-200 px-6 py-6">
-                        <IconWithBackground
+                        {/* <IconWithBackground
                             variant="neutral"
                             size="large"
                             icon="FeatherPlus"
-                        />
+                        /> */}
+                        <BiPlusCircle />
                         <div className="flex grow shrink-0 basis-0 flex-col items-start gap-6">
                             <div className="flex flex-col items-start gap-2">
                                 <span className="text-heading-3 font-heading-3 text-default-font">
@@ -31,15 +33,11 @@ function ProfilePage() {
                                     text to be added text to be added text to be added
                                 </span>
                             </div>
-                            <LinkButton
-                                variant="brand"
-                                icon="FeatherWand2"
-                                onClick={(
-                                    event: React.MouseEvent<HTMLButtonElement>
-                                ) => { }}
+                            <Link
+                                href={"/"}
                             >
                                 text to be added text to be added
-                            </LinkButton>
+                            </Link>
                         </div>
                     </div>
                 );
@@ -111,31 +109,31 @@ function ProfilePage() {
                                     <div className="flex flex-col items-start gap-4">
 
                                         <div className="flex w-full items-center gap-2">
-                                            <IconWithBackground
+                                            {/* <IconWithBackground
                                                 variant="neutral"
                                                 size="small"
                                                 icon="FeatherMapPin"
-                                            />
+                                            /> */}
                                             <span className="grow shrink-0 basis-0">
                                                 Country
                                             </span>
                                         </div>
                                         <div className="flex w-full items-center gap-2">
-                                            <IconWithBackground
+                                            {/* <IconWithBackground
                                                 variant="neutral"
                                                 size="small"
                                                 icon="FeatherClock"
-                                            />
+                                            /> */}
                                             <span className="grow shrink-0 basis-0 ">
                                                 Team
                                             </span>
                                         </div>
                                         <div className="flex w-full items-center gap-2">
-                                            <IconWithBackground
+                                            {/* <IconWithBackground
                                                 variant="neutral"
                                                 size="small"
                                                 icon="FeatherMessagesSquare"
-                                            />
+                                            /> */}
                                             <span className="grow shrink-0 basis-0 text-body font-body text-default-font">
                                                 Player
                                             </span>

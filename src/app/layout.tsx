@@ -2,9 +2,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "../contexts/authProvider";
-import ErrorBoundary from "../components/ErrorBoundary";
 import NextTopLoader from "nextjs-toploader";
 import { Inter } from 'next/font/google';
+import ErrorBoundary from "../components/Layout/ErrorBoundary";
 
 export const metadata: Metadata = {
   title: "PickEm Paintball Website",
@@ -29,7 +29,7 @@ export default function RootLayout({
         <ErrorBoundary>
           <AuthProvider>
             <NextTopLoader
-              color="white"
+              color="blue"
               initialPosition={0.3}
               crawlSpeed={800}
               height={6}
@@ -37,7 +37,6 @@ export default function RootLayout({
               showSpinner={true}
               easing="ease"
               speed={400}
-
               zIndex={5000}
               showAtBottom={false}
             />

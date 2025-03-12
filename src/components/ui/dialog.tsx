@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { cn } from "@/src/lib/utils";
 
 const Dialog = ({
   open,
@@ -52,10 +51,7 @@ const DialogContent = ({
   onClose?: () => void;
 }) => (
   <div
-    className={cn(
-      "relative z-50 max-w-lg p-6 bg-white shadow-lg sm:rounded-lg",
-      className
-    )}
+    className={`relative z-50 max-w-lg p-6 bg-white shadow-lg sm:rounded-lg ${className}`}
     onClick={(e) => e.stopPropagation()}
   >
     {children}
@@ -75,10 +71,7 @@ const DialogHeader = ({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn(
-      "flex flex-col space-y-1.5 text-center sm:text-left",
-      className
-    )}
+    className={`flex flex-col space-y-1.5 text-center sm:text-left ${className}`}
     {...props}
   />
 );
@@ -88,35 +81,27 @@ const DialogFooter = ({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
-      className
-    )}
+    className={`flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 ${className}`}
     {...props}
   />
 );
 
-const DialogTitle = React.forwardRef<
-  HTMLHeadingElement,
-  React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
-  <h2
-    ref={ref}
-    className={cn(
-      "text-lg font-semibold leading-none tracking-tight",
-      className
-    )}
-    {...props}
-  />
-));
+const DialogTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadingElement>>(
+  ({ className, ...props }, ref) => (
+    <h2
+      ref={ref}
+      className={`text-lg font-semibold leading-none tracking-tight ${className}`}
+      {...props}
+    />
+  )
+);
 DialogTitle.displayName = "DialogTitle";
 
-const DialogDescription = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
->(({ className, ...props }, ref) => (
-  <p ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />
-));
+const DialogDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
+  ({ className, ...props }, ref) => (
+    <p ref={ref} className={`text-sm text-muted-foreground ${className}`} {...props} />
+  )
+);
 DialogDescription.displayName = "DialogDescription";
 
 export {

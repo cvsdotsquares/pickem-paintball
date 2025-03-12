@@ -1,12 +1,8 @@
 "use client";
-/*
- * Documentation:
- * Text Field — https://app.subframe.com/bf019fa501b5/library?component=Text+Field_be48ca43-f8e7-4c0e-8870-d219ea11abfe
- */
 
 import React from "react";
-import * as SubframeCore from "@subframe/core";
 
+// Input Component
 interface InputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "placeholder"> {
   placeholder?: React.ReactNode;
@@ -15,23 +11,21 @@ interface InputProps
   className?: string;
 }
 
-const Input = React.forwardRef<HTMLElement, InputProps>(function Input(
+const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input(
   { placeholder, className, ...otherProps }: InputProps,
   ref
 ) {
   return (
     <input
-      className={SubframeCore.twClassNames(
-        "h-full w-full border-none bg-transparent text-body font-body text-default-font outline-none placeholder:text-neutral-400",
-        className
-      )}
+      className={`h-full w-full border-none bg-transparent text-body font-body text-gray-800 outline-none placeholder:text-gray-400 ${className}`}
       placeholder={placeholder as string}
-      ref={ref as any}
+      ref={ref}
       {...otherProps}
     />
   );
 });
 
+// TextField Component
 interface TextFieldRootProps
   extends React.LabelHTMLAttributes<HTMLLabelElement> {
   disabled?: boolean;
@@ -39,13 +33,13 @@ interface TextFieldRootProps
   variant?: "outline" | "filled";
   label?: React.ReactNode;
   helpText?: React.ReactNode;
-  icon?: SubframeCore.IconName;
-  iconRight?: SubframeCore.IconName;
+  icon?: React.ReactNode; // Updated to accept any React node for icon
+  iconRight?: React.ReactNode; // Updated to accept any React node for icon
   children?: React.ReactNode;
   className?: string;
 }
 
-const TextFieldRoot = React.forwardRef<HTMLElement, TextFieldRootProps>(
+const TextFieldRoot = React.forwardRef<HTMLLabelElement, TextFieldRootProps>(
   function TextFieldRoot(
     {
       disabled = false,
@@ -63,56 +57,39 @@ const TextFieldRoot = React.forwardRef<HTMLElement, TextFieldRootProps>(
   ) {
     return (
       <label
-        className={SubframeCore.twClassNames(
-          "group/be48ca43 flex flex-col items-start gap-1",
-          className
-        )}
-        ref={ref as any}
+        className={`flex flex-col items-start gap-1 ${className}`}
+        ref={ref}
         {...otherProps}
       >
-        {label ? (
-          <span className="text-caption-bold font-caption-bold text-default-font">
+        {label && (
+          <span className="text-caption-bold font-caption-bold text-gray-800">
             {label}
           </span>
-        ) : null}
+        )}
         <div
-          className={SubframeCore.twClassNames(
-            "flex h-8 w-full flex-none items-center gap-1 rounded-md border border-solid border-neutral-border bg-default-background px-2 group-focus-within/be48ca43:border group-focus-within/be48ca43:border-solid group-focus-within/be48ca43:border-brand-primary",
-            {
-              "border border-solid border-neutral-100 bg-neutral-100 group-hover/be48ca43:border group-hover/be48ca43:border-solid group-hover/be48ca43:border-neutral-border group-focus-within/be48ca43:bg-default-background":
-                variant === "filled",
-              "border border-solid border-error-600": error,
-              "border border-solid border-neutral-200 bg-neutral-200": disabled,
-            }
-          )}
+          className={`flex h-8 w-full items-center gap-1 rounded-md border px-2 ${variant === "filled"
+            ? "bg-gray-100 border-gray-300 group-hover:border-gray-400"
+            : "border-gray-300"
+            } ${disabled ? "border-gray-200 bg-gray-200" : ""} ${error ? "border-red-600" : "group-focus-within:border-blue-500"
+            }`}
         >
-          <SubframeCore.Icon
-            className="text-body font-body text-subtext-color"
-            name={icon}
-          />
-          {children ? (
-            <div className="flex grow shrink-0 basis-0 flex-col items-start self-stretch px-1">
-              {children}
-            </div>
-          ) : null}
-          <SubframeCore.Icon
-            className={SubframeCore.twClassNames(
-              "text-body font-body text-subtext-color",
-              { "text-error-500": error }
-            )}
-            name={iconRight}
-          />
+          {/* Left Icon */}
+          {icon && <span className="text-gray-500">{icon}</span>}
+          {children && <div className="flex-grow px-1">{children}</div>}
+          {/* Right Icon */}
+          {iconRight && (
+            <span
+              className={`text-gray-500 ${error ? "text-red-600" : ""}`}
+            >
+              {iconRight}
+            </span>
+          )}
         </div>
-        {helpText ? (
-          <span
-            className={SubframeCore.twClassNames(
-              "text-caption font-caption text-subtext-color",
-              { "text-error-700": error }
-            )}
-          >
+        {helpText && (
+          <span className={`text-caption text-gray-500 ${error ? "text-red-700" : ""}`}>
             {helpText}
           </span>
-        ) : null}
+        )}
       </label>
     );
   }

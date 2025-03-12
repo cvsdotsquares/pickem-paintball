@@ -8,8 +8,8 @@ import { auth, db } from '@/src/lib/firebaseClient';
 import { loginWithEmail, loginWithGoogle } from '@/src/lib/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { Input } from '@/src/components/ui/input';
-import { Button } from '@/src/components/ui/Button';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import Button from '@/src/components/ui/button';
 
 
 
