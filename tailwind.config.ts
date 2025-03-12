@@ -13,5 +13,4 @@ module.exports = {
     },
   },
   plugins: [],
-  presets: [require("./src//components//ui//tailwind.config.js")]
 }

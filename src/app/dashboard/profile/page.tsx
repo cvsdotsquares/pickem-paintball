@@ -16,7 +16,7 @@ function ProfilePage() {
         switch (activeTab) {
             case "Stats":
                 return (
-                    <div className="flex w-full flex-wrap items-start gap-6 rounded-md bg-neutral-50 px-6 py-6">
+                    <div className="flex w-full flex-wrap items-start gap-6 rounded-md bg-neutral-200 px-6 py-6">
                         <IconWithBackground
                             variant="neutral"
                             size="large"
@@ -25,11 +25,10 @@ function ProfilePage() {
                         <div className="flex grow shrink-0 basis-0 flex-col items-start gap-6">
                             <div className="flex flex-col items-start gap-2">
                                 <span className="text-heading-3 font-heading-3 text-default-font">
-                                    Add a project
+                                    text to be added
                                 </span>
                                 <span className="text-body font-body text-subtext-color">
-                                    Your projects should highlight your best skills and
-                                    experience.
+                                    text to be added text to be added text to be added
                                 </span>
                             </div>
                             <LinkButton
@@ -39,7 +38,7 @@ function ProfilePage() {
                                     event: React.MouseEvent<HTMLButtonElement>
                                 ) => { }}
                             >
-                                Import content in seconds
+                                text to be added text to be added
                             </LinkButton>
                         </div>
                     </div>
@@ -58,7 +57,7 @@ function ProfilePage() {
 
         <div className="flex flex-col items-start h-auto">
 
-            <div className=" flex w-full  min-h-screen flex-col items-center gap-4 bg-default-background py-12 ">
+            <div className=" flex w-full  min-h-screen flex-col items-center gap-4 py-12 ">
                 <div className="flex w-full max-w-[1100px] justify-evenly m-auto flex-wrap items-start gap-8">
                     <div className="flex min-w-[240px] max-w-[300px] grow shrink-0 basis-0 flex-col items-center gap-6 rounded-md border border-solid border-neutral-border px-8 pt-12 pb-8 shadow-sm relative">
                         <IconButton
@@ -69,7 +68,7 @@ function ProfilePage() {
                         />
                         <div className="flex w-full flex-col items-center gap-12">
                             <div className="flex flex-col items-center gap-6 relative">
-                                <div className="flex h-36 w-36 flex-none flex-col items-center justify-center gap-2 overflow-hidden rounded-full bg-brand-100 relative">
+                                <div className="flex h-36 w-36 flex-none flex-col items-center justify-center gap-2 overflow-hidden rounded-full relative">
                                     <img
                                         className="h-36 w-36 flex-none object-cover absolute"
                                         src="https://res.cloudinary.com/subframe/image/upload/v1711417514/shared/ubsk7cs5hnnaj798efej.jpg"
@@ -86,12 +85,12 @@ function ProfilePage() {
 
                         </div>
                         <div className="flex w-full flex-col items-center gap-10">
-                            <span className="w-full text-heading-1 font-heading-1 text-default-font text-center">
+                            <span className="w-full text-center">
                                 Filip Skrzesinski
                             </span>
 
                             <div className="flex w-full flex-col items-start gap-4">
-                                <span className="w-full text-caption font-caption text-subtext-color">
+                                <span className="w-full ">
                                     Badges
                                 </span>
                                 <div className="flex w-full flex-wrap items-start gap-2">
@@ -105,7 +104,7 @@ function ProfilePage() {
                             </div>
 
                             <div className="flex w-full flex-col items-start gap-4">
-                                <span className="w-full text-caption font-caption text-subtext-color">
+                                <span className="w-full">
                                     Support
                                 </span>
                                 <div className="flex w-full flex-wrap items-start gap-2">
@@ -117,7 +116,7 @@ function ProfilePage() {
                                                 size="small"
                                                 icon="FeatherMapPin"
                                             />
-                                            <span className="grow shrink-0 basis-0 text-body font-body text-default-font">
+                                            <span className="grow shrink-0 basis-0">
                                                 Country
                                             </span>
                                         </div>
@@ -127,7 +126,7 @@ function ProfilePage() {
                                                 size="small"
                                                 icon="FeatherClock"
                                             />
-                                            <span className="grow shrink-0 basis-0 text-body font-body text-default-font">
+                                            <span className="grow shrink-0 basis-0 ">
                                                 Team
                                             </span>
                                         </div>

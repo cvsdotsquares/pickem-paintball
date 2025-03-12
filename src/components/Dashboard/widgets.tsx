@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react'
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LuLayoutDashboard, LuLogOut, LuNotebookText } from 'react-icons/lu'
-import { Button } from '../ui/Button'
 import { BiChevronLeft, BiChevronRight, BiMenu } from 'react-icons/bi'
 import { FaX } from 'react-icons/fa6'
 import { logout } from '@/src/lib/auth'
+import { Button } from '../ui/Button'
 
 
 export default function Widgets() {
@@ -52,7 +52,7 @@ export default function Widgets() {
                     <div className="flex-1 overflow-y-auto">
                         {!isMobile && (
                             <div className="p-4">
-                                <Button onClick={toggleSidebar} variant="outline" size="icon" className="w-full">
+                                <Button onClick={toggleSidebar} className="w-full">
                                     {isOpen ? <BiChevronLeft className="h-4 w-4" /> : <BiChevronRight className="h-4 w-4" />}
                                 </Button>
                             </div>
@@ -79,7 +79,6 @@ export default function Widgets() {
                     </div>
                     <div className={`flex-shrink-0 flex flex-col border-t border-gray-200 p-4 ${isMobile && !isMobileMenuOpen ? 'hidden' : ''}`}>
                         <Button
-                            variant="destructive"
                             className={`flex-shrink-0 group block ${!isOpen && !isMobile ? 'p-0 h-8 w-8 mx-auto' : 'w-full'}`}
                             onClick={handleLogout}
                         >
@@ -98,7 +97,6 @@ export default function Widgets() {
             <div className="md:hidden fixed top-0 right-0 z-50">
                 <Button
                     onClick={toggleMobileMenu}
-                    variant="outline"
                     className="w-[30vw] rounded-tl-md h-16 flex items-center justify-center bg-white border-t border-l"
                 >
                     {isMobileMenuOpen ? <FaX className="h-6 w-6" /> : <BiMenu className="h-6 w-6" />}

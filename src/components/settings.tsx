@@ -11,23 +11,13 @@ function AccountSettings() {
     return (
         <div className=" max-w-none flex w-full items-start mobile:flex-col mobile:flex-nowrap mobile:gap-0">
 
-            <div className=" max-w-none flex flex-col items-center gap-6 self-stretch bg-default-background py-6 shadow-sm">
+            <div className=" max-w-none flex flex-col items-center gap-6 self-stretch bg-default-background shadow-sm">
                 <div className="flex w-full flex-col items-start gap-12">
-                    <div className="flex w-full flex-col items-start gap-1">
-                        <span className="w-full text-heading-2 font-heading-2 text-default-font">
-                            Settings
-                        </span>
-                        <span className="w-full text-body font-body text-subtext-color">
-                            Update your profile and personal details here
-                        </span>
-                    </div>
+
                     <div className="flex w-full flex-col items-start gap-6">
-                        <span className="text-heading-3 font-heading-3 text-default-font">
-                            Profile
-                        </span>
                         <div className="flex w-full flex-col items-start gap-4">
                             <span className="text-body-bold font-body-bold text-default-font">
-                                Avatar
+                                Picture
                             </span>
                             <div className="flex items-center gap-4">
                                 <img

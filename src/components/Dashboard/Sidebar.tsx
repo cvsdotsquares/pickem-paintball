@@ -41,6 +41,7 @@ export default function Sidebar() {
     { href: "/dashboard", label: "Stats", icon: LuNotebookText },
     { href: "/dashboard/picks", label: "Pick Em", icon: LuLayoutDashboard },
     { href: "/dashboard/leaderboard", label: "Leaderboard", icon: LuTrendingUp },
+    { href: "/dashboard/profile", label: "Profile", icon: LuLayoutDashboard },
 
   ]
 
@@ -51,10 +52,10 @@ export default function Sidebar() {
     <>
       <div className={`fixed inset-y-0 left-0 z-40 ${isMobile ? (isMobileMenuOpen ? 'w-64' : 'w-0') : (isOpen ? 'w-40' : 'w-16')} bg-white border-r-2 rounded-lg  shadow-md transition-all duration-300 ease-in-out ${isMobile ? (isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}`}>
         <div className="flex flex-col h-full">
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto my-4 ">
             {!isMobile && (
-              <div className="p-4">
-                <Button onClick={toggleSidebar} variant="outline" size="icon" className="w-full">
+              <div className="border-2 mx-3 border-black rounded-lg">
+                <Button onClick={toggleSidebar} className="w-full ">
                   {isOpen ? <BiChevronLeft className="h-4 w-4" /> : <BiChevronRight className="h-4 w-4" />}
                 </Button>
               </div>
@@ -81,11 +82,11 @@ export default function Sidebar() {
           </div>
           <div className={`flex-shrink-0 flex flex-col border-t border-gray-200 p-4 ${isMobile && !isMobileMenuOpen ? 'hidden' : ''}`}>
             <Button
-              variant="destructive"
+
               className={`flex-shrink-0 group border-gray-400 border block ${!isOpen && !isMobile ? 'p-0 h-8 w-8 mx-auto' : 'w-full'}`}
               onClick={handleLogout}
             >
-              <div className={`flex items-center justify-center h-full ${isMobile || isOpen ? '' : 'w-full'}`}>
+              <div className={`flex items-center justify-center h-full border-2 border-black rounded-lg ${isMobile || isOpen ? '' : 'w-full'}`}>
                 <LuLogOut className={`${isMobile || isOpen ? 'mr-1 h-5 w-5' : 'h-4 w-4'}`} />
                 {(isMobile || isOpen) && <span className="text-xs font-medium">Log out</span>}
               </div>
@@ -100,7 +101,7 @@ export default function Sidebar() {
       <div className="md:hidden fixed top-0 right-0 z-50">
         <Button
           onClick={toggleMobileMenu}
-          variant="outline"
+
           className=" rounded-tl-md h-16 flex items-center justify-center bg-white border-t border-l"
         >
           {isMobileMenuOpen ? <FaX className="h-6 w-6" /> : <BiMenu className="h-6 w-6" />}
