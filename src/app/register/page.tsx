@@ -100,9 +100,9 @@ const RegisterPage: React.FC = () => {
                         <Button type="submit" className="w-full bg-green-600 text-white hover:bg-green-700">
                             Register
                         </Button>
-                        <div className="text-center text-sm text-gray-400">
+                        <div className="text-center text-lg text-white">
                             Already have an account?{' '}
-                            <a href="/login" className="text-blue-600 hover:underline">Log in</a>
+                            <a href="/login" className="text-blue-400 underline">Log in</a>
                         </div>
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">

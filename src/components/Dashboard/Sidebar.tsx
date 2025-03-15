@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LuGitGraph, LuLayers, LuLayers3, LuLayoutDashboard, LuLogOut, LuNotebookText, LuTrendingUp } from 'react-icons/lu'
+import { ImProfile } from "react-icons/im";
 import Button from '../ui/button'
 import { BiChevronLeft, BiChevronRight, BiMenu } from 'react-icons/bi'
 import { FaX } from 'react-icons/fa6'
@@ -38,10 +39,11 @@ export default function Sidebar() {
   }
 
   const menuItems = [
+    { href: "/dashboard/profile", label: "Profile", icon: ImProfile },
     { href: "/dashboard", label: "Stats", icon: LuNotebookText },
     { href: "/dashboard/picks", label: "Pick Em", icon: LuLayoutDashboard },
     { href: "/dashboard/leaderboard", label: "Leaderboard", icon: LuTrendingUp },
-    { href: "/dashboard/profile", label: "Profile", icon: LuLayoutDashboard },
+
 
   ]
 
@@ -75,6 +77,7 @@ export default function Sidebar() {
                   >
                     <item.icon className={`${isMobile || isOpen ? 'mr-3' : ''} h-6 w-6 ${isActive ? 'text-blue-600' : 'text-[#212121] group-hover:text-blue-400'}`} />
                     {(isMobile || isOpen) && <span className="font-semibold">{item.label}</span>}
+
                   </Link>
                 )
               })}
@@ -86,7 +89,7 @@ export default function Sidebar() {
               className={`flex-shrink-0 group border-gray-400 border block ${!isOpen && !isMobile ? 'p-0 h-8 w-8 mx-auto' : 'w-full'}`}
               onClick={handleLogout}
             >
-              <div className={`flex items-center justify-center h-full border-2 border-black rounded-lg ${isMobile || isOpen ? '' : 'w-full'}`}>
+              <div className={`flex items-center justify-center h-full ${isMobile || isOpen ? '' : 'w-full'}`}>
                 <LuLogOut className={`${isMobile || isOpen ? 'mr-1 h-5 w-5' : 'h-4 w-4'}`} />
                 {(isMobile || isOpen) && <span className="text-xs font-medium">Log out</span>}
               </div>

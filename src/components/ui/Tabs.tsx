@@ -6,10 +6,10 @@ import React from "react";
 interface ItemProps extends React.HTMLAttributes<HTMLDivElement> {
   active?: boolean;
   disabled?: boolean;
-  icon?: React.ReactNode; // Accepts React nodes (e.g., SVG or custom icons)
+  icon?: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
-  "aria-label"?: string; // Added for accessibility
+  "aria-label"?: string;
 }
 
 const Item = React.forwardRef<HTMLElement, ItemProps>(function Item(
@@ -19,35 +19,33 @@ const Item = React.forwardRef<HTMLElement, ItemProps>(function Item(
     icon = null,
     children,
     className,
-    "aria-label": ariaLabel = children ? String(children) : "Tab Item", // Default aria-label
+    "aria-label": ariaLabel = children ? String(children) : "Tab Item",
     ...otherProps
   }: ItemProps,
   ref
 ) {
   return (
     <div
-      className={`group flex h-10 cursor-pointer items-center justify-center gap-2 border-b border-solid border-gray-200 px-2.5 py-0.5 ${active ? "border-b-2 border-solid border-blue-600 px-2.5 pt-0.5 pb-px hover:border-blue-600" : ""
-        } ${className}`}
+      className={`group relative flex h-12 items-center justify-center gap-2 px-4 py-2 cursor-pointer 
+        ${disabled ? "cursor-not-allowed text-gray-400" : "text-gray-600 hover:text-blue-600"} 
+        ${active ? "text-blue-600 border-b-2 border-blue-600" : "border-b border-transparent"} 
+        ${className}`}
       ref={ref as any}
-      aria-label={ariaLabel} // Accessibility improvement
+      aria-label={ariaLabel}
       {...otherProps}
     >
-      {/* Icon */}
-      {React.isValidElement(icon) ? (
-        <span className="text-body text-gray-700">{icon}</span>
-      ) : (
+      {icon && (
         <span
-          className={`text-gray-400 group-hover:text-gray-800 ${active ? "text-blue-700 group-hover:text-blue-700" : ""
-            } ${disabled ? "text-gray-300 group-hover:text-gray-300" : ""}`}
+          className={`text-lg ${active ? "text-blue-600" : "text-gray-400 group-hover:text-blue-600"}
+            ${disabled ? "text-gray-300 group-hover:text-gray-300" : ""}`}
         >
           {icon}
         </span>
       )}
-      {/* Label */}
       {children && (
         <span
-          className={`font-semibold text-gray-700 group-hover:text-gray-800 ${active ? "text-blue-700 group-hover:text-blue-700" : ""
-            } ${disabled ? "text-gray-300 group-hover:text-gray-300" : ""}`}
+          className={`text-sm font-medium ${disabled ? "text-gray-300" : ""}
+            ${active ? "text-blue-600" : "group-hover:text-blue-600"}`}
         >
           {children}
         </span>
@@ -60,7 +58,7 @@ const Item = React.forwardRef<HTMLElement, ItemProps>(function Item(
 interface TabsRootProps extends React.HTMLAttributes<HTMLDivElement> {
   children?: React.ReactNode;
   className?: string;
-  "aria-label"?: string; // Added for accessibility
+  "aria-label"?: string;
 }
 
 const TabsRoot = React.forwardRef<HTMLElement, TabsRootProps>(function TabsRoot(
@@ -69,15 +67,12 @@ const TabsRoot = React.forwardRef<HTMLElement, TabsRootProps>(function TabsRoot(
 ) {
   return (
     <div
-      className={`flex w-full items-end ${className}`}
+      className={`flex w-full items-center border-b border-gray-300 ${className}`}
       ref={ref as any}
-      aria-label={ariaLabel} // Accessibility improvement
+      aria-label={ariaLabel}
       {...otherProps}
     >
-      {children && (
-        <div className="flex items-start self-stretch">{children}</div>
-      )}
-      <div className="flex grow shrink-0 basis-0 flex-col items-start gap-2 self-stretch border-b border-solid border-gray-200" />
+      {children}
     </div>
   );
 });

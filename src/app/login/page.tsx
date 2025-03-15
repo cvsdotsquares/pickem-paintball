@@ -10,13 +10,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/ca
 import { Input } from '@/src/components/ui/input';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import Button from '@/src/components/ui/button';
-
+import { sendPasswordResetEmail } from 'firebase/auth';  // Import reset function
 
 
 const LoginPage: React.FC = () => {
     const [email, setEmail] = useState<string>('');
     const [password, setPassword] = useState<string>('');
     const [error, setError] = useState<string>('');
+    const [resetEmail, setResetEmail] = useState<string>(''); // For password reset email input
+    const [showResetForm, setShowResetForm] = useState<boolean>(false); // Toggle the reset form
     const router = useRouter();
     const { user } = useAuth();
 
@@ -90,6 +92,17 @@ const LoginPage: React.FC = () => {
         }
     };
 
+    const handlePasswordReset = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await sendPasswordResetEmail(auth, resetEmail);  // Send reset email
+            alert('Password reset email sent. Check your inbox!');
+            setShowResetForm(false);  // Hide the reset form
+        } catch (err) {
+            setError('Error sending password reset email.');
+        }
+    };
+
     return (
         <div className="flex items-center justify-center min-h-screen">
             <img
@@ -124,9 +137,38 @@ const LoginPage: React.FC = () => {
                         <Button type="submit" className="w-full bg-black text-white hover:bg-gray-800">
                             Log in
                         </Button>
-                        <div className="text-center text-sm text-gray-400">
-                            Don&apos;t have an account? <a href="/register" className="text-blue-600 hover:underline">Sign up</a>
+                        <div className='flex flex-row-reverse items-center justify-between m-auto'>
+                            <div className="text-center text-sm text-white">
+                                Don&apos;t have an account? <a href="/register" className="text-blue-300 underline">Sign up</a>
+                            </div>
+
+                            {/* Forgot Password Link */}
+                            <div className="text-center text-white text-sm ">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowResetForm(!showResetForm)}
+                                    className="text-blue-300 underline"
+                                >
+                                    Forgot Password?
+                                </button>
+                            </div>
                         </div>
+                        {/* Password Reset Form */}
+                        {showResetForm && (
+                            <form onSubmit={handlePasswordReset} className="space-y-4 mt-4">
+                                <Input
+                                    type="email"
+                                    placeholder="Enter your email"
+                                    value={resetEmail}
+                                    onChange={(e) => setResetEmail(e.target.value)}
+                                    required
+                                />
+                                <Button type="submit" className="w-full bg-blue-500 text-white hover:bg-blue-600">
+                                    Reset Password
+                                </Button>
+                            </form>
+                        )}
+
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">
                                 <span className="w-full border-t border-gray-300" />

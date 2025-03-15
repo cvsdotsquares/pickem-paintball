@@ -29,7 +29,7 @@ export default function RootLayout({
         <ErrorBoundary>
           <AuthProvider>
             <NextTopLoader
-              color="blue"
+              color="#BFD641"
               initialPosition={0.3}
               crawlSpeed={800}
               height={6}

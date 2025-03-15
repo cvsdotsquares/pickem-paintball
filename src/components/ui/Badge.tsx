@@ -4,9 +4,9 @@ import React from "react";
 
 interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: "brand" | "neutral" | "error" | "warning" | "success";
-  icon?: string;
+  icon?: React.ReactNode; // Accepts any valid React element or node
   children?: React.ReactNode;
-  iconRight?: string;
+  iconRight?: React.ReactNode;
   className?: string;
 }
 
