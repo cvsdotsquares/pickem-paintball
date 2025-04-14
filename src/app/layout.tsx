@@ -32,7 +32,7 @@ const hanson = localFont({
 const azonix = localFont({
   src: [
     {
-      path: "../../public/fonts/azonix.otf",
+      path: "../../public/fonts/Azonix.otf",
       weight: "400",
       style: "normal",
     },
