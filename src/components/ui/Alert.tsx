@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import React from "react";
 
 interface AlertProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
@@ -12,6 +13,7 @@ interface AlertProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'>
 }
 
 const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
+  
   function Alert(
     {
       variant = "neutral",
@@ -33,13 +35,18 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
     };
 
     return (
-      <div
+      <motion.div
+      layout
+      initial={{ y: -15, scale: 0.95 }}
+      animate={{ y: 0, scale: 1 }}
+      exit={{ x: "100%", opacity: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
         className={`flex flex-col w-full items-start gap-2 rounded-md border px-4 py-3 ${variantClasses[variant]
           } ${className}`}
-        ref={ref}
-        {...otherProps}
+        
       >
-        <div className="flex w-full items-center gap-4">
+        <div className="flex w-full items-center gap-4" ref={ref}
+        {...otherProps}>
           {icon && <span className="text-lg">{icon}</span>}
           <div className="flex flex-grow flex-col items-start">
             {title && (
@@ -55,7 +62,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
             <div className="flex items-center justify-end gap-2">{actions}</div>
           )}
         </div>
-      </div>
+      </motion.div>
     );
   }
 );

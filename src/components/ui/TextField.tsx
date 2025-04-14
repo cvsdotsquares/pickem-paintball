@@ -62,31 +62,31 @@ const TextFieldRoot = React.forwardRef<HTMLLabelElement, TextFieldRootProps>(
         {...otherProps}
       >
         {label && (
-          <span className="text-caption-bold font-caption-bold text-gray-800">
+          <span className="text-caption-bold font-caption-bold text-white">
             {label}
           </span>
         )}
         <div
           className={`flex h-8 w-full items-center gap-1 rounded-md border px-2 ${variant === "filled"
-            ? "bg-gray-100 border-gray-300 group-hover:border-gray-400"
+            ? "bg-gray-100 border-gray-800 group-hover:border-gray-400"
             : "border-gray-300"
             } ${disabled ? "border-gray-200 bg-gray-200" : ""} ${error ? "border-red-600" : "group-focus-within:border-blue-500"
             }`}
         >
           {/* Left Icon */}
-          {icon && <span className="text-gray-500">{icon}</span>}
+          {icon && <span className="text-white">{icon}</span>}
           {children && <div className="flex-grow px-1">{children}</div>}
           {/* Right Icon */}
           {iconRight && (
             <span
-              className={`text-gray-500 ${error ? "text-red-600" : ""}`}
+              className={`text-white ${error ? "text-red-600" : ""}`}
             >
               {iconRight}
             </span>
           )}
         </div>
         {helpText && (
-          <span className={`text-caption text-gray-500 ${error ? "text-red-700" : ""}`}>
+          <span className={`text-caption text-white ${error ? "text-red-700" : ""}`}>
             {helpText}
           </span>
         )}

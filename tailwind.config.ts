@@ -8,7 +8,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        inter: ['var(--font-inter)'], // Default to Inter
+        inter: ['var(--font-inter)'],
+        hanson: ['var(--font-hanson)'], 
+        azonix: ['var(--font-azonix)'], 
       },
     },
   },

@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { db } from "@/src/lib/firebaseClient";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { Event } from "../page";
-import { DataTable } from "mantine-datatable";
 import { getAuth } from "firebase/auth";
+import DataTable from "@/src/components/Dashboard/leaderdata";
+import { ExpandableCard } from "@/src/components/Dashboard/temp";
 
 interface User {
   id: string;
@@ -106,9 +107,7 @@ export default function Leaderboard() {
 
                     console.log(`Player ID: ${playerId}, Total Kills: ${totalKills}`);
                     totalPoints += totalKills; // Add kills to total points
-                    totalCost += playerCost;
-                    totalCost = Math.round(totalCost);
-                    budget = formatCost(totalCost);
+                    
                     // Update MVP if this player has more kills than the current MVP
                     if (totalKills > mvp.kills) {
                       mvp = { playerName, kills: totalKills };
@@ -122,8 +121,8 @@ export default function Leaderboard() {
               })
             );
 
-            console.log(`Total points for user ${userId}: ${totalPoints}, MVP: ${mvp.playerName}, Budget used: ${totalCost}`);
-            return { id: userId, displayName, totalPoints, totalCost, mvp: mvp.playerName, budget };
+            console.log(`Total points for user ${userId}: ${totalPoints}, MVP: ${mvp.playerName}`);
+            return { id: userId, displayName, totalPoints, totalCost, mvp: mvp.playerName };
           })
         );
 
@@ -149,59 +148,24 @@ export default function Leaderboard() {
   // Slice the users array for current page display
   const paginatedUsers = users.slice((page - 1) * pageSize, page * pageSize);
   const currentUser = paginatedUsers.find(user => user.id === currentUserId);
-
+  const columns = [
+    { header: "Rank", accessor: "rank" },
+    { header: "Name", accessor: "displayName" },
+    { header: "Total Points", accessor: "totalPoints" },
+    { header: "MVP", accessor: "mvp" },
+  ];
   return (
-    <div className="flex flex-col p-4 min-h-screen font-inter bg-white">
-      <h1 className="text-2xl font-bold m-4 text-left">Leaderboard</h1>
-      <div className="flex flex-row w-full justify-evenly m-auto">
-        <div className=" w-full flex-col flex p-4 m-4 bg-slate-200 rounded-lg overflow-hidden">
-          {liveEvent ? (
-            <span className="ml-3 ">
-              {liveEvent.name}{" "}
-              <span className="text-green-600">(live)</span>
-            </span>
-          ) : (
-            <span className="text-gray-400">(No live event)</span>
-          )}
-          <div className="datatables m-2">
+    <div className=" p-6 min-h-screen font-azonix">
+          <div className="flex flex-col relative items-center bg-black shadow-xl sm:rounded-3xl bg-clip-padding bg-opacity-40 border-4 border-gray-200/20" style={{ backdropFilter: 'blur(20px)' }}>
 
-            <DataTable
-              className="rounded-lg font-inter"
-              records={paginatedUsers}
-              columns={[
-                {
-                  accessor: "rank",
-                  title: "Rank",
-                  render: (record, index) => (page - 1) * pageSize + index + 1,
-                },
-                {
-                  accessor: "displayName",
-                  title: "Name",
-                  render: (record) => (
-                    <span
-                      className={record.id === currentUserId ? "hover:underline" : ""}
-                    >
-                      {record.displayName}{" "} {record.id === currentUserId ? "(User)" : ""}
-                    </span>
-                  ),
-                },
-                { accessor: "totalPoints", title: "Points" },
-                { accessor: "mvp", title: "MVP" },
-                { accessor: "budget", title: "Budget Spent" },
-              ]}
-              totalRecords={users.length}
-              recordsPerPage={pageSize}
-              page={page}
-              onPageChange={setPage}
-              recordsPerPageOptions={PAGE_SIZES}
-              onRecordsPerPageChange={(newPageSize: number) => {
-                setPageSize(newPageSize);
-                setPage(1);
-              }}
-              rowClassName={(record) => record.id === currentUserId ? "font-extrabold text-2xl text-sky-600" : ""}
-            />
-          </div>
+      <h1 className="text-2xl font-bold m-4 text-white text-left">Event Leaderboard</h1>
+      <div className="flex flex-row w-full justify-evenly m-auto">
+        <div className=" w-full flex-col flex rounded-lg overflow-hidden">
+          
+          {/* <DataTable data={paginatedUsers} columns={columns} /> */}
+          {/* <ExpandableCardDemo/> */}
         </div>
+      </div>
       </div>
     </div>
   );

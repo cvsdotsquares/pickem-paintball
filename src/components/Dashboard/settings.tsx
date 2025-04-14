@@ -207,46 +207,46 @@ function AccountSettings() {
                 style={{ display: "none" }}
             />
 
-            <div className="max-w-none flex flex-col items-center gap-2 self-baseline shadow-sm">
-                <div className="flex w-full flex-col items-start gap-2">
+            <div className="max-w-none flex flex-col  items-center gap-4 self-baseline">
+                <div className="flex w-full flex-col items-start gap-4">
                     {/* Profile Picture Upload Section */}
-                    <div className="flex w-full flex-col items-start gap-2">
-                        <div className="flex items-center gap-2">
+                    <div className="flex w-full flex-col items-start gap-4">
+                        <div className="flex items-center gap-4">
                             <img
                                 className="h-16 w-16 flex-none object-cover [clip-path:circle()]"
                                 src="https://cdn-icons-png.freepik.com/256/14024/14024658.png?semt=ais_hybrid"
                                 alt="Profile"
                             />
-                            <div className="flex flex-col items-start gap-2">
+                            <div className="flex flex-col items-start gap-4">
                                 <Button variant="secondary" onClick={handleUploadClick}>
                                     Upload
                                 </Button>
-                                <span className="text-caption font-caption text-subtext-color">
-                                    For best results, upload an image 512x512 or larger.
-                                </span>
+                                
                             </div>
                         </div>
                     </div>
 
                     {/* Profile Details Section */}
-                    <div className="flex w-full items-center gap-2">
+                    <div className="flex w-full items-center font-azonix text-white gap-4">
                         <TextField
-                            className="h-auto grow"
+                            className="h-auto grow text-white"
                             label="First name"
                             helpText=""
                         >
                             <TextField.Input
+                            className="font-sans text-neutral-200"
                                 placeholder={firstName || "Enter first name"}
                                 value={firstName}
                                 onChange={(e) => setFirstName(e.target.value)}
                             />
                         </TextField>
                         <TextField
-                            className="h-auto grow"
+                            className="h-auto grow text-white"
                             label="Last name"
                             helpText=""
                         >
                             <TextField.Input
+                            className="font-sans text-neutral-200"
                                 placeholder={lastName || "Enter last name"}
                                 value={lastName}
                                 onChange={(e) => setLastName(e.target.value)}
@@ -255,9 +255,10 @@ function AccountSettings() {
 
 
                     </div>
-                    <div className="flex w-full items-center gap-2">
-                        <TextField className="h-auto grow" label="Email" helpText="">
+                    <div className="flex w-full items-center font-azonix gap-4">
+                        <TextField className="h-auto grow text-white" label="Email" helpText="">
                             <TextField.Input
+                            className="font-sans text-neutral-200"
                                 placeholder={emailPlaceholder}
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -268,12 +269,12 @@ function AccountSettings() {
                     <Button variant="primary" onClick={handleProfileUpdate}>
                         Update Profile
                     </Button>
-                    <div className="flex w-full flex-none flex-col items-center gap-2 bg-neutral-border" />
+                    {/* <div className="flex w-full flex-none flex-col items-center gap-4 bg-neutral-950 border" /> */}
 
                     {/* Password Change Section */}
                     {isEmailPasswordAuth && (
-                        <div className="flex w-full flex-col items-start gap-2">
-                            <TextField className="h-auto w-full" label="Current password" helpText="">
+                        <div className="flex w-full flex-col items-start gap-4">
+                            <TextField className="h-auto w-full text-white" label="Current password" helpText="">
                                 <TextField.Input
                                     type="password"
                                     placeholder="Enter current password"
@@ -281,7 +282,7 @@ function AccountSettings() {
                                     onChange={(e) => setCurrentPassword(e.target.value)}
                                 />
                             </TextField>
-                            <TextField className="h-auto w-full" label="New password" helpText="Your password must have at least 8 characters, include one uppercase letter, and one number.">
+                            <TextField className="h-auto w-full text-white" label="New password" helpText="Your password must have at least 8 characters, include one uppercase letter, and one number.">
                                 <TextField.Input
                                     type="password"
                                     placeholder="Enter new password"
@@ -289,7 +290,7 @@ function AccountSettings() {
                                     onChange={(e) => setNewPassword(e.target.value)}
                                 />
                             </TextField>
-                            <TextField className="h-auto w-full" label="" helpText="">
+                            <TextField className="h-auto w-full text-white" label="" helpText="">
                                 <TextField.Input
                                     type="password"
                                     placeholder="Re-type new password"
@@ -297,7 +298,7 @@ function AccountSettings() {
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                 />
                             </TextField>
-                            <div className="flex w-full flex-col items-start justify-center gap-2">
+                            <div className="flex w-full flex-col items-start justify-center gap-4">
                                 <Button variant="primary" onClick={handleChangePassword}>
                                     Change password
                                 </Button>
@@ -305,20 +306,21 @@ function AccountSettings() {
                         </div>
                     )}
 
-                    <div className="flex h-px w-full flex-none flex-col items-center gap-2 bg-neutral-border" />
+                    <div className="flex h-px w-full flex-none flex-col items-center gap-4 border-neutral-300 border " />
 
                     {/* Danger Zone Section */}
-                    <div className="flex w-full flex-col items-start gap-2">
-                        <span className="text-heading-3 font-heading-3 text-default-font">
+                    <div className="flex w-full flex-col items-start gap-4">
+                        <span className="text-heading-3 font-azonix font-heading-3 text-default-font">
                             Danger zone
                         </span>
                         <Alert
                             variant="error"
+                            className="font-sans text-neutral-200"
                             icon={null}
                             title="Delete account"
                             description="Permanently remove your account. This action is not reversible."
                             actions={
-                                <Button variant="secondary" onClick={handleDeleteAccount}>
+                                <Button variant="destructive" onClick={handleDeleteAccount}>
                                     Delete account
                                 </Button>
                             }
@@ -327,12 +329,12 @@ function AccountSettings() {
 
                     {/* Display success/error messages */}
                     {message && (
-                        <div className="mt-4">
+                        <div className="mt-4 flex flex-col gap-1 w-72 fixed top-2 right-2 z-50 pointer-events-none">
                             <Alert variant="success" title="Success" description={message} />
                         </div>
                     )}
                     {error && (
-                        <div className="mt-4">
+                        <div className="mt-4 flex flex-col gap-1 w-72 fixed top-2 right-2 z-50 pointer-events-none">
                             <Alert variant="error" title="Error" description={error} />
                         </div>
                     )}

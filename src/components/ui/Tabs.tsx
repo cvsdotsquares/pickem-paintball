@@ -27,8 +27,8 @@ const Item = React.forwardRef<HTMLElement, ItemProps>(function Item(
   return (
     <div
       className={`group relative flex h-12 items-center justify-center gap-2 px-4 py-2 cursor-pointer 
-        ${disabled ? "cursor-not-allowed text-gray-400" : "text-gray-600 hover:text-blue-600"} 
-        ${active ? "text-blue-600 border-b-2 border-blue-600" : "border-b border-transparent"} 
+        ${disabled ? "cursor-not-allowed text-gray-400" : "text-gray-600 hover:text-blue-700"} 
+        ${active ? "text-black border-b-2 border-black" : "border-b border-transparent"} 
         ${className}`}
       ref={ref as any}
       aria-label={ariaLabel}
@@ -36,7 +36,7 @@ const Item = React.forwardRef<HTMLElement, ItemProps>(function Item(
     >
       {icon && (
         <span
-          className={`text-lg ${active ? "text-blue-600" : "text-gray-400 group-hover:text-blue-600"}
+          className={`text-lg ${active ? "text-black" : "text-gray-400 group-hover:text-blue-700"}
             ${disabled ? "text-gray-300 group-hover:text-gray-300" : ""}`}
         >
           {icon}
@@ -45,7 +45,7 @@ const Item = React.forwardRef<HTMLElement, ItemProps>(function Item(
       {children && (
         <span
           className={`text-sm font-medium ${disabled ? "text-gray-300" : ""}
-            ${active ? "text-blue-600" : "group-hover:text-blue-600"}`}
+            ${active ? "text-blue-900" : "group-hover:text-blue-900"}`}
         >
           {children}
         </span>

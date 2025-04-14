@@ -14,8 +14,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     <ProtectedRoute>
       <Layout>{children}</Layout>
     </ProtectedRoute>
-
-
   );
 };
 

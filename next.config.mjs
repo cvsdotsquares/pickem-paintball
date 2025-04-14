@@ -3,7 +3,7 @@
 // Learn more: https://nextjs.org/docs/api-reference/next.config.js/introduction
 
 const nextConfig = {
-  reactStrictMode: true,  // Recommended for identifying potential problems in your app
+  reactStrictMode: false,  // Recommended for identifying potential problems in your app
 };
 
 export default nextConfig;
