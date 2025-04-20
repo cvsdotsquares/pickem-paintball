@@ -13,7 +13,7 @@ export interface ColumnDefinition {
   cellRenderer?: (
     value: any,
     rowData: any,
-    rowIndex: number,
+    rowIndex: number
   ) => React.ReactNode;
 }
 
@@ -119,7 +119,11 @@ const DisplayTable: React.FC<DisplayTableProps> = ({
                   return (
                     <div
                       key={`${rowIndex}-${column.id}`}
-                      className={`min-h-28 bg-stone-950 flex items-center justify-center ${cellClassName(column.id, row, rowIndex)}`}
+                      className={`min-h-28 bg-stone-950 flex items-center justify-center ${cellClassName(
+                        column.id,
+                        row,
+                        rowIndex
+                      )}`}
                       role="cell"
                     >
                       {cellContent}

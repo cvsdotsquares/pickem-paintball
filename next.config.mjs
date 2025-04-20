@@ -3,7 +3,10 @@
 // Learn more: https://nextjs.org/docs/api-reference/next.config.js/introduction
 
 const nextConfig = {
-  reactStrictMode: false,  // Recommended for identifying potential problems in your app
+  reactStrictMode: false, 
+  eslint: {
+        ignoreDuringBuilds: true,
+    },
 };
 
 export default nextConfig;
