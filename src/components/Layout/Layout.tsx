@@ -37,7 +37,7 @@ const links = [
   },
   {
     label: "Live PickEm",
-    href: "/dashboard/picks",
+    href: "/dashboard/pick-em",
     icon: <GiCardRandom className="h-5 w-5 shrink-0 text-neutral-200" />,
   },
   {
