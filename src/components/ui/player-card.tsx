@@ -57,6 +57,53 @@ export const PickCard: React.FC<PickCardProps> = ({
     </>
   );
 };
+export const PickCard1: React.FC<PickCardProps> = ({
+  playerName = "Player Name",
+  picUrl = "/placeholder.svg",
+  teamName = "Player Team",
+  cost = 0,
+}) => {
+  const formatCost = (value: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+  return (
+    <>
+      <div className="flex flex-col gap-2 cursor-pointer transition duration-300 ease-in-out hover:scale-95 hover:drop-shadow-2xl">
+        <div className="relative justify-center m-auto md:h-[14vh] md:w-[6vw] w-[60px] h-[60px] bg-gradient-to-b from-[#862121] to-[#000000] rounded-2xl overflow-hidden text-white">
+          {/* Background Image */}
+          <motion.div
+            className="absolute top-0 bottom-0 left-0 right-0 flex scale-[85%]"
+            style={{
+              backgroundImage: `url(${picUrl || "/placeholder.svg"})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+
+          {/* Content (Text and Button at Bottom) */}
+          <div className="absolute bottom-0 left-0 right-0 p-1 backdrop-filter backdrop-brightness-75 rounded-xl text-center z-10">
+            <h3 className="text-[10px] leading-5 font-azonix mix-blend-difference">
+              {playerName}
+            </h3>
+          </div>
+        </div>
+        {/* <div className="flex flex-col justify-center m-2 md:w-[9vw] w-[100px] self-center inset-0 text-center text-xs text-white mt-2">
+          <div className="flex flex-col justify-center min-h-10  rounded-xl bg-gradient-to-br from from-black to-neutral-800 pb-2">
+            <span className="text-[10px] font-azonix whitespace-wrap">
+              {teamName}
+            </span>
+            <span className="font-bold"></span> {formatCost(cost)}
+          </div>
+        </div> */}
+      </div>
+    </>
+  );
+};
 export function FilterUI({
   onFilter,
 }: {

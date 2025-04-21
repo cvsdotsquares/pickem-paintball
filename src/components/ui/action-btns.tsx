@@ -8,7 +8,7 @@ const ActionButtons = () => {
         href={"/dashboard/pick-em"}
         className="self-stretch px-2 py-2.5 my-auto bg-white bg-opacity-10 min-h-10 min-w-10 rounded-[32px] w-[263px]"
       >
-        Change Picks
+        Edit Picks
       </Link>
       <Link
         href={"/dashboard/stats"}

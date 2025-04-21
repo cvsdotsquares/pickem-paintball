@@ -3,7 +3,7 @@
 import { db } from "@/src/lib/firebaseClient";
 import { collection, getDocs } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import Temp from "@/src/components/Dashboard/temp";
+import Temp, { MatchupTable } from "@/src/components/Dashboard/temp";
 import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
 
 export interface Player {
@@ -250,7 +250,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <Temp />
+      {/* <MatchupTable data={rowData} /> */}
     </div>
   );
 }

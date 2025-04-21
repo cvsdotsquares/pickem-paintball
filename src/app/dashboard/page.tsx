@@ -4,7 +4,7 @@ import UserProfile from "@/src/components/Dashboard/overlay";
 import ActionButtons from "@/src/components/ui/action-btns";
 import DivisionInfo from "@/src/components/ui/div-info";
 import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
-import CardSection from "@/src/components/ui/section-card";
+import { PickWidget } from "@/src/components/ui/section-card";
 
 export interface Player {
   player_id: number;
@@ -22,8 +22,8 @@ export interface Event {
 export default function Dashboard() {
   return (
     <section className="absolute flex h-screen font-azonix w-full overflow-hidden">
-      <div className="relative rounded-2xl pr-4 flex z-0 left-0 md:flex-row flex-col justify-start w-[97vw]">
-        <div className="relative   flex justify-center my-auto w-[60vw] h-full">
+      <div className="relative rounded-2xl pr-4 flex z-0 left-0 md:flex-row flex-col justify-start ">
+        <div className="relative   flex justify-center my-auto w-[55vw] h-full">
           {/* Background Wrapper */}
 
           <div
@@ -44,7 +44,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="border-white/30 border-l md:w-[35vw] w-full">
+        <div className="border-white/30 border-l md:w-[40vw] w-full">
           <div className="flex-1 p-10">
             <div className="flex overflow-hidden mt-10 relative flex-col  rounded-2xl">
               <img
@@ -54,7 +54,7 @@ export default function Dashboard() {
               />
 
               <div className="relative flex-1 w-full py-2 ">
-                <CardSection />
+                <PickWidget />
                 <ActionButtons />
               </div>
             </div>
