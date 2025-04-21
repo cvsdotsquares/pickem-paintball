@@ -3,7 +3,7 @@
 import { db } from "@/src/lib/firebaseClient";
 import { collection, getDocs } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import Temp, { MatchupTable } from "@/src/components/Dashboard/temp";
+import { MatchupTable } from "@/src/components/Dashboard/temp";
 import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
 
 export interface Player {
@@ -52,16 +52,15 @@ export default function Dashboard() {
   }, []);
 
   interface LogoCardProps {
-    backgroundSrc: string;
-    logoSrc: string;
-    aspectRatio: string;
+    name: string;
+    status: string;
   }
 
-  const LogoCard: React.FC<LogoCardProps> = ({
-    backgroundSrc,
-    logoSrc,
-    aspectRatio,
-  }) => {
+  const LogoCard: React.FC<LogoCardProps> = ({ name }) => {
+    // Generate a random background image
+    const randomIndex = Math.floor(Math.random() * 3); // Generates 0, 1, 2, or 3
+    const backgroundSrc = `/background${randomIndex}.jpg`; // Constructs the path dynamically
+
     return (
       <article className="flex flex-col flex-1 shrink justify-center self-stretch my-auto basis-0 min-h-24">
         <div className="flex relative flex-col flex-1 justify-center items-center px-12 py-6 rounded-lg aspect-[2.177] size-full max-md:px-5">
@@ -70,24 +69,23 @@ export default function Dashboard() {
             alt="Logo card background"
             className="object-cover absolute inset-0 size-full rounded-xl"
           />
-          <div className="overflow-hidden relative flex-1 shrink self-stretch my-auto w-full basis-0 max-w-[116px]">
-            <div className="flex overflow-hidden flex-col justify-center items-center w-full min-h-[50px]">
-              {logoSrc && (
-                <img
-                  src={logoSrc}
-                  alt="Partner logo"
-                  className={`object-contain w-full ${
-                    aspectRatio ? `aspect-[${aspectRatio}]` : ""
-                  }`}
-                />
+          <div className="overflow-hidden relative flex-1 shrink self-stretch my-auto w-full basis-0 ">
+            <div className="flex overflow-hidden flex-col justify-center m-auto items-center w-full ">
+              {name && (
+                <div
+                  className={`object-center mx-autow text-center font-azonix text-xl font-medium whitespace-pre-wrap text-white w-full`}
+                >
+                  {name}
+                </div>
               )}
-              {!logoSrc && <div className="flex w-full min-h-14" />}
+              {/* {!name && <div className="flex w-full min-h-14">N/A</div>} */}
             </div>
           </div>
         </div>
       </article>
     );
   };
+
   // Fetch player data based on the selected event
   useEffect(() => {
     async function fetchPlayers() {
@@ -157,56 +155,6 @@ export default function Dashboard() {
   const handleEventSelect = (event: Event) => {
     setSelectedEvent(event);
   };
-  const logoCards = [
-    {
-      backgroundSrc:
-        "https://cdn.builder.io/api/v1/image/assets/TEMP/28288ce1e682dedb7ecb8edc45f21220c30cc7b7?placeholderIfAbsent=true&apiKey=15889098a2f64f5596f97e7e5322ac49",
-      logoSrc:
-        "https://cdn.builder.io/api/v1/image/assets/TEMP/c16c07b51ee79be0fe54ba8189bbadf44d5e1bc6?placeholderIfAbsent=true&apiKey=15889098a2f64f5596f97e7e5322ac49",
-      aspectRatio: "2.32",
-    },
-    {
-      backgroundSrc:
-        "https://cdn.builder.io/api/v1/image/assets/TEMP/089f7db2ee572f9015c2192892930f9e19d355fc?placeholderIfAbsent=true&apiKey=15889098a2f64f5596f97e7e5322ac49",
-      logoSrc:
-        "https://cdn.builder.io/api/v1/image/assets/TEMP/13f62c3b54fa2d1a468beb3349ac59788e5567a1?placeholderIfAbsent=true&apiKey=15889098a2f64f5596f97e7e5322ac49",
-      aspectRatio: "1.02",
-    },
-    {
-      backgroundSrc:
-        "https://cdn.builder.io/api/v1/image/assets/TEMP/f3957a7876ad52dbdf1924dd78834d6b48cbb467?placeholderIfAbsent=true&apiKey=15889098a2f64f5596f97e7e5322ac49",
-      logoSrc:
-        "https://cdn.builder.io/api/v1/image/assets/TEMP/9d4110b5284ee2fb6505c071741765dcc553c71e?placeholderIfAbsent=true&apiKey=15889098a2f64f5596f97e7e5322ac49",
-      aspectRatio: "4.83",
-    },
-    {
-      backgroundSrc:
-        "https://cdn.builder.io/api/v1/image/assets/TEMP/1a3fc65fc58c5bc8634a46ddf592ccf3b3af0700?placeholderIfAbsent=true&apiKey=15889098a2f64f5596f97e7e5322ac49",
-      logoSrc: "",
-      aspectRatio: "0",
-    },
-    {
-      backgroundSrc:
-        "https://cdn.builder.io/api/v1/image/assets/TEMP/6f37f0ba9ecc759bb8cc22b84f981035e58db371?placeholderIfAbsent=true&apiKey=15889098a2f64f5596f97e7e5322ac49",
-      logoSrc:
-        "https://cdn.builder.io/api/v1/image/assets/TEMP/1a9e6992c064ac7f4e7daff0b70f15f3ca768d8d?placeholderIfAbsent=true&apiKey=15889098a2f64f5596f97e7e5322ac49",
-      aspectRatio: "1.96",
-    },
-    {
-      backgroundSrc:
-        "https://cdn.builder.io/api/v1/image/assets/TEMP/83a5ed12fbaa0ddf70dc60bd30463de82e6c725b?placeholderIfAbsent=true&apiKey=15889098a2f64f5596f97e7e5322ac49",
-      logoSrc:
-        "https://cdn.builder.io/api/v1/image/assets/TEMP/3050facfab14c2f3e30d93dd81b81d600496623c?placeholderIfAbsent=true&apiKey=15889098a2f64f5596f97e7e5322ac49",
-      aspectRatio: "1.95",
-    },
-    {
-      backgroundSrc:
-        "https://cdn.builder.io/api/v1/image/assets/TEMP/bc806b6b447ca6462a9871cc851bb4bca44cb425?placeholderIfAbsent=true&apiKey=15889098a2f64f5596f97e7e5322ac49",
-      logoSrc:
-        "https://cdn.builder.io/api/v1/image/assets/TEMP/08e147a5ee9072db591bb650441d50f5ec20c8f2?placeholderIfAbsent=true&apiKey=15889098a2f64f5596f97e7e5322ac49",
-      aspectRatio: "1.95",
-    },
-  ];
 
   return (
     <div className="relative top-4 left-0 flex flex-col w-auto  min-h-screen font-inter">
@@ -239,13 +187,8 @@ export default function Dashboard() {
         </header>
 
         <div className="flex flex-wrap gap-4 items-center px-6 mt-4 w-full max-md:px-5 max-md:max-w-full">
-          {logoCards.map((card, index) => (
-            <LogoCard
-              key={index}
-              backgroundSrc={card.backgroundSrc}
-              logoSrc={card.logoSrc}
-              aspectRatio={card.aspectRatio}
-            />
+          {eventsList.map((event, index) => (
+            <LogoCard key={index} name={event.name} status={event.status} />
           ))}
         </div>
       </section>
