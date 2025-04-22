@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   FaUser,
   FaChevronDown,
@@ -12,6 +12,7 @@ import {
   FaCalendar,
 } from "react-icons/fa";
 import { Pointer } from "../ui/cursor";
+import { FaSort, FaSortDown, FaSortUp } from "react-icons/fa6";
 
 type ThemeClasses = {
   bg: string;
@@ -43,7 +44,7 @@ type TableRow = {
 };
 
 type MatchupTableProps = {
-  data: TableRow[];
+  data: any[];
 };
 
 const headerButtons = [
@@ -52,27 +53,20 @@ const headerButtons = [
   { icon: <FaList /> },
 ];
 
-const columns: ColumnConfig[] = [
-  { key: "player", header: "Player", width: "w-1/12", sticky: true },
-  {
-    key: "score1",
-    header: "chart",
-    width: "w-1/2",
-  },
-  {
-    key: "score1",
-    header: "Performance",
-    width: "w-1/12",
-  },
-  ...Array.from({ length: 7 }, (_, i) => ({
-    key: `stat${i + 1}`,
-    header: `stat${i + 1}`,
-    width: "w-1/12",
-  })),
-  { key: "player", header: "Cost", width: "w-1/12" },
-];
+const lightThemeClasses: ThemeClasses = {
+  bg: "bg-white",
+  text: "text-black",
+  border: "border-gray-300",
+  hover: "hover:bg-gray-100",
+  headerBg: "bg-gray-100",
+  headerText: "text-gray-800",
+  button: "bg-gray-200 text-gray-800 hover:bg-gray-300",
+  activeButton: "bg-blue-500 text-white",
+  card: "bg-gray-50 border-gray-200",
+  progressBg: "bg-gray-300",
+};
 
-const themeClasses: ThemeClasses = {
+const darkThemeClasses: ThemeClasses = {
   bg: "bg-black",
   text: "text-white",
   border: "border-white",
@@ -168,45 +162,135 @@ const DiamondScore: React.FC<{
     </div>
   );
 };
+type SortConfig = {
+  key: string;
+  direction: "ascending" | "descending";
+};
 
 export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
   const [darkMode, setDarkMode] = useState<boolean>(true);
+  const themeClasses = darkMode ? darkThemeClasses : lightThemeClasses;
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [selectedTeam, setSelectedTeam] = useState<string>("All");
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+
+  // Get unique teams for filter
+  const teams = useMemo(() => {
+    const uniqueTeams = new Set(data.map((item) => item.Team));
+    return ["All", ...Array.from(uniqueTeams).sort()];
+  }, [data]);
+
+  // Filter and sort data
+  const filteredData = useMemo(() => {
+    let filtered = [...data];
+
+    // Apply search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (item) =>
+          item.Player.toLowerCase().includes(term) ||
+          item.Team.toLowerCase().includes(term) ||
+          item.Number.toString().includes(term)
+      );
+    }
+
+    // Apply team filter
+    if (selectedTeam !== "All") {
+      filtered = filtered.filter((item) => item.Team === selectedTeam);
+    }
+
+    // Apply sorting
+    if (sortConfig !== null) {
+      filtered.sort((a, b) => {
+        // Handle numeric values
+        if (!isNaN(a[sortConfig.key])) {
+          return sortConfig.direction === "ascending"
+            ? Number(a[sortConfig.key]) - Number(b[sortConfig.key])
+            : Number(b[sortConfig.key]) - Number(a[sortConfig.key]);
+        }
+
+        // Handle string values
+        if (a[sortConfig.key] < b[sortConfig.key]) {
+          return sortConfig.direction === "ascending" ? -1 : 1;
+        }
+        if (a[sortConfig.key] > b[sortConfig.key]) {
+          return sortConfig.direction === "ascending" ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    return filtered;
+  }, [data, searchTerm, selectedTeam, sortConfig]);
+
+  const requestSort = (key: string) => {
+    let direction: "ascending" | "descending" = "ascending";
+    if (
+      sortConfig &&
+      sortConfig.key === key &&
+      sortConfig.direction === "ascending"
+    ) {
+      direction = "descending";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: string) => {
+    if (!sortConfig || sortConfig.key !== key) {
+      return <FaSort className="ml-1" />;
+    }
+    return sortConfig.direction === "ascending" ? (
+      <FaSortUp className="ml-1" />
+    ) : (
+      <FaSortDown className="ml-1" />
+    );
+  };
+  // Extract headers dynamically from the first data object
+  const headers = Object.keys(data[0] || {}).filter(
+    (header) => header !== "Number"
+  );
 
   return (
     <div className={``}>
       {/* Filters */}
       <div className={`flex flex-row items-center justify-between p-4 `}>
         <div className="flex flex-row items-center space-x-4">
-          <button
-            className={`flex items-center space-x-2 px-3 py-2 rounded-lg shadow-sm ${themeClasses.button}`}
-          >
-            <span className="font-medium">Player</span>
-            <FaChevronDown
-              className={darkMode ? "text-gray-400" : "text-gray-500"}
+          {/* Search Input */}
+          <div className={`relative ${themeClasses.bg} rounded-lg`}>
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FaSearch
+                className={darkMode ? "text-gray-400" : "text-gray-500"}
+              />
+            </div>
+            <input
+              type="text"
+              placeholder="Search player, team, number..."
+              className={`pl-10 pr-4 py-2 rounded-lg ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} border focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </button>
-
-          <div className={`font-medium ${themeClasses.headerText}`}>
-            Matchups
           </div>
-        </div>
 
+          {/* Team Filter */}
+          <select
+            className={`px-2 py-2 rounded-lg shadow-sm ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} border focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            value={selectedTeam}
+            onChange={(e) => setSelectedTeam(e.target.value)}
+          >
+            {teams.map((team) => (
+              <option key={team} value={team}>
+                {team}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="flex items-center space-x-4">
           <button
             onClick={() => setDarkMode(!darkMode)}
             className={`p-2 rounded-full ${themeClasses.button}`}
           >
             {darkMode ? <FaSun /> : <FaMoon />}
-          </button>
-
-          <button
-            className={`flex items-center space-x-2 px-3 py-2 rounded-lg shadow-sm ${themeClasses.button}`}
-          >
-            <FaUser />
-            <span className="font-medium">Lowest price</span>
-            <FaChevronDown
-              className={darkMode ? "text-gray-400" : "text-gray-500"}
-            />
           </button>
         </div>
       </div>
@@ -218,72 +302,105 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
         <table className="w-full">
           <thead>
             <tr
-              className={`shadow-[0_0_0_0.2px] shadow-white  ${themeClasses.headerBg}`}
+              className={`shadow-[0_0_0_0.2px] shadow-white ${themeClasses.headerBg}`}
             >
-              {columns.map((column, index) => (
-                <th
-                  key={index}
-                  className={`px-4 py-3 text-left text-xs  font-medium font-azonix ${
-                    themeClasses.headerText
-                  } uppercase tracking-wider ${column.width} ${
-                    column.sticky ? "sticky left-0 z-10" : ""
-                  } ${index === 0 ? themeClasses.headerBg : ""}`}
-                  style={{
-                    ...(column.sticky && index > 0
-                      ? { left: `${index * 150}px` }
-                      : {}),
-                  }}
+              {/* Player Column */}
+              <th
+                className={`md:md:px-4 p-1 p-1 md:py-3 text-left text-xs ${themeClasses.headerBg} border-r-2 border-white/40 font-medium font-azonix ${themeClasses.headerText} uppercase tracking-wider sticky left-0 z-20`}
+              >
+                <div
+                  className="flex items-center cursor-pointer"
+                  onClick={() => requestSort("Player")}
                 >
-                  {column.header}
-                </th>
-              ))}
+                  Player
+                  {getSortIcon("Player")}
+                </div>
+              </th>
+
+              {/* Dynamic Stats Columns */}
+              {Object.keys(data[0] || {})
+                .filter(
+                  (key) =>
+                    ![
+                      "id",
+                      "cost",
+                      "Player",
+                      "Team",
+                      "player_id",
+                      "league_id",
+                      "Number",
+                      "team_id",
+                      "picture",
+                    ].includes(key) // Exclude specific keys
+                )
+                .map((key, index) => (
+                  <th
+                    key={index}
+                    className={`md:px-4 p-1 md:py-3 text-left text-xs  font-medium font-azonix ${themeClasses.headerText} uppercase tracking-wider`}
+                  >
+                    <div
+                      className="flex items-center cursor-pointer"
+                      onClick={() => requestSort(key)}
+                    >
+                      {key.replace(/_/g, " ")}
+                      {getSortIcon(key)}
+                    </div>
+                  </th>
+                ))}
             </tr>
           </thead>
           <tbody className={`divide-y ${themeClasses.border}`}>
-            {data.map((row, rowIndex) => (
+            {filteredData.map((row, rowIndex) => (
               <tr
                 key={rowIndex}
-                className={`${themeClasses.hover} ${themeClasses.bg} ${themeClasses.text}`}
+                className={`${themeClasses.hover} ${themeClasses.bg} ${themeClasses.text} `}
               >
                 {/* Player Column */}
                 <td
-                  className={`px-4 py-3 whitespace-nowrap sticky left-0 z-20 ${themeClasses.bg}`}
+                  className={`md:px-4 p-1 md:py-3 whitespace-nowrap border-r-2 inset-0 border-white/40 sticky left-0 z-20 ${themeClasses.bg}`}
                 >
-                  <div className="flex items-center">
-                    <div
-                      className={`flex-shrink-0 h-12 w-12 flex items-center justify-center mr-4`}
-                    >
-                      <FaUser className={"text-gray-400 text-4xl"} />
+                  <div className="flex items-center ">
+                    <div className="flex-shrink-0 h-14 w-14 flex items-center justify-center rounded-full overflow-hidden bg-gray-600 mr-4">
+                      {row.picture ? (
+                        <img
+                          src={row.picture}
+                          alt="Player"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback to icon if image fails to load
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <FaUser className="text-gray-900 text-3xl" />
+                        </div>
+                      )}
                     </div>
-                    <div>
+                    <div className="max-w-[35vw]  whitespace-normal">
                       <div
-                        className={`text-sm font-azonix font-medium ${
+                        className={`text-sm font-azonix font-medium  ${
                           darkMode ? "text-white" : "text-black "
-                        } truncate block`}
+                        } flex whitespace-normal`}
                       >
-                        {row.playerName}
+                        {row.Player}
                       </div>
                       <div
                         className={`text-xs font-azonix ${
                           darkMode ? "text-gray-400" : "text-gray-500"
                         }`}
                       >
-                        {row.team} • {row.age} yo
+                        {row.Team} ⦿ {row.Number}
                       </div>
                     </div>
                   </div>
                 </td>
 
-                {/* Stats Column */}
-                <td className="px-1 py-3 whitespace-nowrap">
-                  <div className="flex items-center ">
-                    <StatsChart stats={row.stats} />
-                  </div>
-                </td>
                 {/* Score Columns */}
-                <td className="px-3 py-3  whitespace-nowrap">
+                {/* <td className="px-3 md:py-3  whitespace-nowrap">
                   <div className="flex flex-col gap-2 items-center">
-                    <DiamondScore score={row.score1} inverted />
+                    <DiamondScore score={row.} inverted />
                     <div className="ml-1 w-16">
                       <div
                         className={`text-xs ${
@@ -293,34 +410,33 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
                       <ProgressBar progress={row.score1} />
                     </div>
                   </div>
-                </td>
+                </td> */}
                 {/* Stats Columns */}
-                {row.stats.slice(0, 7).map((stat, index) => (
-                  <td
-                    key={index}
-                    className={`px-2 py-3 whitespace-nowrap text-sm text-center ${
-                      darkMode ? "text-gray-300" : "text-gray-500"
-                    }`}
-                  >
-                    {stat}
-                  </td>
-                ))}
-
-                {/* Price Column */}
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div
-                        className={`text-xs flex items-center ${
-                          darkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
-                      >
-                        <FaDollarSign className="mr-1" />
-                        {row.usdPrice}
-                      </div>
-                    </div>
-                  </div>
-                </td>
+                {Object.entries(row)
+                  .filter(([key]) => {
+                    const excludedKeys = [
+                      "id",
+                      "cost",
+                      "Player",
+                      "Team",
+                      "player_id",
+                      "league_id",
+                      "Number",
+                      "team_id",
+                      "picture",
+                    ]; // Keys to exclude
+                    return !excludedKeys.includes(key);
+                  })
+                  .map(([key, value]) => (
+                    <td
+                      key={key} // Use key instead of index for better stability
+                      className={`px-2 py-3 whitespace-nowrap text-sm text-center ${
+                        darkMode ? "text-gray-300" : "text-gray-500"
+                      }`}
+                    >
+                      {value as React.ReactNode}
+                    </td>
+                  ))}
               </tr>
             ))}
           </tbody>
@@ -329,84 +445,3 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
     </div>
   );
 };
-
-const sampleData: TableRow[] = [
-  {
-    playerName: "Aaron Cresswell",
-    team: "WHU",
-    age: "35",
-    score1: 42,
-    stats: [11, 35, 34.33, 2.8, 0, 0, 0, 0, 0.13, 0.07, 0, 0, 0, 0],
-    usdPrice: "$0.52",
-  },
-  {
-    playerName: "Ricard Puig Marti",
-    team: "FCB",
-    age: "24",
-    score1: 78,
-    stats: [
-      28.2, 66.7, 35.87, 2.51, 0.27, 0.33, 0.17, 0, 0.13, 0.13, 0, 0, 0, 0,
-    ],
-    usdPrice: "$13.04",
-  },
-  {
-    playerName: "Jordan Henderson",
-    team: "LIV",
-    age: "33",
-    score1: 55,
-    stats: [
-      23.1, 48.4, 40.99, 3.12, 0.2, 0.29, 0.1, 1, 0.15, 0.08, 0, 0, 0, 0.04,
-    ],
-    usdPrice: "$7.65",
-  },
-  {
-    playerName: "Phil Foden",
-    team: "MCI",
-    age: "23",
-    score1: 85,
-    stats: [
-      29.8, 75.6, 41.22, 3.05, 0.15, 0.42, 0.09, 0, 0.2, 0.09, 0.01, 0, 0, 0.06,
-    ],
-    usdPrice: "$21.32",
-  },
-  {
-    playerName: "Marcus Rashford",
-    team: "MUN",
-    age: "25",
-    score1: 66,
-    stats: [
-      24.4, 59.2, 37.15, 2.9, 0.32, 0.37, 0.25, 0, 0.11, 0.1, 0, 0, 0, 0.08,
-    ],
-    usdPrice: "$15.10",
-  },
-  {
-    playerName: "Virgil van Dijk",
-    team: "LIV",
-    age: "32",
-    score1: 72,
-    stats: [
-      21.5, 68.9, 43.98, 2.75, 0.12, 0.21, 0.13, 0, 0.18, 0.09, 0, 0, 0, 0.02,
-    ],
-    usdPrice: "$20.45",
-  },
-  {
-    playerName: "Kylian Mbappé",
-    team: "PSG",
-    age: "25",
-    score1: 95,
-    stats: [
-      32.1, 85.3, 50.45, 3.5, 0.42, 0.58, 0.34, 1, 0.25, 0.15, 0, 0, 0, 0.12,
-    ],
-    usdPrice: "$120.77",
-  },
-  {
-    playerName: "Luka Modric",
-    team: "RMA",
-    age: "38",
-    score1: 61,
-    stats: [
-      18.5, 52.1, 38.14, 2.4, 0.14, 0.22, 0.05, 0, 0.11, 0.1, 0, 0, 0, 0.03,
-    ],
-    usdPrice: "$9.58",
-  },
-];

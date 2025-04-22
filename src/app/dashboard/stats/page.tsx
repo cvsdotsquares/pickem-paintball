@@ -5,13 +5,8 @@ import { collection, getDocs } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { MatchupTable } from "@/src/components/Dashboard/temp";
 import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
-
-export interface Player {
-  player_id: number;
-  player: string;
-  team: string;
-  cost: number | string;
-}
+import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
+import { Player } from "../pick-em/page";
 
 export interface Event {
   id: string;
@@ -54,16 +49,23 @@ export default function Dashboard() {
   interface LogoCardProps {
     name: string;
     status: string;
+    onClick: () => void;
+    isSelected: boolean;
   }
 
-  const LogoCard: React.FC<LogoCardProps> = ({ name }) => {
+  function EventCard({ name, status, onClick, isSelected }: LogoCardProps) {
     // Generate a random background image
     const randomIndex = Math.floor(Math.random() * 3); // Generates 0, 1, 2, or 3
     const backgroundSrc = `/background${randomIndex}.jpg`; // Constructs the path dynamically
 
     return (
-      <article className="flex flex-col flex-1 shrink justify-center self-stretch my-auto basis-0 min-h-24">
-        <div className="flex relative flex-col flex-1 justify-center items-center px-12 py-6 rounded-lg aspect-[2.177] size-full max-md:px-5">
+      <article
+        onClick={onClick}
+        className={`flex flex-col cursor-pointer flex-1 shrink ${
+          isSelected ? "border-4 rounded-xl border-white" : ""
+        } justify-center self-stretch my-auto basis-0 min-h-24`}
+      >
+        <div className="flex relative flex-col flex-1 justify-center items-center md:px-12 py-6 rounded-lg aspect-[2.177] size-full px-5">
           <img
             src={backgroundSrc}
             alt="Logo card background"
@@ -73,9 +75,20 @@ export default function Dashboard() {
             <div className="flex overflow-hidden flex-col justify-center m-auto items-center w-full ">
               {name && (
                 <div
-                  className={`object-center mx-autow text-center font-azonix text-xl font-medium whitespace-pre-wrap text-white w-full`}
+                  className={`object-center mx-auto text-center font-azonix text-xl font-medium whitespace-pre-wrap text-white w-full`}
                 >
                   {name}
+                </div>
+              )}
+              {status && (
+                <div
+                  className={`object-center mx-auto text-center font-azonix text-sm font-medium whitespace-pre-wrap ${
+                    status === "live"
+                      ? "text-red-500 text-base"
+                      : "text-gray-300"
+                  } w-full`}
+                >
+                  {status}
                 </div>
               )}
               {/* {!name && <div className="flex w-full min-h-14">N/A</div>} */}
@@ -84,6 +97,44 @@ export default function Dashboard() {
         </div>
       </article>
     );
+  }
+  const fetchPlayerPicture = async (leagueId: string) => {
+    const storage = getStorage();
+    const folderPath = `players/`; // Path to the folder containing player pictures
+    const storageRef = ref(storage, folderPath);
+
+    try {
+      // List all files in the folder
+      const fileList = await listAll(storageRef);
+
+      // Find the file that starts with the leagueId
+      const matchingFile = fileList.items.find(
+        (item) =>
+          item.name.startsWith(`${leagueId}_`) ||
+          item.name.startsWith(`${leagueId}-`)
+      );
+
+      if (matchingFile) {
+        // Get the download URL for the matching file
+        const pictureUrl = await getDownloadURL(matchingFile);
+        return pictureUrl;
+      } else {
+        return "/placeholder.svg"; // Fallback to placeholder
+      }
+    } catch (error) {
+      console.error(`Error fetching picture for leagueId: ${leagueId}`, error);
+      return "/placeholder.svg"; // Fallback to placeholder
+    }
+  };
+
+  const fetchPlayersWithPictures = async (players: Player[]) => {
+    const updatedPlayers = await Promise.all(
+      players.map(async (player) => {
+        const picture = await fetchPlayerPicture(player.league_id);
+        return { ...player, picture }; // Add the picture URL to the player object
+      })
+    );
+    return updatedPlayers;
   };
 
   // Fetch player data based on the selected event
@@ -141,8 +192,8 @@ export default function Dashboard() {
             ...sortedRest,
           };
         });
-
-        setRowData(players);
+        const playersWithPictures = await fetchPlayersWithPictures(players);
+        setRowData(playersWithPictures);
         console.log("Player data fetched successfully:", players);
       } catch (error: any) {
         console.error("Error fetching player data:", error.message);
@@ -188,12 +239,18 @@ export default function Dashboard() {
 
         <div className="flex flex-wrap gap-4 items-center px-6 mt-4 w-full max-md:px-5 max-md:max-w-full">
           {eventsList.map((event, index) => (
-            <LogoCard key={index} name={event.name} status={event.status} />
+            <EventCard
+              key={index}
+              name={event.name}
+              status={event.status}
+              onClick={() => setSelectedEvent(event)}
+              isSelected={selectedEvent?.id === event.id}
+            />
           ))}
         </div>
       </section>
 
-      {/* <MatchupTable data={rowData} /> */}
+      <MatchupTable data={rowData} />
     </div>
   );
 }
