@@ -13,8 +13,6 @@ import { RiTeamLine } from "react-icons/ri";
 import { auth, db, storage } from "@/src/lib/firebaseClient";
 import { useAuth } from "@/src/contexts/authProvider";
 import { getDownloadURL, ref, StorageReference } from "firebase/storage";
-import { ImStatsBars } from "react-icons/im";
-import { LuSettings } from "react-icons/lu";
 
 // Define a TypeScript interface for the user data
 interface UserData {
@@ -75,19 +73,13 @@ function ProfilePage() {
           const currentUserId: string = auth.currentUser?.uid || ""; // Ensure the user is logged in and UID is available
 
           if (currentUserId) {
-            const storagePath = `user/${currentUserId}/profile`; // Adjust the file name/extension if needed
+            const storagePath = `user/${currentUserId}/profile_200x200`; // Adjust the file name/extension if needed
             console.log("Generated Firebase Storage path:", storagePath);
-
             try {
               const storageRef: StorageReference = ref(storage, storagePath);
               console.log("Storage reference created for path:", storagePath);
-
               // Fetch the profile picture from Firebase Storage
               const validProfilePicture = await getDownloadURL(storageRef);
-              console.log(
-                "Profile picture found in Firebase Storage, URL:",
-                validProfilePicture
-              );
               profilePicture = validProfilePicture;
             } catch (error) {
               console.error(

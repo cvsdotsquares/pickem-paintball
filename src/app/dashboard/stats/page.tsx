@@ -3,7 +3,7 @@
 import { db } from "@/src/lib/firebaseClient";
 import { collection, getDocs } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { MatchupTable } from "@/src/components/Dashboard/temp";
+import { MatchupTable } from "@/src/components/Dashboard/datatable";
 import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
 import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
 import { Player } from "../pick-em/page";
@@ -18,6 +18,10 @@ export default function Dashboard() {
   const [rowData, setRowData] = useState<Player[]>([]);
   const [eventsList, setEventsList] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Fetch all events from Firebase
   useEffect(() => {
@@ -53,17 +57,19 @@ export default function Dashboard() {
     isSelected: boolean;
   }
 
+  let backgroundIndex = 0; // Global counter to track the background index
+
   function EventCard({ name, status, onClick, isSelected }: LogoCardProps) {
-    // Generate a random background image
-    const randomIndex = Math.floor(Math.random() * 3); // Generates 0, 1, 2, or 3
-    const backgroundSrc = `/background${randomIndex}.jpg`; // Constructs the path dynamically
+    // Use the current index and update for the next call
+    const backgroundSrc = `/background${backgroundIndex}.jpg`;
+    backgroundIndex = (backgroundIndex + 1) % 3; // Cycle through 0, 1, 2
 
     return (
       <article
         onClick={onClick}
         className={`flex flex-col cursor-pointer flex-1 shrink ${
           isSelected ? "border-4 rounded-xl border-white" : ""
-        } justify-center self-stretch my-auto basis-0 min-h-24`}
+        } justify-center self-stretch my-auto basis-0 min-h-40 min-w-30 max-w-56`}
       >
         <div className="flex relative flex-col flex-1 justify-center items-center md:px-12 py-6 rounded-lg aspect-[2.177] size-full px-5">
           <img
@@ -71,18 +77,18 @@ export default function Dashboard() {
             alt="Logo card background"
             className="object-cover absolute inset-0 size-full rounded-xl"
           />
-          <div className="overflow-hidden relative flex-1 shrink self-stretch my-auto w-full basis-0 ">
-            <div className="flex overflow-hidden flex-col justify-center m-auto items-center w-full ">
+          <div className="overflow-hidden relative  my-auto w-full ">
+            <div className="flex overflow-visible flex-col justify-center m-auto items-center w-full">
               {name && (
                 <div
-                  className={`object-center mx-auto text-center font-azonix text-xl font-medium whitespace-pre-wrap text-white w-full`}
+                  className={`object-center text-center font-azonix md:text-xl text-base  text-white w-full`}
                 >
                   {name}
                 </div>
               )}
               {status && (
                 <div
-                  className={`object-center mx-auto text-center font-azonix text-sm font-medium whitespace-pre-wrap ${
+                  className={`object-center mx-auto text-center font-azonix text-xs font-medium ${
                     status === "live"
                       ? "text-red-500 text-base"
                       : "text-gray-300"
@@ -91,50 +97,64 @@ export default function Dashboard() {
                   {status}
                 </div>
               )}
-              {/* {!name && <div className="flex w-full min-h-14">N/A</div>} */}
             </div>
           </div>
         </div>
       </article>
     );
   }
-  const fetchPlayerPicture = async (leagueId: string) => {
+  const fetchPlayerPicture = async (leagueId: string): Promise<string> => {
     const storage = getStorage();
-    const folderPath = `players/`; // Path to the folder containing player pictures
+    const folderPath = `players/`;
     const storageRef = ref(storage, folderPath);
 
     try {
-      // List all files in the folder
       const fileList = await listAll(storageRef);
-
-      // Find the file that starts with the leagueId
       const matchingFile = fileList.items.find(
         (item) =>
           item.name.startsWith(`${leagueId}_`) ||
           item.name.startsWith(`${leagueId}-`)
       );
-
-      if (matchingFile) {
-        // Get the download URL for the matching file
-        const pictureUrl = await getDownloadURL(matchingFile);
-        return pictureUrl;
-      } else {
-        return "/placeholder.svg"; // Fallback to placeholder
-      }
+      return matchingFile
+        ? await getDownloadURL(matchingFile)
+        : "/placeholder.svg";
     } catch (error) {
-      console.error(`Error fetching picture for leagueId: ${leagueId}`, error);
-      return "/placeholder.svg"; // Fallback to placeholder
+      console.error(`Error fetching picture for ${leagueId}:`, error);
+      return "/placeholder.svg";
     }
   };
 
-  const fetchPlayersWithPictures = async (players: Player[]) => {
-    const updatedPlayers = await Promise.all(
-      players.map(async (player) => {
-        const picture = await fetchPlayerPicture(player.league_id);
-        return { ...player, picture }; // Add the picture URL to the player object
+  const loadPlayerImages = async (players: Player[]) => {
+    const updatedPlayers = [...players];
+
+    await Promise.all(
+      updatedPlayers.map(async (player) => {
+        try {
+          const picture = await fetchPlayerPicture(player.league_id);
+          player.picture = picture;
+          player.pictureLoading = false;
+        } catch (error) {
+          player.picture = "/placeholder.svg";
+          player.pictureLoading = false;
+        }
       })
     );
-    return updatedPlayers;
+
+    setRowData(updatedPlayers);
+  };
+
+  const fetchPlayersWithPictures = async (players: Player[]) => {
+    // Set initial state with placeholders
+    const playersWithPlaceholders = players.map((player) => ({
+      ...player,
+      picture: "/placeholder.svg",
+      pictureLoading: true,
+    }));
+    setRowData(playersWithPlaceholders);
+
+    // Load actual images in background
+    loadPlayerImages(players);
+    return playersWithPlaceholders;
   };
 
   // Fetch player data based on the selected event
@@ -202,6 +222,30 @@ export default function Dashboard() {
     fetchPlayers();
   }, [selectedEvent]);
 
+  // Calculate paginated data
+  const paginatedData = rowData.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
+
+  // Pagination handlers
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setRowsPerPage(Number(e.target.value));
+    setCurrentPage(1); // Reset to first page when changing rows per page
+  };
+
+  useEffect(() => {
+    setTotalPages(Math.ceil(rowData.length / rowsPerPage));
+    // Reset to first page when data changes
+    setCurrentPage(1);
+  }, [rowData, rowsPerPage]);
+
   // Handle event selection from the dropdown
   const handleEventSelect = (event: Event) => {
     setSelectedEvent(event);
@@ -232,7 +276,7 @@ export default function Dashboard() {
           />
           <div className="absolute inset-0  bg-black/45 pointer-events-none"></div>
 
-          <h1 className="relative font-azonix max-w-full md:text-7xl text-xl">
+          <h1 className="relative font-azonix max-w-full items-end m-auto md:text-7xl text-4xl">
             Statistics Center
           </h1>
         </header>
@@ -250,7 +294,45 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <MatchupTable data={rowData} />
+      <MatchupTable data={paginatedData} />
+
+      {/* Pagination Controls */}
+      <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-300">Rows per page:</span>
+          <select
+            value={rowsPerPage}
+            onChange={handleRowsPerPageChange}
+            className="bg-gray-800 text-white text-sm rounded-md px-2 py-1"
+          >
+            {[10, 20, 30, 50, 100].map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-300">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-3 py-1 rounded-md bg-gray-800 text-white disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 rounded-md bg-gray-800 text-white disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

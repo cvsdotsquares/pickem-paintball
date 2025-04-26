@@ -65,7 +65,7 @@ const PageHeader: React.FC = () => {
           const currentUserId: string = auth.currentUser?.uid || ""; // Ensure the user is logged in and UID is available
 
           if (currentUserId) {
-            const storagePath = `user/${currentUserId}/profile`; // Adjust the file name/extension if needed
+            const storagePath = `user/${currentUserId}/profile_200x200`; // Adjust the file name/extension if needed
             console.log("Generated Firebase Storage path:", storagePath);
 
             try {

@@ -252,10 +252,10 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
   );
 
   return (
-    <div className={``}>
+    <div className={`md:m-6`}>
       {/* Filters */}
-      <div className={`flex flex-row items-center justify-between p-4 `}>
-        <div className="flex flex-row items-center space-x-4">
+      <div className={`flex flex-row items-center justify-between p-2 `}>
+        <div className="flex flex-wrap gap-2 items-center ">
           {/* Search Input */}
           <div className={`relative ${themeClasses.bg} rounded-lg`}>
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -274,7 +274,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
 
           {/* Team Filter */}
           <select
-            className={`px-2 py-2 rounded-lg shadow-sm ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} border focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            className={`px-1 py-2 mx-1 justify-center rounded-lg shadow-sm ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} border focus:outline-none focus:ring-2 focus:ring-blue-500`}
             value={selectedTeam}
             onChange={(e) => setSelectedTeam(e.target.value)}
           >
@@ -285,7 +285,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
             ))}
           </select>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center ">
           <button
             onClick={() => setDarkMode(!darkMode)}
             className={`p-2 rounded-full ${themeClasses.button}`}
@@ -306,7 +306,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
             >
               {/* Player Column */}
               <th
-                className={`md:md:px-4 p-1 p-1 md:py-3 text-left text-xs ${themeClasses.headerBg} border-r-2 border-white/40 font-medium font-azonix ${themeClasses.headerText} uppercase tracking-wider sticky left-0 z-20`}
+                className={`md:md:px-4 p-1  md:py-3 text-left text-xs ${themeClasses.headerBg}  font-medium font-azonix ${themeClasses.headerText} uppercase tracking-wider sticky left-0 z-20`}
               >
                 <div
                   className="flex items-center cursor-pointer"
@@ -314,6 +314,18 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
                 >
                   Player
                   {getSortIcon("Player")}
+                </div>
+              </th>
+              {/* Rank Column */}
+              <th
+                className={`md:px-4 p-1 md:py-3 text-left text-xs ${themeClasses.headerBg} font-medium font-azonix ${themeClasses.headerText} uppercase tracking-wider sticky left-44 z-20`}
+              >
+                <div
+                  className="flex items-center cursor-pointer"
+                  onClick={() => requestSort("Rank")}
+                >
+                  Rank
+                  {getSortIcon("Rank")}
                 </div>
               </th>
 
@@ -325,12 +337,14 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
                       "id",
                       "cost",
                       "Player",
+                      "Rank",
                       "Team",
                       "player_id",
                       "league_id",
                       "Number",
                       "team_id",
                       "picture",
+                      "pictureLoading",
                     ].includes(key) // Exclude specific keys
                 )
                 .map((key, index) => (
@@ -357,31 +371,67 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
               >
                 {/* Player Column */}
                 <td
-                  className={`md:px-4 p-1 md:py-3 whitespace-nowrap border-r-2 inset-0 border-white/40 sticky left-0 z-20 ${themeClasses.bg}`}
+                  className={`md:px-4 p-1 md:py-3 whitespace-nowrap  inset-0  sticky left-0 z-20 ${themeClasses.bg}`}
                 >
-                  <div className="flex items-center ">
-                    <div className="flex-shrink-0 h-14 w-14 flex items-center justify-center rounded-full overflow-hidden bg-gray-600 mr-4">
-                      {row.picture ? (
-                        <img
-                          src={row.picture}
-                          alt="Player"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            // Fallback to icon if image fails to load
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = "none";
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0 h-14 w-14 flex items-center justify-center rounded-full overflow-hidden bg-gray-600 mr-4 relative">
+                      {/* Loading state */}
+                      {row.pictureLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse">
+                          <svg
+                            className="h-5 w-5 text-gray-400 animate-spin"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                        </div>
+                      )}
+
+                      {/* Actual image */}
+                      <img
+                        src={row.picture || "/placeholder.svg"}
+                        alt={row.Player}
+                        className={`w-full h-full object-cover transition-opacity duration-200 ${
+                          row.pictureLoading ? "opacity-0" : "opacity-100"
+                        }`}
+                        onLoad={() => {
+                          // This will be handled by the parent component's state management
+                        }}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/placeholder.svg";
+                          target.classList.remove("opacity-0");
+                          target.classList.add("opacity-100");
+                          // You might want to update the state here if needed
+                        }}
+                      />
+
+                      {/* Fallback icon if no picture */}
+                      {!row.picture && !row.pictureLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center">
                           <FaUser className="text-gray-900 text-3xl" />
                         </div>
                       )}
                     </div>
-                    <div className="max-w-[35vw]  whitespace-normal">
+
+                    <div className="max-w-[35vw] whitespace-normal">
                       <div
-                        className={`text-sm font-azonix font-medium  ${
-                          darkMode ? "text-white" : "text-black "
+                        className={`text-sm font-azonix font-medium ${
+                          darkMode ? "text-white" : "text-black"
                         } flex whitespace-normal`}
                       >
                         {row.Player}
@@ -391,9 +441,17 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
                           darkMode ? "text-gray-400" : "text-gray-500"
                         }`}
                       >
-                        {row.Team} ⦿ {row.Number}
+                        {row.Team}
                       </div>
                     </div>
+                  </div>
+                </td>
+                {/* Rank Column */}
+                <td
+                  className={`md:px-4 p-1 md:py-3 whitespace-nowrap border-r-2 sticky left-44 z-10 ${themeClasses.bg}`}
+                >
+                  <div className="text-center text-sm font-azonix font-medium">
+                    {row.Rank}
                   </div>
                 </td>
 
@@ -418,12 +476,14 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
                       "id",
                       "cost",
                       "Player",
+                      "Rank",
                       "Team",
                       "player_id",
                       "league_id",
                       "Number",
                       "team_id",
                       "picture",
+                      "pictureLoading",
                     ]; // Keys to exclude
                     return !excludedKeys.includes(key);
                   })

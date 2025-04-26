@@ -89,7 +89,7 @@ const UserProfile = () => {
             try {
               const storageRef: StorageReference = ref(
                 storage,
-                `user/${currentUserId}/profile`
+                `user/${currentUserId}/profile_200x200`
               );
               profilePicture = await getDownloadURL(storageRef);
             } catch {
