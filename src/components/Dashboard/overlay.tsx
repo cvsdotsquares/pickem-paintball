@@ -2,10 +2,12 @@
 import { useAuth } from "@/src/contexts/authProvider";
 import { auth, db, storage } from "@/src/lib/firebaseClient";
 import { doc, getDoc } from "firebase/firestore";
+import { MdVerified } from "react-icons/md";
 import { getDownloadURL, ref, StorageReference } from "firebase/storage";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { BiEditAlt } from "react-icons/bi";
+import { LuShieldPlus } from "react-icons/lu";
 
 interface ActionButtonProps {
   label: string;
@@ -67,6 +69,7 @@ const UserProfile = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const { user } = useAuth();
+  const [dropdownVisible, setDropdownVisible] = useState(false);
 
   useEffect(() => {
     async function fetchUserData() {
@@ -150,22 +153,33 @@ const UserProfile = () => {
           alt={userData.name}
           className="w-20 h-20 rounded-full"
         />
-        <h1 className="text-5xl font-bold text-white">{userData.name}</h1>
-        <div className="flex gap-4 text-sm text-zinc-400">
-          <span className="text-white">{userData.team}</span> Team
-          <span className="text-white">{userData.country}</span> Country
-          <span className="text-white">{userData.player}</span> Player
+        <h1 className="inline-flex gap-2 text-5xl font-bold text-white">
+          {userData.name}
+          {userData.isPro && <MdVerified />}
+        </h1>
+        <div className="flex flex-row gap-3 text-white/80 font-thin">
+          <LuShieldPlus
+            size={80}
+            onClick={() => setDropdownVisible((prev) => !prev)}
+            className="cursor-pointer"
+          />
+          <LuShieldPlus
+            size={80}
+            onClick={() => setDropdownVisible((prev) => !prev)}
+            className="cursor-pointer"
+          />
+          <LuShieldPlus
+            size={80}
+            onClick={() => setDropdownVisible((prev) => !prev)}
+            className="cursor-pointer"
+          />
         </div>
+        {dropdownVisible && (
+          <div className="absolute right-0 mt-2 w-64 bg-neutral-900 text-white rounded-lg shadow-sm shadow-neutral-400 z-50 p-4">
+            <p className="text-center">No badges available yet</p>
+          </div>
+        )}
       </section>
-
-      <div className="flex gap-20 justify-center max-md:flex-col max-md:gap-4">
-        <StatCard value={userData.badges.length} label="Badges" />
-        <StatCard value={userData.isPro ? 1 : 0} label="Pro Status" />
-      </div>
-
-      <button className="px-3 py-2.5 h-10 text-base font-bold text-white bg-black bg-opacity-50 rounded-[32px]">
-        See History
-      </button>
     </main>
   );
 };

@@ -216,16 +216,16 @@ export const PickWidget = () => {
   }, [user, liveEvent.id, db]);
   return (
     <>
-      <section className="flex flex-col justify-center mt-6 w-full overflow-hidden">
-        <div className="flex justify-between items-center self-center px-3">
-          <h3 className="self-stretch my-auto text-2xl font-bold leading-tight text-center text-white">
-            Your Picks
+      <section className="flex flex-col justify-center  w-full  ">
+        <div className="flex justify-between items-center self-center px-1">
+          <h3 className="self-stretch my-auto text-2xl font-bold leading-tight text-center text-white mt-6">
+            Event is live
           </h3>
         </div>
-        <div className="flex flex-col flex-1 justify-evenly overflow-y-scroll w-full mt-4">
+        <div className="flex flex-col justify-center h-full w-full mt-4">
           <AnimatedGroup
             preset="scale"
-            className="relative md:top-5 left-0 grid grid-cols-5 gap-1 items-start justify-evenly h-full px-1 w-full"
+            className="relative md:top-5 left-0 grid grid-cols-5 gap-2 items-start justify-center h-full py-4 w-full"
           >
             {playerSlots.map((slot) => (
               <div key={slot.id}>
@@ -240,7 +240,7 @@ export const PickWidget = () => {
                   </div>
                 ) : (
                   <button
-                    className={`relative flex flex-col gap-0 justify-center items-center rounded-2xl border border-white bg-white bg-opacity-10 border-opacity-20 md:h-[14vh] md:w-[6vw] w-[60px] h-[60px] `}
+                    className={`relative flex flex-col gap-0 justify-center items-center rounded-2xl border border-white bg-white bg-opacity-10 border-opacity-20 md:h-[14vh] md:w-[6vw] w-[80px] h-[100px] `}
                   >
                     <GiCardPickup size={60} className="text-white/60 ml-2 " />
                     <span className="text-xl text-white/60 font-azonix">

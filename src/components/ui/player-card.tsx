@@ -74,7 +74,7 @@ export const PickCard1: React.FC<PickCardProps> = ({
   return (
     <>
       <div className="flex flex-col gap-2 cursor-pointer transition duration-300 ease-in-out hover:scale-95 hover:drop-shadow-2xl">
-        <div className="relative justify-center m-auto md:h-[14vh] md:w-[6vw] w-[60px] h-[60px] bg-gradient-to-b from-[#862121] to-[#000000] rounded-2xl overflow-hidden text-white">
+        <div className="relative justify-center m-auto md:h-[25vh] md:w-[9vw] w-[60px] h-[60px] bg-gradient-to-b from-[#862121] to-[#000000] rounded-2xl overflow-hidden text-white">
           {/* Background Image */}
           <motion.div
             className="absolute top-0 bottom-0 left-0 right-0 flex scale-[85%]"
