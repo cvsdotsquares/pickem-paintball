@@ -124,14 +124,14 @@ export default function Statistics() {
             "Player",
             "Number",
             "Team",
-            "Total Kills",
-            "Gunfight Kills",
-            "Kills on the Break",
-            "Movement Kills",
-            "Zone Coverage Kills",
-            "Pressure Kills",
+            "Confirmed Kills",
+            "Gunfights",
+            "Breakshooting",
+            "Movement",
+            "Zone Coverage",
+            "Pressure",
             "Trades",
-            "Unclassified Kills",
+            "Unclassified",
           ];
 
           // Sort the rest dynamically
