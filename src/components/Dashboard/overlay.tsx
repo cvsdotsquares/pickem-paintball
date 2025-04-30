@@ -135,51 +135,53 @@ const UserProfile = () => {
   }
 
   return (
-    <main className="flex flex-col inset-4 z-50 items-center justify-evenly gap-4 m-auto w-full h-full bg-transparent rounded-2xl">
-      <header className="flex justify-end items-center w-full max-md:flex-col max-md:gap-6">
-        <div className="flex gap-2">
-          <Link href={"/dashboard/profile"}>
-            <ActionButton
-              label="Edit"
-              icon={<BiEditAlt className="text-white font-black" />}
-            />
-          </Link>
-        </div>
-      </header>
-
-      <section className="flex flex-col items-center gap-4">
-        <img
-          src={userData.profilePicture}
-          alt={userData.name}
-          className="w-20 h-20 rounded-full"
-        />
-        <h1 className="inline-flex gap-2 text-5xl font-bold text-white">
-          {userData.name}
-          {userData.isPro && <MdVerified />}
-        </h1>
-        <div className="flex flex-row gap-3 text-white/80 font-thin">
-          <LuShieldPlus
-            size={80}
-            onClick={() => setDropdownVisible((prev) => !prev)}
-            className="cursor-pointer"
-          />
-          <LuShieldPlus
-            size={80}
-            onClick={() => setDropdownVisible((prev) => !prev)}
-            className="cursor-pointer"
-          />
-          <LuShieldPlus
-            size={80}
-            onClick={() => setDropdownVisible((prev) => !prev)}
-            className="cursor-pointer"
-          />
-        </div>
-        {dropdownVisible && (
-          <div className="absolute right-0 mt-2 w-64 bg-neutral-900 text-white rounded-lg shadow-sm shadow-neutral-400 z-50 p-4">
-            <p className="text-center">No badges available yet</p>
+    <main className="flex flex-col z-10  items-center justify-evenly gap-4 m-auto w-[75%] h-full  rounded-2xl">
+      <div className=" h-full w-full ">
+        <header className="flex justify-end items-center w-full max-md:flex-col ">
+          <div className="flex gap-2">
+            <Link href={"/dashboard/profile"}>
+              <ActionButton
+                label="Edit"
+                icon={<BiEditAlt className="text-white font-black" />}
+              />
+            </Link>
           </div>
-        )}
-      </section>
+        </header>
+
+        <section className="flex flex-col mt-16 items-center gap-4">
+          <img
+            src={userData.profilePicture}
+            alt={userData.name}
+            className="w-20 h-20 rounded-full"
+          />
+          <h1 className="inline-flex gap-2 text-5xl font-bold text-white">
+            {userData.name}
+            {userData.isPro && <MdVerified />}
+          </h1>
+          <div className="flex flex-row gap-3 text-white/80 font-thin">
+            <LuShieldPlus
+              size={80}
+              onClick={() => setDropdownVisible((prev) => !prev)}
+              className="cursor-pointer"
+            />
+            <LuShieldPlus
+              size={80}
+              onClick={() => setDropdownVisible((prev) => !prev)}
+              className="cursor-pointer"
+            />
+            <LuShieldPlus
+              size={80}
+              onClick={() => setDropdownVisible((prev) => !prev)}
+              className="cursor-pointer"
+            />
+          </div>
+          {dropdownVisible && (
+            <div className="absolute left-0 mt-2 w-64 bg-neutral-900 text-white rounded-lg shadow-sm shadow-neutral-400 z-50 p-4">
+              <p className="text-center">No badges available yet</p>
+            </div>
+          )}
+        </section>
+      </div>
     </main>
   );
 };

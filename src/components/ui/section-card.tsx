@@ -14,6 +14,7 @@ import { AnimatedGroup } from "./animations/grp";
 import { PickCard, PickCard1 } from "./player-card";
 import { IoMdCloseCircle } from "react-icons/io";
 import { GiCardPickup } from "react-icons/gi";
+import ActionButtons from "./action-btns";
 
 export const PickWidget = () => {
   const [liveEvent, setLiveEvent] = useState<{
@@ -83,29 +84,20 @@ export const PickWidget = () => {
     return () => clearInterval(interval);
   }, [liveEvent.lockDate]);
 
-  const fetchPlayerPicture = async (leagueId: string) => {
+  const fetchPlayerPicture = async (leagueId: string): Promise<string> => {
     const storage = getStorage();
     const folderPath = `players/`; // Path to the folder containing player pictures
     const storageRef = ref(storage, folderPath);
 
     try {
-      // List all files in the folder
       const fileList = await listAll(storageRef);
-
-      // Find the file that starts with the leagueId
-      const matchingFile = fileList.items.find(
-        (item) =>
-          item.name.startsWith(`${leagueId}_`) ||
-          item.name.startsWith(`${leagueId}-`)
+      const matchingFile = fileList.items.find((item) =>
+        item.name.startsWith(`${leagueId}_`)
       );
 
-      if (matchingFile) {
-        // Get the download URL for the matching file
-        const pictureUrl = await getDownloadURL(matchingFile);
-        return pictureUrl;
-      } else {
-        return "/placeholder.svg"; // Fallback to placeholder
-      }
+      return matchingFile
+        ? await getDownloadURL(matchingFile)
+        : "/placeholder.svg"; // Return placeholder if no match
     } catch (error) {
       console.error(`Error fetching picture for leagueId: ${leagueId}`, error);
       return "/placeholder.svg"; // Fallback to placeholder
@@ -159,15 +151,11 @@ export const PickWidget = () => {
     if (user && liveEvent.id) {
       const fetchPicks = async () => {
         try {
-          console.log("Fetching picks for user:", user.uid);
-          console.log("Live event ID:", liveEvent.id);
-
           const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
 
           if (userSnap.exists()) {
             const userData = userSnap.data();
-            console.log("Fetched user data:", userData);
 
             if (
               userData.pickems &&
@@ -175,9 +163,7 @@ export const PickWidget = () => {
               Array.isArray(userData.pickems[liveEvent.id])
             ) {
               const savedPicksIds = userData.pickems[liveEvent.id];
-              console.log("Saved player IDs:", savedPicksIds);
 
-              // Fetch player data from Firestore for each ID
               const playerRefs = savedPicksIds.map((id: string) =>
                 doc(db, `events/${liveEvent.id}/players`, id.toString())
               );
@@ -188,16 +174,21 @@ export const PickWidget = () => {
 
               const savedPicks = playerDocs
                 .filter((doc) => doc.exists())
-                .map((doc) => ({ ...doc.data(), player_id: doc.id })); // Map Firestore data
+                .map((doc) => ({ ...doc.data(), player_id: doc.id }));
 
-              console.log("Resolved saved picks:", savedPicks);
+              // Fetch pictures for players
+              const picksWithPictures = await Promise.all(
+                savedPicks.map(async (player) => {
+                  const picture = await fetchPlayerPicture(player.league_id);
+                  return { ...player, picture }; // Add picture URL
+                })
+              );
 
-              setTemporaryPicks(savedPicks);
-
+              setTemporaryPicks(picksWithPictures); // Set picks with pictures
               setPlayerSlots((prevSlots) =>
                 prevSlots.map((slot, index) => ({
                   ...slot,
-                  player: savedPicks[index] || null, // Fill slots with saved picks
+                  player: picksWithPictures[index] || null,
                 }))
               );
             } else {
@@ -216,27 +207,44 @@ export const PickWidget = () => {
   }, [user, liveEvent.id, db]);
   return (
     <>
-      <section className="flex flex-col justify-center  w-full  ">
-        <div className="flex justify-between items-center self-center px-1">
-          <h3 className="self-stretch my-auto text-2xl font-bold leading-tight text-center text-white mt-6">
+      <section className="flex flex-col justify-center m-auto w-full h-full ">
+        <div className="flex justify-between items-center self-center ">
+          <h3 className="self-stretch my-auto text-2xl font-bold leading-tight text-center text-white mt-2">
+            {liveEvent.id?.replace(/_/g, " ")} <br />
             Event is live
           </h3>
         </div>
-        <div className="flex flex-col justify-center h-full w-full mt-4">
+        <div className="flex flex-col justify-center h-full w-full">
           <AnimatedGroup
             preset="scale"
-            className="relative md:top-5 left-0 grid grid-cols-5 gap-2 items-start justify-center h-full py-4 w-full"
+            className="relative md:top-5 left-0 md:grid md:grid-cols-5 flex flex-wrap gap-2 m-auto justify-center h-full py-2 md:px-6 w-full"
           >
             {playerSlots.map((slot) => (
               <div key={slot.id}>
                 {slot.player ? (
-                  <div className="relative gap-3">
-                    <PickCard1
-                      playerName={slot.player.Player}
-                      picUrl={slot.player.picture}
-                      teamName={slot.player.Team}
-                      cost={slot.player.Cost}
-                    />
+                  <div className="relative gap-1">
+                    <div className="flex flex-col gap-1 cursor-pointer transition duration-300 ease-in-out hover:scale-95 hover:drop-shadow-2xl">
+                      <div className="relative justify-evenly m-auto md:h-[16vh] md:w-[6vw] w-[70px] h-[90px] bg-gradient-to-b from-[#862121] to-[#000000] rounded-2xl overflow-hidden text-white">
+                        {/* Background Image */}
+                        <div
+                          className="absolute top-0 bottom-0 left-0 right-0 flex scale-[85%]"
+                          style={{
+                            backgroundImage: `url(${
+                              slot.player.picture || "/placeholder.svg"
+                            })`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                          }}
+                        />
+
+                        {/* Content (Text and Button at Bottom) */}
+                        <div className="absolute bottom-0 left-0 right-0 p-1 backdrop-filter backdrop-brightness-75 rounded-xl text-center z-10">
+                          <h3 className="text-[10px] leading-5 font-azonix mix-blend-difference">
+                            {slot.player.Player}
+                          </h3>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <button
@@ -252,6 +260,7 @@ export const PickWidget = () => {
             ))}
           </AnimatedGroup>
         </div>
+        <ActionButtons />
       </section>
     </>
   );

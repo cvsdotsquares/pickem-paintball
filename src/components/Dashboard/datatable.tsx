@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FaUser,
   FaChevronDown,
@@ -13,6 +13,8 @@ import {
 } from "react-icons/fa";
 import { Pointer } from "../ui/cursor";
 import { FaSort, FaSortDown, FaSortUp } from "react-icons/fa6";
+import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
+import { Player } from "@/src/app/dashboard/pick-em/page";
 
 type ThemeClasses = {
   bg: string;
@@ -173,7 +175,13 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedTeam, setSelectedTeam] = useState<string>("All");
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [paginatedData, setPaginatedData] = useState<Player[]>([]);
+  const [VisibleData, setVisibleData] = useState<Player[]>([]);
 
+  // Get unique teams for filter
   // Get unique teams for filter
   const teams = useMemo(() => {
     const uniqueTeams = new Set(data.map((item) => item.Team));
@@ -203,26 +211,39 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
     // Apply sorting
     if (sortConfig !== null) {
       filtered.sort((a, b) => {
-        // Handle numeric values
-        if (!isNaN(a[sortConfig.key])) {
-          return sortConfig.direction === "ascending"
-            ? Number(a[sortConfig.key]) - Number(b[sortConfig.key])
-            : Number(b[sortConfig.key]) - Number(a[sortConfig.key]);
-        }
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
 
-        // Handle string values
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === "ascending" ? -1 : 1;
+        if (typeof aValue === "number" && typeof bValue === "number") {
+          return sortConfig.direction === "ascending"
+            ? aValue - bValue
+            : bValue - aValue;
+        } else {
+          return sortConfig.direction === "ascending"
+            ? String(aValue).localeCompare(String(bValue))
+            : String(bValue).localeCompare(String(aValue));
         }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === "ascending" ? 1 : -1;
-        }
-        return 0;
       });
     }
 
     return filtered;
   }, [data, searchTerm, selectedTeam, sortConfig]);
+
+  // Update pagination when filteredData changes
+  useEffect(() => {
+    const newTotalPages = Math.ceil(filteredData.length / rowsPerPage);
+    setTotalPages(newTotalPages);
+    setCurrentPage((prevPage) => Math.min(prevPage, newTotalPages || 1));
+  }, [filteredData, rowsPerPage]);
+
+  // Update paginated data when currentPage or filteredData changes
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const newPaginatedData = filteredData.slice(startIndex, endIndex);
+    setPaginatedData(newPaginatedData);
+    fetchPlayersWithPictures(newPaginatedData);
+  }, [currentPage, rowsPerPage, filteredData]);
 
   const requestSort = (key: string) => {
     let direction: "ascending" | "descending" = "ascending";
@@ -251,46 +272,153 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
     (header) => header !== "Number"
   );
 
+  // Calculate paginated data
+  useEffect(() => {
+    // Update paginated data when currentPage changes
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const newPaginatedData = data.slice(startIndex, endIndex);
+
+    setPaginatedData(newPaginatedData);
+
+    // Fetch pictures for new paginated data
+    fetchPlayersWithPictures(newPaginatedData);
+  }, [currentPage, data]);
+
+  // Pagination handlers
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setRowsPerPage(Number(e.target.value));
+    setCurrentPage(1); // Reset to first page when changing rows per page
+  };
+
+  useEffect(() => {
+    setTotalPages(Math.ceil(data.length / rowsPerPage));
+    // Reset to first page when data changes
+    setCurrentPage(1);
+  }, [data, rowsPerPage]);
+  const fetchPlayerPicture = async (leagueId: string): Promise<string> => {
+    const storage = getStorage();
+    const folderPath = `players/`;
+    const storageRef = ref(storage, folderPath);
+
+    try {
+      const fileList = await listAll(storageRef);
+      const matchingFile = fileList.items.find(
+        (item) =>
+          item.name.startsWith(`${leagueId}_`) ||
+          item.name.startsWith(`${leagueId}-`)
+      );
+      return matchingFile
+        ? await getDownloadURL(matchingFile)
+        : "/placeholder.svg";
+    } catch (error) {
+      console.error(`Error fetching picture for ${leagueId}:`, error);
+      return "/placeholder.svg";
+    }
+  };
+
+  const loadPlayerImages = async (players: Player[]) => {
+    const updatedPlayers = [...players];
+
+    await Promise.allSettled(
+      updatedPlayers.map(async (player) => {
+        try {
+          const picture = await fetchPlayerPicture(player.league_id);
+          player.picture = picture;
+          player.pictureLoading = false;
+        } catch (error) {
+          player.picture = "/placeholder.svg";
+          player.pictureLoading = false;
+        }
+      })
+    );
+
+    setVisibleData(updatedPlayers);
+  };
+
+  const fetchPlayersWithPictures = async (players: Player[]) => {
+    // Set initial state with placeholders
+    const playersWithPlaceholders = players.map((player) => ({
+      ...player,
+      picture: "/placeholder.svg",
+      pictureLoading: true,
+    }));
+    setVisibleData(playersWithPlaceholders);
+
+    // Load actual images in background
+    loadPlayerImages(players);
+    return playersWithPlaceholders;
+  };
+
   return (
-    <div className={`md:m-6`}>
+    <div className={`md:m-6 m-1`}>
       {/* Filters */}
-      <div className={`flex flex-row items-center justify-between p-2 `}>
-        <div className="flex flex-wrap gap-2 items-center ">
-          {/* Search Input */}
-          <div className={`relative ${themeClasses.bg} rounded-lg`}>
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FaSearch
-                className={darkMode ? "text-gray-400" : "text-gray-500"}
+      <div
+        className={`flex md:flex-row flex-col gap-4 items-center justify-between p-2 `}
+      >
+        <div className="flex flex-row gap-2">
+          <div className="flex flex-wrap gap-2 items-center ">
+            {/* Search Input */}
+            <div className={`relative ${themeClasses.bg} rounded-lg`}>
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaSearch
+                  className={darkMode ? "text-gray-400" : "text-gray-500"}
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="Search player, team, number..."
+                className={`pl-10 pr-4 py-2 rounded-lg ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} border focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <input
-              type="text"
-              placeholder="Search player, team, number..."
-              className={`pl-10 pr-4 py-2 rounded-lg ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} border focus:outline-none focus:ring-2 focus:ring-blue-500`}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
 
-          {/* Team Filter */}
-          <select
-            className={`px-1 py-2 mx-1 justify-center rounded-lg shadow-sm ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} border focus:outline-none focus:ring-2 focus:ring-blue-500`}
-            value={selectedTeam}
-            onChange={(e) => setSelectedTeam(e.target.value)}
-          >
-            {teams.map((team) => (
-              <option key={team} value={team}>
-                {team}
-              </option>
-            ))}
-          </select>
+            {/* Team Filter */}
+            <select
+              className={`px-1 py-2 mx-1 justify-center rounded-lg shadow-sm ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} border focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              value={selectedTeam}
+              onChange={(e) => setSelectedTeam(e.target.value)}
+            >
+              {teams.map((team) => (
+                <option key={team} value={team}>
+                  {team}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center ">
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`p-2 rounded-full ${themeClasses.button}`}
+            >
+              {darkMode ? <FaSun /> : <FaMoon />}
+            </button>
+          </div>
         </div>
-        <div className="flex items-center ">
+        <div className="flex flex-row items-center justify-end m-auto gap-2">
+          <span className="text-xs text-gray-300">
+            Page {currentPage} of {totalPages}
+          </span>
           <button
-            onClick={() => setDarkMode(!darkMode)}
-            className={`p-2 rounded-full ${themeClasses.button}`}
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-3 py-1 rounded-md bg-gray-800 text-white disabled:opacity-50"
           >
-            {darkMode ? <FaSun /> : <FaMoon />}
+            Previous
+          </button>
+          <button
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 rounded-md bg-gray-800 text-white disabled:opacity-50"
+          >
+            Next
           </button>
         </div>
       </div>
@@ -306,7 +434,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
             >
               {/* Player Column */}
               <th
-                className={`md:md:px-4 p-1  md:py-3 text-left text-xs ${themeClasses.headerBg}  font-medium font-azonix ${themeClasses.headerText} uppercase tracking-wider sticky left-0 z-20`}
+                className={`md:md:px-4 px-2 md:border-0 border-r md:py-3 text-left text-xs ${themeClasses.headerBg}  font-medium font-azonix ${themeClasses.headerText} uppercase tracking-wider sticky left-0 z-20`}
               >
                 <div
                   className="flex items-center cursor-pointer"
@@ -318,7 +446,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
               </th>
               {/* Rank Column */}
               <th
-                className={`md:px-4 p-1 md:py-3 text-left text-xs ${themeClasses.headerBg} font-medium font-azonix ${themeClasses.headerText} uppercase tracking-wider sticky left-44 z-20`}
+                className={`md:px-4 p-1 md:py-3 text-left text-xs ${themeClasses.headerBg} font-medium font-azonix ${themeClasses.headerText} uppercase tracking-wider  md:border-r border-b border-white/20 z-20`}
               >
                 <div
                   className="flex items-center cursor-pointer"
@@ -364,17 +492,17 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
             </tr>
           </thead>
           <tbody className={`divide-y ${themeClasses.border}`}>
-            {filteredData.map((row, rowIndex) => (
+            {paginatedData.map((row, rowIndex) => (
               <tr
                 key={rowIndex}
                 className={`${themeClasses.hover} ${themeClasses.bg} ${themeClasses.text} `}
               >
                 {/* Player Column */}
                 <td
-                  className={`md:px-4 p-1 md:py-3 whitespace-nowrap  inset-0  sticky left-0 z-20 ${themeClasses.bg}`}
+                  className={`md:px-4 p-1 md:py-3 whitespace-nowrap  md:border-0 border-r border-white/80 inset-0  sticky left-0 z-20 ${themeClasses.bg}`}
                 >
                   <div className="flex items-center">
-                    <div className="flex-shrink-0 h-14 w-14 flex items-center justify-center rounded-full overflow-hidden bg-gray-600 mr-4 relative">
+                    <div className="flex-shrink-0 md:h-14 md:w-14 h-10 w-10 flex items-center justify-center rounded-full overflow-hidden bg-gray-600 md:mr-4 mr-1 relative">
                       {/* Loading state */}
                       {row.pictureLoading && (
                         <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse">
@@ -405,6 +533,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
                       <img
                         src={row.picture || "/placeholder.svg"}
                         alt={row.Player}
+                        loading="lazy"
                         className={`w-full h-full object-cover transition-opacity duration-200 ${
                           row.pictureLoading ? "opacity-0" : "opacity-100"
                         }`}
@@ -430,14 +559,14 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
 
                     <div className="max-w-[35vw] whitespace-normal">
                       <div
-                        className={`text-sm font-azonix font-medium ${
+                        className={`md:text-xs text-[12px] font-azonix font-medium ${
                           darkMode ? "text-white" : "text-black"
                         } flex whitespace-normal`}
                       >
                         {row.Player}
                       </div>
                       <div
-                        className={`text-xs font-azonix ${
+                        className={`md:text-xs text-[10px]  font-azonix ${
                           darkMode ? "text-gray-400" : "text-gray-500"
                         }`}
                       >
@@ -448,9 +577,9 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
                 </td>
                 {/* Rank Column */}
                 <td
-                  className={`md:px-4 p-1 md:py-3 whitespace-nowrap border-r-2 sticky left-44 z-10 ${themeClasses.bg}`}
+                  className={`md:px-4 p-1 md:py-3 whitespace-nowrap md:border-r border-white/80 px-1 z-10 ${themeClasses.bg}`}
                 >
-                  <div className="text-center text-sm font-azonix font-medium">
+                  <div className="text-center text-xs font-azonix font-medium">
                     {row.Rank}
                   </div>
                 </td>
@@ -490,7 +619,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
                   .map(([key, value]) => (
                     <td
                       key={key} // Use key instead of index for better stability
-                      className={`px-2 py-3 whitespace-nowrap text-sm text-center ${
+                      className={`px-2 py-3 whitespace-nowrap text-xs text-center ${
                         darkMode ? "text-gray-300" : "text-gray-500"
                       }`}
                     >
@@ -501,6 +630,42 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({ data }) => {
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-300">Rows per page:</span>
+          <select
+            value={rowsPerPage}
+            onChange={handleRowsPerPageChange}
+            className="bg-gray-800 text-white text-xs rounded-md px-2 py-1"
+          >
+            {[10, 20, 30, 50, 100].map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-300">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-3 py-1 rounded-md bg-gray-800 text-white disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 rounded-md bg-gray-800 text-white disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   );

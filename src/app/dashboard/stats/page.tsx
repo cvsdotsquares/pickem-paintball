@@ -14,14 +14,10 @@ export interface Event {
   status: string;
 }
 
-export default function Dashboard() {
+export default function Statistics() {
   const [rowData, setRowData] = useState<Player[]>([]);
   const [eventsList, setEventsList] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
 
   // Fetch all events from Firebase
   useEffect(() => {
@@ -103,59 +99,6 @@ export default function Dashboard() {
       </article>
     );
   }
-  const fetchPlayerPicture = async (leagueId: string): Promise<string> => {
-    const storage = getStorage();
-    const folderPath = `players/`;
-    const storageRef = ref(storage, folderPath);
-
-    try {
-      const fileList = await listAll(storageRef);
-      const matchingFile = fileList.items.find(
-        (item) =>
-          item.name.startsWith(`${leagueId}_`) ||
-          item.name.startsWith(`${leagueId}-`)
-      );
-      return matchingFile
-        ? await getDownloadURL(matchingFile)
-        : "/placeholder.svg";
-    } catch (error) {
-      console.error(`Error fetching picture for ${leagueId}:`, error);
-      return "/placeholder.svg";
-    }
-  };
-
-  const loadPlayerImages = async (players: Player[]) => {
-    const updatedPlayers = [...players];
-
-    await Promise.all(
-      updatedPlayers.map(async (player) => {
-        try {
-          const picture = await fetchPlayerPicture(player.league_id);
-          player.picture = picture;
-          player.pictureLoading = false;
-        } catch (error) {
-          player.picture = "/placeholder.svg";
-          player.pictureLoading = false;
-        }
-      })
-    );
-
-    setRowData(updatedPlayers);
-  };
-
-  const fetchPlayersWithPictures = async (players: Player[]) => {
-    // Set initial state with placeholders
-    const playersWithPlaceholders = players.map((player) => ({
-      ...player,
-      picture: "/placeholder.svg",
-      pictureLoading: true,
-    }));
-    setRowData(playersWithPlaceholders);
-
-    // Load actual images in background
-    loadPlayerImages(players);
-    return playersWithPlaceholders;
-  };
 
   // Fetch player data based on the selected event
   useEffect(() => {
@@ -212,8 +155,7 @@ export default function Dashboard() {
             ...sortedRest,
           };
         });
-        const playersWithPictures = await fetchPlayersWithPictures(players);
-        setRowData(playersWithPictures);
+        setRowData(players);
         console.log("Player data fetched successfully:", players);
       } catch (error: any) {
         console.error("Error fetching player data:", error.message);
@@ -222,50 +164,26 @@ export default function Dashboard() {
     fetchPlayers();
   }, [selectedEvent]);
 
-  // Calculate paginated data
-  const paginatedData = rowData.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
-
-  // Pagination handlers
-  const goToPage = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
-
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setRowsPerPage(Number(e.target.value));
-    setCurrentPage(1); // Reset to first page when changing rows per page
-  };
-
-  useEffect(() => {
-    setTotalPages(Math.ceil(rowData.length / rowsPerPage));
-    // Reset to first page when data changes
-    setCurrentPage(1);
-  }, [rowData, rowsPerPage]);
-
   // Handle event selection from the dropdown
   const handleEventSelect = (event: Event) => {
     setSelectedEvent(event);
   };
 
   return (
-    <div className="relative top-4 left-0 flex flex-col w-auto  min-h-screen font-inter">
+    <div className="relative top-4 left-0 flex flex-col w-auto overflow-y-scroll pb-6 min-h-screen font-inter">
       <section>
-        <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[238px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
+        <header className="flex relative flex-col  items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
           {/* <img
             src="/R.jpg"
             alt="Statistics Center Background"
             className="object-cover absolute inset-0 size-full"
           /> */}
           <div
-            className="absolute inset-0  top-0"
+            className="absolute inset-0  top-0 brightness-110"
             style={{
-              backgroundImage: "url('/R.jpg')",
+              backgroundImage: "url('/stats-center.jpg')",
               backgroundSize: "cover",
-              backgroundPosition: "center",
+              backgroundPosition: "0 40%",
               backgroundRepeat: "no-repeat",
             }}
           />
@@ -276,12 +194,12 @@ export default function Dashboard() {
           />
           <div className="absolute inset-0  bg-black/45 pointer-events-none"></div>
 
-          <h1 className="relative font-azonix max-w-full items-end m-auto md:text-7xl text-4xl">
+          <h1 className="relative font-azonix max-w-full m-auto md:text-7xl text-4xl">
             Statistics Center
           </h1>
         </header>
 
-        <div className="flex flex-wrap gap-4 items-center px-6 mt-4 w-full max-md:px-5 max-md:max-w-full">
+        <div className="flex flex-row overflow-y-hidden overflow-x-auto gap-4 items-center p-3 mt-4 w-full max-md:px-5 max-md:max-w-full">
           {eventsList.map((event, index) => (
             <EventCard
               key={index}
@@ -294,45 +212,9 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <MatchupTable data={paginatedData} />
+      <MatchupTable data={rowData} />
 
       {/* Pagination Controls */}
-      <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-300">Rows per page:</span>
-          <select
-            value={rowsPerPage}
-            onChange={handleRowsPerPageChange}
-            className="bg-gray-800 text-white text-sm rounded-md px-2 py-1"
-          >
-            {[10, 20, 30, 50, 100].map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-300">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            onClick={() => goToPage(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="px-3 py-1 rounded-md bg-gray-800 text-white disabled:opacity-50"
-          >
-            Previous
-          </button>
-          <button
-            onClick={() => goToPage(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 rounded-md bg-gray-800 text-white disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

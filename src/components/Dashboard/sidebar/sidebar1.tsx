@@ -3,10 +3,13 @@ import { cn } from "@/src/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import Link, { LinkProps } from "next/link";
 import React, { useState, createContext, useContext } from "react";
-import { ImMenu2 } from "react-icons/im";
+import { ImMenu2, ImStatsBars } from "react-icons/im";
 import { LuX } from "react-icons/lu";
 import Button from "../../ui/button";
 import { logout } from "@/src/lib/auth";
+import { FaTableList } from "react-icons/fa6";
+import { GiCardRandom } from "react-icons/gi";
+import { PiRankingThin } from "react-icons/pi";
 
 interface Links {
   label: string;
@@ -23,7 +26,7 @@ interface SidebarContextProps {
 const SidebarContext = createContext<SidebarContextProps | undefined>(
   undefined
 );
-const handleLogout = async () => {
+export const handleLogout = async () => {
   try {
     await logout();
     window.location.href = "/";
@@ -85,7 +88,6 @@ export const SidebarBody = (props: React.ComponentProps<typeof motion.div>) => {
   return (
     <>
       <DesktopSidebar {...props} />
-      <MobileSidebar {...(props as React.ComponentProps<"div">)} />
     </>
   );
 };
@@ -120,17 +122,33 @@ export const MobileSidebar = ({
   className,
   ...props
 }: React.ComponentProps<"div">) => {
-  const links: Links[] = [
-    { label: "Home", href: "/", icon: <ImMenu2 size={20} /> },
-    { label: "Profile", href: "/profile", icon: <ImMenu2 size={20} /> },
-    { label: "Settings", href: "/settings", icon: <ImMenu2 size={20} /> },
-    { label: "Logout", href: "#", icon: <LuX size={20} /> }, // We'll handle this one manually
+  const links = [
+    {
+      label: "Dashboard",
+      href: "/dashboard",
+      icon: <FaTableList className="h-5 w-5 shrink-0 text-neutral-200" />,
+    },
+    {
+      label: "Statistics",
+      href: "/dashboard/stats",
+      icon: <ImStatsBars className="h-5 w-5 shrink-0 text-neutral-200" />,
+    },
+    {
+      label: "Live PickEm",
+      href: "/dashboard/pick-em",
+      icon: <GiCardRandom className="h-5 w-5 shrink-0 text-neutral-200" />,
+    },
+    {
+      label: "Leaderboards",
+      href: "/dashboard/leaderboard",
+      icon: <PiRankingThin className="h-5 w-5 shrink-0 text-neutral-200" />,
+    },
   ];
 
   return (
     <div
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 flex justify-around bg-stone-950 text-white py-2 md:hidden",
+        "fixed bottom-0 left-0 right-0 z-50 flex justify-around bg-stone-950 text-white p-2 md:hidden",
         className
       )}
       {...props}

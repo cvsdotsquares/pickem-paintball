@@ -21,42 +21,45 @@ export interface Event {
 
 export default function Dashboard() {
   return (
-    <section className=" flex font-azonix w-screen overflow-hidden">
-      <div className="relative rounded-2xl pr-4 flex z-10 left-0 md:flex-row flex-col justify-start ">
-        <div className="relative  inset-0 flex justify-center my-auto md:w-[55vw] w-screen min-h-[40vh]">
-          {/* Background Wrapper */}
-
-          <div
-            className="absolute inset-0 bg-opacity-80 "
-            style={{
-              backgroundImage: "url('/bg.jpg')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundRepeat: "no-repeat",
-            }}
-          />
-          {/* Profile Content Wrapper */}
-          <div className="relative bg-gray-900/50 md:p-16 flex  items-stretch justify-center w-full h-full">
-            <UserProfile />
+    <section className="relative flex md:flex-row flex-col-reverse font-azonix w-screen md:h-screen h-full overflow-hidden top-6">
+      {/* Left Column - Picks and Leaderboard */}
+      <div className="flex flex-col w-full md:w-[65vw] border-r border-white/30 h-full  md:overflow-y-auto">
+        {/* Picks Section with Scroll */}
+        <div className="flex-1 md:p-6 p-1 justify-center m-auto">
+          <div className="flex overflow-hidden relative flex-col rounded-2xl h-full">
+            <img
+              src="/background0.jpg"
+              className="object-cover absolute inset-0 size-full"
+              alt="Card background"
+            />
+            <div className="relative justify-center h-full w-full md:mx-2 py-6">
+              <PickWidget />
+            </div>
           </div>
         </div>
 
-        <div className="border-white/30 border-l md:w-[42vw] w-full">
-          <div className="flex-1 p-6">
-            <div className="flex overflow-hidden mt-4 relative flex-col top-3 rounded-2xl">
-              <img
-                src="/background0.jpg"
-                className="object-cover absolute inset-0 size-full"
-                alt="Card background"
-              />
+        {/* Leaderboard Section with Scroll */}
+        <div className="flex-1 md:px-6 px-1">
+          <DivisionInfo />
+        </div>
+      </div>
 
-              <div className="relative justify-center  w-full md:mx-2 my-6  ">
-                <PickWidget />
-                <ActionButtons />
-              </div>
-            </div>
-            <DivisionInfo />
-          </div>
+      {/* Right Column - Profile (Full height, no scroll) */}
+      <div className=" relative h-full w-full overflow-hidden">
+        {/* Background */}
+        <div
+          className="absolute inset-0 bg-opacity-40"
+          style={{
+            backgroundImage: "url('/dash-img.JPG')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }}
+        />
+
+        {/* Profile Content */}
+        <div className="relative bg-black/40 h-full w-full md:p-10 py-6 flex items-center m-auto justify-center">
+          <UserProfile />
         </div>
       </div>
     </section>

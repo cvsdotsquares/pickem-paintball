@@ -71,7 +71,7 @@ const DivisionInfo = () => {
           <div className="flex flex-1 shrink gap-10 justify-between items-end basis-0 min-w-60 max-md:max-w-full">
             <div className="text-sm font-bold leading-none text-white w-[74px]">
               <div className="flex items-center w-full">
-                <span className="self-stretch whitespace-nowrap my-auto">
+                <span className="self-stretch my-auto">
                   {liveEvent.id?.replace(/_/g, " ")} Leaderboards
                 </span>
               </div>

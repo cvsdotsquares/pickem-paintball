@@ -11,11 +11,12 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GiCardPickup } from "react-icons/gi";
-import { IoMdCloseCircle } from "react-icons/io";
+import { IoMdClose, IoMdCloseCircle } from "react-icons/io";
 import { RiLock2Line, RiTeamLine } from "react-icons/ri";
 import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
+import { TiTick } from "react-icons/ti";
 
 export interface Player {
   player_id: number;
@@ -63,6 +64,12 @@ export default function Pickems() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [costRange, setCostRange] = useState<[number, number]>([0, 1000000]);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // In your component
+  const desktopScrollRef = useRef<HTMLDivElement>(null);
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
+
   // Memoized filtered players
   const filteredPlayers = useMemo(() => {
     // Create a filtered array
@@ -95,16 +102,17 @@ export default function Pickems() {
     return filteredPlayers.slice(0, visiblePlayersCount);
   }, [filteredPlayers, visiblePlayersCount]);
 
-  // Scroll handler with proper debouncing
+  // Updated scroll handler
   const handleScroll = useCallback(() => {
     if (isLoadingMore || visiblePlayers.length >= filteredPlayers.length)
       return;
 
-    const scrollContainer = document.querySelector(".player-list-container");
-    if (!scrollContainer) return;
+    // Check both containers
+    const container = mobileScrollRef.current || desktopScrollRef.current;
+    if (!container) return;
 
-    const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-    const isNearBottom = scrollHeight - (scrollTop + clientHeight) < 50;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const isNearBottom = scrollHeight - (scrollTop + clientHeight) < 100;
 
     if (isNearBottom) {
       setIsLoadingMore(true);
@@ -127,13 +135,21 @@ export default function Pickems() {
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   };
 
-  // Attach scroll event with cleanup
+  // Updated useEffect for scroll listeners
   useEffect(() => {
-    const scrollContainer = document.querySelector(".player-list-container");
-    if (scrollContainer) {
-      scrollContainer.addEventListener("scroll", handleScroll);
-      return () => scrollContainer.removeEventListener("scroll", handleScroll);
-    }
+    const containers: any[] = [];
+    if (desktopScrollRef.current) containers.push(desktopScrollRef.current);
+    if (mobileScrollRef.current) containers.push(mobileScrollRef.current);
+
+    containers.forEach((container) => {
+      container.addEventListener("scroll", handleScroll);
+    });
+
+    return () => {
+      containers.forEach((container) => {
+        container.removeEventListener("scroll", handleScroll);
+      });
+    };
   }, [handleScroll]);
 
   // Reset visible count when filters change
@@ -156,20 +172,39 @@ export default function Pickems() {
   // Fetch live event details
   useEffect(() => {
     const fetchLiveEvent = async () => {
-      const events = await fetchFromFirestore("events");
-      const live = events.find((e: any) => e.status === "live");
-      if (live) {
-        setLiveEvent({
-          id: live.id,
-          lockDate: new Date(),
-          timeLeft: "",
-        });
+      try {
+        const events = await fetchFromFirestore("events");
+        const liveEvent = events.find((e: any) => e.status === "live");
+
+        if (liveEvent) {
+          const eventRef = doc(db, "events", liveEvent.id);
+          const eventSnap = await getDoc(eventRef);
+
+          if (eventSnap.exists()) {
+            const eventData = eventSnap.data();
+            const lockDate = eventData.lockDate.toDate
+              ? eventData.lockDate.toDate()
+              : null;
+
+            setLiveEvent({
+              id: liveEvent.id,
+              lockDate,
+              timeLeft: "",
+            });
+          } else {
+            console.warn("Live event document does not exist.");
+          }
+        } else {
+          console.warn("No live event found.");
+        }
+      } catch (error) {
+        console.error("Error fetching live event:", error);
       }
     };
+
     fetchLiveEvent();
   }, []);
 
-  // Update countdown timer
   useEffect(() => {
     const { lockDate } = liveEvent;
     if (!lockDate) return;
@@ -177,13 +212,16 @@ export default function Pickems() {
     const updateTimeLeft = () => {
       const now = new Date();
       const diff = lockDate.getTime() - now.getTime();
+
       if (diff <= 0) {
         setLiveEvent((prev) => ({ ...prev, timeLeft: "Picks locked!" }));
         return;
       }
+
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
       setLiveEvent((prev) => ({
         ...prev,
         timeLeft: `${hours}h ${minutes}m ${seconds}s`,
@@ -191,32 +229,24 @@ export default function Pickems() {
     };
 
     const interval = setInterval(updateTimeLeft, 1000);
+    updateTimeLeft(); // Call immediately to update state without delay
     return () => clearInterval(interval);
   }, [liveEvent.lockDate]);
 
-  const fetchPlayerPicture = async (leagueId: string) => {
+  const fetchPlayerPicture = async (leagueId: string): Promise<string> => {
     const storage = getStorage();
     const folderPath = `players/`; // Path to the folder containing player pictures
     const storageRef = ref(storage, folderPath);
 
     try {
-      // List all files in the folder
       const fileList = await listAll(storageRef);
-
-      // Find the file that starts with the leagueId
-      const matchingFile = fileList.items.find(
-        (item) =>
-          item.name.startsWith(`${leagueId}_`) ||
-          item.name.startsWith(`${leagueId}-`)
+      const matchingFile = fileList.items.find((item) =>
+        item.name.startsWith(`${leagueId}_`)
       );
 
-      if (matchingFile) {
-        // Get the download URL for the matching file
-        const pictureUrl = await getDownloadURL(matchingFile);
-        return pictureUrl;
-      } else {
-        return "/placeholder.svg"; // Fallback to placeholder
-      }
+      return matchingFile
+        ? await getDownloadURL(matchingFile)
+        : "/placeholder.svg"; // Return placeholder if no match
     } catch (error) {
       console.error(`Error fetching picture for leagueId: ${leagueId}`, error);
       return "/placeholder.svg"; // Fallback to placeholder
@@ -244,70 +274,63 @@ export default function Pickems() {
           Cost: raw.Cost,
           pictureLoading: true, // PICTURES ARE LOADING
         }));
-
         setRowData(players); // Set data immediately with loading state
-
-        // Then load pictures in batches
-        loadPlayerPicturesInBatches(players);
       } catch (error) {
         console.error("Error fetching players:", error);
       }
     };
 
-    const loadPlayerPicturesInBatches = async (players: Player[]) => {
-      const batchSize = 10; // Adjust batch size as needed
-      for (let i = 0; i < players.length; i += batchSize) {
-        const batch = players.slice(i, i + batchSize);
-        await Promise.all(
-          batch.map(async (player) => {
-            try {
-              const picture = await fetchPlayerPicture(player.league_id);
-              setRowData((prevData) =>
-                prevData.map((p) =>
-                  p.player_id === player.player_id
-                    ? { ...p, picture, pictureLoading: false }
-                    : p
-                )
-              );
-            } catch (error) {
-              console.error(
-                `Error loading picture for player ${player.player_id}`,
-                error
-              );
-              setRowData((prevData) =>
-                prevData.map((p) =>
-                  p.player_id === player.player_id
-                    ? {
-                        ...p,
-                        picture: "/placeholder.svg",
-                        pictureLoading: false,
-                      }
-                    : p
-                )
-              );
-            }
-          })
-        );
-      }
-    };
-
     fetchPlayers();
   }, [liveEvent.id]);
+  useEffect(() => {
+    const fetchPicturesForVisiblePlayers = async () => {
+      if (!visiblePlayers.length) return;
+
+      const updatedPlayers = await Promise.all(
+        visiblePlayers.map(async (player) => {
+          if (player.picture) return player; // Skip if picture already exists
+
+          try {
+            const picture = await fetchPlayerPicture(player.league_id);
+            return { ...player, picture, pictureLoading: false };
+          } catch (error) {
+            console.error(
+              `Error fetching picture for ${player.Player}:`,
+              error
+            );
+            return {
+              ...player,
+              picture: "/placeholder.svg",
+              pictureLoading: false,
+            };
+          }
+        })
+      );
+
+      setRowData((prevRowData) =>
+        prevRowData.map(
+          (player) =>
+            updatedPlayers.find((p) => p.player_id === player.player_id) ||
+            player
+        )
+      );
+    };
+
+    const debounceFetch = setTimeout(fetchPicturesForVisiblePlayers, 200);
+
+    return () => clearTimeout(debounceFetch); // Cleanup for debouncing
+  }, [visiblePlayers]);
 
   // Fetch user picks from the firestore if exist already
   useEffect(() => {
     if (user && liveEvent.id) {
       const fetchPicks = async () => {
         try {
-          console.log("Fetching picks for user:", user.uid);
-          console.log("Live event ID:", liveEvent.id);
-
           const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
 
           if (userSnap.exists()) {
             const userData = userSnap.data();
-            console.log("Fetched user data:", userData);
 
             if (
               userData.pickems &&
@@ -315,9 +338,7 @@ export default function Pickems() {
               Array.isArray(userData.pickems[liveEvent.id])
             ) {
               const savedPicksIds = userData.pickems[liveEvent.id];
-              console.log("Saved player IDs:", savedPicksIds);
 
-              // Fetch player data from Firestore for each ID
               const playerRefs = savedPicksIds.map((id: string) =>
                 doc(db, `events/${liveEvent.id}/players`, id.toString())
               );
@@ -328,26 +349,29 @@ export default function Pickems() {
 
               const savedPicks = playerDocs
                 .filter((doc) => doc.exists())
-                .map((doc) => ({ ...doc.data(), player_id: doc.id })); // Map Firestore data
+                .map((doc) => ({ ...doc.data(), player_id: doc.id }));
 
-              console.log("Resolved saved picks:", savedPicks);
+              // Fetch pictures for players
+              const picksWithPictures = await Promise.all(
+                savedPicks.map(async (player) => {
+                  const picture = await fetchPlayerPicture(player.league_id);
+                  return { ...player, picture }; // Add picture URL
+                })
+              );
 
-              setTemporaryPicks(savedPicks);
-
+              setTemporaryPicks(picksWithPictures); // Set picks with pictures
               setPlayerSlots((prevSlots) =>
                 prevSlots.map((slot, index) => ({
                   ...slot,
-                  player: savedPicks[index] || null, // Fill slots with saved picks
+                  player: picksWithPictures[index] || null,
                 }))
               );
 
-              // Calculate and set remaining budget
-              const totalCost = savedPicks.reduce(
+              const totalCost = picksWithPictures.reduce(
                 (sum, player) => sum + (player?.Cost || 0),
                 0
               );
-              setRemainingBudget(1000000 - totalCost); // Adjust budget
-              console.log("Remaining budget:", 1000000 - totalCost);
+              setRemainingBudget(1000000 - totalCost);
             } else {
               console.warn("No saved picks found for this event.");
             }
@@ -445,8 +469,13 @@ export default function Pickems() {
         isSelected: slot.id === slotId, // Ensure only one slot is selected
       }))
     );
+    setIsDrawerOpen(true);
   };
 
+  // Add a function to close the drawer
+  const closeDrawer = () => {
+    setIsDrawerOpen(false);
+  };
   const confirmPicks = async () => {
     if (!user) return;
 
@@ -477,18 +506,18 @@ export default function Pickems() {
   };
 
   return (
-    <div className="relative flex flex-col md:flex-row w-auto md:h-full h-screen overflow-hidden">
+    <div className="relative flex flex-col md:flex-row w-auto md:h-full mt-7  md:overflow-hidden">
       {/* Left Section */}
-      <div className="relative w-full md:w-[60vw] md:h-screen h-[40vh] z-10 overflow-hidden border-white/30 border-r ">
-        <div className="grid mt-8 w-full rounded-lg">
+      <div className="relative w-full md:w-[60vw] h-[90vh] z-10 items-center md:overflow-y-scroll border-white/30 border-r ">
+        <div className="grid  overflow-hidden  w-full ">
           <div
             role="alert"
-            className="relative w-full py-6 bg-gradient-to-b from-[#360e0edf] to-[#00000065] shadow-xl shadow-black text-white flex items-center justify-between"
+            className="relative w-full md:py-3 py-2  z-40 bg-gradient-to-b from-[#360e0edf] to-[#00000065] text-white flex items-center justify-between"
           >
             {/* Left Content */}
-            <div className="flex flex-col gap-1 mx-10 md:text-xs text-[10px] font-azonix">
+            <div className="flex flex-col gap-1 mx-10 md:text-xs text-[10px] whitespace-nowrap my-2 font-azonix">
               <div>
-                Pickems closing on <br />
+                Pickems closing on {""} <br className="md:hidden" />
                 {liveEvent.lockDate
                   ? new Date(liveEvent.lockDate).toLocaleString("en-US", {
                       year: "numeric",
@@ -504,20 +533,22 @@ export default function Pickems() {
 
             {/* Right Button */}
             <button
-              className="flex flex-row items-center gap-2 md:px-6 md:py-3 p-2 backdrop-blur bg-white bg-opacity-10 text-white rounded-[36px] mr-10"
+              className="flex flex-row items-center gap-2 md:px-4 md:py-1 p-3 backdrop-blur bg-white bg-opacity-10 text-white rounded-[36px] mr-10"
               onClick={confirmPicks}
             >
               <RiLock2Line size={20} />
-              <span className="md:text-base text-[8px]">Lock Picks</span>
+              <span className="md:text-base text-[12px] whitespace-nowrap">
+                Save Picks
+              </span>
             </button>
           </div>
         </div>
 
         {/* Image Container */}
         <div
-          className="relative left-0 bottom-0 top-0 md:h-screen flex flex-col justify-start  "
+          className="relative left-0 top-0 p-1 flex h-full flex-col  "
           style={{
-            backgroundImage: "url(/stadium.jpg)",
+            backgroundImage: "url(/pick-em.JPG)",
             backgroundSize: "cover",
             backgroundRepeat: "no-repeat",
             backgroundPosition: "center",
@@ -526,10 +557,27 @@ export default function Pickems() {
           {/* <h1 className="text-xl font-azonix text-white text-center pt-4 font-bold"></h1> */}
           <AnimatedGroup
             preset="scale"
-            className="relative md:top-10 left-0 grid grid-cols-5 gap-1 m-1 md:gap-6 items-start justify-evenly md:px-2 w-full"
+            className="relative grid grid-cols-5 gap-1 md:gap-6 top-20 py-1 items-center justify-evenly md:px-2 w-full"
           >
-            {playerSlots.map((slot) => (
-              <div key={slot.id}>
+            {playerSlots.map((slot, index) => (
+              <div key={slot.id} className="relative">
+                {/* Display Team and Cost */}
+                {slot.player && (
+                  <div
+                    className={`absolute ${
+                      index < 5 ? "-top-12" : "-bottom-12"
+                    } left-0 right-0 flex flex-col items-center`}
+                  >
+                    <div className="text-white md:text-sm text-[12px] font-semibold">
+                      {slot.player.Team}
+                    </div>
+                    <div className="text-white text-xs">
+                      {formatCost(slot.player.Cost)}
+                    </div>
+                  </div>
+                )}
+
+                {/* Player Card */}
                 {slot.player ? (
                   <div
                     className="relative gap-3"
@@ -537,7 +585,6 @@ export default function Pickems() {
                   >
                     <div className="flex flex-col gap-2 cursor-pointer transition duration-300 ease-in-out hover:scale-95 hover:drop-shadow-2xl">
                       <div className="relative justify-center m-auto md:h-[24vh] md:w-[9vw] w-[70px] h-[100px] bg-gradient-to-b from-[#862121] to-[#000000] rounded-2xl overflow-hidden text-white">
-                        {/* Background Image */}
                         {slot.player.pictureLoading ? (
                           <div className="absolute top-0 bottom-0 left-0 right-0 flex items-center justify-center">
                             <motion.div
@@ -562,16 +609,17 @@ export default function Pickems() {
                             }}
                           />
                         )}
-
-                        {/* Content (Text and Button at Bottom) */}
-                        <div className="absolute bottom-0 left-0 right-0 md:p-4 p-1 backdrop-filter backdrop-brightness-75  text-center z-10">
-                          <h3 className="md:text-sm text-[10px] leading-5 font-azonix mix-blend-difference">
+                        <div className="absolute bottom-0 left-0 right-0 md:p-2 p-1 backdrop-filter backdrop-brightness-50 text-center z-10">
+                          <h3 className="md:text-xs text-[10px] leading-5 font-azonix mix-blend-difference">
                             {slot.player.Player}
                           </h3>
                         </div>
                       </div>
                     </div>
-                    <div className="absolute top-2 right-1 md:right-4 z-30 text-black hover:text-red-500">
+                    <div
+                      className="absolute top-1 right-1 md:right-2 z-30 text-black hover:text-white cursor-pointer"
+                      onClick={() => handleRemovePlayer(slot.id)}
+                    >
                       <IoMdCloseCircle size={20} />
                     </div>
                   </div>
@@ -580,9 +628,9 @@ export default function Pickems() {
                     onClick={() => handleSlotSelection(slot.id)}
                     className={`relative flex flex-col gap-0 justify-center items-center rounded-2xl border ${
                       slot.isSelected
-                        ? "border-white ring-2 border-2 bg-gradient-to-b from-white/10 to-blue-500/80"
-                        : "border-white bg-white bg-opacity-10"
-                    } border-opacity-20 md:h-[24vh] md:w-[9vw] w-[70px] h-[100px]`}
+                        ? "border-black ring-4 ring-inherit ring-black border-2 bg-gradient-to-b from-white/10 to-red-800/80"
+                        : "border-white bg-gradient-to-b from-white/10 to-red-800/80"
+                    } md:h-[24vh] md:w-[9vw] w-[70px] h-[100px]`}
                   >
                     <GiCardPickup size={60} className="text-white/60 ml-2 " />
                     <span className="text-xl text-white/60 font-azonix">
@@ -596,7 +644,7 @@ export default function Pickems() {
         </div>
       </div>
 
-      <div className="flex flex-col w-full md:w-[40vw] mt-10 md:h-full h-[50vh] overflow-hidden">
+      <div className="md:flex flex-col w-full md:w-[40vw] mt-10 md:h-full hidden  h-[50vh] overflow-hidden">
         <h1 className="text-xl font-azonix text-white text-center font-bold">
           Select your Picks
         </h1>
@@ -612,7 +660,10 @@ export default function Pickems() {
           }}
         />
 
-        <div className="flex flex-col h-auto player-list-container overflow-y-scroll">
+        <div
+          className="flex flex-col h-auto overflow-y-scroll"
+          ref={desktopScrollRef}
+        >
           <motion.div
             className="py-4 grid grid-cols-3 px-1 text-center mt-4"
             initial="hidden"
@@ -637,7 +688,7 @@ export default function Pickems() {
                   onClick={() => handleSelectPlayer(player)}
                 >
                   <div className="flex flex-col gap-2 cursor-pointer transition duration-300 ease-in-out hover:scale-95 hover:drop-shadow-2xl">
-                    <div className="relative justify-center m-auto md:h-[24vh] md:w-[9vw] w-[90px] h-[120px] bg-gradient-to-b from-[#862121] to-[#000000] rounded-2xl overflow-hidden text-white">
+                    <div className="relative justify-center m-auto md:h-[24vh] md:w-[9vw] w-[90px] h-[120px] bg-gradient-to-b from-[#862121] to-[#000000] rounded-2xl overflow-visible text-white">
                       {/* Background Image */}
                       {player.pictureLoading ? (
                         <div className="absolute top-0 bottom-0 left-0 right-0 flex items-center justify-center">
@@ -662,6 +713,16 @@ export default function Pickems() {
                           {player.Player}
                         </h3>
                       </div>
+                      {temporaryPicks.some(
+                        (p) => String(p.player_id) === String(player.player_id)
+                      ) && (
+                        <div
+                          className="absolute -top-2 -right-2 overflow-visible z-40 bg-green-500 text-white rounded-full p-1"
+                          style={{ zIndex: 50 }}
+                        >
+                          <TiTick size={16} className="text-white" />
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col justify-center m-2 md:w-[9vw] w-[100px] self-center inset-0 text-center text-xs text-white mt-2">
                       <div className="flex flex-col justify-center min-h-10  rounded-xl bg-gradient-to-br from from-black to-neutral-800 pb-2">
@@ -706,6 +767,152 @@ export default function Pickems() {
           )}
         </div>
       </div>
+      <AnimatePresence>
+        {isDrawerOpen && (
+          <motion.div
+            className="fixed md:hidden top-36 -mt-3 border-t-2 border-white/20 left-0 right-0 z-30 bg-[#0a0a0a]  shadow-xl "
+            style={{ height: "80vh" }}
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 30, stiffness: 400 }}
+          >
+            <div className="flex flex-col h-full ">
+              {/* Header */}
+              <div className="flex justify-between items-center p-4 flex-shrink-0 ">
+                <h1 className="text-base font-azonix text-white font-bold">
+                  Select your Picks
+                </h1>
+                <button onClick={closeDrawer} className="text-white">
+                  <IoMdClose size={24} />
+                </button>
+              </div>
+
+              {/* Filter */}
+              <div className="px-4 -mt-6 -mb-1">
+                <FilterUI
+                  onFilter={({
+                    searchTerm: newSearchTerm,
+                    costRange: newCostRange,
+                  }) => {
+                    setSearchTerm(newSearchTerm);
+                    setCostRange(newCostRange);
+                    setVisiblePlayersCount(9);
+                  }}
+                />
+              </div>
+
+              <div
+                className="flex-1 overflow-y-scroll px-2"
+                ref={mobileScrollRef}
+              >
+                <motion.div
+                  className="py-4 grid grid-cols-3 gap-2 text-center"
+                  initial="hidden"
+                  animate="visible"
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: {
+                      opacity: 1,
+                      y: 0,
+                      transition: { staggerChildren: 0.1 },
+                    },
+                  }}
+                >
+                  <AnimatePresence>
+                    {visiblePlayers.map((player) => (
+                      <motion.div
+                        key={player.player_id}
+                        initial={{ opacity: 0, scale: 0.6 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.6 }}
+                        transition={{ duration: 0.3 }}
+                        onClick={() => handleSelectPlayer(player)}
+                      >
+                        <div className="flex flex-col gap-2 cursor-pointer transition duration-300 ease-in-out hover:scale-95 hover:drop-shadow-2xl">
+                          <div className="relative justify-center m-auto md:h-[24vh] md:w-[9vw] w-[90px] h-[120px] bg-gradient-to-b from-[#862121] to-[#000000] rounded-2xl overflow-visible text-white">
+                            {/* Background Image */}
+                            {player.pictureLoading ? (
+                              <div className="absolute top-0 bottom-0 left-0 right-0 flex items-center justify-center">
+                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+                              </div>
+                            ) : (
+                              <motion.div
+                                className="absolute top-0 bottom-0 left-0 right-0 flex scale-[85%]"
+                                style={{
+                                  backgroundImage: `url(${
+                                    player.picture || "/placeholder.svg"
+                                  })`,
+                                  backgroundSize: "cover",
+                                  backgroundPosition: "center",
+                                }}
+                              />
+                            )}
+
+                            {/* Content (Text and Button at Bottom) */}
+                            <div className="absolute bottom-0 left-0 right-0 p-4 backdrop-filter backdrop-brightness-75  text-center z-10">
+                              <h3 className="text-[10px] leading-5 font-azonix whitespace-normal text-left mix-blend-difference">
+                                {player.Player}
+                              </h3>
+                            </div>
+                            {temporaryPicks.some(
+                              (p) =>
+                                String(p.player_id) === String(player.player_id)
+                            ) && (
+                              <div
+                                className="absolute -top-2 -right-2 overflow-visible z-40 bg-green-500 text-white rounded-full p-1"
+                                style={{ zIndex: 50 }}
+                              >
+                                <TiTick size={16} className="text-white" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col justify-center m-2 md:w-[9vw] w-[100px] self-center inset-0 text-center text-xs text-white mt-2">
+                            <div className="flex flex-col justify-center min-h-10  rounded-xl bg-gradient-to-br from from-black to-neutral-800 pb-2">
+                              <span className="text-[10px] font-azonix whitespace-wrap">
+                                {player.Team}
+                              </span>
+                              <span className="font-bold"></span>{" "}
+                              {formatCost(player.Cost)}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+
+                {isLoadingMore ? (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex justify-center mx-auto flex-col items-center"
+                  >
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-center py-8 text-white/70"
+                    >
+                      Fetching players data
+                    </motion.div>
+                  </motion.div>
+                ) : (
+                  visiblePlayers.length === 0 && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-center py-8 text-white/70"
+                    >
+                      No players match your filters
+                    </motion.div>
+                  )
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
