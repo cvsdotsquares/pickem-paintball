@@ -181,7 +181,7 @@ export default function Statistics() {
           <div
             className="absolute inset-0  top-0 brightness-110"
             style={{
-              backgroundImage: "url('/stats-center.jpg')",
+              backgroundImage: "url('/stats-center.JPG')",
               backgroundSize: "cover",
               backgroundPosition: "0 40%",
               backgroundRepeat: "no-repeat",
