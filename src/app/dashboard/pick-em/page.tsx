@@ -351,27 +351,20 @@ export default function Pickems() {
                 .filter((doc) => doc.exists())
                 .map((doc) => ({ ...doc.data(), player_id: doc.id }));
 
-              // Fetch pictures for players
               const picksWithPictures = await Promise.all(
                 savedPicks.map(async (player) => {
                   const picture = await fetchPlayerPicture(player.league_id);
-                  return { ...player, picture }; // Add picture URL
+                  return { ...player, picture };
                 })
               );
 
-              setTemporaryPicks(picksWithPictures); // Set picks with pictures
+              setTemporaryPicks(picksWithPictures);
               setPlayerSlots((prevSlots) =>
                 prevSlots.map((slot, index) => ({
                   ...slot,
                   player: picksWithPictures[index] || null,
                 }))
               );
-
-              const totalCost = picksWithPictures.reduce(
-                (sum, player) => sum + (player?.Cost || 0),
-                0
-              );
-              setRemainingBudget(1000000 - totalCost);
             } else {
               console.warn("No saved picks found for this event.");
             }
@@ -387,29 +380,34 @@ export default function Pickems() {
     }
   }, [user, liveEvent.id, db]);
 
+  useEffect(() => {
+    const totalCost = temporaryPicks.reduce(
+      (sum, player) => sum + Math.round(player.Cost),
+      0
+    );
+    setRemainingBudget(1000000 - totalCost);
+  }, [temporaryPicks]);
+
   // New check to see if we are before lockDate
   const isBeforeLockDate =
     liveEvent.lockDate && new Date() < liveEvent.lockDate;
 
   const handleRemovePlayer = (slotId: number) => {
-    setPlayerSlots((prevSlots) =>
-      prevSlots.map((slot) =>
-        slot.id === slotId ? { ...slot, player: null } : slot
-      )
-    );
     const removedPlayer = playerSlots.find(
       (slot) => slot.id === slotId
     )?.player;
+
     if (removedPlayer) {
-      setRemainingBudget((prevBudget) => prevBudget + removedPlayer.Cost); // Refund cost
+      setTemporaryPicks((prevPicks) =>
+        prevPicks.filter(
+          (player) => player.player_id !== removedPlayer.player_id
+        )
+      );
     }
-    setTemporaryPicks((prevPicks) =>
-      prevPicks.filter(
-        (player) =>
-          !playerSlots.find(
-            (slot) =>
-              slot.id === slotId && slot.player?.player_id === player.player_id
-          )
+
+    setPlayerSlots((prevSlots) =>
+      prevSlots.map((slot) =>
+        slot.id === slotId ? { ...slot, player: null } : slot
       )
     );
   };
