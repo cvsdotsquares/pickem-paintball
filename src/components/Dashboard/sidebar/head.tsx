@@ -1,8 +1,7 @@
 "use client";
 import Link from "next/link";
 import React from "react";
-import { FaBell, FaFlag, FaGreaterThan, FaLessThan } from "react-icons/fa6";
-import { GiBullets } from "react-icons/gi";
+import { FaBell } from "react-icons/fa6";
 import { ImCog } from "react-icons/im";
 
 interface UserHeadProps {
@@ -22,7 +21,7 @@ const UserHead: React.FC<UserHeadProps> = ({
         {/* User Profile Section */}
         <Link href="/dashboard/profile" className="flex flex-row">
           <div className="flex gap-2 items-center">
-            <div className="overflow-hidden w-9 h-9 rounded-2xl bg-white bg-opacity-90">
+            <div className="overflow-hidden w-9 h-9 rounded-2xl ">
               <img
                 src={avatarUrl}
                 alt="User avatar"
