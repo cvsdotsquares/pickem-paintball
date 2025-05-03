@@ -10,6 +10,11 @@ import { useEffect, useState } from "react";
 import { FaTrophy, FaUser } from "react-icons/fa";
 
 const DivisionInfo = () => {
+  interface User {
+    id: string;
+    name?: string;
+    pickems?: Record<string, string[]>; // Map of event IDs to arrays of player IDs
+  }
   const [liveEvent, setLiveEvent] = useState<{
     id: string | any;
     name: any;
@@ -22,7 +27,7 @@ const DivisionInfo = () => {
     timeLeft: "", // This should match the `string` type
   });
 
-  const [leaderboard, setLeaderboard] = useState<User[]>([]);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [currentUserRank, setCurrentUserRank] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,12 +48,12 @@ const DivisionInfo = () => {
       const live = events.find((e: any) => e.status === "live");
       if (live) {
         setLiveEvent({
-          id: live.id,
-          name: live.name || live.id.replace(/_/g, " "),
-          lockDate: live.lockDate?.toDate() || new Date(),
+          id: liveEvent.id,
+          name: liveEvent.id.replace(/_/g, " "),
+          lockDate: liveEvent.lockDate?.toDate() || new Date(),
           timeLeft: "",
         });
-        fetchLeaderboard(live.id);
+        fetchLeaderboard(liveEvent.id);
       } else {
         setLoading(false);
       }
@@ -59,15 +64,17 @@ const DivisionInfo = () => {
   // Fetch leaderboard data
   const fetchLeaderboard = async (eventId: string) => {
     try {
-      const users = await fetchFromFirestore("users");
-      const leaderboardData: any[] = [];
+      const users: User[] = await fetchFromFirestore("users");
+      const leaderboardData: {
+        id: string;
+        displayName: string;
+        totalPoints: number;
+      }[] = [];
 
       for (const userDoc of users) {
         const userId = userDoc.id;
-        const pickems = userDoc.pickems || {};
-        const playerIds = Array.isArray(pickems[eventId])
-          ? pickems[eventId]
-          : [];
+        const pickems = userDoc.pickems || {}; // Safely default to an empty object
+        const playerIds = pickems[eventId] || []; // Get the array of player IDs for the current event
 
         let totalPoints = 0;
 
@@ -84,7 +91,7 @@ const DivisionInfo = () => {
         if (playerIds.length > 0) {
           leaderboardData.push({
             id: userId,
-            displayName: userDoc.name || "Unknown",
+            displayName: userDoc?.name || "Unknown",
             totalPoints,
           });
         }
