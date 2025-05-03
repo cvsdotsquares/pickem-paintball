@@ -13,6 +13,7 @@ const DivisionInfo = () => {
   interface User {
     id: string;
     name?: string;
+    username?: string;
     pickems?: Record<string, string[]>; // Map of event IDs to arrays of player IDs
   }
   const [liveEvent, setLiveEvent] = useState<{
@@ -84,14 +85,14 @@ const DivisionInfo = () => {
           const playerRef = doc(db, `events/${eventId}/players/${playerId}`);
           const playerDoc = await getDoc(playerRef);
           if (playerDoc.exists()) {
-            totalPoints += playerDoc.get("Total Kills") || 0;
+            totalPoints += playerDoc.get("Confirmed Kills") || 0;
           }
         }
 
         if (playerIds.length > 0) {
           leaderboardData.push({
             id: userId,
-            displayName: userDoc?.name || "Unknown",
+            displayName: userDoc?.name || userDoc?.username || "Unknown",
             totalPoints,
           });
         }

@@ -122,7 +122,8 @@ export default function Leaderboard() {
         const usersData = await Promise.all(
           querySnapshot.docs.map(async (userDoc) => {
             const userId = userDoc.id;
-            const displayName = userDoc.get("name") || "Unknown User";
+            const displayName =
+              userDoc.get("name") || userDoc.get("username") || "Unknown User";
 
             // Fetch profile picture
             let profilePicture = null;
@@ -151,7 +152,7 @@ export default function Leaderboard() {
                   const playerDoc = await getDoc(playerRef);
 
                   if (playerDoc.exists()) {
-                    const totalKills = playerDoc.get("Total Kills") || 0;
+                    const totalKills = playerDoc.get("Confirmed Kills") || 0;
                     const playerName =
                       playerDoc.get("Player") || "Unknown Player";
                     const playerCost = playerDoc.get("Cost") || 0;
