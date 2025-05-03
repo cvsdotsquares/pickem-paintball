@@ -10,135 +10,103 @@ import UserHead from "./head";
 const PageHeader: React.FC = () => {
   interface UserData {
     name: string;
-    bio: string;
+    firstname: string;
     profilePicture: string;
     isPro: boolean;
     badges: string[];
     country: string;
-    team: string;
-    player: string;
+    lastname: string;
+    username: string;
   }
 
-  // Default data to use when fields are missing or invalid
   const defaultUserData: UserData = {
-    name: "Your Name",
-    bio: "Your stats From previous performances will be displayed here.",
+    name: "Guest",
+    firstname: "",
+    lastname: "",
     profilePicture:
       "https://cdn-icons-png.freepik.com/256/14024/14024658.png?semt=ais_hybrid",
     isPro: false,
-    badges: ["Badge 1", "Badge 2", "Badge 3"],
-    country: "N/A",
-    team: "N/A",
-    player: "N/A",
+    badges: [],
+    country: "",
+    username: "",
   };
 
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const { user } = useAuth();
-  // Fetch user details on component mount
+
+  function getDisplayName(userData: UserData | null): string {
+    if (!userData) return "Guest";
+
+    if (userData.username?.trim()) {
+      return userData.username;
+    }
+
+    const firstName = userData.firstname?.trim() || "";
+    const lastName = userData.lastname?.trim() || "";
+
+    if (firstName && lastName) {
+      return `${firstName} ${lastName}`;
+    }
+    if (firstName) {
+      return firstName;
+    }
+    if (lastName) {
+      return lastName;
+    }
+
+    return userData.name || "Guest";
+  }
+
   useEffect(() => {
     async function fetchUserData() {
-      console.log("Starting fetchUserData...");
-
       try {
         if (!user) {
-          throw new Error("User is not authenticated.");
+          setUserData(defaultUserData);
+          return;
         }
 
-        const currentUserId: any = user.uid;
-        console.log("Current user ID:", currentUserId);
-
-        // Construct the Firestore document reference
+        const currentUserId = user.uid;
         const userDocRef = doc(db, "users", currentUserId);
-        console.log("Fetching document from path: users/", currentUserId);
-
         const userDoc = await getDoc(userDocRef);
 
-        if (userDoc.exists()) {
-          const rawData = userDoc.data();
-          console.log("Raw user data:", rawData);
-
-          // Check if the profile picture is available and valid in Firestore
-          let profilePicture = defaultUserData.profilePicture;
-
-          // Generate the storage path using the current user's UID
-          const currentUserId: string = auth.currentUser?.uid || ""; // Ensure the user is logged in and UID is available
-
-          if (currentUserId) {
-            const storagePath = `user/${currentUserId}/profile_200x200`; // Adjust the file name/extension if needed
-            console.log("Generated Firebase Storage path:", storagePath);
-
-            try {
-              const storageRef: StorageReference = ref(storage, storagePath);
-              console.log("Storage reference created for path:", storagePath);
-
-              // Fetch the profile picture from Firebase Storage
-              const validProfilePicture = await getDownloadURL(storageRef);
-              console.log(
-                "Profile picture found in Firebase Storage, URL:",
-                validProfilePicture
-              );
-              profilePicture = validProfilePicture;
-            } catch (error) {
-              console.error(
-                "Error fetching profile picture from Firebase Storage:",
-                error
-              );
-              // Use default if not found or invalid
-              profilePicture = defaultUserData.profilePicture;
-            }
-          } else {
-            console.log(
-              "No authenticated user found, using default profile picture."
-            );
-          }
-
-          // Validate and set defaults for other fields
-          const validatedUserData: UserData = {
-            name:
-              typeof rawData?.name === "string" && rawData.name.trim() !== ""
-                ? rawData.name
-                : defaultUserData.name,
-            bio:
-              typeof rawData?.bio === "string" && rawData.bio.trim() !== ""
-                ? rawData.bio
-                : defaultUserData.bio,
-            profilePicture, // Set validated profile picture URL
-            isPro:
-              typeof rawData?.isPro === "boolean"
-                ? rawData.isPro
-                : defaultUserData.isPro,
-            badges: Array.isArray(rawData?.badges)
-              ? rawData.badges
-              : defaultUserData.badges,
-            country:
-              typeof rawData?.country === "string" &&
-              rawData.country.trim() !== ""
-                ? rawData.country
-                : defaultUserData.country,
-            team:
-              typeof rawData?.team === "string" && rawData.team.trim() !== ""
-                ? rawData.team
-                : defaultUserData.team,
-            player:
-              typeof rawData?.player === "string" &&
-              rawData.player.trim() !== ""
-                ? rawData.player
-                : defaultUserData.player,
-          };
-
-          console.log("Validated user data:", validatedUserData);
-          setUserData(validatedUserData);
-        } else {
-          console.log("User document not found, using default data.");
+        if (!userDoc.exists()) {
           setUserData(defaultUserData);
+          return;
         }
+
+        const rawData = userDoc.data();
+        let profilePicture = defaultUserData.profilePicture;
+
+        if (currentUserId) {
+          const storagePath = `user/${currentUserId}/profile_200x200`;
+          try {
+            const storageRef: StorageReference = ref(storage, storagePath);
+            profilePicture = await getDownloadURL(storageRef);
+          } catch (error) {
+            console.error("Error fetching profile picture:", error);
+          }
+        }
+
+        const validatedUserData: UserData = {
+          name: rawData?.name?.trim() || defaultUserData.name,
+          username: rawData?.username?.trim() || "",
+          profilePicture,
+          isPro: rawData?.isPro ?? defaultUserData.isPro,
+          badges: Array.isArray(rawData?.badges)
+            ? rawData.badges
+            : defaultUserData.badges,
+          country: rawData?.country?.trim() || "",
+          firstname: rawData?.firstname?.trim() || "",
+          lastname: rawData?.lastname?.trim() || "",
+        };
+
+        setUserData(validatedUserData);
       } catch (error) {
         console.error("Error fetching user data:", error);
         setUserData(defaultUserData);
       } finally {
         setLoading(false);
-        console.log("Finished fetchUserData.");
       }
     }
 
@@ -148,7 +116,7 @@ const PageHeader: React.FC = () => {
   return (
     <div className="relative inset-y-0 top-0 left-0 right-0 z-30 w-full h-8">
       <UserHead
-        username={user?.displayName}
+        username={getDisplayName(userData)}
         avatarUrl={userData?.profilePicture}
         points={userData?.country}
       />

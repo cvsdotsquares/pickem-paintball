@@ -1,125 +1,172 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { db } from "@/src/lib/firebaseClient";
+import { useState, useEffect, Fragment } from "react";
+import { db, storage } from "@/src/lib/firebaseClient";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
-import { Event } from "../page";
 import { getAuth } from "firebase/auth";
+import { getDownloadURL, ref } from "firebase/storage";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  FaChevronDown,
+  FaChevronUp,
+  FaUser,
+  FaSearch,
+  FaTrophy,
+} from "react-icons/fa";
 
 interface User {
   id: string;
   displayName: string;
   totalPoints: number;
+  mvp: string;
+  picks: PlayerPick[];
+  profilePicture?: string;
+}
+
+interface PlayerPick {
+  id: string;
+  name: string;
+  kills: number;
+  cost: number;
+}
+
+interface LiveEvent {
+  id: string;
+  name: string;
+  lockDate: Date | null;
+  timeLeft: string;
 }
 
 export default function Leaderboard() {
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [liveEvent, setLiveEvent] = useState<Event | null>(null);
+  const [liveEvent, setLiveEvent] = useState<LiveEvent | null>(null);
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [currentUserData, setCurrentUserData] = useState<User | null>(null);
 
   // Pagination state
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const PAGE_SIZES = [10, 50, 100];
+  const PAGE_SIZES = [10, 20, 50];
+  const totalPages = Math.ceil(filteredUsers.length / pageSize);
 
   const auth = getAuth();
   const currentUserId = auth.currentUser?.uid;
 
-  // Fetch all events from Firebase
+  // Toggle expanded view for user picks
+  const toggleExpand = (userId: string) => {
+    setExpandedUserId(expandedUserId === userId ? null : userId);
+  };
+
+  // Fetch live event
   useEffect(() => {
-    async function fetchEvents() {
+    const fetchLiveEvent = async () => {
       try {
-        console.log("Fetching events list...");
         const eventsCollection = collection(db, "events");
         const querySnapshot = await getDocs(eventsCollection);
-        const events: Event[] = querySnapshot.docs.map((doc) => ({
+        const events = querySnapshot.docs.map((doc) => ({
           id: doc.id,
-          name: doc.get("name") || "Unnamed Event",
-          status: doc.get("status") || "archived",
+          ...doc.data(),
         }));
-        const activeEvent = events.find((e) => e.status === "live");
-        setLiveEvent(activeEvent || null);
-      } catch (error: any) {
-        console.error("Error fetching events:", error.message);
+
+        const liveEvent = events.find((e: any) => e.status === "live");
+
+        if (liveEvent) {
+          const eventRef = doc(db, "events", liveEvent.id);
+          const eventSnap = await getDoc(eventRef);
+
+          if (eventSnap.exists()) {
+            const eventData = eventSnap.data();
+            const lockDate = eventData.lockDate?.toDate
+              ? eventData.lockDate.toDate()
+              : null;
+
+            setLiveEvent({
+              id: liveEvent.id,
+              name: eventData.name || "Current Event",
+              lockDate,
+              timeLeft: "",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching live event:", error);
       }
-    }
-    fetchEvents();
+    };
+
+    fetchLiveEvent();
   }, []);
-  const formatCost = (value: number): string => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+
+  // Fetch profile picture from Firebase Storage
+  const fetchProfilePicture = async (userId: string) => {
+    try {
+      const storagePath = `user/${userId}/profile_200x200`;
+      const storageRef = ref(storage, storagePath);
+      return await getDownloadURL(storageRef);
+    } catch (error) {
+      console.error("Error fetching profile picture:", error);
+      return null;
+    }
   };
+
   useEffect(() => {
     async function fetchLeaderboardData() {
-      try {
-        console.log("Fetching users for leaderboard...");
+      if (!liveEvent) return;
 
-        // Step 1: Fetch all users from the "users" collection
+      try {
         const usersCollection = collection(db, "users");
         const querySnapshot = await getDocs(usersCollection);
-
-        console.log(
-          "Users fetched:",
-          querySnapshot.docs.map((doc) => doc.id)
-        );
 
         const usersData = await Promise.all(
           querySnapshot.docs.map(async (userDoc) => {
             const userId = userDoc.id;
             const displayName = userDoc.get("name") || "Unknown User";
 
-            console.log(`Processing user: ${userId}, name: ${displayName}`);
+            // Fetch profile picture
+            let profilePicture = null;
+            try {
+              profilePicture = await fetchProfilePicture(userId);
+            } catch (error) {
+              console.error(`Error fetching profile for ${userId}:`, error);
+            }
 
-            // Access the pickems map and get the tampa_bay_2025 array
             const pickems = userDoc.get("pickems") || {};
-            const playerIds = Array.isArray(pickems["tampa_bay_2025"])
-              ? pickems["tampa_bay_2025"]
+            const playerIds = Array.isArray(pickems[liveEvent.id])
+              ? pickems[liveEvent.id]
               : [];
-
-            console.log(`Player IDs for user ${userId}:`, playerIds);
 
             let totalPoints = 0;
             let mvp = { playerName: "None", kills: 0 };
-            const totalCost = 0;
-            const budget = "";
+            const picks: PlayerPick[] = [];
 
             await Promise.allSettled(
               playerIds.map(async (playerId: string | null) => {
-                if (!playerId) {
-                  console.log("Invalid or missing player ID, skipping...");
-                  return; // Skip invalid player IDs
-                }
+                if (!playerId) return;
 
                 try {
-                  // Construct the document path dynamically
-                  const playerPath = `events/tampa_bay_2025/players/${playerId}`;
+                  const playerPath = `events/${liveEvent.id}/players/${playerId}`;
                   const playerRef = doc(db, playerPath);
                   const playerDoc = await getDoc(playerRef);
 
                   if (playerDoc.exists()) {
-                    // Fetch "Total Kills" for this player
                     const totalKills = playerDoc.get("Total Kills") || 0;
                     const playerName =
                       playerDoc.get("Player") || "Unknown Player";
                     const playerCost = playerDoc.get("Cost") || 0;
 
-                    console.log(
-                      `Player ID: ${playerId}, Total Kills: ${totalKills}`
-                    );
-                    totalPoints += totalKills; // Add kills to total points
+                    totalPoints += totalKills;
+                    picks.push({
+                      id: playerId,
+                      name: playerName,
+                      kills: totalKills,
+                      cost: playerCost,
+                    });
 
-                    // Update MVP if this player has more kills than the current MVP
                     if (totalKills > mvp.kills) {
                       mvp = { playerName, kills: totalKills };
                     }
-                  } else {
-                    console.log(
-                      `No data found for player at path: ${playerPath}`
-                    );
                   }
                 } catch (error) {
                   console.error(
@@ -130,67 +177,379 @@ export default function Leaderboard() {
               })
             );
 
-            console.log(
-              `Total points for user ${userId}: ${totalPoints}, MVP: ${mvp.playerName}`
-            );
             return {
               id: userId,
               displayName,
               totalPoints,
-              totalCost,
               mvp: mvp.playerName,
+              picks,
+              profilePicture: profilePicture || undefined,
             };
           })
         );
 
-        // Sort by totalPoints
-        const sortedUsers = usersData.sort(
-          (a, b) => b.totalPoints - a.totalPoints
-        );
+        // Filter out users with no picks and sort by totalPoints
+        const sortedUsers = usersData
+          .filter((user) => user.picks.length > 0)
+          .sort((a, b) => b.totalPoints - a.totalPoints);
+
         setUsers(sortedUsers);
-      } catch (error) {
-        console.error(
-          "Error fetching leaderboard data:",
-          (error as Error).message
-        );
-      } finally {
+        setFilteredUsers(sortedUsers);
+
+        // Find and set current user data if logged in
+        if (currentUserId) {
+          const currentUser = sortedUsers.find(
+            (user) => user.id === currentUserId
+          );
+          if (currentUser) {
+            setCurrentUserData(currentUser);
+          }
+        }
+
         setLoading(false);
-        console.log("Leaderboard data fetching completed.");
+      } catch (error) {
+        console.error("Error fetching leaderboard data:", error);
+        setLoading(false);
       }
     }
 
     fetchLeaderboardData();
-  }, []);
+  }, [liveEvent, currentUserId]);
+
+  // Filter users based on search query
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredUsers(users);
+      setPage(1);
+    } else {
+      const filtered = users.filter((user) =>
+        user.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+      setPage(1);
+    }
+  }, [searchQuery, users]);
 
   if (loading) {
-    return <p className="text-center mt-4">Loading leaderboard...</p>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
   }
 
+  if (!liveEvent) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-center text-white text-lg">
+          No active event currently running.
+        </p>
+      </div>
+    );
+  }
+
+  // Get current user's rank
+  const currentUserRank = currentUserData
+    ? filteredUsers.findIndex((user) => user.id === currentUserId) + 1
+    : null;
+
   // Slice the users array for current page display
-  const paginatedUsers = users.slice((page - 1) * pageSize, page * pageSize);
-  const currentUser = paginatedUsers.find((user) => user.id === currentUserId);
-  const columns = [
-    { header: "Rank", accessor: "rank" },
-    { header: "Name", accessor: "displayName" },
-    { header: "Total Points", accessor: "totalPoints" },
-    { header: "MVP", accessor: "mvp" },
-  ];
+  const paginatedUsers = filteredUsers.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
+
   return (
-    <div className=" p-6 min-h-screen font-azonix">
-      <div
-        className="flex flex-col relative items-center bg-black shadow-xl sm:rounded-3xl bg-clip-padding bg-opacity-40 border-4 border-gray-200/20"
-        style={{ backdropFilter: "blur(20px)" }}
-      >
-        <h1 className="text-2xl font-bold m-4 text-white text-left">
-          Event Leaderboard
-        </h1>
-        <div className="flex flex-row w-full justify-evenly m-auto">
-          <div className=" w-full flex-col flex rounded-lg overflow-hidden">
-            {/* <DataTable data={paginatedUsers} columns={columns} /> */}
-            {/* <ExpandableCardDemo/> */}
+    <div className="p-4 min-h-screen mt-10 overflow-scroll bg-black text-white">
+      {/* Event Header */}
+      <div className="mb-6 text-center">
+        <h1 className="text-3xl font-bold mb-2">{liveEvent.name}</h1>
+
+        <p>Event Leaderboard</p>
+      </div>
+
+      {/* Current User Card (sticky on mobile) */}
+      {currentUserData && (
+        <div className="sticky top-2 z-10 mb-6 bg-gray-800/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-gray-700">
+          <div className="flex items-center">
+            <div className="relative">
+              {currentUserData.profilePicture ? (
+                <img
+                  src={currentUserData.profilePicture}
+                  alt="Profile"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-yellow-400"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center border-2 border-yellow-400">
+                  <FaUser className="text-2xl text-gray-400" />
+                </div>
+              )}
+              {currentUserRank && (
+                <div className="absolute -top-2 -right-2 bg-yellow-500 text-black w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">
+                  #{currentUserRank}
+                </div>
+              )}
+            </div>
+            <div className="ml-4">
+              <h3 className="font-bold text-lg flex items-center">
+                {currentUserData.displayName}
+                <span className="ml-2 text-sm bg-blue-600 px-2 py-0.5 rounded">
+                  You
+                </span>
+              </h3>
+              <div className="flex items-center mt-1">
+                <FaTrophy className="text-yellow-400 mr-1" />
+                <span className="font-medium">
+                  {currentUserData.totalPoints} points
+                </span>
+              </div>
+              <p className="text-sm text-gray-400">
+                MVP: {currentUserData.mvp}
+              </p>
+            </div>
           </div>
         </div>
+      )}
+
+      {/* Search Bar */}
+      <div className="relative mb-6">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <FaSearch className="text-gray-400" />
+        </div>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search players..."
+          className="w-full pl-10 pr-4 py-3 bg-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+        />
       </div>
+
+      {/* Leaderboard Table */}
+      <div className="overflow-x-auto rounded-xl shadow-lg bg-gray-800/50 backdrop-blur-sm">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-gray-700/80">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider sticky left-0 z-20">
+                Rank
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Player
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Points
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                MVP
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Details
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-700/50">
+            {paginatedUsers.length > 0 ? (
+              paginatedUsers.map((user, index) => (
+                <Fragment key={user.id}>
+                  <tr
+                    className={`hover:bg-gray-700/50 transition-colors ${
+                      currentUserId === user.id
+                        ? "bg-blue-900/30"
+                        : "bg-gray-800/30"
+                    }`}
+                    onClick={() => toggleExpand(user.id)}
+                  >
+                    <td className="px-4 py-3 whitespace-nowrap text-white sticky left-0 z-10 bg-inherit">
+                      <div className="flex items-center">
+                        <span className="font-medium">
+                          {index + 1 + (page - 1) * pageSize}
+                        </span>
+                        {currentUserId === user.id && (
+                          <span className="ml-2 text-xs bg-blue-600 px-1.5 py-0.5 rounded">
+                            YOU
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {user.profilePicture ? (
+                          <img
+                            src={user.profilePicture}
+                            alt={user.displayName}
+                            className="w-10 h-10 rounded-full object-cover mr-3"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center mr-3">
+                            <FaUser className="text-gray-400" />
+                          </div>
+                        )}
+                        <div className="text-sm font-medium">
+                          {user.displayName}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                      {user.totalPoints}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
+                      {user.mvp}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <button className="flex items-center justify-center w-full">
+                        {expandedUserId === user.id ? (
+                          <FaChevronUp className="text-gray-400" />
+                        ) : (
+                          <FaChevronDown className="text-gray-400" />
+                        )}
+                      </button>
+                    </td>
+                  </tr>
+
+                  {/* Expanded row for picks */}
+                  <AnimatePresence>
+                    {expandedUserId === user.id && (
+                      <motion.tr
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="bg-gray-800/70"
+                      >
+                        <td colSpan={5} className="px-4 py-3">
+                          <div className="pb-4">
+                            <h3 className="text-sm font-medium text-white mb-3 border-b border-gray-700 pb-2">
+                              {user.displayName}'s Team
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {user.picks.map((pick) => (
+                                <div
+                                  key={pick.id}
+                                  className="bg-gray-700/50 p-3 rounded-lg hover:bg-gray-700/70 transition-colors"
+                                >
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-white font-medium truncate">
+                                      {pick.name}
+                                    </span>
+                                    <span className="text-green-400 font-medium">
+                                      {pick.kills} kills
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between items-center mt-1 text-sm">
+                                    <span className="text-gray-400">
+                                      Cost: ${pick.cost}
+                                    </span>
+                                    <span className="text-yellow-400">
+                                      {((pick.kills / pick.cost) * 100).toFixed(
+                                        1
+                                      )}{" "}
+                                      ROI
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    )}
+                  </AnimatePresence>
+                </Fragment>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={5} className="px-4 py-6 text-center text-gray-400">
+                  No players found matching your search.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {filteredUsers.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-300">Rows per page:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="bg-gray-800 text-white text-sm rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              {PAGE_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-300">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-1.5 rounded-md bg-gray-800 text-white disabled:opacity-50 hover:bg-gray-700 transition-colors"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-1.5 rounded-md bg-gray-800 text-white disabled:opacity-50 hover:bg-gray-700 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+      {filteredUsers.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-300">Rows per page:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1); // Reset to first page when changing page size
+              }}
+              className="bg-gray-800 text-white text-sm rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              {PAGE_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-300">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-1.5 rounded-md bg-gray-800 text-white disabled:opacity-50 hover:bg-gray-700 transition-colors"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-1.5 rounded-md bg-gray-800 text-white disabled:opacity-50 hover:bg-gray-700 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

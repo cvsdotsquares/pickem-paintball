@@ -19,7 +19,7 @@ import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
 import { TiTick } from "react-icons/ti";
 
 export interface Player {
-  player_id: number;
+  player_id: string;
   Player: string;
   Team: string;
   Rank: string;
@@ -479,6 +479,11 @@ export default function Pickems() {
 
     if (temporaryPicks.length < 10) {
       alert(`You need to select all 10 players before confirming!`);
+      return;
+    }
+    const { lockDate } = liveEvent;
+    if (lockDate && new Date() > lockDate) {
+      alert("Time to select picks have passed away! Try again next event.");
       return;
     }
 
