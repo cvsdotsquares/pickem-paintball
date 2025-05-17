@@ -21,9 +21,9 @@ export interface Event {
 
 export default function Dashboard() {
   return (
-    <section className="relative flex md:flex-row flex-col-reverse font-azonix w-screen md:h-screen h-full overflow-hidden top-6">
+    <section className="relative flex md:flex-row flex-col-reverse font-azonix w-screen md:h-screen h-full overflow-hidden top-0">
       {/* Left Column - Picks and Leaderboard */}
-      <div className="flex flex-col w-full md:w-[50vw] border-r border-white/30 h-full overflow-hidden md:overflow-y-auto">
+      <div className="flex flex-col w-full md:w-[50vw] py-10 border-r border-white/30 h-full overflow-hidden md:overflow-y-auto">
         {/* Picks Section with Scroll */}
         <div className="flex-1 md:p-6 p-1 justify-center ">
           <div className="flex overflow-hidden relative flex-col rounded-2xl h-full">

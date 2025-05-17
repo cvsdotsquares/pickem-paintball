@@ -16,92 +16,126 @@ const DivisionInfo = () => {
     username?: string;
     pickems?: Record<string, string[]>; // Map of event IDs to arrays of player IDs
   }
+
   const [liveEvent, setLiveEvent] = useState<{
     id: string | any;
     name: any;
-    lockDate: Date | any;
-    timeLeft: any;
   }>({
     id: null,
     name: "",
-    lockDate: null,
-    timeLeft: "", // This should match the `string` type
   });
 
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [currentUserRank, setCurrentUserRank] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const db = getFirestore();
   const { user } = useAuth();
 
   // Helper to fetch documents from Firestore
   const fetchFromFirestore = async (path: string) => {
-    const ref = collection(db, path);
-    const snapshot = await getDocs(ref);
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    try {
+      console.log(`Fetching from Firestore path: ${path}`);
+      const ref = collection(db, path);
+      const snapshot = await getDocs(ref);
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      console.log(`Successfully fetched ${data.length} documents from ${path}`);
+      return data;
+    } catch (err) {
+      console.error(`Error fetching from ${path}:`, err);
+      setError(`Failed to load data from ${path}`);
+      throw err;
+    }
   };
 
   // Fetch live event details
   useEffect(() => {
+    console.log("Starting to fetch live event");
     const fetchLiveEvent = async () => {
-      const events = await fetchFromFirestore("events");
-      const live = events.find((e: any) => e.status === "live");
-      if (live) {
-        setLiveEvent({
-          id: liveEvent.id,
-          name: liveEvent.id.replace(/_/g, " "),
-          lockDate: liveEvent.lockDate?.toDate() || new Date(),
-          timeLeft: "",
-        });
-        fetchLeaderboard(liveEvent.id);
-      } else {
+      try {
+        const events = await fetchFromFirestore("events");
+        const live = events.find((e: any) => e.status === "live");
+
+        if (live) {
+          console.log("Found live event:", live.id);
+          const eventData = {
+            id: live.id,
+            name: live.id.replace(/_/g, " "),
+          };
+          setLiveEvent(eventData);
+          await fetchLeaderboard(live.id);
+        } else {
+          console.log("No live event found");
+          setError("No active event currently running");
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Error in fetchLiveEvent:", err);
+        setError("Failed to load event data");
         setLoading(false);
       }
     };
     fetchLiveEvent();
   }, []);
 
-  // Fetch leaderboard data
+  // Fetch leaderboard data with optimized loading
   const fetchLeaderboard = async (eventId: string) => {
+    console.log(`Starting to fetch leaderboard for event ${eventId}`);
     try {
       const users: User[] = await fetchFromFirestore("users");
-      const leaderboardData: {
-        id: string;
-        displayName: string;
-        totalPoints: number;
-      }[] = [];
+      console.log(`Fetched ${users.length} users`);
 
-      for (const userDoc of users) {
-        const userId = userDoc.id;
-        const pickems = userDoc.pickems || {}; // Safely default to an empty object
-        const playerIds = pickems[eventId] || []; // Get the array of player IDs for the current event
-
-        let totalPoints = 0;
-
-        // Calculate points from player picks
-        for (const playerId of playerIds) {
-          if (!playerId) continue;
-          const playerRef = doc(db, `events/${eventId}/players/${playerId}`);
-          const playerDoc = await getDoc(playerRef);
-          if (playerDoc.exists()) {
-            totalPoints += playerDoc.get("Confirmed Kills") || 0;
-          }
-        }
-
-        if (playerIds.length > 0) {
-          leaderboardData.push({
-            id: userId,
+      // First pass - get basic leaderboard data without player details
+      const initialLeaderboardData = users
+        .map((userDoc) => {
+          const pickems = userDoc.pickems || {};
+          const playerIds = pickems[eventId] || [];
+          return {
+            id: userDoc.id,
             displayName: userDoc?.name || userDoc?.username || "Unknown",
-            totalPoints,
+            playerIds,
+            totalPoints: 0, // Temporary, will be updated
+            loadingPoints: playerIds.length > 0,
+          };
+        })
+        .filter((user) => user.playerIds.length > 0);
+
+      // Set initial leaderboard with names while we load points
+      setLeaderboard(initialLeaderboardData);
+
+      // Second pass - load player details and calculate points
+      const leaderboardWithPoints = await Promise.all(
+        initialLeaderboardData.map(async (user) => {
+          let totalPoints = 0;
+          const playerLoadPromises = user.playerIds.map(async (playerId) => {
+            if (!playerId) return 0;
+            try {
+              const playerRef = doc(
+                db,
+                `events/${eventId}/players/${playerId}`
+              );
+              const playerDoc = await getDoc(playerRef);
+              return playerDoc.exists()
+                ? playerDoc.get("Confirmed Kills") || 0
+                : 0;
+            } catch (err) {
+              console.error(`Error loading player ${playerId}:`, err);
+              return 0;
+            }
           });
-        }
-      }
+
+          const points = await Promise.all(playerLoadPromises);
+          totalPoints = points.reduce((sum, point) => sum + point, 0);
+          return { ...user, totalPoints, loadingPoints: false };
+        })
+      );
 
       // Sort by points descending
-      const sortedLeaderboard = leaderboardData.sort(
+      const sortedLeaderboard = leaderboardWithPoints.sort(
         (a, b) => b.totalPoints - a.totalPoints
       );
+      console.log("Leaderboard sorted:", sortedLeaderboard);
       setLeaderboard(sortedLeaderboard);
 
       // Find current user's rank if logged in
@@ -111,36 +145,15 @@ const DivisionInfo = () => {
       }
 
       setLoading(false);
+      setError(null);
     } catch (error) {
-      console.error("Error fetching leaderboard:", error);
+      console.error("Error in fetchLeaderboard:", error);
+      setError("Failed to load leaderboard data");
       setLoading(false);
     }
   };
 
   // Update countdown timer
-  useEffect(() => {
-    const { lockDate } = liveEvent;
-    if (!lockDate) return;
-
-    const updateTimeLeft = () => {
-      const now = new Date();
-      const diff = lockDate.getTime() - now.getTime();
-      if (diff <= 0) {
-        setLiveEvent((prev) => ({ ...prev, timeLeft: "Picks locked!" }));
-        return;
-      }
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-      setLiveEvent((prev) => ({
-        ...prev,
-        timeLeft: `${hours}h ${minutes}m ${seconds}s`,
-      }));
-    };
-
-    const interval = setInterval(updateTimeLeft, 1000);
-    return () => clearInterval(interval);
-  }, [liveEvent.lockDate]);
 
   // Get top 3 users
   const topUsers = leaderboard.slice(0, 3);
@@ -159,16 +172,23 @@ const DivisionInfo = () => {
                   {liveEvent.name || "Event"} Leaderboard
                 </span>
               </div>
-              <div className="mt-1 w-full text-xs font-normal">
-                {liveEvent.timeLeft || "Loading..."}
-              </div>
             </div>
           </div>
         </div>
 
         <div className="mt-4 w-full text-sm leading-none text-center text-white max-md:max-w-full">
           <div className="p-4 rounded-2xl border-solid bg-[#101010] border-[1px] border-[rgba(255,255,255,0.43)] w-[100%] max-md:max-w-full">
-            {loading ? (
+            {error ? (
+              <div className="flex flex-col items-center justify-center py-8 space-y-2">
+                <p className="text-red-400">{error}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 text-sm"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : loading ? (
               <div className="flex justify-center items-center py-8">
                 <p>Loading leaderboard...</p>
               </div>
@@ -202,7 +222,9 @@ const DivisionInfo = () => {
                         {user.displayName}
                       </div>
                       <div className="text-xs text-gray-300">
-                        {user.totalPoints} pts
+                        {user.loadingPoints
+                          ? "Loading..."
+                          : `${user.totalPoints} pts`}
                       </div>
                     </div>
                   ))}
@@ -229,7 +251,9 @@ const DivisionInfo = () => {
                         </div>
                       </div>
                       <div className="text-sm font-bold">
-                        {currentUserData.totalPoints} pts
+                        {currentUserData.loadingPoints
+                          ? "..."
+                          : `${currentUserData.totalPoints} pts`}
                       </div>
                     </div>
                   </div>

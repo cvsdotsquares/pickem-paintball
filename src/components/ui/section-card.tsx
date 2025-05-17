@@ -32,6 +32,7 @@ export const PickWidget = () => {
       player: null as Player | null,
     }))
   );
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
 
   const db = getFirestore();
   const { user } = useAuth();
@@ -85,46 +86,60 @@ export const PickWidget = () => {
   }, [liveEvent.lockDate]);
 
   const fetchPlayerPicture = async (leagueId: string): Promise<string> => {
-    const storage = getStorage();
-    const folderPath = `players/`; // Path to the folder containing player pictures
-    const storageRef = ref(storage, folderPath);
-
     try {
+      const storage = getStorage();
+      const folderPath = `players/`;
+      const storageRef = ref(storage, folderPath);
       const fileList = await listAll(storageRef);
       const matchingFile = fileList.items.find((item) =>
         item.name.startsWith(`${leagueId}_`)
       );
-
       return matchingFile
         ? await getDownloadURL(matchingFile)
-        : "/placeholder.svg"; // Return placeholder if no match
+        : "/placeholder.svg";
     } catch (error) {
       console.error(`Error fetching picture for leagueId: ${leagueId}`, error);
-      return "/placeholder.svg"; // Fallback to placeholder
+      return "/placeholder.svg";
     }
   };
 
-  const fetchPlayersWithPictures = async (players: Player[]) => {
-    const updatedPlayers = await Promise.all(
-      players.map(async (player) => {
-        const picture = await fetchPlayerPicture(player.league_id);
-        return { ...player, picture }; // Add the picture URL to the player object
-      })
-    );
-    return updatedPlayers;
-  };
+  // Load player images in the background after initial render
+  useEffect(() => {
+    if (rowData.length === 0) return;
+
+    const loadImages = async () => {
+      setIsLoadingImages(true);
+      try {
+        const updatedPlayers = await Promise.all(
+          rowData.map(async (player) => {
+            if (!player.picture) {
+              const picture = await fetchPlayerPicture(player.league_id);
+              return { ...player, picture };
+            }
+            return player;
+          })
+        );
+        setRowData(updatedPlayers);
+      } catch (error) {
+        console.error("Error loading player images:", error);
+      } finally {
+        setIsLoadingImages(false);
+      }
+    };
+
+    loadImages();
+  }, [rowData.length]); // Only run when rowData length changes
 
   useEffect(() => {
     const fetchPlayers = async () => {
       if (!liveEvent.id) return;
 
       try {
-        // Fetch raw players from Firestore
+        // First load the raw player data without images
         const rawPlayers = await fetchFromFirestore(
           `events/${liveEvent.id}/players`
         );
 
-        // Map Firestore data to the Player type (if necessary)
         const players: Player[] = rawPlayers.map((raw: any) => ({
           player_id: raw.player_id,
           league_id: raw.league_id,
@@ -133,11 +148,10 @@ export const PickWidget = () => {
           Rank: raw.Rank,
           team_id: raw.team_id,
           Cost: raw.Cost,
+          picture: "/placeholder.svg", // Set placeholder initially
         }));
 
-        // Fetch pictures for the players
-        const playersWithPictures = await fetchPlayersWithPictures(players);
-        setRowData(playersWithPictures);
+        setRowData(players); // Show players immediately with placeholder
       } catch (error) {
         console.error("Error fetching players:", error);
       }
@@ -174,28 +188,36 @@ export const PickWidget = () => {
 
               const savedPicks = playerDocs
                 .filter((doc) => doc.exists())
-                .map((doc) => ({ ...doc.data(), player_id: doc.id }));
+                .map((doc) => ({
+                  ...doc.data(),
+                  player_id: doc.id,
+                  picture: "/placeholder.svg", // Set placeholder initially
+                }));
 
-              // Fetch pictures for players
+              setTemporaryPicks(savedPicks);
+              setPlayerSlots((prevSlots) =>
+                prevSlots.map((slot, index) => ({
+                  ...slot,
+                  player: savedPicks[index] || null,
+                }))
+              );
+
+              // Then load images in the background
               const picksWithPictures = await Promise.all(
                 savedPicks.map(async (player) => {
                   const picture = await fetchPlayerPicture(player.league_id);
-                  return { ...player, picture }; // Add picture URL
+                  return { ...player, picture };
                 })
               );
 
-              setTemporaryPicks(picksWithPictures); // Set picks with pictures
+              setTemporaryPicks(picksWithPictures);
               setPlayerSlots((prevSlots) =>
                 prevSlots.map((slot, index) => ({
                   ...slot,
                   player: picksWithPictures[index] || null,
                 }))
               );
-            } else {
-              console.warn("No saved picks found for this event.");
             }
-          } else {
-            console.warn("User document does not exist in Firestore.");
           }
         } catch (error) {
           console.error("Error fetching saved picks:", error);
@@ -205,6 +227,7 @@ export const PickWidget = () => {
       fetchPicks();
     }
   }, [user, liveEvent.id, db]);
+
   return (
     <>
       <section className="flex flex-col justify-center m-auto w-full h-full ">
