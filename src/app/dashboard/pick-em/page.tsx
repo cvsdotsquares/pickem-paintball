@@ -67,6 +67,25 @@ export default function Pickems() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [teams, setTeams] = useState<string[]>([]);
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
+  const [sortOption, setSortOption] = useState<{
+    field: string;
+    direction: "asc" | "desc";
+  }>({
+    field: "name",
+    direction: "asc",
+  });
+
+  // Add this handler function
+  const handleSort = ({
+    field,
+    direction,
+  }: {
+    field: string;
+    direction: "asc" | "desc";
+  }) => {
+    setSortOption({ field, direction });
+    setVisiblePlayersCount(9); // Reset visible count when sorting changes
+  };
 
   // In your component
   const desktopScrollRef = useRef<HTMLDivElement>(null);
@@ -112,13 +131,34 @@ export default function Pickems() {
       (player) => player.Cost >= costRange[0] && player.Cost <= costRange[1]
     );
 
-    // Default A-Z sorting when no search term
-    if (!searchTerm.trim()) {
-      result.sort((a, b) => a.Player.localeCompare(b.Player));
+    // Apply team filter if any teams are selected
+    if (selectedTeams.length > 0) {
+      result = result.filter((player) => selectedTeams.includes(player.Team));
     }
 
+    // Apply sorting
+    result.sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortOption.field) {
+        case "name":
+          comparison = a.Player.localeCompare(b.Player);
+          break;
+        case "team":
+          comparison = a.Team.localeCompare(b.Team);
+          break;
+        case "cost":
+          comparison = a.Cost - b.Cost;
+          break;
+        default:
+          comparison = a.Player.localeCompare(b.Player);
+      }
+
+      return sortOption.direction === "asc" ? comparison : -comparison;
+    });
+
     return result;
-  }, [rowData, searchTerm, costRange]);
+  }, [rowData, searchTerm, costRange, selectedTeams, sortOption]);
 
   const visiblePlayers = useMemo(() => {
     return filteredPlayers.slice(0, visiblePlayersCount);
@@ -690,6 +730,7 @@ export default function Pickems() {
               setSelectedTeams(newSelectedTeams); // Add this state if you don't have it
               setVisiblePlayersCount(9);
             }}
+            onSort={handleSort}
             teams={teams}
           />
         </div>
@@ -835,6 +876,7 @@ export default function Pickems() {
                     setSelectedTeams(newSelectedTeams); // Add this state if you don't have it
                     setVisiblePlayersCount(9);
                   }}
+                  onSort={handleSort}
                   teams={teams}
                 />
               </div>
