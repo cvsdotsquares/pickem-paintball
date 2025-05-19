@@ -4,7 +4,7 @@ import UserProfile from "@/src/components/Dashboard/overlay";
 import ActionButtons from "@/src/components/ui/action-btns";
 import DivisionInfo from "@/src/components/ui/div-info";
 import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
-import { PickWidget } from "@/src/components/ui/section-card";
+import { PickWidget } from "@/src/components/ui/pick-widget";
 
 export interface Player {
   player_id: number;

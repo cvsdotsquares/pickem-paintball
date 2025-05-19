@@ -1,6 +1,5 @@
 "use client";
 import { AnimatedGroup } from "@/src/components/ui/animations/grp";
-import { FilterUI, PickCard } from "@/src/components/ui/player-card";
 import { useAuth } from "@/src/contexts/authProvider";
 import {
   collection,
@@ -17,6 +16,7 @@ import { IoMdClose, IoMdCloseCircle } from "react-icons/io";
 import { RiLock2Line, RiTeamLine } from "react-icons/ri";
 import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
 import { TiTick } from "react-icons/ti";
+import { FilterUI } from "@/src/components/ui/Filter-ui";
 
 export interface Player {
   player_id: string;
@@ -65,33 +65,55 @@ export default function Pickems() {
   const [searchTerm, setSearchTerm] = useState("");
   const [costRange, setCostRange] = useState<[number, number]>([0, 1000000]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [teams, setTeams] = useState<string[]>([]);
+  const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
 
   // In your component
   const desktopScrollRef = useRef<HTMLDivElement>(null);
   const mobileScrollRef = useRef<HTMLDivElement>(null);
 
-  // Memoized filtered players
+  // Memoized filtered players with improved search
   const filteredPlayers = useMemo(() => {
-    // Create a filtered array
     let result = [...rowData];
 
     // Apply search filter if term exists
-    if (searchTerm) {
+    if (searchTerm.trim()) {
+      const cleanSearch = searchTerm.toLowerCase().replace(/\s+/g, "");
+
       result = result.filter((player) => {
+        // Create normalized versions once per player
+        const normalizedPlayer = player.Player.toLowerCase().replace(
+          /\s+/g,
+          ""
+        );
+        const normalizedTeam = player.Team.toLowerCase().replace(/\s+/g, "");
+
+        // Check full normalized strings first (fastest check)
+        if (normalizedPlayer.includes(cleanSearch)) return true;
+        if (normalizedTeam.includes(cleanSearch)) return true;
+
+        // Only split into words if needed (for partial matching)
+        const playerWords = player.Player.toLowerCase().split(/\s+/);
+        const teamWords = player.Team.toLowerCase().split(/\s+/);
+
+        // Check word matches
         return (
-          player.Player.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          player.Team.toLowerCase().includes(searchTerm.toLowerCase())
+          playerWords.some((word: string) => word.includes(cleanSearch)) ||
+          teamWords.some((word: string) => word.includes(cleanSearch)) ||
+          (cleanSearch.length > 3 && // Only do partial matches for longer queries
+            (playerWords.some((word: string) => word.startsWith(cleanSearch)) ||
+              teamWords.some((word: string) => word.startsWith(cleanSearch))))
         );
       });
     }
 
     // Apply cost filter
-    result = result.filter((player) => {
-      return player.Cost >= costRange[0] && player.Cost <= costRange[1];
-    });
+    result = result.filter(
+      (player) => player.Cost >= costRange[0] && player.Cost <= costRange[1]
+    );
 
     // Default A-Z sorting when no search term
-    if (!searchTerm) {
+    if (!searchTerm.trim()) {
       result.sort((a, b) => a.Player.localeCompare(b.Player));
     }
 
@@ -135,7 +157,7 @@ export default function Pickems() {
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   };
 
-  // Updated useEffect for scroll listeners
+  // Your existing scroll effect
   useEffect(() => {
     const containers: any[] = [];
     if (desktopScrollRef.current) containers.push(desktopScrollRef.current);
@@ -155,21 +177,19 @@ export default function Pickems() {
   // Reset visible count when filters change
   useEffect(() => {
     setVisiblePlayersCount(9);
-  }, [searchTerm, costRange]);
+  }, [searchTerm, costRange, selectedTeams]);
 
-  // Updated handleFilter function
   const handleFilter = ({
     searchTerm: newSearchTerm,
     costRange: newCostRange,
-  }: {
-    searchTerm: string;
-    costRange: [number, number];
-  }) => {
+    selectedTeams: newSelectedTeams,
+  }: any) => {
     setSearchTerm(newSearchTerm);
     setCostRange(newCostRange);
+    setSelectedTeams(newSelectedTeams);
   };
 
-  // Fetch live event details
+  // Your existing live event fetch
   useEffect(() => {
     const fetchLiveEvent = async () => {
       try {
@@ -191,11 +211,7 @@ export default function Pickems() {
               lockDate,
               timeLeft: "",
             });
-          } else {
-            console.warn("Live event document does not exist.");
           }
-        } else {
-          console.warn("No live event found.");
         }
       } catch (error) {
         console.error("Error fetching live event:", error);
@@ -274,7 +290,17 @@ export default function Pickems() {
           Cost: raw.Cost,
           pictureLoading: true, // PICTURES ARE LOADING
         }));
+        // Get unique teams from the same data
+        // Extract unique teams safely
+        const uniqueTeams = Array.from(
+          new Set(
+            rawPlayers
+              .map((p: any) => p.Team)
+              .filter((team): team is string => Boolean(team))
+          )
+        );
         setRowData(players); // Set data immediately with loading state
+        setTeams(uniqueTeams);
       } catch (error) {
         console.error("Error fetching players:", error);
       }
@@ -282,6 +308,7 @@ export default function Pickems() {
 
     fetchPlayers();
   }, [liveEvent.id]);
+
   useEffect(() => {
     const fetchPicturesForVisiblePlayers = async () => {
       if (!visiblePlayers.length) return;
@@ -512,10 +539,10 @@ export default function Pickems() {
     <div className="relative flex flex-col md:flex-row w-auto md:h-full mt-7  md:overflow-hidden">
       {/* Left Section */}
       <div className="relative w-full md:w-[60vw] h-[90vh] z-10 items-center md:overflow-y-scroll border-white/30 border-r ">
-        <div className="grid  overflow-hidden  w-full ">
+        <div className="grid  overflow-hidden  w-full">
           <div
             role="alert"
-            className="relative w-full md:py-3 py-2  z-40 bg-gradient-to-b from-[#360e0edf] to-[#00000065] text-white flex items-center justify-between"
+            className="relative w-full md:py-3 py-2  bg-gradient-to-b from-[#360e0edf] to-[#00000065] text-white flex items-center justify-between"
           >
             {/* Left Content */}
             <div className="flex flex-col gap-1 mx-10 md:text-xs text-[10px] whitespace-nowrap my-2 font-azonix">
@@ -612,8 +639,8 @@ export default function Pickems() {
                             }}
                           />
                         )}
-                        <div className="absolute bottom-0 left-0 right-0 md:p-2 p-1 backdrop-filter backdrop-brightness-50 text-center z-10">
-                          <h3 className="md:text-xs text-[10px] leading-5 font-azonix mix-blend-difference">
+                        <div className="absolute bottom-0 left-0 right-0  p-1 backdrop-filter backdrop-brightness-[20%] text-center z-10">
+                          <h3 className="md:text-xs text-[10px] leading-5 font-azonix whitespace-break-spaces mx-2">
                             {slot.player.Player}
                           </h3>
                         </div>
@@ -647,21 +674,25 @@ export default function Pickems() {
         </div>
       </div>
 
-      <div className="md:flex flex-col w-full md:w-[40vw] mt-10 md:h-full hidden  h-[50vh] overflow-hidden">
+      <div className="md:flex flex-col w-full md:w-[40vw] mt-6 md:h-full hidden  h-[50vh] overflow-hidden">
         <h1 className="text-xl font-azonix text-white text-center font-bold">
           Select your Picks
         </h1>
-        <FilterUI
-          onFilter={({
-            searchTerm: newSearchTerm,
-            costRange: newCostRange,
-          }) => {
-            setSearchTerm(newSearchTerm);
-            setCostRange(newCostRange);
-            // Reset to first page when filters change
-            setVisiblePlayersCount(9);
-          }}
-        />
+        <div className="px-4 -mb-1">
+          <FilterUI
+            onFilter={({
+              searchTerm: newSearchTerm,
+              costRange: newCostRange,
+              selectedTeams: newSelectedTeams,
+            }) => {
+              setSearchTerm(newSearchTerm);
+              setCostRange(newCostRange);
+              setSelectedTeams(newSelectedTeams); // Add this state if you don't have it
+              setVisiblePlayersCount(9);
+            }}
+            teams={teams}
+          />
+        </div>
 
         <div
           className="flex flex-col h-auto overflow-y-scroll"
@@ -712,7 +743,7 @@ export default function Pickems() {
 
                       {/* Content (Text and Button at Bottom) */}
                       <div className="absolute bottom-0 left-0 right-0 p-4 backdrop-filter backdrop-brightness-75  text-center z-10">
-                        <h3 className="text-sm leading-5 font-azonix mix-blend-difference">
+                        <h3 className="text-xs leading-5 font-azonix ">
                           {player.Player}
                         </h3>
                       </div>
@@ -720,8 +751,8 @@ export default function Pickems() {
                         (p) => String(p.player_id) === String(player.player_id)
                       ) && (
                         <div
-                          className="absolute -top-2 -right-2 overflow-visible z-40 bg-green-500 text-white rounded-full p-1"
-                          style={{ zIndex: 50 }}
+                          className="absolute -top-2 -right-2 overflow-visible bg-green-500 text-white rounded-full p-1"
+                          style={{ zIndex: 30 }}
                         >
                           <TiTick size={16} className="text-white" />
                         </div>
@@ -797,11 +828,14 @@ export default function Pickems() {
                   onFilter={({
                     searchTerm: newSearchTerm,
                     costRange: newCostRange,
+                    selectedTeams: newSelectedTeams,
                   }) => {
                     setSearchTerm(newSearchTerm);
                     setCostRange(newCostRange);
+                    setSelectedTeams(newSelectedTeams); // Add this state if you don't have it
                     setVisiblePlayersCount(9);
                   }}
+                  teams={teams}
                 />
               </div>
 
@@ -810,7 +844,7 @@ export default function Pickems() {
                 ref={mobileScrollRef}
               >
                 <motion.div
-                  className="py-4 grid grid-cols-3 gap-2 text-center"
+                  className="py-4 grid grid-cols-2 gap-2 text-center"
                   initial="hidden"
                   animate="visible"
                   variants={{
@@ -863,8 +897,8 @@ export default function Pickems() {
                                 String(p.player_id) === String(player.player_id)
                             ) && (
                               <div
-                                className="absolute -top-2 -right-2 overflow-visible z-40 bg-green-500 text-white rounded-full p-1"
-                                style={{ zIndex: 50 }}
+                                className="absolute -top-2 -right-2 overflow-visible  bg-green-500 text-white rounded-full p-1"
+                                style={{ zIndex: 30 }}
                               >
                                 <TiTick size={16} className="text-white" />
                               </div>
