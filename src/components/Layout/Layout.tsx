@@ -16,6 +16,7 @@ import PageHeader from "../Dashboard/sidebar/topbar";
 import { LuLogOut } from "react-icons/lu";
 import { FaTableList } from "react-icons/fa6";
 import { ImStatsBars } from "react-icons/im";
+import { ToastContainer } from "react-toastify";
 
 interface LayoutProps {
   children: ReactNode;
@@ -115,6 +116,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </div>
       <main className="overflow-hidden flex w-full flex-col bg-stone-950">
         <PageHeader />
+        <ToastContainer
+          position="top-center"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
         {children}
       </main>
     </div>

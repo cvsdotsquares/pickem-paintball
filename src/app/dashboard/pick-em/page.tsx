@@ -17,6 +17,10 @@ import { RiLock2Line, RiTeamLine } from "react-icons/ri";
 import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
 import { TiTick } from "react-icons/ti";
 import { FilterUI } from "@/src/components/ui/Filter-ui";
+import PlayerCard1 from "@/src/components/temp-card";
+import { PiPlusBold } from "react-icons/pi";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export interface Player {
   player_id: string;
@@ -481,52 +485,109 @@ export default function Pickems() {
 
   // Handle player selection and update cost
   const handleSelectPlayer = (player: Player) => {
+    // Check if player is already selected
     const isAlreadySelected = temporaryPicks.some(
       (p) => p.player_id === player.player_id
     );
-    if (isAlreadySelected) return;
 
+    if (isAlreadySelected) {
+      toast.warning(`${player.Player} is already in your picks!`, {
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+      return;
+    }
+
+    // Check budget
     const newCost = player.Cost;
     if (remainingBudget - newCost < 0) {
-      alert("Budget exceeded! Remove a player to add this pick.");
+      toast.error(`Budget exceeded! Remove a player to add ${player.Player}.`, {
+        position: "top-center",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
       return;
     }
 
+    // Check max players
     if (temporaryPicks.length >= 10) {
-      alert("You can only pick up to 10 players.");
+      toast.error("You can only pick up to 10 players.", {
+        position: "top-center",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
       return;
     }
 
+    // Add player to temporary picks
     setTemporaryPicks((prev) => [...prev, player]);
+
+    // Update budget
     setRemainingBudget((prevBudget) => prevBudget - newCost);
 
+    // Update slots
     setPlayerSlots((prevSlots) => {
       const selectedSlotIndex = prevSlots.findIndex((slot) => slot.isSelected);
+      const newSlots = [...prevSlots];
 
-      if (selectedSlotIndex !== -1 && !prevSlots[selectedSlotIndex].player) {
-        const newSlots = [...prevSlots];
-        newSlots[selectedSlotIndex].player = { ...player }; // Assign full player object
+      // If selected slot is empty, place player there
+      if (selectedSlotIndex !== -1 && !newSlots[selectedSlotIndex].player) {
+        newSlots[selectedSlotIndex].player = { ...player };
         return newSlots;
       }
 
-      const nextEmptySlotIndex = prevSlots.findIndex((slot) => !slot.player);
+      // Find next empty slot
+      const nextEmptySlotIndex = newSlots.findIndex((slot) => !slot.player);
 
       if (nextEmptySlotIndex !== -1) {
-        const newSlots = [...prevSlots];
-        newSlots[nextEmptySlotIndex].player = { ...player }; // Assign full player object
+        newSlots[nextEmptySlotIndex].player = { ...player };
 
+        // Update selection to the newly filled slot
         newSlots.forEach((slot, index) => {
           slot.isSelected = index === nextEmptySlotIndex;
+        });
+
+        // Show success notification
+        toast.success(`${player.Player} added to your picks!`, {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
         });
 
         return newSlots;
       }
 
-      alert("All slots are full. Please clear a slot to add this pick.");
+      // If all slots are full (shouldn't reach here due to previous check)
+      toast.error("All slots are full. Please clear a slot to add this pick.", {
+        position: "top-center",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+
       return prevSlots;
     });
   };
-
   const handleSlotSelection = (slotId: number) => {
     setPlayerSlots((prevSlots) =>
       prevSlots.map((slot) => ({
@@ -574,11 +635,221 @@ export default function Pickems() {
       maximumFractionDigits: 0,
     }).format(value);
   };
+  // Reusable PlayerCard component
+  const PlayerCard = ({
+    player,
+    isSelected = false,
+    onClick,
+    isMobile = false,
+    isSlot = false,
+    onRemove,
+  }: {
+    player?: Player;
+    isSelected?: boolean;
+    onClick?: () => void;
+    isMobile?: boolean;
+    isSlot?: boolean;
+    onRemove?: () => void;
+  }) => {
+    return (
+      <div
+        className={`flex flex-col ${isSlot ? "mx-0" : "mx-1"} ${
+          isMobile ? "mb-3" : "mb-2"
+        }`}
+      >
+        <div className="relative rounded-3xl border-2 border-blue-600/80 bg-gray-700 ">
+          <div className="rounded-t-3xl p-2 ring-1 bg-gray-800 ring-blue-600/80">
+            <div className="relative overflow-hidden pb-3">
+              {/* Logo spaces */}
+              <div className="absolute start-0 top-0 aspect-square w-[76px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-600/80 bg-gray-800 z-10" />
+              <div className="absolute end-0 top-0 aspect-square w-[76px] translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-600/80 bg-gray-800 z-10" />
 
+              <div className="overflow-hidden">
+                <div
+                  className={`relative ${
+                    isMobile
+                      ? "h-[130px]"
+                      : isSlot
+                      ? "h-[90px] md:h-[110px]"
+                      : "h-[130px]"
+                  } border-2 bg-gradient-to-b from-orange-500 to-yellow-500 [clip-path:polygon(0_0,_100%_0,_100%_87%,_50%_100%,_0_87%)] border-blue-600/80`}
+                >
+                  {player?.pictureLoading ? (
+                    <div className="absolute top-0 bottom-0 left-0 right-0 flex items-center justify-center">
+                      <motion.div
+                        className="absolute top-0 bottom-0 left-0 right-0 flex"
+                        style={{
+                          backgroundImage: `url("/placeholder.svg")`,
+                          backgroundSize: "cover",
+                          backgroundPosition: "40 center",
+                        }}
+                      />
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="pointer-events-none absolute -translate-x-1/4 left-0 top-5 -z-10   text-center text-4xl font-extrabold tracking-tighter text-white uppercase italic opacity-40 mix-blend-overlay">
+                        <div className="whitespace-break-spaces">
+                          {player?.Player || "PLAYER"}
+                        </div>
+                      </div>
+                      <div
+                        className="absolute top-0 bottom-0 left-0 right-0 flex flex-col"
+                        style={{
+                          backgroundImage: `url(${
+                            player?.picture || "/placeholder.svg"
+                          })`,
+                          backgroundSize: "cover",
+                          backgroundPosition: "40 center",
+                        }}
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+              {isSlot ? (
+                // For slots (left section) - always show red cross
+                <div
+                  className="absolute start-1/2 bottom-0 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-2xl bg-gradient-to-b from-orange-500 to-yellow-500 text-2xl/none font-extrabold tracking-tighter text-white cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onRemove) onRemove();
+                  }}
+                >
+                  <IoMdClose className="text-white" />
+                </div>
+              ) : isSelected ? (
+                // For selected cards in right section
+                <>
+                  <div
+                    className="absolute start-1/2 bottom-0 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-2xl bg-gradient-to-b from-orange-500 to-yellow-500 text-2xl/none font-extrabold tracking-tighter text-white cursor-pointer "
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onRemove) onRemove();
+                    }}
+                  >
+                    <TiTick className="text-white" />
+                  </div>
+                </>
+              ) : (
+                // For unselected cards in right section
+                <div
+                  className="absolute start-1/2 bottom-0 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-2xl bg-gradient-to-b from-orange-500 to-yellow-500 text-2xl/none font-extrabold tracking-tighter text-white cursor-pointer"
+                  onClick={onClick}
+                >
+                  <PiPlusBold />
+                </div>
+              )}
+            </div>
+
+            <div className="pt-1 pb-1 text-center text-white px-2">
+              <h2
+                className={`${
+                  isSlot ? "text-[12px] md:text-[14px]" : "text-[12px]"
+                } font-bold tracking-tight whitespace-nowrap overflow-hidden text-ellipsis`}
+              >
+                {player?.Player || "Empty Slot"}
+              </h2>
+              {player?.Team && (
+                <div
+                  className={`${
+                    isSlot ? "text-[10px] md:text-[12px]" : "text-[10px]"
+                  } mt-1`}
+                >
+                  {player.Team}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {player?.Cost && (
+            <div className="mx-auto flex w-full justify-center border-t-2 border-blue-500/80 items-center py-2 text-white bg-gray-800 rounded-b-3xl">
+              <div
+                className={`${
+                  isSlot ? "text-[10px] md:text-[12px]" : "text-[10px]"
+                } font-bold`}
+              >
+                {formatCost(player.Cost)}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const handleRemoveSelectedPlayer = (player: Player) => {
+    // Find which slot the player is in
+    const slotIndex = playerSlots.findIndex(
+      (slot) => slot.player?.player_id === player.player_id
+    );
+
+    // Remove player from temporary picks
+    setTemporaryPicks((prevPicks) => {
+      const newPicks = prevPicks.filter(
+        (p) => p.player_id !== player.player_id
+      );
+
+      // Show notification if player was actually removed
+      if (newPicks.length < prevPicks.length) {
+        toast.success(`${player.Player} removed from your picks!`, {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+      } else {
+        toast.error(`Failed to remove ${player.Player}`, {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+      }
+
+      return newPicks;
+    });
+
+    // Update budget
+    setRemainingBudget((prevBudget) => prevBudget + player.Cost);
+
+    // Update slots - clear the slot where this player was
+    setPlayerSlots((prevSlots) => {
+      const newSlots = [...prevSlots];
+      if (slotIndex !== -1) {
+        newSlots[slotIndex] = {
+          ...newSlots[slotIndex],
+          player: null,
+          isSelected: true, // Select the slot after removal
+        };
+      }
+      return newSlots;
+    });
+
+    // If removing from right section (not slot), also update selection
+    if (slotIndex === -1) {
+      setPlayerSlots((prevSlots) => {
+        const firstEmptySlotIndex = prevSlots.findIndex((slot) => !slot.player);
+        if (firstEmptySlotIndex !== -1) {
+          return prevSlots.map((slot, index) => ({
+            ...slot,
+            isSelected: index === firstEmptySlotIndex,
+          }));
+        }
+        return prevSlots;
+      });
+    }
+  };
   return (
-    <div className="relative flex flex-col md:flex-row w-auto md:h-full mt-7  md:overflow-hidden">
+    <div className="relative flex flex-col md:flex-row w-auto md:h-full mt-7 md:overflow-hidden">
       {/* Left Section */}
-      <div className="relative w-full md:w-[60vw] h-[90vh] z-10 items-center md:overflow-y-scroll border-white/30 border-r ">
+      <div className=" w-full md:w-[60vw] h-[90vh] z-10 items-center md:overflow-y-auto border-white/30 border-r ">
         <div className="grid  overflow-hidden  w-full">
           <div
             role="alert"
@@ -616,7 +887,7 @@ export default function Pickems() {
 
         {/* Image Container */}
         <div
-          className="relative left-0 top-0 p-1 flex h-full flex-col  "
+          className="relative left-0 top-0 p-1  flex h-full flex-col "
           style={{
             backgroundImage: "url(/pick-em.JPG)",
             backgroundSize: "cover",
@@ -624,86 +895,29 @@ export default function Pickems() {
             backgroundPosition: "center",
           }}
         >
-          {/* <h1 className="text-xl font-azonix text-white text-center pt-4 font-bold"></h1> */}
           <AnimatedGroup
             preset="scale"
-            className="relative grid grid-cols-5 gap-1 md:gap-6 top-20 py-1 items-center justify-evenly md:px-2 w-full"
+            className="relative grid grid-cols-5 gap-3 md:gap-6 top-5 py-1 items-center justify-evenly  md:px-2 w-full"
           >
-            {playerSlots.map((slot, index) => (
+            {playerSlots.map((slot) => (
               <div key={slot.id} className="relative">
-                {/* Display Team and Cost */}
-                {slot.player && (
-                  <div
-                    className={`absolute ${
-                      index < 5 ? "-top-12" : "-bottom-12"
-                    } left-0 right-0 flex flex-col items-center`}
-                  >
-                    <div className="text-white md:text-sm text-[12px] font-semibold">
-                      {slot.player.Team}
-                    </div>
-                    <div className="text-white text-xs">
-                      {formatCost(slot.player.Cost)}
-                    </div>
-                  </div>
-                )}
-
-                {/* Player Card */}
                 {slot.player ? (
-                  <div
-                    className="relative gap-3"
-                    onClick={() => handleRemovePlayer(slot.id)}
-                  >
-                    <div className="flex flex-col gap-2 cursor-pointer transition duration-300 ease-in-out hover:scale-95 hover:drop-shadow-2xl">
-                      <div className="relative justify-center m-auto md:h-[24vh] md:w-[9vw] w-[70px] h-[100px] bg-gradient-to-b from-[#862121] to-[#000000] rounded-2xl overflow-hidden text-white">
-                        {slot.player.pictureLoading ? (
-                          <div className="absolute top-0 bottom-0 left-0 right-0 flex items-center justify-center">
-                            <motion.div
-                              className="absolute top-0 bottom-0 left-0 right-0 flex scale-[85%]"
-                              style={{
-                                backgroundImage: `url("/placeholder.svg")`,
-                                backgroundSize: "cover",
-                                backgroundPosition: "center",
-                              }}
-                            />
-                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
-                          </div>
-                        ) : (
-                          <motion.div
-                            className="absolute top-0 bottom-0 left-0 right-0 flex scale-[85%]"
-                            style={{
-                              backgroundImage: `url(${
-                                slot.player.picture || "/placeholder.svg"
-                              })`,
-                              backgroundSize: "cover",
-                              backgroundPosition: "center",
-                            }}
-                          />
-                        )}
-                        <div className="absolute bottom-0 left-0 right-0  p-1 backdrop-filter backdrop-brightness-[20%] text-center z-10">
-                          <h3 className="md:text-xs text-[10px] leading-5 font-azonix whitespace-break-spaces mx-2">
-                            {slot.player.Player}
-                          </h3>
-                        </div>
-                      </div>
-                    </div>
-                    <div
-                      className="absolute top-1 right-1 md:right-2 z-30 text-black hover:text-white cursor-pointer"
-                      onClick={() => handleRemovePlayer(slot.id)}
-                    >
-                      <IoMdCloseCircle size={20} />
-                    </div>
-                  </div>
+                  <PlayerCard
+                    player={slot.player}
+                    isSlot={true}
+                    onRemove={() => handleRemovePlayer(slot.id)}
+                  />
                 ) : (
                   <button
                     onClick={() => handleSlotSelection(slot.id)}
-                    className={`relative flex flex-col gap-0 justify-center items-center rounded-2xl border ${
+                    className={`relative flex flex-col gap-0 justify-center items-center rounded-2xl border-2 ${
                       slot.isSelected
-                        ? "border-black ring-4 ring-inherit ring-black border-2 bg-gradient-to-b from-white/10 to-red-800/80"
+                        ? "border-black ring-2 ring-black bg-gradient-to-b from-white/10 to-red-800/80"
                         : "border-white bg-gradient-to-b from-white/10 to-red-800/80"
                     } md:h-[24vh] md:w-[9vw] w-[70px] h-[100px]`}
                   >
-                    <GiCardPickup size={60} className="text-white/60 ml-2 " />
-                    <span className="text-xl text-white/60 font-azonix">
+                    <GiCardPickup size={40} className="text-white/60" />
+                    <span className="text-xl text-white/60 font-azonix mt-2">
                       {slot.position}
                     </span>
                   </button>
@@ -714,11 +928,12 @@ export default function Pickems() {
         </div>
       </div>
 
-      <div className="md:flex flex-col w-full md:w-[40vw] mt-6 md:h-full hidden  h-[50vh] overflow-hidden">
-        <h1 className="text-xl font-azonix text-white text-center font-bold">
+      {/* Right Section - Player Selection */}
+      <div className="md:flex flex-col w-full md:w-[35vw] mt-6 md:h-full hidden h-[50vh] overflow-hidden">
+        <h1 className="text-xl font-azonix text-white text-center font-bold mb-4">
           Select your Picks
         </h1>
-        <div className="px-4 -mb-1">
+        <div className="px-4 mb-2">
           <FilterUI
             onFilter={({
               searchTerm: newSearchTerm,
@@ -727,7 +942,7 @@ export default function Pickems() {
             }) => {
               setSearchTerm(newSearchTerm);
               setCostRange(newCostRange);
-              setSelectedTeams(newSelectedTeams); // Add this state if you don't have it
+              setSelectedTeams(newSelectedTeams);
               setVisiblePlayersCount(9);
             }}
             onSort={handleSort}
@@ -736,11 +951,11 @@ export default function Pickems() {
         </div>
 
         <div
-          className="flex flex-col h-auto overflow-y-scroll"
+          className="flex flex-col h-auto overflow-y-scroll px-2"
           ref={desktopScrollRef}
         >
           <motion.div
-            className="py-4 grid grid-cols-3 px-1 text-center mt-4"
+            className="py-4 grid grid-cols-3 gap-3 text-center"
             initial="hidden"
             animate="visible"
             variants={{
@@ -753,81 +968,39 @@ export default function Pickems() {
             }}
           >
             <AnimatePresence>
-              {visiblePlayers.map((player) => (
-                <motion.div
-                  key={player.player_id}
-                  initial={{ opacity: 0, scale: 0.6 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.6 }}
-                  transition={{ duration: 0.3 }}
-                  onClick={() => handleSelectPlayer(player)}
-                >
-                  <div className="flex flex-col gap-2 cursor-pointer transition duration-300 ease-in-out hover:scale-95 hover:drop-shadow-2xl">
-                    <div className="relative justify-center m-auto md:h-[24vh] md:w-[9vw] w-[90px] h-[120px] bg-gradient-to-b from-[#862121] to-[#000000] rounded-2xl overflow-visible text-white">
-                      {/* Background Image */}
-                      {player.pictureLoading ? (
-                        <div className="absolute top-0 bottom-0 left-0 right-0 flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
-                        </div>
-                      ) : (
-                        <motion.div
-                          className="absolute top-0 bottom-0 left-0 right-0 flex scale-[85%]"
-                          style={{
-                            backgroundImage: `url(${
-                              player.picture || "/placeholder.svg"
-                            })`,
-                            backgroundSize: "cover",
-                            backgroundPosition: "center",
-                          }}
-                        />
-                      )}
-
-                      {/* Content (Text and Button at Bottom) */}
-                      <div className="absolute bottom-0 left-0 right-0 p-4 backdrop-filter backdrop-brightness-75  text-center z-10">
-                        <h3 className="text-xs leading-5 font-azonix ">
-                          {player.Player}
-                        </h3>
-                      </div>
-                      {temporaryPicks.some(
-                        (p) => String(p.player_id) === String(player.player_id)
-                      ) && (
-                        <div
-                          className="absolute -top-2 -right-2 overflow-visible bg-green-500 text-white rounded-full p-1"
-                          style={{ zIndex: 30 }}
-                        >
-                          <TiTick size={16} className="text-white" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-col justify-center m-2 md:w-[9vw] w-[100px] self-center inset-0 text-center text-xs text-white mt-2">
-                      <div className="flex flex-col justify-center min-h-10  rounded-xl bg-gradient-to-br from from-black to-neutral-800 pb-2">
-                        <span className="text-[10px] font-azonix whitespace-wrap">
-                          {player.Team}
-                        </span>
-                        <span className="font-bold"></span>{" "}
-                        {formatCost(player.Cost)}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+              {visiblePlayers.map((player) => {
+                const isSelected = temporaryPicks.some(
+                  (p) => String(p.player_id) === String(player.player_id)
+                );
+                return (
+                  <motion.div
+                    key={`desktop-${player.player_id}`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <PlayerCard
+                      player={player}
+                      isSelected={isSelected}
+                      onClick={() => handleSelectPlayer(player)}
+                      onRemove={() => handleRemoveSelectedPlayer(player)}
+                    />
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </motion.div>
 
+          {/* Loading and empty states */}
           {isLoadingMore ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex justify-center mx-auto flex-col items-center"
+              className="flex justify-center mx-auto flex-col items-center py-8"
             >
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-8 text-white/70"
-              >
-                Fetching players data
-              </motion.div>
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white mb-4"></div>
+              <div className="text-white/70">Fetching players data</div>
             </motion.div>
           ) : (
             visiblePlayers.length === 0 && (
@@ -842,19 +1015,20 @@ export default function Pickems() {
           )}
         </div>
       </div>
+
+      {/* Mobile Drawer */}
       <AnimatePresence>
         {isDrawerOpen && (
           <motion.div
-            className="fixed md:hidden top-36 -mt-3 border-t-2 border-white/20 left-0 right-0 z-30 bg-[#0a0a0a]  shadow-xl "
+            className="fixed md:hidden top-36 -mt-3 border-t-2 border-white/20 left-0 right-0 z-30 bg-[#0a0a0a] shadow-xl"
             style={{ height: "80vh" }}
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 400 }}
           >
-            <div className="flex flex-col h-full ">
-              {/* Header */}
-              <div className="flex justify-between items-center p-4 flex-shrink-0 ">
+            <div className="flex flex-col h-full">
+              <div className="flex justify-between items-center p-4 flex-shrink-0">
                 <h1 className="text-base font-azonix text-white font-bold">
                   Select your Picks
                 </h1>
@@ -863,8 +1037,7 @@ export default function Pickems() {
                 </button>
               </div>
 
-              {/* Filter */}
-              <div className="px-4 -mt-6 -mb-1">
+              <div className="px-4 mb-3">
                 <FilterUI
                   onFilter={({
                     searchTerm: newSearchTerm,
@@ -873,7 +1046,7 @@ export default function Pickems() {
                   }) => {
                     setSearchTerm(newSearchTerm);
                     setCostRange(newCostRange);
-                    setSelectedTeams(newSelectedTeams); // Add this state if you don't have it
+                    setSelectedTeams(newSelectedTeams);
                     setVisiblePlayersCount(9);
                   }}
                   onSort={handleSort}
@@ -882,11 +1055,11 @@ export default function Pickems() {
               </div>
 
               <div
-                className="flex-1 overflow-y-scroll px-2"
+                className="flex-1 overflow-y-scroll px-3"
                 ref={mobileScrollRef}
               >
                 <motion.div
-                  className="py-4 grid grid-cols-2 gap-2 text-center"
+                  className="py-4 grid grid-cols-2 gap-3 text-center"
                   initial="hidden"
                   animate="visible"
                   variants={{
@@ -899,82 +1072,40 @@ export default function Pickems() {
                   }}
                 >
                   <AnimatePresence>
-                    {visiblePlayers.map((player) => (
-                      <motion.div
-                        key={player.player_id}
-                        initial={{ opacity: 0, scale: 0.6 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.6 }}
-                        transition={{ duration: 0.3 }}
-                        onClick={() => handleSelectPlayer(player)}
-                      >
-                        <div className="flex flex-col gap-2 cursor-pointer transition duration-300 ease-in-out hover:scale-95 hover:drop-shadow-2xl">
-                          <div className="relative justify-center m-auto md:h-[24vh] md:w-[9vw] w-[90px] h-[120px] bg-gradient-to-b from-[#862121] to-[#000000] rounded-2xl overflow-visible text-white">
-                            {/* Background Image */}
-                            {player.pictureLoading ? (
-                              <div className="absolute top-0 bottom-0 left-0 right-0 flex items-center justify-center">
-                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
-                              </div>
-                            ) : (
-                              <motion.div
-                                className="absolute top-0 bottom-0 left-0 right-0 flex scale-[85%]"
-                                style={{
-                                  backgroundImage: `url(${
-                                    player.picture || "/placeholder.svg"
-                                  })`,
-                                  backgroundSize: "cover",
-                                  backgroundPosition: "center",
-                                }}
-                              />
-                            )}
-
-                            {/* Content (Text and Button at Bottom) */}
-                            <div className="absolute bottom-0 left-0 right-0 p-4 backdrop-filter backdrop-brightness-75  text-center z-10">
-                              <h3 className="text-[10px] leading-5 font-azonix whitespace-normal text-left mix-blend-difference">
-                                {player.Player}
-                              </h3>
-                            </div>
-                            {temporaryPicks.some(
-                              (p) =>
-                                String(p.player_id) === String(player.player_id)
-                            ) && (
-                              <div
-                                className="absolute -top-2 -right-2 overflow-visible  bg-green-500 text-white rounded-full p-1"
-                                style={{ zIndex: 30 }}
-                              >
-                                <TiTick size={16} className="text-white" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex flex-col justify-center m-2 md:w-[9vw] w-[100px] self-center inset-0 text-center text-xs text-white mt-2">
-                            <div className="flex flex-col justify-center min-h-10  rounded-xl bg-gradient-to-br from from-black to-neutral-800 pb-2">
-                              <span className="text-[10px] font-azonix whitespace-wrap">
-                                {player.Team}
-                              </span>
-                              <span className="font-bold"></span>{" "}
-                              {formatCost(player.Cost)}
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                    {visiblePlayers.map((player) => {
+                      const isSelected = temporaryPicks.some(
+                        (p) => String(p.player_id) === String(player.player_id)
+                      );
+                      return (
+                        <motion.div
+                          key={`mobile-${player.player_id}`}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <PlayerCard
+                            player={player}
+                            isSelected={isSelected}
+                            isMobile={true}
+                            onClick={() => handleSelectPlayer(player)}
+                            onRemove={() => handleRemoveSelectedPlayer(player)}
+                          />
+                        </motion.div>
+                      );
+                    })}
                   </AnimatePresence>
                 </motion.div>
 
+                {/* Loading and empty states */}
                 {isLoadingMore ? (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex justify-center mx-auto flex-col items-center"
+                    className="flex justify-center mx-auto flex-col items-center py-8"
                   >
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-center py-8 text-white/70"
-                    >
-                      Fetching players data
-                    </motion.div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white mb-4"></div>
+                    <div className="text-white/70">Fetching players data</div>
                   </motion.div>
                 ) : (
                   visiblePlayers.length === 0 && (
