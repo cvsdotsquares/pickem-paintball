@@ -114,7 +114,7 @@ const PageHeader: React.FC = () => {
   }, [user]);
 
   return (
-    <div className="relative inset-y-0 top-0 left-0 right-0 z-30 w-full h-8">
+    <div className="relative inset-y-0 top-0 left-0 right-0 z-30 w-full h-5 md:h-8">
       <UserHead
         username={getDisplayName(userData)}
         avatarUrl={userData?.profilePicture}

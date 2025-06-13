@@ -17,7 +17,7 @@ const UserHead: React.FC<UserHeadProps> = ({
 }) => {
   return (
     <header className="bg-[#101010] z-20">
-      <nav className="flex justify-between items-center px-8 py-3 mx-auto  my-0 w-full border-white/30 border-b">
+      <nav className="flex justify-between items-center px-3 py-1 md:py-3 mx-auto  my-0 w-full border-white/30 border-b">
         {/* User Profile Section */}
         <Link href="/dashboard/profile" className="flex flex-row">
           <div className="flex gap-2 items-center">

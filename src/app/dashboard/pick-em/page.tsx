@@ -960,76 +960,78 @@ export default function Pickems() {
 
   return (
     <div className="relative flex flex-col md:flex-row w-auto md:h-full mt-7 md:overflow-hidden">
-      {/* Left Section */}
-      <div className=" w-full md:w-[60vw] h-[90vh] z-10 items-center md:overflow-y-auto border-white/30 border-r ">
-        <div className="grid  overflow-hidden  w-full">
-          <div
-            role="alert"
-            className="relative w-full md:py-3 py-2  bg-gradient-to-b from-[#360e0edf] to-[#00000065] text-white flex items-center justify-between"
-          >
-            {/* Left Content */}
-            <div className="flex flex-col gap-1 mx-10 md:text-xs text-[10px] whitespace-nowrap my-2 font-azonix">
-              <div>
-                Pickems closing on {""} <br className="md:hidden" />
-                {formatLocalDateTime(liveEvent.lockDate)}
-              </div>
-              <div>Budget: ${remainingBudget.toLocaleString()}</div>
+      {/* Left Section - Fixed Header with Conditional Scroll */}
+      <div className="relative flex flex-col w-full md:w-[60vw] h-[90vh] z-10 border-white/30 border-r">
+        {/* Fixed Alert Container */}
+        <div className="w-full md:py-3 py-1 bg-gradient-to-b from-[#360e0edf] to-[#00000065] text-white flex items-center justify-between">
+          {/* Left Content */}
+          <div className="flex flex-col gap-1 md:mx-10 mx-4 md:text-xs text-[8px] whitespace-nowrap my-2 font-azonix">
+            <div>
+              Pickems closing on {""} <br className="md:hidden" />
+              {formatLocalDateTime(liveEvent.lockDate)}
             </div>
-
-            {/* Right Button */}
-            <button
-              className="flex flex-row items-center gap-2 md:px-4 md:py-1 p-3 backdrop-blur bg-white bg-opacity-10 text-white rounded-[36px] mr-10"
-              onClick={confirmPicks}
-            >
-              <RiLock2Line size={20} />
-              <span className="md:text-base text-[12px] whitespace-nowrap">
-                Save Picks
-              </span>
-            </button>
+            <div>Budget: ${remainingBudget.toLocaleString()}</div>
           </div>
+
+          {/* Right Button */}
+          <button
+            className="flex flex-row items-center gap-2 p-2 mx-4 backdrop-blur bg-white bg-opacity-10 text-white rounded-[36px] md:mr-10"
+            onClick={confirmPicks}
+          >
+            <RiLock2Line size={20} />
+            <span className="md:text-base text-[12px] whitespace-nowrap">
+              Save Picks
+            </span>
+          </button>
         </div>
 
-        {/* Image Container */}
-        <div
-          className="relative left-0 top-0 p-1  flex h-full flex-col "
-          style={{
-            backgroundImage: "url(/pick-em.JPG)",
-            backgroundSize: "cover",
-            backgroundRepeat: "no-repeat",
-            backgroundPosition: "center",
-          }}
-        >
-          <AnimatedGroup
-            preset="scale"
-            className="relative grid grid-cols-5 gap-3 md:gap-6 top-5 py-1 items-center justify-evenly  md:px-2 w-full"
-          >
-            {playerSlots.map((slot) => (
-              <div key={slot.id} className="relative">
-                {slot.player ? (
-                  <PlayerCard
-                    player={slot.player}
-                    isSlot={true}
-                    onClick={() => handlePlayerAction(slot.player!)}
-                    teamLogos={teamLogos}
-                  />
-                ) : (
-                  <button
-                    onClick={() => handleSlotSelection(slot.id)}
-                    className={`relative flex flex-col gap-0 justify-center items-center rounded-2xl border-2 ${
-                      slot.isSelected
-                        ? "border-black ring-2 ring-black bg-gradient-to-b from-white/10 to-red-800/80"
-                        : "border-white bg-gradient-to-b from-white/10 to-red-800/80"
-                    } md:h-[24vh] md:w-[9vw] w-[70px] h-[100px]`}
-                  >
-                    <GiCardPickup size={40} className="text-white/60" />
-                    <span className="text-xl text-white/60 font-azonix mt-2">
-                      {slot.position}
-                    </span>
-                  </button>
-                )}
-              </div>
-            ))}
-          </AnimatedGroup>
+        {/* Content Area - Scroll only on mobile */}
+        <div className="md:overflow-hidden overflow-y-auto flex-1 relative">
+          {/* Background Image */}
+          <div
+            className="absolute inset-0 -z-10"
+            style={{
+              backgroundImage: "url(/pick-em.JPG)",
+              backgroundSize: "cover",
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "center",
+            }}
+          />
+
+          {/* Cards Container */}
+          <div className="relative h-full py-6 md:overflow-visible overflow-y-auto">
+            <AnimatedGroup
+              preset="scale"
+              className="relative grid lg:grid-cols-5 grid-cols-2 gap-3 md:gap-6  pb-8 items-center justify-center lg:justify-evenly m-auto md:px-2 w-5/6 lg:w-full"
+            >
+              {playerSlots.map((slot) => (
+                <div key={slot.id} className="relative">
+                  {slot.player ? (
+                    <PlayerCard
+                      player={slot.player}
+                      isSlot={true}
+                      onClick={() => handlePlayerAction(slot.player!)}
+                      teamLogos={teamLogos}
+                    />
+                  ) : (
+                    <button
+                      onClick={() => handleSlotSelection(slot.id)}
+                      className={`relative flex flex-col gap-0 justify-center m-auto items-center rounded-2xl border-2 ${
+                        slot.isSelected
+                          ? "border-black ring-2 ring-black bg-gradient-to-b from-white/10 to-red-800/80"
+                          : "border-white bg-gradient-to-b from-white/10 to-red-800/80"
+                      } md:h-[24vh] md:w-[9vw] w-[70px] h-[100px]`}
+                    >
+                      <GiCardPickup size={40} className="text-white/60" />
+                      <span className="text-xl text-white/60 font-azonix mt-2">
+                        {slot.position}
+                      </span>
+                    </button>
+                  )}
+                </div>
+              ))}
+            </AnimatedGroup>
+          </div>
         </div>
       </div>
 
