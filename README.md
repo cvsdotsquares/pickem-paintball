@@ -1,8 +1,4 @@
-# Next.js Firebase Template
 
-A customizable template for creating web applications using Next.js and Firebase, with TypeScript support.
-
-## Features: Lists key technologies and capabilities, allowing developers to quickly assess if the template meets their project requirements.
 
 - Next.js 14 with App Router
 - Firebase integration (Authentication and Firestore)
@@ -69,25 +65,22 @@ A customizable template for creating web applications using Next.js and Firebase
     ├── firebase.ts
     └── firebaseClient.ts
 
-## Getting Started: Offers step-by-step instructions for setting up the project, which is crucial for developers to quickly get the template running.
 
-1. Use this template:
-   Click the "Use this template" button on GitHub to create a new repository based on this template.
 
-2. Clone your new repository:
+1. Clone your new repository:
    ```bash
    git clone https://github.com/your-username/your-new-repo.git
    cd your-new-repo
    ```
 
-3. Install dependencies:
+2. Install dependencies:
    ```bash
    npm install
    ```
 
-4. Set up your Firebase project and obtain the configuration details.
+3. Set up your Firebase project and obtain the configuration details.
 
-5. Create a `.env.local` file in the project root and add your Firebase configuration (see [Environment Variables](#environment-variables) section).
+4. Create a `.env.local` file in the project root and add your Firebase configuration (see [Environment Variables](#environment-variables) section).
 
 6. Run the development server:
    ```bash
