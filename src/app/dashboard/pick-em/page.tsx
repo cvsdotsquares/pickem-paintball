@@ -10,7 +10,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GiCardPickup } from "react-icons/gi";
 import { IoMdClose, IoMdCloseCircle } from "react-icons/io";
 import { RiLock2Line, RiTeamLine } from "react-icons/ri";
@@ -27,18 +27,11 @@ export interface Player {
   Player: string;
   Team: string;
   Rank: string;
-  team_id: number;
+  team_id: string;
   Cost: number;
   league_id: string; // Added league_id
   picture?: string; // Optional picture URL
   pictureLoading?: boolean; // check loaded
-}
-
-interface PlayerSlotProps {
-  position: string;
-  isSelected: boolean;
-  onSelect: () => void; // Add this line
-  player?: Player;
 }
 
 export interface Event {
@@ -46,9 +39,15 @@ export interface Event {
   name: string;
   status: string;
 }
+interface PlayerSlot {
+  id: number;
+  position: string;
+  isSelected: boolean;
+  player: Player | null;
+}
 
 export default function Pickems() {
-  const [playerSlots, setPlayerSlots] = useState(
+  const [playerSlots, setPlayerSlots] = useState<PlayerSlot[]>(
     Array.from({ length: 10 }, (_, i) => ({
       id: i + 1,
       position: `p${i + 1}`,
@@ -62,7 +61,6 @@ export default function Pickems() {
     lockDate: Date | null;
     timeLeft: string;
   }>({ id: null, lockDate: null, timeLeft: "" });
-  const [rowData, setRowData] = useState<any[]>([]);
   const [remainingBudget, setRemainingBudget] = useState(1000000); // $1,000,000 initial budget
   const [visiblePlayersCount, setVisiblePlayersCount] = useState(9);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -71,6 +69,7 @@ export default function Pickems() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [teams, setTeams] = useState<string[]>([]);
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
+
   const [sortOption, setSortOption] = useState<{
     field: string;
     direction: "asc" | "desc";
@@ -78,7 +77,28 @@ export default function Pickems() {
     field: "name",
     direction: "asc",
   });
+  function useThrottledState<T>(
+    initialState: T,
+    delay = 300
+  ): [T, React.Dispatch<React.SetStateAction<T>>] {
+    const [state, setState] = useState(initialState);
+    const lastUpdate = useRef(Date.now());
 
+    const throttledSetState = useCallback(
+      (newState: React.SetStateAction<T>) => {
+        if (Date.now() - lastUpdate.current >= delay) {
+          setState(newState);
+          lastUpdate.current = Date.now();
+        }
+      },
+      [delay]
+    );
+
+    return [state, throttledSetState];
+  }
+
+  // Then replace your rowData state:
+  const [rowData, setRowData] = useThrottledState<any[]>([]);
   // Add this handler function
   const handleSort = ({
     field,
@@ -97,6 +117,7 @@ export default function Pickems() {
 
   // Memoized filtered players with improved search
   const filteredPlayers = useMemo(() => {
+    if (rowData.length === 0) return [];
     let result = [...rowData];
 
     // Apply search filter if term exists
@@ -163,10 +184,27 @@ export default function Pickems() {
 
     return result;
   }, [rowData, searchTerm, costRange, selectedTeams, sortOption]);
+  // Group players into selected and available
+  const { selectedPlayers, availablePlayers } = useMemo(() => {
+    const selected = filteredPlayers.filter((player) =>
+      temporaryPicks.some((p) => p.player_id === player.player_id)
+    );
+    const available = filteredPlayers.filter(
+      (player) => !temporaryPicks.some((p) => p.player_id === player.player_id)
+    );
+    return { selectedPlayers: selected, availablePlayers: available };
+  }, [filteredPlayers, temporaryPicks]);
+
+  // Get visible players (selected first, then available)
 
   const visiblePlayers = useMemo(() => {
-    return filteredPlayers.slice(0, visiblePlayersCount);
-  }, [filteredPlayers, visiblePlayersCount]);
+    const allSelected = selectedPlayers;
+    const available = availablePlayers.slice(
+      0,
+      Math.max(0, visiblePlayersCount - allSelected.length)
+    );
+    return [...allSelected, ...available];
+  }, [selectedPlayers, availablePlayers, visiblePlayersCount]);
 
   // Updated scroll handler
   const handleScroll = useCallback(() => {
@@ -271,7 +309,8 @@ export default function Pickems() {
 
     const updateTimeLeft = () => {
       const now = new Date();
-      const diff = lockDate.getTime() - now.getTime();
+      // Convert both to milliseconds for comparison
+      const diff = new Date(lockDate).getTime() - now.getTime();
 
       if (diff <= 0) {
         setLiveEvent((prev) => ({ ...prev, timeLeft: "Picks locked!" }));
@@ -284,12 +323,12 @@ export default function Pickems() {
 
       setLiveEvent((prev) => ({
         ...prev,
-        timeLeft: `${hours}h ${minutes}m ${seconds}s`,
+        timeLeft: `${hours}h ${minutes}m ${Math.floor(seconds)}s`,
       }));
     };
 
     const interval = setInterval(updateTimeLeft, 1000);
-    updateTimeLeft(); // Call immediately to update state without delay
+    updateTimeLeft();
     return () => clearInterval(interval);
   }, [liveEvent.lockDate]);
 
@@ -314,6 +353,7 @@ export default function Pickems() {
   };
 
   useEffect(() => {
+    let isMounted = true;
     const fetchPlayers = async () => {
       if (!liveEvent.id) return;
 
@@ -343,53 +383,57 @@ export default function Pickems() {
               .filter((team): team is string => Boolean(team))
           )
         );
-        setRowData(players); // Set data immediately with loading state
-        setTeams(uniqueTeams);
+        if (isMounted) {
+          setRowData(players);
+          setTeams(uniqueTeams);
+        }
       } catch (error) {
-        console.error("Error fetching players:", error);
+        if (isMounted) {
+          console.error("Error fetching players:", error);
+        }
       }
     };
 
     fetchPlayers();
-  }, [liveEvent.id]);
+    return () => {
+      isMounted = false;
+    };
+  }, [liveEvent.id, setRowData]);
 
   useEffect(() => {
     const fetchPicturesForVisiblePlayers = async () => {
       if (!visiblePlayers.length) return;
 
-      const updatedPlayers = await Promise.all(
+      // Batch all updates together
+      const updates = await Promise.all(
         visiblePlayers.map(async (player) => {
-          if (player.picture) return player; // Skip if picture already exists
+          if (player.picture) return null; // Skip if already loaded
 
           try {
             const picture = await fetchPlayerPicture(player.league_id);
-            return { ...player, picture, pictureLoading: false };
+            return { player_id: player.player_id, picture };
           } catch (error) {
-            console.error(
-              `Error fetching picture for ${player.Player}:`,
-              error
-            );
             return {
-              ...player,
+              player_id: player.player_id,
               picture: "/placeholder.svg",
-              pictureLoading: false,
             };
           }
         })
       );
 
-      setRowData((prevRowData) =>
-        prevRowData.map(
-          (player) =>
-            updatedPlayers.find((p) => p.player_id === player.player_id) ||
-            player
-        )
+      // Single state update
+      setRowData((prev) =>
+        prev.map((p) => {
+          const update = updates.find((u) => u?.player_id === p.player_id);
+          return update
+            ? { ...p, picture: update.picture, pictureLoading: false }
+            : p;
+        })
       );
     };
 
     const debounceFetch = setTimeout(fetchPicturesForVisiblePlayers, 200);
-
-    return () => clearTimeout(debounceFetch); // Cleanup for debouncing
+    return () => clearTimeout(debounceFetch);
   }, [visiblePlayers]);
 
   // Fetch user picks from the firestore if exist already
@@ -459,134 +503,150 @@ export default function Pickems() {
     setRemainingBudget(1000000 - totalCost);
   }, [temporaryPicks]);
 
-  // New check to see if we are before lockDate
-  const isBeforeLockDate =
-    liveEvent.lockDate && new Date() < liveEvent.lockDate;
-
-  const handleRemovePlayer = (slotId: number) => {
-    const removedPlayer = playerSlots.find(
-      (slot) => slot.id === slotId
-    )?.player;
-
-    if (removedPlayer) {
-      setTemporaryPicks((prevPicks) =>
-        prevPicks.filter(
-          (player) => player.player_id !== removedPlayer.player_id
-        )
-      );
-    }
-
-    setPlayerSlots((prevSlots) =>
-      prevSlots.map((slot) =>
-        slot.id === slotId ? { ...slot, player: null } : slot
-      )
-    );
+  const isBeforeLockDate = (lockDate: string | Date | null): boolean => {
+    if (!lockDate) return false;
+    const now = new Date();
+    const lockDateObject = new Date(lockDate); // Safeguard for string input
+    return now.getTime() < lockDateObject.getTime();
   };
 
-  // Handle player selection and update cost
-  const handleSelectPlayer = (player: Player) => {
-    // Check if player is already selected
-    const isAlreadySelected = temporaryPicks.some(
+  const handlePlayerAction = (player: Player) => {
+    // Check if picks are locked
+    if (!isBeforeLockDate(liveEvent.lockDate)) {
+      toast.error(
+        <div>
+          <div className="font-bold">Picks Locked!</div>
+          <div className="text-sm">
+            The selection period ended on{" "}
+            {formatLocalDateTime(liveEvent.lockDate)}
+          </div>
+        </div>,
+        {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        }
+      );
+      return;
+    }
+
+    const isSelected = temporaryPicks.some(
       (p) => p.player_id === player.player_id
     );
 
-    if (isAlreadySelected) {
-      toast.warning(`${player.Player} is already in your picks!`, {
-        position: "top-center",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-      return;
-    }
+    if (isSelected) {
+      // Remove player
+      const newPicks = temporaryPicks.filter(
+        (p) => p.player_id !== player.player_id
+      );
+      setTemporaryPicks(newPicks);
+      setRemainingBudget((prev) => prev + player.Cost);
 
-    // Check budget
-    const newCost = player.Cost;
-    if (remainingBudget - newCost < 0) {
-      toast.error(`Budget exceeded! Remove a player to add ${player.Player}.`, {
-        position: "top-center",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-      return;
-    }
+      // Update slots
+      setPlayerSlots((prevSlots) =>
+        prevSlots.map((slot) =>
+          slot.player?.player_id === player.player_id
+            ? { ...slot, player: null }
+            : slot
+        )
+      );
 
-    // Check max players
-    if (temporaryPicks.length >= 10) {
-      toast.error("You can only pick up to 10 players.", {
-        position: "top-center",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-      return;
-    }
-
-    // Add player to temporary picks
-    setTemporaryPicks((prev) => [...prev, player]);
-
-    // Update budget
-    setRemainingBudget((prevBudget) => prevBudget - newCost);
-
-    // Update slots
-    setPlayerSlots((prevSlots) => {
-      const selectedSlotIndex = prevSlots.findIndex((slot) => slot.isSelected);
-      const newSlots = [...prevSlots];
-
-      // If selected slot is empty, place player there
-      if (selectedSlotIndex !== -1 && !newSlots[selectedSlotIndex].player) {
-        newSlots[selectedSlotIndex].player = { ...player };
-        return newSlots;
-      }
-
-      // Find next empty slot
-      const nextEmptySlotIndex = newSlots.findIndex((slot) => !slot.player);
-
-      if (nextEmptySlotIndex !== -1) {
-        newSlots[nextEmptySlotIndex].player = { ...player };
-
-        // Update selection to the newly filled slot
-        newSlots.forEach((slot, index) => {
-          slot.isSelected = index === nextEmptySlotIndex;
-        });
-
-        // Show success notification
-        toast.success(`${player.Player} added to your picks!`, {
-          position: "top-center",
+      toast.success(
+        <div>
+          <div className="font-bold">Player Removed</div>
+          <div className="text-sm">{player.Player} removed from your picks</div>
+        </div>,
+        {
+          position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
           progress: undefined,
-        });
-
-        return newSlots;
+        }
+      );
+    } else {
+      // Add player
+      if (remainingBudget - player.Cost < 0) {
+        toast.error(
+          <div>
+            <div className="font-bold">Budget Exceeded!</div>
+            <div className="text-sm">
+              You need ${(player.Cost - remainingBudget).toLocaleString()} more
+              to add {player.Player}
+            </div>
+          </div>,
+          {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+          }
+        );
+        return;
       }
 
-      // If all slots are full (shouldn't reach here due to previous check)
-      toast.error("All slots are full. Please clear a slot to add this pick.", {
-        position: "top-center",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
+      if (temporaryPicks.length >= 10) {
+        toast.error(
+          <div>
+            <div className="font-bold">Maximum Players Reached</div>
+            <div className="text-sm">
+              You can only pick up to 10 players. Remove one to add another.
+            </div>
+          </div>,
+          {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+          }
+        );
+        return;
+      }
 
-      return prevSlots;
-    });
+      const newPicks = [...temporaryPicks, player];
+      setTemporaryPicks(newPicks);
+      setRemainingBudget((prev) => prev - player.Cost);
+
+      // Find first empty slot
+      const emptySlotIndex = playerSlots.findIndex((slot) => !slot.player);
+      if (emptySlotIndex !== -1) {
+        setPlayerSlots((prevSlots) =>
+          prevSlots.map((slot, index) =>
+            index === emptySlotIndex
+              ? { ...slot, player, isSelected: false }
+              : slot
+          )
+        );
+      }
+
+      toast.success(
+        <div>
+          <div className="font-bold">Player Added</div>
+          <div className="text-sm">{player.Player} added to your picks</div>
+        </div>,
+        {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        }
+      );
+    }
   };
   const handleSlotSelection = (slotId: number) => {
     setPlayerSlots((prevSlots) =>
@@ -603,15 +663,42 @@ export default function Pickems() {
     setIsDrawerOpen(false);
   };
   const confirmPicks = async () => {
-    if (!user) return;
-
-    if (temporaryPicks.length < 10) {
-      alert(`You need to select all 10 players before confirming!`);
+    if (!user) {
+      toast.error("You must be logged in to confirm picks", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
       return;
     }
-    const { lockDate } = liveEvent;
-    if (lockDate && new Date() > lockDate) {
-      alert("Time to select picks have passed away! Try again next event.");
+
+    if (!isBeforeLockDate(liveEvent.lockDate)) {
+      toast.error("Time to select picks has passed!", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+      return;
+    }
+
+    if (temporaryPicks.length < 10) {
+      toast.warning("You need to select all 10 players before confirming!", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
       return;
     }
 
@@ -620,13 +707,28 @@ export default function Pickems() {
       await updateDoc(doc(db, "users", user.uid), {
         [`pickems.${liveEvent.id}`]: pickIds,
       });
-      alert("Picks confirmed!");
+      toast.success("Picks confirmed successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
     } catch (error) {
       console.error("Error saving picks:", error);
-      alert("An error occurred while confirming your picks. Please try again.");
+      toast.error("Failed to confirm picks. Please try again.", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
     }
   };
-
   const formatCost = (value: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -635,217 +737,227 @@ export default function Pickems() {
       maximumFractionDigits: 0,
     }).format(value);
   };
-  // Reusable PlayerCard component
-  const PlayerCard = ({
+  const fetchTeamLogo = async (teamId: string): Promise<string> => {
+    const storage = getStorage();
+    const folderPath = `t-logo/`; // Path to the folder containing team logos
+    const storageRef = ref(storage, folderPath);
+
+    console.log(`[fetchTeamLogo] Starting fetch for teamId: ${teamId}`); // Debug log
+
+    try {
+      const fileList = await listAll(storageRef);
+      console.log(
+        `[fetchTeamLogo] Found ${fileList.items.length} items in folder`
+      ); // Debug log
+
+      const matchingFile = fileList.items.find((item) => {
+        const matches = item.name.startsWith(`${teamId}_`);
+        console.log(
+          `[fetchTeamLogo] Checking item ${item.name} - matches: ${matches}`
+        ); // Debug log
+        return matches;
+      });
+
+      if (matchingFile) {
+        console.log(
+          `[fetchTeamLogo] Found matching file: ${matchingFile.name}`
+        ); // Debug log
+        const url = await getDownloadURL(matchingFile);
+        console.log(
+          `[fetchTeamLogo] Successfully got URL for ${teamId}: ${url}`
+        ); // Debug log
+        return url;
+      } else {
+        console.warn(
+          `[fetchTeamLogo] No matching file found for teamId: ${teamId}`
+        ); // Debug log
+        return "/team-placeholder.svg";
+      }
+    } catch (error) {
+      console.error(
+        `[fetchTeamLogo] Error fetching logo for teamId: ${teamId}`,
+        error
+      ); // Debug log
+      return "/team-placeholder.svg";
+    }
+  };
+  const [teamLogos, setTeamLogos] = useState<Record<string, string>>({});
+  const [logosLoading, setLogosLoading] = useState(true);
+
+  // Fetch all team logos when component mounts
+  useEffect(() => {
+    const fetchAllTeamLogos = async () => {
+      const storage = getStorage();
+      const folderPath = "t-logo/";
+      const storageRef = ref(storage, folderPath);
+
+      try {
+        const fileList = await listAll(storageRef);
+        const logoPromises = fileList.items.map(async (item) => {
+          const teamId = item.name.split("_")[0];
+          const url = await getDownloadURL(item);
+          return { teamId, url };
+        });
+
+        const fetchedLogos = await Promise.all(logoPromises);
+        const logoMap = fetchedLogos.reduce((acc, { teamId, url }) => {
+          acc[teamId] = url;
+          return acc;
+        }, {} as Record<string, string>);
+
+        setTeamLogos(logoMap);
+      } catch (error) {
+        console.error("Error fetching team logos:", error);
+      } finally {
+        setLogosLoading(false);
+      }
+    };
+
+    fetchAllTeamLogos();
+  }, []);
+  const PlayerCard = memo(function PlayerCard({
     player,
     isSelected = false,
-    onClick,
-    isMobile = false,
     isSlot = false,
-    onRemove,
+    onClick,
+    teamLogos, // Pass the logos as prop
   }: {
     player?: Player;
     isSelected?: boolean;
-    onClick?: () => void;
-    isMobile?: boolean;
     isSlot?: boolean;
-    onRemove?: () => void;
-  }) => {
+    onClick?: () => void;
+    teamLogos: Record<string, string>;
+  }) {
+    const teamLogo = player?.team_id ? teamLogos[player.team_id] : null;
+
     return (
       <div
-        className={`flex flex-col ${isSlot ? "mx-0" : "mx-1"} ${
-          isMobile ? "mb-3" : "mb-2"
-        }`}
+        key={
+          player ? `${player.Player}-${player.Team || "unknown"}` : "empty-slot"
+        }
+        className={`relative flex flex-col ${
+          isSlot ? "mx-0" : "mx-1"
+        } mb-2 rounded-3xl border-2 border-blue-600/80 bg-gray-700 cursor-pointer hover:shadow-lg hover:shadow-blue-600/50 transition-shadow duration-200`}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (onClick) onClick();
+        }}
       >
-        <div className="relative rounded-3xl border-2 border-blue-600/80 bg-gray-700 ">
-          <div className="rounded-t-3xl p-2 ring-1 bg-gray-800 ring-blue-600/80">
-            <div className="relative overflow-hidden pb-3">
-              {/* Logo spaces */}
-              <div className="absolute start-0 top-0 aspect-square w-[76px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-600/80 bg-gray-800 z-10" />
-              <div className="absolute end-0 top-0 aspect-square w-[76px] translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-600/80 bg-gray-800 z-10" />
+        {/* Top Section */}
+        <div className="rounded-t-3xl p-2 ring-1 bg-gray-800 ring-blue-600/80">
+          <div className="relative overflow-hidden pb-3 rounded-t-2xl">
+            {/* Left and Right Logos */}
+            {/* <div className="absolute start-0 top-0 aspect-square w-[76px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-600/80 bg-gray-800 z-10 pointer-events-none" />
 
-              <div className="overflow-hidden">
-                <div
-                  className={`relative ${
-                    isMobile
-                      ? "h-[130px]"
-                      : isSlot
-                      ? "h-[90px] md:h-[110px]"
-                      : "h-[130px]"
-                  } border-2 bg-gradient-to-b from-orange-500 to-yellow-500 [clip-path:polygon(0_0,_100%_0,_100%_87%,_50%_100%,_0_87%)] border-blue-600/80`}
-                >
-                  {player?.pictureLoading ? (
-                    <div className="absolute top-0 bottom-0 left-0 right-0 flex items-center justify-center">
-                      <motion.div
-                        className="absolute top-0 bottom-0 left-0 right-0 flex"
-                        style={{
-                          backgroundImage: `url("/placeholder.svg")`,
-                          backgroundSize: "cover",
-                          backgroundPosition: "40 center",
-                        }}
-                      />
-                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="pointer-events-none absolute -translate-x-1/4 left-0 top-5 -z-10   text-center text-4xl font-extrabold tracking-tighter text-white uppercase italic opacity-40 mix-blend-overlay">
-                        <div className="whitespace-break-spaces">
-                          {player?.Player || "PLAYER"}
-                        </div>
-                      </div>
-                      <div
-                        className="absolute top-0 bottom-0 left-0 right-0 flex flex-col"
-                        style={{
-                          backgroundImage: `url(${
-                            player?.picture || "/placeholder.svg"
-                          })`,
-                          backgroundSize: "cover",
-                          backgroundPosition: "40 center",
-                        }}
-                      />
-                    </>
-                  )}
-                </div>
-              </div>
-              {isSlot ? (
-                // For slots (left section) - always show red cross
-                <div
-                  className="absolute start-1/2 bottom-0 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-2xl bg-gradient-to-b from-orange-500 to-yellow-500 text-2xl/none font-extrabold tracking-tighter text-white cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onRemove) onRemove();
-                  }}
-                >
-                  <IoMdClose className="text-white" />
-                </div>
-              ) : isSelected ? (
-                // For selected cards in right section
-                <>
-                  <div
-                    className="absolute start-1/2 bottom-0 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-2xl bg-gradient-to-b from-orange-500 to-yellow-500 text-2xl/none font-extrabold tracking-tighter text-white cursor-pointer "
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onRemove) onRemove();
-                    }}
-                  >
-                    <TiTick className="text-white" />
+            // {/* Team Logo - Right Corner */}
+            {/* <div
+              className="absolute end-0 top-0 aspect-square w-[40px] translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-600/80 bg-gray-800 z-10 pointer-events-none overflow-hidden"
+              style={{
+                backgroundImage: `url(${teamLogo || "/team-placeholder.svg"})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            /> */}
+
+            <div className="overflow-hidden">
+              <div
+                className={`relative ${
+                  isSlot ? "h-[90px] md:h-[110px]" : "h-[130px]"
+                } border-2 bg-gradient-to-b from-orange-500 to-yellow-500 [clip-path:polygon(0_0,_100%_0,_100%_87%,_50%_100%,_0_87%)] border-blue-600/80`}
+              >
+                {player?.pictureLoading ? (
+                  <div className="absolute top-0 bottom-0 left-0 right-0 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
                   </div>
-                </>
-              ) : (
-                // For unselected cards in right section
-                <div
-                  className="absolute start-1/2 bottom-0 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-2xl bg-gradient-to-b from-orange-500 to-yellow-500 text-2xl/none font-extrabold tracking-tighter text-white cursor-pointer"
-                  onClick={onClick}
-                >
-                  <PiPlusBold />
-                </div>
-              )}
+                ) : (
+                  <>
+                    <div className="pointer-events-none absolute -translate-x-1/4 left-0 top-5 -z-10 text-center text-4xl font-extrabold tracking-tighter text-white uppercase italic opacity-40 mix-blend-overlay">
+                      <div className="whitespace-break-spaces">
+                        {player?.Player || "PLAYER"}
+                      </div>
+                    </div>
+                    <div
+                      className="absolute top-0 bottom-0 left-0 right-0 flex flex-col pointer-events-none"
+                      style={{
+                        backgroundImage: `url(${
+                          player?.picture || "/placeholder.svg"
+                        })`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "40 center",
+                      }}
+                    />
+                  </>
+                )}
+              </div>
             </div>
 
-            <div className="pt-1 pb-1 text-center text-white px-2">
-              <h2
-                className={`${
-                  isSlot ? "text-[12px] md:text-[14px]" : "text-[12px]"
-                } font-bold tracking-tight whitespace-nowrap overflow-hidden text-ellipsis`}
-              >
-                {player?.Player || "Empty Slot"}
-              </h2>
-              {player?.Team && (
-                <div
-                  className={`${
-                    isSlot ? "text-[10px] md:text-[12px]" : "text-[10px]"
-                  } mt-1`}
-                >
-                  {player.Team}
-                </div>
+            {/* Action Button */}
+            <div className="absolute start-1/2 bottom-0 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-2xl bg-gradient-to-b from-orange-500 to-yellow-500 text-2xl/none font-extrabold tracking-tighter text-white">
+              {isSlot ? (
+                <IoMdClose className="text-white" />
+              ) : isSelected ? (
+                <TiTick className="text-white" />
+              ) : (
+                <PiPlusBold />
               )}
             </div>
           </div>
 
-          {player?.Cost && (
-            <div className="mx-auto flex w-full justify-center border-t-2 border-blue-500/80 items-center py-2 text-white bg-gray-800 rounded-b-3xl">
+          {/* Player Name */}
+          <div className="pt-1 pb-1 text-center text-white px-2 pointer-events-none">
+            <h2
+              className={`${
+                isSlot ? "text-[12px] md:text-[14px]" : "text-[12px]"
+              } font-bold tracking-tight whitespace-nowrap overflow-hidden text-ellipsis`}
+            >
+              {player?.Player || "Empty Slot"}
+            </h2>
+            {player?.Team && (
               <div
                 className={`${
                   isSlot ? "text-[10px] md:text-[12px]" : "text-[10px]"
-                } font-bold`}
+                } mt-1`}
               >
-                {formatCost(player.Cost)}
+                {player.Team}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
+
+        {/* Cost Section */}
+        {player?.Cost && (
+          <div className="mx-auto flex w-full justify-center border-t-2 border-blue-500/80 items-center py-2 text-white bg-gray-800 rounded-b-3xl pointer-events-none">
+            <div
+              className={`${
+                isSlot ? "text-[10px] md:text-[12px]" : "text-[10px]"
+              } font-bold`}
+            >
+              {formatCost(player.Cost)}
+            </div>
+          </div>
+        )}
       </div>
     );
-  };
+  });
 
-  const handleRemoveSelectedPlayer = (player: Player) => {
-    // Find which slot the player is in
-    const slotIndex = playerSlots.findIndex(
-      (slot) => slot.player?.player_id === player.player_id
-    );
+  const formatLocalDateTime = (utcDate: Date | null): string => {
+    if (!utcDate) return "No lock date available";
 
-    // Remove player from temporary picks
-    setTemporaryPicks((prevPicks) => {
-      const newPicks = prevPicks.filter(
-        (p) => p.player_id !== player.player_id
-      );
-
-      // Show notification if player was actually removed
-      if (newPicks.length < prevPicks.length) {
-        toast.success(`${player.Player} removed from your picks!`, {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-        });
-      } else {
-        toast.error(`Failed to remove ${player.Player}`, {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-        });
-      }
-
-      return newPicks;
-    });
-
-    // Update budget
-    setRemainingBudget((prevBudget) => prevBudget + player.Cost);
-
-    // Update slots - clear the slot where this player was
-    setPlayerSlots((prevSlots) => {
-      const newSlots = [...prevSlots];
-      if (slotIndex !== -1) {
-        newSlots[slotIndex] = {
-          ...newSlots[slotIndex],
-          player: null,
-          isSelected: true, // Select the slot after removal
-        };
-      }
-      return newSlots;
-    });
-
-    // If removing from right section (not slot), also update selection
-    if (slotIndex === -1) {
-      setPlayerSlots((prevSlots) => {
-        const firstEmptySlotIndex = prevSlots.findIndex((slot) => !slot.player);
-        if (firstEmptySlotIndex !== -1) {
-          return prevSlots.map((slot, index) => ({
-            ...slot,
-            isSelected: index === firstEmptySlotIndex,
-          }));
-        }
-        return prevSlots;
+    try {
+      return new Date(utcDate).toLocaleString(navigator.language, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZoneName: "short",
       });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Invalid date";
     }
   };
+
   return (
     <div className="relative flex flex-col md:flex-row w-auto md:h-full mt-7 md:overflow-hidden">
       {/* Left Section */}
@@ -859,15 +971,7 @@ export default function Pickems() {
             <div className="flex flex-col gap-1 mx-10 md:text-xs text-[10px] whitespace-nowrap my-2 font-azonix">
               <div>
                 Pickems closing on {""} <br className="md:hidden" />
-                {liveEvent.lockDate
-                  ? new Date(liveEvent.lockDate).toLocaleString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "No lock date available"}
+                {formatLocalDateTime(liveEvent.lockDate)}
               </div>
               <div>Budget: ${remainingBudget.toLocaleString()}</div>
             </div>
@@ -905,7 +1009,8 @@ export default function Pickems() {
                   <PlayerCard
                     player={slot.player}
                     isSlot={true}
-                    onRemove={() => handleRemovePlayer(slot.id)}
+                    onClick={() => handlePlayerAction(slot.player!)}
+                    teamLogos={teamLogos}
                   />
                 ) : (
                   <button
@@ -983,8 +1088,8 @@ export default function Pickems() {
                     <PlayerCard
                       player={player}
                       isSelected={isSelected}
-                      onClick={() => handleSelectPlayer(player)}
-                      onRemove={() => handleRemoveSelectedPlayer(player)}
+                      onClick={() => handlePlayerAction(player)}
+                      teamLogos={teamLogos}
                     />
                   </motion.div>
                 );
@@ -1087,9 +1192,8 @@ export default function Pickems() {
                           <PlayerCard
                             player={player}
                             isSelected={isSelected}
-                            isMobile={true}
-                            onClick={() => handleSelectPlayer(player)}
-                            onRemove={() => handleRemoveSelectedPlayer(player)}
+                            onClick={() => handlePlayerAction(player)}
+                            teamLogos={teamLogos}
                           />
                         </motion.div>
                       );
