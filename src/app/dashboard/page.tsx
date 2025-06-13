@@ -45,7 +45,7 @@ export default function Dashboard() {
       </div>
 
       {/* Right Column - Profile (Full height, no scroll) */}
-      <div className=" relative md:h-full h-screen md:w-[50vw] overflow-hidden">
+      <div className=" relative md:h-full h-screen mt-6 md:w-[50vw] overflow-hidden">
         {/* Background */}
         <div
           className="absolute inset-0 bg-opacity-40"

@@ -36,11 +36,9 @@ const DivisionInfo = () => {
   // Helper to fetch documents from Firestore
   const fetchFromFirestore = async (path: string) => {
     try {
-      console.log(`Fetching from Firestore path: ${path}`);
       const ref = collection(db, path);
       const snapshot = await getDocs(ref);
       const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      console.log(`Successfully fetched ${data.length} documents from ${path}`);
       return data;
     } catch (err) {
       console.error(`Error fetching from ${path}:`, err);
@@ -51,14 +49,12 @@ const DivisionInfo = () => {
 
   // Fetch live event details
   useEffect(() => {
-    console.log("Starting to fetch live event");
     const fetchLiveEvent = async () => {
       try {
         const events = await fetchFromFirestore("events");
         const live = events.find((e: any) => e.status === "live");
 
         if (live) {
-          console.log("Found live event:", live.id);
           const eventData = {
             id: live.id,
             name: live.id.replace(/_/g, " "),
@@ -66,7 +62,6 @@ const DivisionInfo = () => {
           setLiveEvent(eventData);
           await fetchLeaderboard(live.id);
         } else {
-          console.log("No live event found");
           setError("No active event currently running");
           setLoading(false);
         }
@@ -81,10 +76,8 @@ const DivisionInfo = () => {
 
   // Fetch leaderboard data with optimized loading
   const fetchLeaderboard = async (eventId: string) => {
-    console.log(`Starting to fetch leaderboard for event ${eventId}`);
     try {
       const users: User[] = await fetchFromFirestore("users");
-      console.log(`Fetched ${users.length} users`);
 
       // First pass - get basic leaderboard data without player details
       const initialLeaderboardData = users
@@ -135,7 +128,6 @@ const DivisionInfo = () => {
       const sortedLeaderboard = leaderboardWithPoints.sort(
         (a, b) => b.totalPoints - a.totalPoints
       );
-      console.log("Leaderboard sorted:", sortedLeaderboard);
       setLeaderboard(sortedLeaderboard);
 
       // Find current user's rank if logged in
@@ -153,8 +145,6 @@ const DivisionInfo = () => {
     }
   };
 
-  // Update countdown timer
-
   // Get top 3 users
   const topUsers = leaderboard.slice(0, 3);
   const currentUserData = user?.uid
@@ -162,69 +152,65 @@ const DivisionInfo = () => {
     : null;
 
   return (
-    <section className="flex flex-col justify-center p-4 mt-6 w-full rounded-2xl bg-white bg-opacity-10 max-md:max-w-full">
-      <div className="w-full max-md:max-w-full">
-        <div className="flex flex-wrap gap-2 items-end w-full max-md:max-w-full">
-          <div className="flex flex-1 shrink gap-10 justify-between items-end basis-0 min-w-60 max-md:max-w-full">
-            <div className="text-sm font-bold leading-none text-white">
-              <div className="flex items-center w-full">
-                <span className="self-stretch my-auto">
-                  {liveEvent.name || "Event"} Leaderboard
-                </span>
-              </div>
-            </div>
-          </div>
+    <section className="w-full p-2 md:p-4 rounded-xl bg-white bg-opacity-10">
+      <div className="w-full">
+        <div className="flex items-center mb-3">
+          <h2 className="text-sm font-bold text-white truncate">
+            {liveEvent.name || "Event"} Leaderboard
+          </h2>
         </div>
 
-        <div className="mt-4 w-full text-sm leading-none text-center text-white max-md:max-w-full">
-          <div className="p-4 rounded-2xl border-solid bg-[#101010] border-[1px] border-[rgba(255,255,255,0.43)] w-[100%] max-md:max-w-full">
+        <div className="w-full text-sm text-white">
+          <div className="p-3 rounded-xl bg-[#101010] border border-white/20">
             {error ? (
-              <div className="flex flex-col items-center justify-center py-8 space-y-2">
-                <p className="text-red-400">{error}</p>
+              <div className="flex flex-col items-center justify-center py-4 space-y-2">
+                <p className="text-red-400 text-sm">{error}</p>
                 <button
                   onClick={() => window.location.reload()}
-                  className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 text-sm"
+                  className="px-3 py-1.5 bg-blue-600 rounded hover:bg-blue-700 text-xs"
                 >
                   Retry
                 </button>
               </div>
             ) : loading ? (
-              <div className="flex justify-center items-center py-8">
-                <p>Loading leaderboard...</p>
+              <div className="flex justify-center items-center py-4">
+                <p className="text-sm">Loading leaderboard...</p>
               </div>
             ) : leaderboard.length === 0 ? (
-              <div className="flex justify-center items-center py-8">
-                <p>No entries yet</p>
+              <div className="flex justify-center items-center py-4">
+                <p className="text-sm">No entries yet</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {/* Top 3 Users */}
-                <div className="flex justify-between items-center gap-4">
+              <div className="space-y-3">
+                {/* Top 3 Users - Stack vertically on mobile */}
+                <div className="flex flex-col sm:flex-row gap-2">
                   {topUsers.map((user, index) => (
                     <div
                       key={user.id}
-                      className={`flex-1 p-3 rounded-lg ${
+                      className={`flex-1 p-2 rounded-lg ${
                         index === 0
-                          ? "bg-gradient-to-b from-yellow-600/30 to-yellow-800/30"
+                          ? "bg-gradient-to-b from-yellow-600/30 to-yellow-800/30 order-first"
                           : "bg-gray-800/50"
                       }`}
                     >
-                      <div className="flex items-center justify-center mb-2">
-                        {index === 0 ? (
-                          <FaTrophy className="text-yellow-400 text-lg" />
-                        ) : (
-                          <span className="text-gray-300 font-bold">
-                            {index + 1}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm font-medium truncate">
-                        {user.displayName}
-                      </div>
-                      <div className="text-xs text-gray-300">
-                        {user.loadingPoints
-                          ? "Loading..."
-                          : `${user.totalPoints} pts`}
+                      <div className="flex flex-col items-center">
+                        <div className="flex items-center justify-center mb-1">
+                          {index === 0 ? (
+                            <FaTrophy className="text-yellow-400 text-md" />
+                          ) : (
+                            <span className="text-gray-300 font-bold text-sm">
+                              {index + 1}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs font-medium truncate w-full text-center">
+                          {user.displayName}
+                        </div>
+                        <div className="text-xs text-gray-300">
+                          {user.loadingPoints
+                            ? "Loading..."
+                            : `${user.totalPoints} pts`}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -232,17 +218,17 @@ const DivisionInfo = () => {
 
                 {/* Current User */}
                 {currentUserData && (
-                  <div className="mt-4 pt-4 border-t border-gray-700">
-                    <div className="text-xs text-gray-400 mb-2">
+                  <div className="mt-3 pt-3 border-t border-gray-700">
+                    <div className="text-xs text-gray-400 mb-1">
                       YOUR POSITION
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-blue-900/30 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
-                          <FaUser className="text-gray-300" />
+                    <div className="flex items-center justify-between p-2 bg-blue-900/30 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center">
+                          <FaUser className="text-gray-300 text-xs" />
                         </div>
                         <div>
-                          <div className="text-sm font-medium">You</div>
+                          <div className="text-xs font-medium">You</div>
                           <div className="text-xs text-gray-300">
                             {currentUserRank
                               ? `#${currentUserRank}`
@@ -250,7 +236,7 @@ const DivisionInfo = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="text-sm font-bold">
+                      <div className="text-xs font-bold">
                         {currentUserData.loadingPoints
                           ? "..."
                           : `${currentUserData.totalPoints} pts`}
@@ -260,7 +246,7 @@ const DivisionInfo = () => {
                 )}
 
                 {!currentUserData && user?.uid && (
-                  <div className="mt-4 pt-4 border-t border-gray-700 text-sm">
+                  <div className="mt-3 pt-3 border-t border-gray-700 text-xs text-center">
                     You haven't entered this event yet
                   </div>
                 )}

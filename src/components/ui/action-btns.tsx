@@ -3,7 +3,7 @@ import * as React from "react";
 
 const ActionButtons = () => {
   return (
-    <div className="relative flex flex-col md:flex-row gap-2 md:justify-evenly justify-center items-center px-12 mt-6 w-full text-xs whitespace-nowrap text-center m-auto font-bold leading-none text-white ">
+    <div className="relative flex flex-col md:flex-row gap-2 md:justify-evenly justify-center items-center px-12 mt-2 w-full text-xs whitespace-nowrap text-center m-auto font-bold leading-none text-white ">
       <Link
         href={"/dashboard/pick-em"}
         className="self-stretch px-2 py-2.5 my-auto bg-white bg-opacity-10 min-h-10 min-w-10 rounded-[32px] w-[263px]"
