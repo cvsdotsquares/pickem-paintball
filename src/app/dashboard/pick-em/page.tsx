@@ -69,6 +69,7 @@ export default function Pickems() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [teams, setTeams] = useState<string[]>([]);
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
 
   const [sortOption, setSortOption] = useState<{
     field: string;
@@ -206,28 +207,50 @@ export default function Pickems() {
     return [...allSelected, ...available];
   }, [selectedPlayers, availablePlayers, visiblePlayersCount]);
 
-  // Updated scroll handler
   const handleScroll = useCallback(() => {
     if (isLoadingMore || visiblePlayers.length >= filteredPlayers.length)
       return;
 
-    // Check both containers
-    const container = mobileScrollRef.current || desktopScrollRef.current;
+    const container = isMobile
+      ? mobileScrollRef.current
+      : desktopScrollRef.current;
     if (!container) return;
 
     const { scrollTop, scrollHeight, clientHeight } = container;
-    const isNearBottom = scrollHeight - (scrollTop + clientHeight) < 100;
 
-    if (isNearBottom) {
+    // Different thresholds for mobile/desktop
+    const threshold = isMobile ? scrollHeight * 0.25 : 100; // 25% for mobile, 100px for desktop
+    const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+
+    if (distanceFromBottom < threshold) {
       setIsLoadingMore(true);
-      setTimeout(() => {
-        setVisiblePlayersCount((prev) =>
-          Math.min(prev + 9, filteredPlayers.length)
-        );
-        setIsLoadingMore(false);
-      }, 300);
+      setTimeout(
+        () => {
+          setVisiblePlayersCount((prev) =>
+            Math.min(prev + (isMobile ? 6 : 9), filteredPlayers.length)
+          );
+          setIsLoadingMore(false);
+        },
+        isMobile ? 200 : 300
+      );
     }
-  }, [isLoadingMore, visiblePlayers.length, filteredPlayers.length]);
+  }, [isLoadingMore, visiblePlayers.length, filteredPlayers.length, isMobile]);
+
+  useEffect(() => {
+    const container = isMobile
+      ? mobileScrollRef.current
+      : desktopScrollRef.current;
+    if (container) {
+      console.log("scroll container dimensions:", {
+        scrollHeight: container.scrollHeight,
+        clientHeight: container.clientHeight,
+        scrollable: container.scrollHeight > container.clientHeight,
+      });
+
+      // Trigger initial check
+      setTimeout(handleScroll, 600);
+    }
+  }, [visiblePlayers]);
 
   const db = getFirestore();
   const { user } = useAuth();
@@ -239,27 +262,40 @@ export default function Pickems() {
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   };
 
-  // Your existing scroll effect
   useEffect(() => {
-    const containers: any[] = [];
-    if (desktopScrollRef.current) containers.push(desktopScrollRef.current);
-    if (mobileScrollRef.current) containers.push(mobileScrollRef.current);
+    const container = mobileScrollRef.current;
+    if (!container) return;
 
-    containers.forEach((container) => {
-      container.addEventListener("scroll", handleScroll);
-    });
-
-    return () => {
-      containers.forEach((container) => {
-        container.removeEventListener("scroll", handleScroll);
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      console.log("Scroll position:", {
+        scrollTop,
+        scrollHeight,
+        clientHeight,
+        distanceFromBottom: scrollHeight - (scrollTop + clientHeight),
       });
-    };
-  }, [handleScroll]);
+      const threshold = 50;
+      const isNearBottom =
+        scrollHeight - (scrollTop + clientHeight) < threshold;
 
-  // Reset visible count when filters change
-  useEffect(() => {
-    setVisiblePlayersCount(9);
-  }, [searchTerm, costRange, selectedTeams]);
+      if (
+        isNearBottom &&
+        !isLoadingMore &&
+        visiblePlayers.length < filteredPlayers.length
+      ) {
+        setIsLoadingMore(true);
+        setTimeout(() => {
+          setVisiblePlayersCount((prev) =>
+            Math.min(prev + 9, filteredPlayers.length)
+          );
+          setIsLoadingMore(false);
+        }, 200);
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [isLoadingMore, visiblePlayers.length, filteredPlayers.length]);
 
   const handleFilter = ({
     searchTerm: newSearchTerm,
@@ -862,7 +898,7 @@ export default function Pickems() {
             <div className="overflow-hidden">
               <div
                 className={`relative ${
-                  isSlot ? "h-[90px] md:h-[110px]" : "h-[130px]"
+                  isSlot ? "h-[90px] md:h-[110px]" : "h-[90px]"
                 } border-2 bg-gradient-to-b from-orange-500 to-yellow-500 [clip-path:polygon(0_0,_100%_0,_100%_87%,_50%_100%,_0_87%)] border-blue-600/80`}
               >
                 {player?.pictureLoading ? (
@@ -871,8 +907,8 @@ export default function Pickems() {
                   </div>
                 ) : (
                   <>
-                    <div className="pointer-events-none absolute -translate-x-1/4 left-0 top-5 -z-10 text-center text-4xl font-extrabold tracking-tighter text-white uppercase italic opacity-40 mix-blend-overlay">
-                      <div className="whitespace-break-spaces">
+                    <div className="pointer-events-none absolute -translate-x-1/4 left-0 top-5 -z-10 text-center text-2xl md:text-4xl font-extrabold tracking-tighter text-white uppercase italic opacity-40 mix-blend-overlay">
+                      <div className="whitespace-break-spaces ">
                         {player?.Player || "PLAYER"}
                       </div>
                     </div>
@@ -892,7 +928,7 @@ export default function Pickems() {
             </div>
 
             {/* Action Button */}
-            <div className="absolute start-1/2 bottom-0 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-2xl bg-gradient-to-b from-orange-500 to-yellow-500 text-2xl/none font-extrabold tracking-tighter text-white">
+            <div className="absolute start-1/2 bottom-0 flex md:h-8 md:w-8 h-6 w-6 -translate-x-1/2 items-center justify-center rounded-2xl bg-gradient-to-b from-orange-500 to-yellow-500 text-2xl/none font-extrabold tracking-tighter text-white">
               {isSlot ? (
                 <IoMdClose className="text-white" />
               ) : isSelected ? (
@@ -904,10 +940,10 @@ export default function Pickems() {
           </div>
 
           {/* Player Name */}
-          <div className="pt-1 pb-1 text-center text-white px-2 pointer-events-none">
+          <div className="pt-1 pb-1 text-center text-white md:px-2 pointer-events-none">
             <h2
               className={`${
-                isSlot ? "text-[12px] md:text-[14px]" : "text-[12px]"
+                isSlot ? "text-[10px] md:text-[14px]" : "text-[10px]"
               } font-bold tracking-tight whitespace-nowrap overflow-hidden text-ellipsis`}
             >
               {player?.Player || "Empty Slot"}
@@ -1127,7 +1163,7 @@ export default function Pickems() {
       <AnimatePresence>
         {isDrawerOpen && (
           <motion.div
-            className="fixed md:hidden top-36 -mt-3 border-t-2 border-white/20 left-0 right-0 z-30 bg-[#0a0a0a] shadow-xl"
+            className="fixed md:hidden top-28 -mt-3 border-t-2 border-white/20 left-0 right-0 z-30 bg-[#0a0a0a] shadow-xl"
             style={{ height: "80vh" }}
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
@@ -1162,8 +1198,13 @@ export default function Pickems() {
               </div>
 
               <div
-                className="flex-1 overflow-y-scroll px-3"
+                className="flex-1 overflow-y-auto px-3 touch-pan-y" // Added touch-pan-y
                 ref={mobileScrollRef}
+                style={{
+                  overflowY: "auto",
+                  WebkitOverflowScrolling: "touch",
+                  overscrollBehavior: "contain",
+                }}
               >
                 <motion.div
                   className="py-4 grid grid-cols-2 gap-3 text-center"
