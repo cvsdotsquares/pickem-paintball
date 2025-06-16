@@ -106,7 +106,6 @@ export default function Leaderboard() {
       const storageRef = ref(storage, storagePath);
       return await getDownloadURL(storageRef);
     } catch (error) {
-      console.error("Error fetching profile picture:", error);
       return null;
     }
   };
@@ -261,50 +260,49 @@ export default function Leaderboard() {
   );
 
   return (
-    <div className="p-4 min-h-screen mt-10 overflow-scroll bg-black text-white">
+    <div className="p-2 sm:p-4 my-16 min-h-screen overflow-auto bg-black text-white">
       {/* Event Header */}
-      <div className="mb-6 text-center">
-        <h1 className="text-3xl font-bold mb-2">{liveEvent.name}</h1>
-
-        <p>Event Leaderboard</p>
+      <div className="mb-4 text-center">
+        <h1 className="text-xl sm:text-2xl font-bold mb-1">{liveEvent.name}</h1>
+        <p className="text-sm sm:text-base">Event Leaderboard</p>
       </div>
 
       {/* Current User Card (sticky on mobile) */}
       {currentUserData && (
-        <div className="sticky top-2 z-10 mb-6 bg-gray-800/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-gray-700">
+        <div className="sticky top-0 z-10 mb-4 bg-gray-800/80 backdrop-blur-sm rounded-lg p-2 sm:p-3 shadow border border-gray-700">
           <div className="flex items-center">
             <div className="relative">
               {currentUserData.profilePicture ? (
                 <img
                   src={currentUserData.profilePicture}
                   alt="Profile"
-                  className="w-16 h-16 rounded-full object-cover border-2 border-yellow-400"
+                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-yellow-400"
                 />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center border-2 border-yellow-400">
-                  <FaUser className="text-2xl text-gray-400" />
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-700 flex items-center justify-center border-2 border-yellow-400">
+                  <FaUser className="text-xl text-gray-400" />
                 </div>
               )}
               {currentUserRank && (
-                <div className="absolute -top-2 -right-2 bg-yellow-500 text-black w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">
+                <div className="absolute -top-1 -right-1 bg-yellow-500 text-black w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs">
                   #{currentUserRank}
                 </div>
               )}
             </div>
-            <div className="ml-4">
-              <h3 className="font-bold text-lg flex items-center">
+            <div className="ml-3">
+              <h3 className="font-bold text-sm sm:text-base flex items-center">
                 {currentUserData.displayName}
-                <span className="ml-2 text-sm bg-blue-600 px-2 py-0.5 rounded">
+                <span className="ml-1 text-xs bg-blue-600 px-1.5 py-0.5 rounded">
                   You
                 </span>
               </h3>
-              <div className="flex items-center mt-1">
-                <FaTrophy className="text-yellow-400 mr-1" />
-                <span className="font-medium">
-                  {currentUserData.totalPoints} points
+              <div className="flex items-center mt-0.5">
+                <FaTrophy className="text-yellow-400 mr-1 text-sm" />
+                <span className="font-medium text-sm">
+                  {currentUserData.totalPoints} kills
                 </span>
               </div>
-              <p className="text-sm text-gray-400">
+              <p className="text-xs text-gray-400">
                 MVP: {currentUserData.mvp}
               </p>
             </div>
@@ -313,37 +311,79 @@ export default function Leaderboard() {
       )}
 
       {/* Search Bar */}
-      <div className="relative mb-6">
+      <div className="relative mb-4">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <FaSearch className="text-gray-400" />
+          <FaSearch className="text-gray-400 text-sm" />
         </div>
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search players..."
-          className="w-full pl-10 pr-4 py-3 bg-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+          className="w-full pl-9 pr-3 py-2 text-sm bg-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-white"
         />
       </div>
+      {/* Pagination */}
+      {filteredUsers.length > 0 && (
+        <div className="flex flex-row items-center justify-between my-4 gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-300">Rows:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="bg-gray-800 text-white text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              {PAGE_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-row items-center gap-2">
+            <span className="text-xs text-gray-300">
+              {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors"
+            >
+              Prev
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Leaderboard Table */}
-      <div className="overflow-x-auto rounded-xl shadow-lg bg-gray-800/50 backdrop-blur-sm">
+      <div className="overflow-x-auto rounded-lg shadow bg-gray-800/50 backdrop-blur-sm">
         <table className="w-full">
           <thead>
             <tr className="bg-gray-700/80">
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider sticky left-0 z-20">
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider sticky left-0 z-20">
                 Rank
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                 Player
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                Points
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Pts
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
                 MVP
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                 Details
               </th>
             </tr>
@@ -360,48 +400,48 @@ export default function Leaderboard() {
                     }`}
                     onClick={() => toggleExpand(user.id)}
                   >
-                    <td className="px-4 py-3 whitespace-nowrap text-white sticky left-0 z-10 bg-inherit">
+                    <td className="px-2 py-2 whitespace-nowrap text-sm sticky left-0 z-10 bg-inherit">
                       <div className="flex items-center">
                         <span className="font-medium">
                           {index + 1 + (page - 1) * pageSize}
                         </span>
                         {currentUserId === user.id && (
-                          <span className="ml-2 text-xs bg-blue-600 px-1.5 py-0.5 rounded">
+                          <span className="ml-1 text-xs bg-blue-600 px-1 py-0.5 rounded">
                             YOU
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="px-2 py-2 whitespace-nowrap">
                       <div className="flex items-center">
                         {user.profilePicture ? (
                           <img
                             src={user.profilePicture}
                             alt={user.displayName}
-                            className="w-10 h-10 rounded-full object-cover mr-3"
+                            className="w-8 h-8 rounded-full object-cover mr-2"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center mr-3">
-                            <FaUser className="text-gray-400" />
+                          <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center mr-2">
+                            <FaUser className="text-gray-400 text-sm" />
                           </div>
                         )}
-                        <div className="text-sm font-medium">
+                        <div className="text-xs sm:text-sm truncate max-w-[100px] sm:max-w-[150px]">
                           {user.displayName}
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                    <td className="px-2 py-2 whitespace-nowrap text-xs sm:text-sm font-medium">
                       {user.totalPoints}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
+                    <td className="px-2 py-2 whitespace-nowrap text-xs sm:text-sm text-gray-300 hidden sm:table-cell">
                       {user.mvp}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="px-2 py-2 whitespace-nowrap">
                       <button className="flex items-center justify-center w-full">
                         {expandedUserId === user.id ? (
-                          <FaChevronUp className="text-gray-400" />
+                          <FaChevronUp className="text-gray-400 text-sm" />
                         ) : (
-                          <FaChevronDown className="text-gray-400" />
+                          <FaChevronDown className="text-gray-400 text-sm" />
                         )}
                       </button>
                     </td>
@@ -417,38 +457,45 @@ export default function Leaderboard() {
                         transition={{ duration: 0.3 }}
                         className="bg-gray-800/70"
                       >
-                        <td colSpan={5} className="px-4 py-3">
-                          <div className="pb-4">
-                            <h3 className="text-sm font-medium text-white mb-3 border-b border-gray-700 pb-2">
+                        <td colSpan={5} className="px-2 py-2">
+                          <div className="pb-2">
+                            <h3 className="text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1">
                               {user.displayName}'s Team
                             </h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {user.picks.map((pick) => (
-                                <div
-                                  key={pick.id}
-                                  className="bg-gray-700/50 p-3 rounded-lg hover:bg-gray-700/70 transition-colors"
-                                >
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-white font-medium truncate">
-                                      {pick.name}
-                                    </span>
-                                    <span className="text-green-400 font-medium">
-                                      {pick.kills} kills
-                                    </span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {user.picks
+                                .sort((a, b) => {
+                                  if (b.kills !== a.kills)
+                                    return b.kills - a.kills; // Sort by kills descending
+                                  return a.name.localeCompare(b.name); // If kills equal, sort by name ascending
+                                })
+                                .map((pick) => (
+                                  <div
+                                    key={pick.id}
+                                    className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors"
+                                  >
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-white text-xs font-medium truncate">
+                                        {pick.name}
+                                      </span>
+                                      <span className="text-green-400 text-xs font-medium">
+                                        {pick.kills} kills
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between items-center mt-1 text-xs">
+                                      <span className="text-gray-400">
+                                        ${pick.cost}
+                                      </span>
+                                      <span className="text-yellow-400">
+                                        {(
+                                          (pick.kills / pick.cost) *
+                                          100
+                                        ).toFixed(1)}
+                                        %
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div className="flex justify-between items-center mt-1 text-sm">
-                                    <span className="text-gray-400">
-                                      Cost: ${pick.cost}
-                                    </span>
-                                    <span className="text-yellow-400">
-                                      {((pick.kills / pick.cost) * 100).toFixed(
-                                        1
-                                      )}{" "}
-                                      ROI
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
+                                ))}
                             </div>
                           </div>
                         </td>
@@ -459,7 +506,10 @@ export default function Leaderboard() {
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-gray-400">
+                <td
+                  colSpan={5}
+                  className="px-4 py-4 text-center text-xs text-gray-400"
+                >
                   No players found matching your search.
                 </td>
               </tr>
@@ -470,16 +520,16 @@ export default function Leaderboard() {
 
       {/* Pagination */}
       {filteredUsers.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
+        <div className="flex flex-row items-center justify-between mt-4 gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-300">Rows per page:</span>
+            <span className="text-xs text-gray-300">Rows:</span>
             <select
               value={pageSize}
               onChange={(e) => {
                 setPageSize(Number(e.target.value));
                 setPage(1);
               }}
-              className="bg-gray-800 text-white text-sm rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="bg-gray-800 text-white text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               {PAGE_SIZES.map((size) => (
                 <option key={size} value={size}>
@@ -489,62 +539,21 @@ export default function Leaderboard() {
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-300">
-              Page {page} of {totalPages}
+          <div className="flex flex-row items-center gap-2">
+            <span className="text-xs text-gray-300">
+              {page} of {totalPages}
             </span>
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-4 py-1.5 rounded-md bg-gray-800 text-white disabled:opacity-50 hover:bg-gray-700 transition-colors"
+              className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors"
             >
-              Previous
+              Prev
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="px-4 py-1.5 rounded-md bg-gray-800 text-white disabled:opacity-50 hover:bg-gray-700 transition-colors"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
-      {filteredUsers.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-300">Rows per page:</span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setPage(1); // Reset to first page when changing page size
-              }}
-              className="bg-gray-800 text-white text-sm rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              {PAGE_SIZES.map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-300">
-              Page {page} of {totalPages}
-            </span>
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-4 py-1.5 rounded-md bg-gray-800 text-white disabled:opacity-50 hover:bg-gray-700 transition-colors"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-4 py-1.5 rounded-md bg-gray-800 text-white disabled:opacity-50 hover:bg-gray-700 transition-colors"
+              className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors"
             >
               Next
             </button>
