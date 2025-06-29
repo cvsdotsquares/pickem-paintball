@@ -1,50 +1,150 @@
 "use client";
 
 import { db } from "@/src/lib/firebaseClient";
-import { collection, getDocs } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MatchupTable } from "@/src/components/Dashboard/datatable";
 import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
-import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
+import { motion, useAnimation, useScroll } from "framer-motion";
 import { Player } from "../pick-em/page";
+import Lenis from "lenis";
+import { useAuth } from "@/src/contexts/authProvider";
 
 export interface Event {
   id: string;
   name: string;
   status: string;
+  event_place: string;
+  year?: string;
+}
+// sort type definitions
+interface SortConfig {
+  key: string;
+  direction: "ascending" | "descending";
 }
 
 export default function Statistics() {
   const [rowData, setRowData] = useState<Player[]>([]);
   const [eventsList, setEventsList] = useState<Event[]>([]);
+  const [selectedYear, setSelectedYear] = useState<string>("All");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [liveEvent, setLiveEvent] = useState<Event | null>(null);
 
-  // Fetch all events from Firebase
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  const [livePicks, setLivePicks] = useState<Set<string>>(new Set());
+
+  function extractYearFromEventId(eventId: string): string {
+    const parts = eventId.split("_");
+    // Try to find a 4-digit number at the end
+    const yearPart = parts.find((part) => /^\d{4}$/.test(part));
+    return yearPart || new Date().getFullYear().toString();
+  }
+  const { user } = useAuth();
+
   useEffect(() => {
     async function fetchEvents() {
       try {
-        console.log("Fetching events list...");
         const eventsCollection = collection(db, "events");
         const querySnapshot = await getDocs(eventsCollection);
-        const events: Event[] = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          name: doc.get("name") || "Unnamed Event",
-          status: doc.get("status") || "archived",
-        }));
-        setEventsList(events);
+        const events: Event[] = querySnapshot.docs.map((doc) => {
+          const id = doc.id;
+          // Extract year from ID (assuming format xy_z_YYYY) with proper type safety
+          const yearFromId =
+            id.split("_").pop() ?? new Date().getFullYear().toString();
 
-        // Select the first live event by default, or fallback to the first event
+          return {
+            id,
+            name: doc.get("name") || "Unnamed Event",
+            status: doc.get("status") || "archived",
+            event_place: doc.get("event_place") || "0",
+            year: doc.get("year") || yearFromId,
+          };
+        });
+
+        // Group events by year with type-safe year access
+        const eventsByYear = events.reduce((acc, event) => {
+          const year = event.year ?? "Unknown"; // Using nullish coalescing
+          if (!acc[year]) {
+            acc[year] = [];
+          }
+          acc[year].push(event);
+          return acc;
+        }, {} as Record<string, Event[]>);
+
+        // Sort and flatten with proper type safety
+        const sortedEvents = Object.entries(eventsByYear)
+          .sort(([yearA], [yearB]) => {
+            const numA = parseInt(yearA) || 0;
+            const numB = parseInt(yearB) || 0;
+            return numB - numA;
+          })
+          .flatMap(([_, yearEvents]) =>
+            yearEvents.sort((a, b) => {
+              const placeA = parseInt(a.event_place ?? "0") || 0;
+              const placeB = parseInt(b.event_place ?? "0") || 0;
+              return placeB - placeA;
+            })
+          );
+
+        setEventsList(sortedEvents);
+        setLiveEvent(
+          sortedEvents.find((e) => e.status === "live") ?? sortedEvents[0]
+        );
+
+        // Set default selected event with null check
         const defaultEvent =
-          events.find((e) => e.status === "live") || events[0];
+          sortedEvents.find((e) => e.status === "live") ?? sortedEvents[0];
         if (defaultEvent) {
           setSelectedEvent(defaultEvent);
+          setSelectedYear(defaultEvent.year ?? "All");
         }
-      } catch (error: any) {
-        console.error("Error fetching events:", error.message);
+      } catch (error) {
+        console.error("Error fetching events:", error);
       }
     }
     fetchEvents();
   }, []);
+  useEffect(() => {
+    const fetchLivePicks = async () => {
+      if (!user || !liveEvent) {
+        setLivePicks(new Set());
+        return;
+      }
+
+      try {
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists() && userSnap.data().pickems?.[liveEvent?.id]) {
+          setLivePicks(new Set(userSnap.data().pickems[liveEvent.id]));
+        } else {
+          setLivePicks(new Set());
+        }
+      } catch (error) {
+        console.error("Error fetching picks:", error);
+        setLivePicks(new Set());
+      }
+    };
+
+    fetchLivePicks();
+  }, [user, selectedEvent]);
+
+  // Get unique years for filter
+  const years = useMemo(() => {
+    const uniqueYears = new Set(eventsList.map((event) => event.year));
+    return [
+      "All",
+      ...Array.from(uniqueYears).sort(
+        (a, b) => parseInt(b ? b : "1") - parseInt(a ? a : "1")
+      ),
+    ];
+  }, [eventsList]);
+
+  // Filter events by selected year
+  const filteredEvents = useMemo(() => {
+    if (selectedYear === "All") return eventsList;
+    return eventsList.filter((event) => event.year === selectedYear);
+  }, [eventsList, selectedYear]);
 
   interface LogoCardProps {
     name: string;
@@ -63,37 +163,48 @@ export default function Statistics() {
     return (
       <article
         onClick={onClick}
-        className={`flex flex-col cursor-pointer flex-1 shrink ${
+        className={`relative flex flex-col cursor-pointer ${
           isSelected ? "border-4 rounded-xl border-white" : ""
-        } justify-center self-stretch my-auto basis-0 min-h-40 min-w-30 max-w-56`}
+        }`}
+        style={{
+          width: "200px", // Fixed width
+          height: "170px", // Fixed height
+        }}
       >
-        <div className="flex relative flex-col flex-1 justify-center items-center md:px-12 py-6 rounded-lg aspect-[2.177] size-full px-5">
+        <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg">
           <img
             src={backgroundSrc}
-            alt="Logo card background"
-            className="object-cover absolute inset-0 size-full rounded-xl"
+            alt="Event card background"
+            className="absolute inset-0 w-full h-full object-cover rounded-lg"
           />
-          <div className="overflow-hidden relative  my-auto w-full ">
-            <div className="flex overflow-visible flex-col justify-center m-auto items-center w-full">
-              {name && (
-                <div
-                  className={`object-center text-center font-azonix md:text-xl text-base  text-white w-full`}
-                >
-                  {name}
-                </div>
-              )}
-              {status && (
-                <div
-                  className={`object-center mx-auto text-center font-azonix text-xs font-medium ${
-                    status === "live"
-                      ? "text-red-500 text-base"
-                      : "text-gray-300"
-                  } w-full`}
-                >
-                  {status}
-                </div>
-              )}
-            </div>
+          <div className="relative flex flex-col items-center justify-center p-4 text-white overflow-auto">
+            {name && (
+              <div
+                className="text-center font-azonix"
+                style={{
+                  fontSize: "clamp(0.8rem, 2vw, 1.5rem)", // Dynamic font size
+                  lineHeight: "1.2",
+                  overflow: "hidden", // Ensures no horizontal overflow
+                  textOverflow: "ellipsis",
+                  whiteSpace: "wrap",
+                }}
+              >
+                {name}
+              </div>
+            )}
+            {status && (
+              <div
+                className={`text-center font-azonix ${
+                  status === "live" ? "text-red-500" : "text-gray-300"
+                }`}
+                style={{
+                  fontSize: "clamp(0.5rem, 1.5vw, 1rem)", // Scales based on viewport
+                  lineHeight: "1.2",
+                }}
+              >
+                {status}
+              </div>
+            )}
           </div>
         </div>
       </article>
@@ -112,7 +223,7 @@ export default function Statistics() {
         );
         const querySnapshot = await getDocs(playersCollection);
 
-        const players: any = querySnapshot.docs.map((doc) => {
+        let players: any = querySnapshot.docs.map((doc) => {
           const { Cost, player_id, ...rest } = doc.data() as Record<
             string,
             any
@@ -155,6 +266,24 @@ export default function Statistics() {
             ...sortedRest,
           };
         });
+        // Apply sorting if sortConfig exists
+        if (sortConfig) {
+          players = [...players].sort((a, b) => {
+            const aValue = a[sortConfig.key];
+            const bValue = b[sortConfig.key];
+
+            if (typeof aValue === "number" && typeof bValue === "number") {
+              return sortConfig.direction === "ascending"
+                ? aValue - bValue
+                : bValue - aValue;
+            }
+
+            return sortConfig.direction === "ascending"
+              ? String(aValue).localeCompare(String(bValue))
+              : String(bValue).localeCompare(String(aValue));
+          });
+        }
+
         setRowData(players);
         console.log("Player data fetched successfully:", players);
       } catch (error: any) {
@@ -170,51 +299,74 @@ export default function Statistics() {
   };
 
   return (
-    <div className="relative top-4 left-0 flex flex-col w-auto overflow-y-scroll pb-20 min-h-screen font-inter">
-      <section>
-        <header className="flex relative flex-col  items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
-          {/* <img
-            src="/R.jpg"
-            alt="Statistics Center Background"
-            className="object-cover absolute inset-0 size-full"
-          /> */}
-          <div
-            className="absolute inset-0  top-0 brightness-110"
-            style={{
-              backgroundImage: "url('/stats-center.JPG')",
-              backgroundSize: "cover",
-              backgroundPosition: "0 40%",
-              backgroundRepeat: "no-repeat",
-            }}
-          />
-          <div className="absolute inset-0  shadow-black shadow-[inset_0px_4px_50px_0px_]  pointer-events-none"></div>
-          <ProgressiveBlur
-            className="pointer-events-none absolute bottom-0 left-0 h-[50%] w-full"
-            blurIntensity={1}
-          />
-          <div className="absolute inset-0  bg-black/45 pointer-events-none"></div>
-
-          <h1 className="relative font-azonix max-w-full m-auto md:text-7xl text-4xl">
-            Statistics Center
-          </h1>
-        </header>
-
-        <div className="flex flex-row overflow-y-hidden overflow-x-auto gap-4 items-center p-3 mt-4 w-full max-md:px-5 max-md:max-w-full">
-          {eventsList.map((event, index) => (
-            <EventCard
-              key={index}
-              name={event.name}
-              status={event.status}
-              onClick={() => setSelectedEvent(event)}
-              isSelected={selectedEvent?.id === event.id}
+    <div className="relative top-4 left-0 flex flex-col w-auto scroll-smooth overflow-y-scroll font-inter">
+      <div>
+        <section>
+          <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
+            <div
+              className="absolute inset-0 top-0 brightness-110"
+              style={{
+                backgroundImage: "url('/stats-center.JPG')",
+                backgroundSize: "cover",
+                backgroundPosition: "0 40%",
+                backgroundRepeat: "no-repeat",
+              }}
             />
-          ))}
-        </div>
-      </section>
+            <div className="absolute inset-0 shadow-black shadow-[inset_0px_4px_50px_0px_] pointer-events-none"></div>
+            <ProgressiveBlur
+              className="pointer-events-none absolute bottom-0 left-0 h-[50%] w-full"
+              blurIntensity={1}
+            />
+            <div className="absolute inset-0 bg-black/45 pointer-events-none"></div>
 
-      <MatchupTable data={rowData} />
+            <h1 className="relative font-azonix max-w-full m-auto md:text-7xl text-4xl">
+              Statistics Center
+            </h1>
+          </header>
 
-      {/* Pagination Controls */}
+          {/* Year Filter */}
+          <div className="flex justify-center px-4 mt-4">
+            <div className="flex flex-wrap gap-2 justify-center">
+              {years.map((year) => (
+                <button
+                  key={year}
+                  onClick={() => setSelectedYear(year ? year : "")}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                    selectedYear === year
+                      ? "bg-white text-black"
+                      : "bg-gray-800 text-white"
+                  }`}
+                >
+                  {year}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Events Carousel */}
+          <div className="flex flex-row overflow-x-auto gap-4 items-center p-4 w-full">
+            {filteredEvents.map((event, index) => (
+              <EventCard
+                key={index}
+                name={event.name}
+                status={event.status}
+                onClick={() => setSelectedEvent(event)}
+                isSelected={selectedEvent?.id === event.id}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* The table with animated sticky behavior */}
+        <motion.section className="  flex flex-col items-center overflow-y-hidden justify-center ">
+          <MatchupTable
+            data={rowData}
+            sortConfig={sortConfig}
+            onSortChange={setSortConfig}
+            myPicks={livePicks}
+          />
+        </motion.section>
+      </div>
     </div>
   );
 }
