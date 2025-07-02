@@ -163,13 +163,9 @@ export default function Statistics() {
     return (
       <article
         onClick={onClick}
-        className={`relative flex flex-col cursor-pointer ${
+        className={`relative flex flex-col cursor-pointer  md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${
           isSelected ? "border-4 rounded-xl border-white" : ""
         }`}
-        style={{
-          width: "200px", // Fixed width
-          height: "170px", // Fixed height
-        }}
       >
         <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg">
           <img
@@ -358,7 +354,7 @@ export default function Statistics() {
         </section>
 
         {/* The table with animated sticky behavior */}
-        <motion.section className="  flex flex-col items-center overflow-y-hidden justify-center ">
+        <motion.section className="  flex flex-col items-center md:overflow-y-hidden justify-center ">
           <MatchupTable
             data={rowData}
             sortConfig={sortConfig}

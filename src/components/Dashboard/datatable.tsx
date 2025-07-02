@@ -8,6 +8,7 @@ import {
   FaSun,
   FaAngleDoubleRight,
   FaAngleDoubleLeft,
+  FaTimes,
 } from "react-icons/fa";
 import {
   FaAngleLeft,
@@ -146,8 +147,8 @@ const DiamondScore: React.FC<{
   else color = "#e6a443"; // Yellow/orange for mid-range
 
   return (
-    <div className="relative h-8 w-8 flex items-center justify-center">
-      <svg viewBox="0 0 30 32" className="absolute h-8 w-8">
+    <div className="relative h-6 w-6 flex items-center justify-center">
+      <svg viewBox="0 0 30 32" className="absolute h-6 w-6">
         <path
           d="M17.6417 1.1892L26.8682 6.37754C28.501 7.29572 29.5 8.98777 29.5 10.8117V21.1883C29.5 23.0122 28.501 24.7043 26.8682 25.6225L17.6417 30.8108C16.0075 31.7297 13.9925 31.7297 12.3583 30.8108L3.13183 25.6225C1.49903 24.7043 0.5 23.0122 0.5 21.1883V10.8117C0.5 8.98777 1.49903 7.29572 3.13183 6.37754L12.3583 1.1892C13.9925 0.270267 16.0075 0.270267 17.6417 1.1892Z"
           fill={inverted ? "#000" : "#fff"}
@@ -520,68 +521,208 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
         displayKey: header,
       }));
   }, [data]);
+  function MobileFilterUI({
+    teams,
+    selectedTeam,
+    onTeamChange,
+    darkMode,
+    toggleDarkMode,
+    showOnlyMyPicks,
+    toggleMyPicks,
+    myPicksAvailable,
+  }: {
+    teams: string[];
+    selectedTeam: string;
+    onTeamChange: (team: string) => void;
+    darkMode: boolean;
+    toggleDarkMode: () => void;
+    showOnlyMyPicks: boolean;
+    toggleMyPicks: () => void;
+    myPicksAvailable: boolean;
+  }) {
+    const [isOpen, setIsOpen] = useState(false);
+
+    return (
+      <div className="md:hidden relative">
+        {/* Mobile Filter Button */}
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center justify-center p-[2px] px-2 rounded-md bg-gray-700 text-white"
+        >
+          <FaFilter className="mr-1 text-[8px]" />
+          Filters
+        </button>
+
+        {/* Mobile Filter Dropdown */}
+        {isOpen && (
+          <div className="absolute right-0 mt-2 w-64 bg-gray-800 rounded-lg shadow-lg z-50 p-2">
+            {/* Close Button */}
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            {/* Team Filter */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-white mb-1">
+                Team
+              </label>
+              <div className="relative">
+                <select
+                  value={selectedTeam}
+                  onChange={(e) => {
+                    onTeamChange(e.target.value);
+                    setIsOpen(false);
+                  }}
+                  className="w-full p-2 bg-gray-700 text-white rounded-md truncate"
+                >
+                  <option value="All">All Teams</option>
+                  {teams.map((team) => (
+                    <option
+                      key={team}
+                      value={team}
+                      className="truncate"
+                      title={team}
+                    >
+                      {team.length > 20 ? `${team.substring(0, 17)}...` : team}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* My Picks Toggle */}
+            <div className="flex items-center justify-between mb-4">
+              <label className="flex items-center text-sm font-medium text-white">
+                <FaUserCheck className="mr-2" />
+                My Picks Only
+              </label>
+              <button
+                onClick={toggleMyPicks}
+                disabled={!myPicksAvailable}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                  showOnlyMyPicks ? "bg-blue-600" : "bg-gray-600"
+                } ${!myPicksAvailable ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    showOnlyMyPicks ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Dark Mode Toggle */}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center text-sm font-medium text-white">
+                {darkMode ? (
+                  <FaSun className="mr-2" />
+                ) : (
+                  <FaMoon className="mr-2" />
+                )}
+                {darkMode ? "Light Mode" : "Dark Mode"}
+              </label>
+              <button
+                onClick={toggleDarkMode}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                  darkMode ? "bg-gray-600" : "bg-gray-400"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    darkMode ? "translate-x-1" : "translate-x-6"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
-      className={`sticky top-10 h-[80vh] md:h-[100vh] overflow-visible w-full items-center justify-center mx-auto px-4 `}
+      className={`sticky top-0 md:top-10 h-[80vh] md:h-[100vh] overflow-visible w-full items-center justify-center mx-auto px-4 `}
     >
       {/* Compact Filters */}
       <div
-        className={`flex flex-wrap items-center justify-between gap-2 p-2 ${themeClasses.bg} rounded-lg mb-2 shadow-sm ${themeClasses.border} border`}
+        className={`flex flex-row items-center justify-between gap-2 p-2 ${themeClasses.bg} rounded-lg mb-2 shadow-sm ${themeClasses.border} border`}
       >
-        <div className="flex flex-row gap-5">
-          {/* Theme Toggle */}
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className={`p-1.5 rounded-md ${themeClasses.button} flex items-center justify-center`}
-            aria-label="Toggle theme"
-          >
-            {darkMode ? <FaSun size={12} /> : <FaMoon size={12} />}
-          </button>
-          {/* Search Input */}
-          <div className={`relative flex-1 min-w-[150px] max-w-[250px]`}>
-            <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-              <FaSearch
-                className={darkMode ? "text-gray-400" : "text-gray-500"}
-                size={12}
+        <div className="flex flex-col md:justify-between justify-center items-center m-auto md:flex-row gap-3 md:gap-40">
+          <div className="flex flex-row gap-5 items-center justify-between md:justify-start m-auto">
+            {/* Theme Toggle */}
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`p-1.5 rounded-md ${themeClasses.button} hidden md:flex items-center justify-center`}
+              aria-label="Toggle theme"
+            >
+              {darkMode ? <FaSun size={12} /> : <FaMoon size={12} />}
+            </button>
+            {/* Search Input */}
+            <div className="flex flex-row gap-4 w-full">
+              <div className={`relative flex-1 min-w-[100px] max-w-[200px]`}>
+                <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                  <FaSearch
+                    className={darkMode ? "text-gray-400" : "text-gray-500"}
+                    size={12}
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className={`pl-6 pr-2 py-1.5 text-[10px] w-full rounded-md ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} border focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <MobileFilterUI
+                teams={teams}
+                selectedTeam={selectedTeam}
+                onTeamChange={setSelectedTeam}
+                darkMode={darkMode}
+                toggleDarkMode={() => setDarkMode(!darkMode)}
+                showOnlyMyPicks={showOnlyMyPicks}
+                toggleMyPicks={() => setShowOnlyMyPicks(!showOnlyMyPicks)}
+                myPicksAvailable={!!myPicks && myPicks.size > 0}
               />
             </div>
-            <input
-              type="text"
-              placeholder="Search..."
-              className={`pl-8 pr-2 py-1.5 text-[10px] w-full rounded-md ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} border focus:outline-none focus:ring-1 focus:ring-blue-500`}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          {/* Team Filter */}
-          <div className="flex items-center gap-1 text-[12px]">
-            <span className={`whitespace-nowrap ${themeClasses.text}`}>
-              Team:
-            </span>
-            <select
-              className={`px-2 py-1.5 text-[10px] rounded-md shadow-sm ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} border focus:outline-none focus:ring-1 focus:ring-blue-500`}
-              value={selectedTeam}
-              onChange={(e) => setSelectedTeam(e.target.value)}
-            >
-              {teams.map((team) => (
-                <option
-                  key={team}
-                  value={team}
-                  className={`${themeClasses.bg} ${themeClasses.text}`}
+            {/* Team Filter */}
+            <div className="hidden md:flex items-center gap-1 text-[10px]">
+              <span className={`whitespace-nowrap ${themeClasses.text}`}>
+                Team:
+              </span>
+              <div className="relative w-[60px]">
+                {""}
+                {/* Fixed width container */}
+                <select
+                  className={`w-full px-1 py-1.5 text-[10px] rounded-md shadow-sm ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} border truncate`}
+                  value={selectedTeam}
+                  onChange={(e) => setSelectedTeam(e.target.value)}
                 >
-                  {team}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-1 text-[12px]">
-            <button
-              onClick={() => setShowOnlyMyPicks(!showOnlyMyPicks)}
-              disabled={!myPicks || myPicks.size === 0}
-              className={`
-    px-2 py-1.5 rounded-md text-[10px] flex items-center gap-1
+                  {teams.map((team) => (
+                    <option
+                      key={team}
+                      value={team}
+                      className={`${themeClasses.bg} ${themeClasses.text} truncate`}
+                      title={team} // Show full team name on hover
+                    >
+                      {team.length > 12 ? `${team.substring(0, 10)}...` : team}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="hidden md:flex items-center gap-1 flex-row text-[10px] ">
+              <button
+                onClick={() => setShowOnlyMyPicks(!showOnlyMyPicks)}
+                disabled={!myPicks || myPicks.size === 0}
+                className={`
+    px-2 py-1.5 rounded-md text-[10px] flex items-center text-nowrap gap-1
     ${themeClasses.bg} ${themeClasses.border} border
     ${
       showOnlyMyPicks
@@ -590,55 +731,81 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     }
     ${!myPicks || myPicks.size === 0 ? "opacity-50 cursor-not-allowed" : ""}
   `}
-              title={
-                !myPicks || myPicks.size === 0
-                  ? "You haven't made any picks for this event"
-                  : showOnlyMyPicks
-                  ? "Show all players"
-                  : "Show only my picks"
-              }
-            >
-              <FaUserCheck size={10} />
-              <span>My Picks</span>
-            </button>
+                title={
+                  !myPicks || myPicks.size === 0
+                    ? "You haven't made any picks for this event"
+                    : showOnlyMyPicks
+                    ? "Show all players"
+                    : "Show only my picks"
+                }
+              >
+                <FaUserCheck size={10} />
+                <span>My Picks</span>
+              </button>
+            </div>
           </div>
-        </div>
-        <div className="flex flex-row gap-5">
+
           {/* Rows Per Page */}
-          <div className="flex items-center gap-1 text-[12px]">
-            <span className={`whitespace-nowrap ${themeClasses.text}`}>
-              Rows:
-            </span>
-            <select
-              value={rowsPerPage}
-              onChange={handleRowsPerPageChange}
-              className={`px-2 py-1.5 text-[12px] rounded-md ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} border focus:outline-none focus:ring-1 focus:ring-blue-500`}
-            >
-              {[20, 40, 80, 100].map((size) => (
-                <option
-                  key={size}
-                  value={size}
-                  className={`${themeClasses.bg} ${themeClasses.text}`}
+          <div className="flex flex-row gap-3 m-auto flex-grow md:justify-end justify-center">
+            <div className="flex items-center gap-1 text-[12px]">
+              <span className={`whitespace-nowrap ${themeClasses.text}`}>
+                Rows:
+              </span>
+              <select
+                value={rowsPerPage}
+                onChange={handleRowsPerPageChange}
+                className={`px-1 py-1.5 text-[12px] rounded-md ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} border focus:outline-none focus:ring-1 focus:ring-blue-500`}
+              >
+                {[20, 40, 80, 100].map((size) => (
+                  <option
+                    key={size}
+                    value={size}
+                    className={`${themeClasses.bg} ${themeClasses.text}`}
+                  >
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center gap-1 text-[12px]">
+              <div
+                className={`flex justify-center items-stretch gap-2 ${
+                  darkMode ? "text-[rgba(255,255,255,0.66)]" : "text-gray-700"
+                }`}
+              >
+                {/* First Page Button */}
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => goToPage(1)}
+                  className={`
+        flex items-center justify-center p-1 rounded
+        ${
+          darkMode
+            ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
+            : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
+        }
+        disabled:opacity-50 disabled:cursor-not-allowed
+        focus:outline-none focus:ring-1
+        transition-colors duration-200
+        h-6 w-6
+      `}
                 >
-                  {size}
-                </option>
-              ))}
-            </select>
-          </div>
+                  <FaAngleDoubleLeft
+                    className={`${
+                      darkMode ? "text-current" : "text-gray-700"
+                    } w-3 h-3`}
+                  />
+                </button>
 
-          {/* Pagination Controls */}
-          <div className="flex items-center gap-1 text-[12px]">
-            <div
-              className={`flex justify-center items-stretch gap-2 ${
-                darkMode ? "text-[rgba(255,255,255,0.66)]" : "text-gray-700"
-              }`}
-            >
-              {/* First Page Button */}
-              <button
-                type="button"
-                disabled={currentPage === 1}
-                onClick={() => goToPage(1)}
-                className={`
+                {/* Previous Page Button */}
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => goToPage(currentPage - 1)}
+                  className={`
         flex items-center justify-center p-1 rounded
         ${
           darkMode
@@ -648,70 +815,45 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
         disabled:opacity-50 disabled:cursor-not-allowed
         focus:outline-none focus:ring-1
         transition-colors duration-200
-        h-8 w-8
+        h-6 w-6
       `}
-              >
-                <FaAngleDoubleLeft
-                  className={`${
-                    darkMode ? "text-current" : "text-gray-700"
-                  } w-3 h-3`}
-                />
-              </button>
+                >
+                  <FaAngleLeft
+                    className={`${
+                      darkMode ? "text-current" : "text-gray-700"
+                    } w-2.5 h-3`}
+                  />
+                </button>
 
-              {/* Previous Page Button */}
-              <button
-                type="button"
-                disabled={currentPage === 1}
-                onClick={() => goToPage(currentPage - 1)}
-                className={`
-        flex items-center justify-center p-1 rounded
-        ${
-          darkMode
-            ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
-            : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
-        }
-        disabled:opacity-50 disabled:cursor-not-allowed
-        focus:outline-none focus:ring-1
-        transition-colors duration-200
-        h-8 w-8
-      `}
-              >
-                <FaAngleLeft
-                  className={`${
-                    darkMode ? "text-current" : "text-gray-700"
-                  } w-2.5 h-3`}
-                />
-              </button>
-
-              {/* Page Input */}
-              <div className="flex items-center gap-1">
-                <input
-                  min="1"
-                  max={totalPages || 1}
-                  type="number"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={currentPageInput}
-                  onChange={(e) => setCurrentPageInput(e.target.value)}
-                  onBlur={(e) => {
-                    let page = parseInt(e.target.value);
-                    if (isNaN(page) || page < 1) page = 1;
-                    if (page > totalPages) page = totalPages;
-                    goToPage(page);
-                    setCurrentPageInput(page.toString());
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      let page = parseInt(currentPageInput);
+                {/* Page Input */}
+                <div className="flex items-center gap-1">
+                  <input
+                    min="1"
+                    max={totalPages || 1}
+                    type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={currentPageInput}
+                    onChange={(e) => setCurrentPageInput(e.target.value)}
+                    onBlur={(e) => {
+                      let page = parseInt(e.target.value);
                       if (isNaN(page) || page < 1) page = 1;
                       if (page > totalPages) page = totalPages;
                       goToPage(page);
                       setCurrentPageInput(page.toString());
-                      e.currentTarget.blur();
-                    }
-                  }}
-                  className={`
-          w-12 h-8 px-1 py-0.5 text-center rounded text-[12px]
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        let page = parseInt(currentPageInput);
+                        if (isNaN(page) || page < 1) page = 1;
+                        if (page > totalPages) page = totalPages;
+                        goToPage(page);
+                        setCurrentPageInput(page.toString());
+                        e.currentTarget.blur();
+                      }
+                    }}
+                    className={`
+          w-12 h-6 px-1 py-0.5 text-center rounded text-[12px]
           ${
             darkMode
               ? "bg-[rgba(255,255,255,0.07)] text-white border-[rgba(255,255,255,0.17)] focus:ring-[rgba(255,255,255,0.17)]"
@@ -721,65 +863,68 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
           [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none 
           [&::-webkit-inner-spin-button]:appearance-none
         `}
-                />
-                <span
-                  className={`${
-                    darkMode ? "text-[rgba(255,255,255,0.66)]" : "text-gray-600"
-                  } text-[12px]`}
+                  />
+                  <span
+                    className={`${
+                      darkMode
+                        ? "text-[rgba(255,255,255,0.66)]"
+                        : "text-gray-600"
+                    } text-[12px]`}
+                  >
+                    of {totalPages}
+                  </span>
+                </div>
+
+                {/* Next Page Button */}
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages}
+                  onClick={() => goToPage(currentPage + 1)}
+                  className={`
+        flex items-center justify-center p-1 rounded
+        ${
+          darkMode
+            ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
+            : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
+        }
+        disabled:opacity-50 disabled:cursor-not-allowed
+        focus:outline-none focus:ring-1
+        transition-colors duration-200
+        h-6 w-6
+      `}
                 >
-                  of {totalPages}
-                </span>
+                  <FaAngleRight
+                    className={`${
+                      darkMode ? "text-current" : "text-gray-700"
+                    } w-2.5 h-3`}
+                  />
+                </button>
+
+                {/* Last Page Button */}
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages}
+                  onClick={() => goToPage(totalPages)}
+                  className={`
+        flex items-center justify-center p-1 rounded
+        ${
+          darkMode
+            ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
+            : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
+        }
+        disabled:opacity-50 disabled:cursor-not-allowed
+        focus:outline-none focus:ring-1
+        transition-colors duration-200
+        h-6 w-6
+      `}
+                >
+                  <FaAngleDoubleRight
+                    className={`${
+                      darkMode ? "text-current" : "text-gray-700"
+                    } w-3 h-3`}
+                  />
+                </button>
               </div>
-
-              {/* Next Page Button */}
-              <button
-                type="button"
-                disabled={currentPage === totalPages}
-                onClick={() => goToPage(currentPage + 1)}
-                className={`
-        flex items-center justify-center p-1 rounded
-        ${
-          darkMode
-            ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
-            : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
-        }
-        disabled:opacity-50 disabled:cursor-not-allowed
-        focus:outline-none focus:ring-1
-        transition-colors duration-200
-        h-8 w-8
-      `}
-              >
-                <FaAngleRight
-                  className={`${
-                    darkMode ? "text-current" : "text-gray-700"
-                  } w-2.5 h-3`}
-                />
-              </button>
-
-              {/* Last Page Button */}
-              <button
-                type="button"
-                disabled={currentPage === totalPages}
-                onClick={() => goToPage(totalPages)}
-                className={`
-        flex items-center justify-center p-1 rounded
-        ${
-          darkMode
-            ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
-            : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
-        }
-        disabled:opacity-50 disabled:cursor-not-allowed
-        focus:outline-none focus:ring-1
-        transition-colors duration-200
-        h-8 w-8
-      `}
-              >
-                <FaAngleDoubleRight
-                  className={`${
-                    darkMode ? "text-current" : "text-gray-700"
-                  } w-3 h-3`}
-                />
-              </button>
             </div>
           </div>
         </div>
@@ -787,7 +932,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
 
       {/* Table Container */}
       <div
-        className={`flex overflow-scroll h-[100vh] md:h-[80vh]  ${themeClasses.card} rounded-lg shadow-[0_0_0_0.3px_#fff]`}
+        className={`flex overflow-scroll h-[80vh]  ${themeClasses.card} rounded-lg shadow-[0_0_0_0.3px_#fff]`}
       >
         <table className="w-full relative">
           <thead>
@@ -995,186 +1140,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
           </tbody>
         </table>
       </div>
-      <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 gap-4">
-        {/* Rows Per Page */}
-        <div className="flex items-center gap-1 text-[12px]">
-          <span className={`whitespace-nowrap ${themeClasses.text}`}>
-            Rows per page:
-          </span>
-          <select
-            value={rowsPerPage}
-            onChange={handleRowsPerPageChange}
-            className={`px-2 py-1.5 text-[12px] rounded-md ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} border focus:outline-none focus:ring-1 focus:ring-blue-500`}
-          >
-            {[20, 40, 80, 100].map((size) => (
-              <option
-                key={size}
-                value={size}
-                className={`${themeClasses.bg} ${themeClasses.text}`}
-              >
-                {size}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Pagination Controls */}
-        <div className="flex items-center gap-1 text-[12px]">
-          <div
-            className={`flex justify-center items-stretch gap-2 ${
-              darkMode ? "text-[rgba(255,255,255,0.66)]" : "text-gray-700"
-            }`}
-          >
-            {/* First Page Button */}
-            <button
-              type="button"
-              disabled={currentPage === 1}
-              onClick={() => goToPage(1)}
-              className={`
-        flex items-center justify-center p-1 rounded
-        ${
-          darkMode
-            ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
-            : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
-        }
-        disabled:opacity-50 disabled:cursor-not-allowed
-        focus:outline-none focus:ring-1
-        transition-colors duration-200
-        h-8 w-8
-      `}
-            >
-              <FaAngleDoubleLeft
-                className={`${
-                  darkMode ? "text-current" : "text-gray-700"
-                } w-3 h-3`}
-              />
-            </button>
-
-            {/* Previous Page Button */}
-            <button
-              type="button"
-              disabled={currentPage === 1}
-              onClick={() => goToPage(currentPage - 1)}
-              className={`
-        flex items-center justify-center p-1 rounded
-        ${
-          darkMode
-            ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
-            : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
-        }
-        disabled:opacity-50 disabled:cursor-not-allowed
-        focus:outline-none focus:ring-1
-        transition-colors duration-200
-        h-8 w-8
-      `}
-            >
-              <FaAngleLeft
-                className={`${
-                  darkMode ? "text-current" : "text-gray-700"
-                } w-2.5 h-3`}
-              />
-            </button>
-
-            {/* Page Input */}
-            <div className="flex items-center gap-1">
-              <input
-                min="1"
-                max={totalPages || 1}
-                type="number"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={currentPageInput}
-                onChange={(e) => setCurrentPageInput(e.target.value)}
-                onBlur={(e) => {
-                  let page = parseInt(e.target.value);
-                  if (isNaN(page) || page < 1) page = 1;
-                  if (page > totalPages) page = totalPages;
-                  goToPage(page);
-                  setCurrentPageInput(page.toString());
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    let page = parseInt(currentPageInput);
-                    if (isNaN(page) || page < 1) page = 1;
-                    if (page > totalPages) page = totalPages;
-                    goToPage(page);
-                    setCurrentPageInput(page.toString());
-                    e.currentTarget.blur();
-                  }
-                }}
-                className={`
-          w-12 h-8 px-1 py-0.5 text-center rounded text-[12px]
-          ${
-            darkMode
-              ? "bg-[rgba(255,255,255,0.07)] text-white border-[rgba(255,255,255,0.17)] focus:ring-[rgba(255,255,255,0.17)]"
-              : "bg-gray-100 text-gray-800 border-gray-300 focus:ring-gray-400"
-          }
-          border focus:outline-none focus:ring-1
-          [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none 
-          [&::-webkit-inner-spin-button]:appearance-none
-        `}
-              />
-              <span
-                className={`${
-                  darkMode ? "text-[rgba(255,255,255,0.66)]" : "text-gray-600"
-                } text-[12px]`}
-              >
-                of {totalPages}
-              </span>
-            </div>
-
-            {/* Next Page Button */}
-            <button
-              type="button"
-              disabled={currentPage === totalPages}
-              onClick={() => goToPage(currentPage + 1)}
-              className={`
-        flex items-center justify-center p-1 rounded
-        ${
-          darkMode
-            ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
-            : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
-        }
-        disabled:opacity-50 disabled:cursor-not-allowed
-        focus:outline-none focus:ring-1
-        transition-colors duration-200
-        h-8 w-8
-      `}
-            >
-              <FaAngleRight
-                className={`${
-                  darkMode ? "text-current" : "text-gray-700"
-                } w-2.5 h-3`}
-              />
-            </button>
-
-            {/* Last Page Button */}
-            <button
-              type="button"
-              disabled={currentPage === totalPages}
-              onClick={() => goToPage(totalPages)}
-              className={`
-        flex items-center justify-center p-1 rounded
-        ${
-          darkMode
-            ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
-            : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
-        }
-        disabled:opacity-50 disabled:cursor-not-allowed
-        focus:outline-none focus:ring-1
-        transition-colors duration-200
-        h-8 w-8
-      `}
-            >
-              <FaAngleDoubleRight
-                className={`${
-                  darkMode ? "text-current" : "text-gray-700"
-                } w-3 h-3`}
-              />
-            </button>
-          </div>
-        </div>
-      </div>
+      <div className="h-28" />
     </div>
   );
 };
