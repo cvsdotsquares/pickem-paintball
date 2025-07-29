@@ -27,7 +27,7 @@ const ScrollIndicator = () => {
 export const HeroSection = () => {
   const router = useRouter();
   const handleGoToApp = () => {
-    router.push("/dashboard");
+    router.push("/register");
   };
 
   return (

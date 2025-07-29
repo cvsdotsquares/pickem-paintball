@@ -2,12 +2,11 @@
 
 import { db } from "@/src/lib/firebaseClient";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo,  useState } from "react";
 import { MatchupTable } from "@/src/components/Dashboard/datatable";
 import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
-import { motion, useAnimation, useScroll } from "framer-motion";
+import { motion } from "framer-motion";
 import { Player } from "../pick-em/page";
-import Lenis from "lenis";
 import { useAuth } from "@/src/contexts/authProvider";
 
 export interface Event {
@@ -33,14 +32,9 @@ export default function Statistics() {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
   const [livePicks, setLivePicks] = useState<Set<string>>(new Set());
 
-  function extractYearFromEventId(eventId: string): string {
-    const parts = eventId.split("_");
-    // Try to find a 4-digit number at the end
-    const yearPart = parts.find((part) => /^\d{4}$/.test(part));
-    return yearPart || new Date().getFullYear().toString();
-  }
-  const { user } = useAuth();
 
+  const { user } = useAuth();
+// Fetch events and set initial state
   useEffect(() => {
     async function fetchEvents() {
       try {

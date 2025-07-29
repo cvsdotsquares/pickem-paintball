@@ -33,7 +33,8 @@ import {
 } from "firebase/firestore";
 import { db } from "@/src/lib/firebaseClient";
 import Button from "@/src/components/ui/button";
-import { FaGoogle } from "react-icons/fa6";
+import { FaGoogle, FaEye, FaEyeSlash } from "react-icons/fa6";
+import Image from "next/image";
 
 const RegisterPage: React.FC = () => {
   const router = useRouter();
@@ -55,6 +56,7 @@ const RegisterPage: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   // Add this near your other regex declarations
@@ -119,7 +121,7 @@ const RegisterPage: React.FC = () => {
         const downloadURL = await uploadProfilePicture(file);
         setProfilePictureUrl(downloadURL);
       } catch (err) {
-        setError("Failed to upload image. Using default placeholder.");
+        setError("Failed to upload img. Using default placeholder.");
         setTempProfilePictureUrl(DEFAULT_PROFILE_PIC);
       }
     } else {
@@ -327,11 +329,12 @@ const RegisterPage: React.FC = () => {
   };
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <img
+      <Image
         src="/bg.jpg"
         alt="Paintball players"
+        fill
         className="object-cover absolute inset-0 brightness-[0.7] contrast-[110%] saturate-[120%] size-full"
-        loading="lazy"
+        priority
       />
       <Card className="w-full max-w-md bg-transparent backdrop-blur-md text-white">
         <CardHeader>
@@ -350,38 +353,74 @@ const RegisterPage: React.FC = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    evaluatePasswordStrength(e.target.value);
-                  }}
-                  required
-                />
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Confirm Password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      evaluatePasswordStrength(e.target.value);
+                    }}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white focus:outline-none"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <FaEyeSlash className="w-5 h-5" />
+                    ) : (
+                      <FaEye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+                <div className="relative mt-2">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Confirm Password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white focus:outline-none"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <FaEyeSlash className="w-5 h-5" />
+                    ) : (
+                      <FaEye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
                 {password && (
                   <div className="text-sm">
                     Password strength:{" "}
                     <span className="font-medium">{passwordStrength}</span>
                   </div>
                 )}
-                <div className="flex items-center">
+                <div className="flex pl-2 items-center mt-2 text-xs text-gray-300">
                   <input
+                    id="terms"
                     type="checkbox"
-                    id="showPassword"
-                    checked={showPassword}
-                    onChange={() => setShowPassword(!showPassword)}
-                    className="mr-2"
+                    checked={agreedToTerms}
+                    onChange={e => setAgreedToTerms(e.target.checked)}
+                    className="mr-2 accent-green-600"
+                    required
                   />
-                  <label htmlFor="showPassword">Show passwords</label>
+                  <label htmlFor="terms" className="select-none">
+                    By clicking this you have read and are agreeing to our
+                    <a href="/terms&conditions" className="underline hover:text-blue-300 ml-1">Terms &amp; Conditions</a>.
+                  </label>
                 </div>
               </div>
               {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -390,6 +429,7 @@ const RegisterPage: React.FC = () => {
               <Button
                 type="submit"
                 className="w-full bg-green-600 text-white hover:bg-green-700"
+                disabled={!agreedToTerms}
               >
                 {auth.currentUser ? "Complete Profile" : "Create Account"}
               </Button>
@@ -416,7 +456,7 @@ const RegisterPage: React.FC = () => {
             <form onSubmit={handleRegisterStep2} className="space-y-4">
               <div className="mb-6">
                 <div className="flex items-center mb-4">
-                  <img
+                  <Image
                     src={
                       tempProfilePictureUrl ||
                       profilePictureUrl ||
@@ -424,7 +464,11 @@ const RegisterPage: React.FC = () => {
                       DEFAULT_PROFILE_PIC
                     }
                     alt="Profile"
+                    width={64}
+                    height={64}
                     className="w-16 h-16 rounded-full border object-cover"
+                    priority={!!(tempProfilePictureUrl || profilePictureUrl || auth.currentUser?.photoURL)}
+                    unoptimized={typeof (tempProfilePictureUrl || profilePictureUrl || auth.currentUser?.photoURL) === 'string' && (tempProfilePictureUrl || profilePictureUrl || auth.currentUser?.photoURL)?.startsWith('data:')}
                   />
 
                   <button
