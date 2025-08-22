@@ -110,7 +110,7 @@ const LoginPage: React.FC = () => {
   return (
     <div className="flex items-center justify-center min-h-screen">
       <img
-        src="/bg.jpg"
+        src="/bg.webp"
         alt="Paintball players"
         className="object-cover absolute inset-0 brightness-[0.7] contrast-[110%] saturate-[120%] size-full"
         loading="lazy"

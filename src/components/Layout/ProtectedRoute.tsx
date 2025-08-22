@@ -24,7 +24,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
       background="black"
       // NOTE: Using GIFs for the background looks super cool :)
-      imgUrl="/bg.jpg"
+      imgUrl="/bg.webp"
     />;
   }
 

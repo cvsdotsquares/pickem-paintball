@@ -21,11 +21,11 @@ export interface Event {
 
 export default function Dashboard() {
   return (
-    <section className="relative flex md:flex-row flex-col-reverse font-azonix w-screen md:h-screen h-full overflow-hidden top-0">
+    <section className="relative flex md:flex-row flex-col-reverse font-azonix w-screen md:w-[calc(100vw-60px)] md:h-screen h-full overflow-hidden top-0">
       {/* Left Column - Picks and Leaderboard */}
-      <div className="flex flex-col w-full md:w-[50vw] py-10 border-r border-white/30 h-full overflow-hidden md:overflow-y-auto">
+      <div className="flex flex-col w-full md:w-1/2 pb-[75px] md:pb-[35px] pt-5 lg:pt-10 border-r border-white/30 md:h-full overflow-hidden md:overflow-y-auto">
         {/* Picks Section with Scroll */}
-        <div className="flex-1 md:p-6 p-1 justify-center ">
+        <div className="flex-1 pb-6 p-3 md:p-6 justify-center ">
           <div className="flex overflow-hidden relative flex-col rounded-2xl h-full">
             <img
               src="/background0.jpg"
@@ -39,18 +39,18 @@ export default function Dashboard() {
         </div>
 
         {/* Leaderboard Section with Scroll */}
-        <div className="flex-1 md:px-6 px-1">
+        <div className="flex-1 md:px-6 px-3">
           <DivisionInfo />
         </div>
       </div>
 
       {/* Right Column - Profile (Full height, no scroll) */}
-      <div className=" relative md:h-full h-screen mt-6 md:w-[50vw] overflow-hidden">
+      <div className=" relative md:h-full md:h-screen mt-6 md:w-1/2 overflow-hidden">
         {/* Background */}
         <div
           className="absolute inset-0 bg-opacity-40"
           style={{
-            backgroundImage: "url('/dash-img.JPG')",
+            backgroundImage: "url('/pick-em.webp')",
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",

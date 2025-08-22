@@ -12,16 +12,21 @@ export const metadata: Metadata = {
   description: "Play Fantasy Paintball and support your player",
 };
 
-const inter = Inter({
-  subsets: ["latin"], // Add additional subsets if needed
+const inter = localFont({
+  src: [
+    {
+      path: "../../public/fonts/Industry-Demi.ttf",
+      weight: "400",
+      style: "normal",
+    },
+  ],
   variable: "--font-inter", // Create a CSS variable for the font
-  display: "swap", // Ensures fast rendering
 });
 
 const hanson = localFont({
   src: [
     {
-      path: "../../public/fonts/Hanson.ttf",
+      path: "../../public/fonts/Industry-Demi.ttf",
       weight: "400",
       style: "normal",
     },
@@ -32,13 +37,16 @@ const hanson = localFont({
 const azonix = localFont({
   src: [
     {
-      path: "../../public/fonts/Azonix.otf",
+      path: "../../public/fonts/Industry-Demi.ttf",
       weight: "400",
       style: "normal",
     },
   ],
   variable: "--font-azonix", // Create a CSS variable for the font
 });
+
+
+
 
 export default function RootLayout({
   children,

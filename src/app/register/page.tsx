@@ -330,7 +330,7 @@ const RegisterPage: React.FC = () => {
   return (
     <div className="flex items-center justify-center min-h-screen">
       <Image
-        src="/bg.jpg"
+        src="/bg.webp"
         alt="Paintball players"
         fill
         className="object-cover absolute inset-0 brightness-[0.7] contrast-[110%] saturate-[120%] size-full"

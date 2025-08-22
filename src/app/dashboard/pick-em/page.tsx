@@ -1001,9 +1001,9 @@ export default function Pickems() {
         {/* Fixed Alert Container */}
         <div className="w-full md:py-3 py-1 bg-gradient-to-b from-[#360e0edf] to-[#00000065] text-white flex items-center justify-between">
           {/* Left Content */}
-          <div className="flex flex-col gap-1 md:mx-10 mx-4 md:text-xs text-[8px] whitespace-nowrap my-2 font-azonix">
+          <div className="flex flex-col gap-1 md:mx-10 mx-4 md:text-base text-[10px] whitespace-nowrap my-2 font-azonix">
             <div>
-              Pickems closing on {""} <br className="md:hidden" />
+              Pick’Em closing on {""} <br className="md:hidden" />
               {formatLocalDateTime(liveEvent.lockDate)}
             </div>
             <div>Budget: ${remainingBudget.toLocaleString()}</div>
@@ -1027,7 +1027,7 @@ export default function Pickems() {
           <div
             className="absolute inset-0 -z-10"
             style={{
-              backgroundImage: "url(/pick-em.JPG)",
+              backgroundImage: "url(/pick-em.webp)",
               backgroundSize: "cover",
               backgroundRepeat: "no-repeat",
               backgroundPosition: "center",
@@ -1038,7 +1038,7 @@ export default function Pickems() {
           <div className="relative h-full py-6 md:overflow-visible overflow-y-auto">
             <AnimatedGroup
               preset="scale"
-              className="relative grid lg:grid-cols-5 grid-cols-2 gap-3 md:gap-6  pb-8 items-center justify-center lg:justify-evenly m-auto md:px-2 w-5/6 lg:w-full"
+              className="relative grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 grid-cols-2 gap-3 md:gap-6  pb-8 items-center justify-center lg:justify-evenly m-auto md:px-4 w-5/6 lg:w-full"
             >
               {playerSlots.map((slot) => (
                 <div key={slot.id} className="relative">
@@ -1056,10 +1056,10 @@ export default function Pickems() {
                         slot.isSelected
                           ? "border-black ring-2 ring-black bg-gradient-to-b from-white/10 to-red-800/80"
                           : "border-white bg-gradient-to-b from-white/10 to-red-800/80"
-                      } md:h-[24vh] md:w-[9vw] w-[70px] h-[100px]`}
+                      } md:h-[24vh] w-full h-[100px]`}
                     >
                       <GiCardPickup size={40} className="text-white/60" />
-                      <span className="text-xl text-white/60 font-azonix mt-2">
+                      <span className="text-xl uppercase text-white/60 font-azonix mt-2">
                         {slot.position}
                       </span>
                     </button>
@@ -1098,7 +1098,7 @@ export default function Pickems() {
           ref={desktopScrollRef}
         >
           <motion.div
-            className="py-4 grid grid-cols-3 gap-3 text-center"
+            className="py-4 grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 text-center"
             initial="hidden"
             animate="visible"
             variants={{

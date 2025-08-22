@@ -135,7 +135,7 @@ const UserProfile = () => {
   }
 
   return (
-    <main className="flex flex-col z-10  items-center justify-evenly gap-4 m-auto w-[75%] h-full  rounded-2xl">
+    <main className="flex flex-col z-10  items-center justify-evenly gap-4 m-auto md:w-[100%] xl:w-[75%] h-full  rounded-2xl">
       <div className=" h-full w-full ">
         <header className="flex justify-end items-center w-full max-md:flex-col ">
           <div className="flex gap-2">
@@ -154,7 +154,7 @@ const UserProfile = () => {
             alt={userData.name}
             className="w-20 h-20 rounded-full"
           />
-          <h1 className="inline-flex gap-2 text-5xl font-bold text-white">
+          <h1 className="inline-flex gap-2 md:text-5xl text-3xl text-center font-bold text-white">
             {userData.name}
             {userData.isPro && <MdVerified />}
           </h1>

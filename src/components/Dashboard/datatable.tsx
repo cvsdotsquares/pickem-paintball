@@ -653,7 +653,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       <div
         className={`flex flex-row items-center justify-between gap-2 p-2 ${themeClasses.bg} rounded-lg mb-2 shadow-sm ${themeClasses.border} border`}
       >
-        <div className="flex flex-col md:justify-between justify-center items-center m-auto md:flex-row gap-3 md:gap-40">
+        <div className="flex flex-col md:justify-between justify-center items-center m-auto md:flex-row gap-3 lg:gap-40">
           <div className="flex flex-row gap-5 items-center justify-between md:justify-start m-auto">
             {/* Theme Toggle */}
             <button

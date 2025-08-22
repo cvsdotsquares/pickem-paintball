@@ -155,7 +155,7 @@ const DivisionInfo = () => {
     <section className="w-full p-2 md:p-4 rounded-xl bg-white bg-opacity-10">
       <div className="w-full">
         <div className="flex items-center mb-3">
-          <h2 className="text-sm font-bold text-white truncate">
+          <h2 className="text-md font-bold text-white capitalize truncate">
             {liveEvent.name || "Event"} Leaderboard
           </h2>
         </div>
@@ -183,11 +183,11 @@ const DivisionInfo = () => {
             ) : (
               <div className="space-y-3">
                 {/* Top 3 Users - Stack vertically on mobile */}
-                <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex flex-col lg:flex-row gap-2">
                   {topUsers.map((user, index) => (
                     <div
                       key={user.id}
-                      className={`flex-1 p-2 rounded-lg ${
+                      className={`lg:w-1/3 p-2 rounded-lg ${
                         index === 0
                           ? "bg-gradient-to-b from-yellow-600/30 to-yellow-800/30 order-first"
                           : "bg-gray-800/50"

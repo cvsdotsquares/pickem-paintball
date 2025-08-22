@@ -393,7 +393,7 @@ export const PickWidget = () => {
     <>
       <section className="flex flex-col justify-center m-auto w-full h-full ">
         <div className="flex justify-between items-center self-center ">
-          <h3 className="self-stretch my-auto text-2xl font-bold leading-tight text-center text-white mt-2">
+          <h3 className="self-stretch capitalize my-auto text-2xl font-bold leading-tight text-center text-white mt-2">
             {liveEvent.id?.replace(/_/g, " ")} <br />
             Event is live
           </h3>
@@ -401,7 +401,7 @@ export const PickWidget = () => {
         <div className="flex flex-col justify-center h-full w-full">
           <AnimatedGroup
             preset="scale"
-            className="relative md:top-5 left-0 grid md:grid-cols-5 grid-cols-2  gap-4 m-auto justify-center h-full py-2 px-8 w-full"
+            className="relative md:mt-3 left-0 grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 grid-cols-2  gap-4 m-auto justify-center h-full py-2 px-4 lg:px-4 xl:px-8 w-full"
           >
             {playerSlots.map((slot) => (
               <div key={slot.id}>
@@ -409,10 +409,10 @@ export const PickWidget = () => {
                   <PlayerCard player={slot.player} isSlot={true} />
                 ) : (
                   <button
-                    className={`relative flex flex-col gap-0 justify-center items-center rounded-2xl border border-white bg-white bg-opacity-10 border-opacity-20 md:h-[14vh] md:w-[6vw] w-[80px] h-[100px] `}
+                    className={`relative flex flex-col gap-0 justify-center items-center rounded-2xl border border-white bg-white bg-opacity-10 border-opacity-20 md:h-[14vh] w-full h-[100px] `}
                   >
                     <GiCardPickup size={60} className="text-white/60 ml-2 " />
-                    <span className="text-xl text-white/60 font-azonix">
+                    <span className="text-xl uppercase text-white/60 font-azonix">
                       {slot.position}
                     </span>
                   </button>

@@ -161,7 +161,7 @@ export default function Statistics() {
           isSelected ? "border-4 rounded-xl border-white" : ""
         }`}
       >
-        <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg">
+        <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg  logographics">
           <img
             src={backgroundSrc}
             alt="Event card background"
@@ -296,7 +296,7 @@ export default function Statistics() {
             <div
               className="absolute inset-0 top-0 brightness-110"
               style={{
-                backgroundImage: "url('/stats-center.JPG')",
+                backgroundImage: "url('/stats-center.webp')",
                 backgroundSize: "cover",
                 backgroundPosition: "0 40%",
                 backgroundRepeat: "no-repeat",
