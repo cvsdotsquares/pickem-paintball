@@ -45,7 +45,8 @@ export const NewsTicker: React.FC = () => {
         >
             <div className="relative flex items-center text-xl tracking-tight uppercase">
                 <motion.div
-                    style={{ x }}
+                    animate={{ x: [0, -1000] }}
+                    transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
                     className="flex whitespace-nowrap px-4 gap-8"
                 >
                     {tickerItems.map((text, index) => (
