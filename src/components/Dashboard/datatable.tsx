@@ -264,7 +264,12 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
 
     // Apply myPicks filter if enabled
     if (showOnlyMyPicks && myPicks && myPicks.size > 0) {
-      filtered = filtered.filter((player) => myPicks.has(player.player_id));
+      const myPicksNormalized = new Set<string>();
+      myPicks.forEach(v => myPicksNormalized.add(String(v)));
+
+      filtered = filtered.filter(player =>
+        myPicksNormalized.has(String(player.player_id))
+      );
     }
 
     // Apply sorting if sortConfig exists
@@ -718,6 +723,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               </div>
             </div>
             <div className="hidden md:flex items-center gap-1 flex-row text-[10px] ">
+
               <button
                 onClick={() => setShowOnlyMyPicks(!showOnlyMyPicks)}
                 disabled={!myPicks || myPicks.size === 0}
@@ -860,7 +866,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               : "bg-gray-100 text-gray-800 border-gray-300 focus:ring-gray-400"
           }
           border focus:outline-none focus:ring-1
-          [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none 
+          [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
           [&::-webkit-inner-spin-button]:appearance-none
         `}
                   />
