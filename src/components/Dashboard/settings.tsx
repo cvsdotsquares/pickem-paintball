@@ -396,7 +396,7 @@ function AccountSettings() {
         style={{ display: "none" }}
       />
 
-      <div className="max-w-none flex flex-col  items-center gap-4 self-baseline">
+      <div className="max-w-none w-full md:w-auto flex flex-col pb-6 md:pb-0 items-center gap-4 self-baseline">
         <div className="flex w-full flex-col items-start gap-4">
           {/* Profile Picture Upload Section */}
           <div className="flex w-full flex-col items-start gap-4">
@@ -521,7 +521,7 @@ function AccountSettings() {
               title="Delete account"
               description="Permanently remove your account. This action is not reversible."
               actions={
-                <Button variant="destructive" onClick={handleDeleteAccount}>
+                <Button className="h-auto" variant="destructive" onClick={handleDeleteAccount}>
                   Delete account
                 </Button>
               }

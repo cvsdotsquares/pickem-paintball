@@ -899,7 +899,7 @@ export default function Pickems() {
               <div
                 className={`relative ${
                   isSlot ? "h-[90px] md:h-[110px]" : "h-[90px]"
-                } border-2 bg-gradient-to-b from-orange-500 to-yellow-500 [clip-path:polygon(0_0,_100%_0,_100%_87%,_50%_100%,_0_87%)] border-blue-600/80`}
+                } border-2 bg-gradient-to-b rounded-t-2xl from-orange-500 to-yellow-500 [clip-path:polygon(0_0,_100%_0,_100%_87%,_50%_100%,_0_87%)] border-blue-600/80`}
               >
                 {player?.pictureLoading ? (
                   <div className="absolute top-0 bottom-0 left-0 right-0 flex items-center justify-center">
@@ -997,11 +997,11 @@ export default function Pickems() {
   return (
     <div className="relative flex flex-col md:flex-row w-auto md:h-full mt-7 md:overflow-hidden">
       {/* Left Section - Fixed Header with Conditional Scroll */}
-      <div className="relative flex flex-col w-full md:w-[60vw] h-[90vh] z-10 border-white/30 border-r">
+      <div className="relative flex flex-col w-full md:w-[60vw] h-[520px] md:h-[90vh] z-10 border-white/30 border-r">
         {/* Fixed Alert Container */}
         <div className="w-full md:py-3 py-1 bg-gradient-to-b from-[#360e0edf] to-[#00000065] text-white flex items-center justify-between">
           {/* Left Content */}
-          <div className="flex flex-col gap-1 md:mx-10 mx-4 md:text-base text-[10px] whitespace-nowrap my-2 font-azonix">
+          <div className="flex flex-col gap-1 md:mx-3 lg:mx-5 mx-4 md:text-base text-[10px] my-2 font-azonix">
             <div>
               Pick’Em closing on {""} <br className="md:hidden" />
               {formatLocalDateTime(liveEvent.lockDate)}
@@ -1011,7 +1011,7 @@ export default function Pickems() {
 
           {/* Right Button */}
           <button
-            className="flex flex-row items-center gap-2 p-2 mx-4 backdrop-blur bg-white bg-opacity-10 text-white rounded-[36px] md:mr-10"
+            className="flex flex-row items-center gap-2 p-2 mx-4 backdrop-blur bg-white bg-opacity-10 text-white rounded-[36px] md:mr-3 lg:mr-5"
             onClick={confirmPicks}
           >
             <RiLock2Line size={20} />
@@ -1038,7 +1038,7 @@ export default function Pickems() {
           <div className="relative h-full py-6 md:overflow-visible overflow-y-auto">
             <AnimatedGroup
               preset="scale"
-              className="relative grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 grid-cols-2 gap-3 md:gap-6  pb-8 items-center justify-center lg:justify-evenly m-auto md:px-4 w-5/6 lg:w-full"
+              className="relative grid sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 grid-cols-2 gap-3 md:gap-6  pb-2 md:pb-8 items-center justify-center lg:justify-evenly m-auto px-4 w-6/6 md:w-5/6 lg:w-full"
             >
               {playerSlots.map((slot) => (
                 <div key={slot.id} className="relative">
@@ -1072,8 +1072,8 @@ export default function Pickems() {
       </div>
 
       {/* Right Section - Player Selection */}
-      <div className="md:flex flex-col w-full md:w-[35vw] mt-6 md:h-full hidden h-[50vh] overflow-hidden">
-        <h1 className="text-xl font-azonix text-white text-center font-bold mb-4">
+      <div className="md:flex flex-col w-full pb-10 md:pb-4 md:w-[35vw] mt-6 md:h-full  overflow-hidden ">
+        <h1 className="text-xl font-azonix text-white text-center font-bold lg:mb-4">
           Select your Picks
         </h1>
         <div className="px-4 mb-2">
@@ -1094,7 +1094,7 @@ export default function Pickems() {
         </div>
 
         <div
-          className="flex flex-col h-auto overflow-y-scroll px-2"
+          className="flex flex-col h-[450px] md:h-auto overflow-y-scroll px-2"
           ref={desktopScrollRef}
         >
           <motion.div

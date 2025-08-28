@@ -155,9 +155,9 @@ function ProfilePage() {
         </div>
       ) : (
         <div className="flex w-full flex-col items-center gap-4">
-          <div className="flex w-full flex-wrap items-start text-white gap-8">
+          <div className="flex w-full flex-wrap md:flex-nowrap items-start text-white gap-8">
             {/* Sidebar with user details */}
-            <div className="flex relative left-0 top-0 bottom-0 min-w-[240px] max-w-[300px] grow shrink-0 basis-0 flex-col h-screen items-center gap-6 px-8 pb-8 pt-10">
+            <div className="flex relative left-0 top-0 bottom-0 min-w-[240px] md:max-w-[300px] grow shrink-0 basis-0 flex-col md:h-screen items-center gap-6 px-5 md:px-8 pb-8 pt-10">
               <div className="flex w-full flex-col items-center gap-6">
                 <div className="flex flex-col items-center gap-6 relative">
                   <div className="flex h-36 w-36 flex-none flex-col items-center border border-b-4 border-r-4 border-slate-500 justify-center gap-2 overflow-hidden rounded-full relative">
@@ -232,7 +232,7 @@ function ProfilePage() {
             </div>
 
             {/* Main content area with tabs */}
-            <div className="relative flex flex-col gap-6 pt-8 font-sans">
+            <div className="relative w-full md:w-auto flex flex-col px-5 md:px-3 gap-6 pt-1 md:pt-8 md:pb-5 pb-10 font-sans">
               <h1 className="text-3xl font-azonix">Change account settings!</h1>
               <AccountSettings />
             </div>

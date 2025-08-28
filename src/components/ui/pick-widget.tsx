@@ -314,7 +314,7 @@ export const PickWidget = () => {
               <div
                 className={`relative ${
                   isSlot ? "h-[70px] md:h-[70px]" : "h-[70px]"
-                } border-2 bg-gradient-to-b from-orange-500 to-yellow-500 [clip-path:polygon(0_0,_100%_0,_100%_87%,_50%_100%,_0_87%)] border-blue-600/80`}
+                } border-2 bg-gradient-to-b rounded-t-2xl from-orange-500 to-yellow-500 [clip-path:polygon(0_0,_100%_0,_100%_87%,_50%_100%,_0_87%)] border-blue-600/80`}
               >
                 {player?.pictureLoading ? (
                   <div className="absolute top-0 bottom-0 left-0 right-0 flex items-center justify-center">
@@ -401,7 +401,7 @@ export const PickWidget = () => {
         <div className="flex flex-col justify-center h-full w-full">
           <AnimatedGroup
             preset="scale"
-            className="relative md:mt-3 left-0 grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 grid-cols-2  gap-4 m-auto justify-center h-full py-2 px-4 lg:px-4 xl:px-8 w-full"
+            className="relative md:mt-3 left-0 grid sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 grid-cols-2  gap-4 m-auto justify-center h-full py-2 px-4 lg:px-4 xl:px-8 w-full"
           >
             {playerSlots.map((slot) => (
               <div key={slot.id}>

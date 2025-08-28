@@ -260,7 +260,7 @@ export default function Leaderboard() {
   );
 
   return (
-    <div className="p-2 sm:p-4 my-16 min-h-screen overflow-auto bg-black text-white">
+    <div className="p-2 sm:p-4 mb-16 pt-10 sm:pt-7 min-h-screen min-h-[220px] overflow-auto bg-black text-white">
       {/* Event Header */}
       <div className="mb-4 text-center">
         <h1 className="text-xl sm:text-2xl font-bold mb-1">{liveEvent.name}</h1>

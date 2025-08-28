@@ -125,7 +125,7 @@ export function FilterUI({
   });
 
   return (
-    <div className="flex flex-row justify-between gap-4 p-2 items-center w-full border-white/30 border-b z-30">
+    <div className="flex flex-col lg:flex-row justify-between gap-2 lg:gap-4 p-2 items-center w-full border-white/30 border-b z-30">
       {/* Search Bar */}
       <div className="flex items-center relative max-w-[500px] h-7 rounded-2xl bg-gray-700 px-3">
         <FaSearch className="text-white w-4 h-4 mr-2" />
