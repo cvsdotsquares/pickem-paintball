@@ -260,9 +260,9 @@ export default function Leaderboard() {
   );
 
   return (
-    <div className="p-2 sm:p-4 mb-16 pt-10 sm:pt-7 min-h-screen min-h-[220px] overflow-auto bg-black text-white">
+    <div className="p-2 sm:pt-0 pb-10 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-black text-white">
       {/* Event Header */}
-      <div className="mb-4 text-center">
+      <div className="mb-4 text-center pt-3 sm:pt-7">
         <h1 className="text-xl sm:text-2xl font-bold mb-1">{liveEvent.name}</h1>
         <p className="text-sm sm:text-base">Event Leaderboard</p>
       </div>
@@ -520,7 +520,7 @@ export default function Leaderboard() {
 
       {/* Pagination */}
       {filteredUsers.length > 0 && (
-        <div className="flex flex-row items-center justify-between mt-4 gap-2">
+        <div className="flex flex-row items-center justify-between mt-4 gap-2 mb-7 sm:mb-0">
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-300">Rows:</span>
             <select

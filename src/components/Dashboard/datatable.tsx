@@ -652,7 +652,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
 
   return (
     <div
-      className={`sticky top-0 md:top-10 h-[80vh] md:h-[100vh] overflow-visible w-full items-center justify-center mx-auto px-4 `}
+      className={`sticky top-0 md:pt-5 h-[80vh] md:h-[100vh] overflow-visible w-full items-center justify-center mx-auto px-4 `}
     >
       {/* Compact Filters */}
       <div
@@ -1146,7 +1146,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
           </tbody>
         </table>
       </div>
-      <div className="h-28" />
+      <div className="h-20 md:h-2" />
     </div>
   );
 };

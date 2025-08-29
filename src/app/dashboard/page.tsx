@@ -23,7 +23,7 @@ export default function Dashboard() {
   return (
     <section className="relative flex md:flex-row flex-col-reverse font-azonix w-screen md:w-[calc(100vw-60px)] md:h-screen h-full overflow-hidden top-0">
       {/* Left Column - Picks and Leaderboard */}
-      <div className="flex flex-col w-full md:w-1/2 pb-[75px] md:pb-[35px] pt-5 lg:pt-10 border-r border-white/30 md:h-full overflow-hidden md:overflow-y-auto">
+      <div className="flex flex-col w-full md:w-1/2 pb-[75px] md:pb-[35px] pt-5 border-r border-white/30 md:h-full overflow-hidden md:overflow-y-auto">
         {/* Picks Section with Scroll */}
         <div className="flex-1 pb-6 p-3 md:p-6 justify-center ">
           <div className="flex overflow-hidden relative flex-col rounded-2xl h-full">
@@ -45,7 +45,7 @@ export default function Dashboard() {
       </div>
 
       {/* Right Column - Profile (Full height, no scroll) */}
-      <div className=" relative md:h-full md:h-screen mt-6 md:w-1/2 overflow-hidden">
+      <div className=" relative md:h-full md:h-[calc(100vh-48px)] md:w-1/2 overflow-hidden">
         {/* Background */}
         <div
           className="absolute inset-0 bg-opacity-40"
@@ -58,7 +58,7 @@ export default function Dashboard() {
         />
 
         {/* Profile Content */}
-        <div className="relative bg-black/40 h-full w-full md:p-10 py-6 flex items-center m-auto justify-center">
+        <div className="relative bg-black/40 h-full w-full md:p-10 py-6 overflow-auto flex items-center m-auto justify-center">
           <UserProfile />
         </div>
       </div>

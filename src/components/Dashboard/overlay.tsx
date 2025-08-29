@@ -135,7 +135,7 @@ const UserProfile = () => {
   }
 
   return (
-    <main className="flex flex-col z-10  items-center justify-evenly gap-4 m-auto md:w-[100%] xl:w-[75%] h-full  rounded-2xl">
+    <main className="flex flex-col z-10  items-center justify-evenly gap-4 m-auto md:w-[100%] xl:w-[75%] rounded-2xl">
       <div className=" h-full w-full ">
         <header className="flex justify-end items-center w-full max-md:flex-col ">
           <div className="flex gap-2">
@@ -148,7 +148,7 @@ const UserProfile = () => {
           </div>
         </header>
 
-        <section className="flex flex-col mt-16 items-center gap-4">
+        <section className="flex flex-col mt-16 items-center gap-4 mb-8">
           <img
             src={userData.profilePicture}
             alt={userData.name}

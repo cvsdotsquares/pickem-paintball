@@ -995,9 +995,9 @@ export default function Pickems() {
   };
 
   return (
-    <div className="relative flex flex-col md:flex-row w-auto md:h-full mt-7 md:overflow-hidden">
+    <div className="relative flex flex-col md:flex-row w-auto md:h-[calc(100vh-48px)] overflow-auto md:overflow-hidden">
       {/* Left Section - Fixed Header with Conditional Scroll */}
-      <div className="relative flex flex-col w-full md:w-[60vw] h-[520px] md:h-[90vh] z-10 border-white/30 border-r">
+      <div className="relative flex flex-col w-full md:w-[60vw] z-10 border-white/30 border-r">
         {/* Fixed Alert Container */}
         <div className="w-full md:py-3 py-1 bg-gradient-to-b from-[#360e0edf] to-[#00000065] text-white flex items-center justify-between">
           {/* Left Content */}
@@ -1035,7 +1035,7 @@ export default function Pickems() {
           />
 
           {/* Cards Container */}
-          <div className="relative h-full py-6 md:overflow-visible overflow-y-auto">
+          <div className="relative h-[300px] md:h-full py-6 overflow-y-auto">
             <AnimatedGroup
               preset="scale"
               className="relative grid sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 grid-cols-2 gap-3 md:gap-6  pb-2 md:pb-8 items-center justify-center lg:justify-evenly m-auto px-4 w-6/6 md:w-5/6 lg:w-full"
