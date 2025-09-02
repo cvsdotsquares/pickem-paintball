@@ -938,7 +938,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
 
       {/* Table Container */}
       <div
-        className={`flex items-start overflow-scroll h-[80vh]   rounded-lg shadow-[0_0_0_0.3px_#fff]`}
+        className={`flex items-start overflow-scroll h-[70vh] md:h-[80vh]  rounded-lg shadow-[0_0_0_0.3px_#fff]`}
       >
         <table className="w-full relative">
           <thead>
@@ -1146,7 +1146,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
           </tbody>
         </table>
       </div>
-      <div className="h-20 md:h-2" />
+      <div className="md:h-2" />
     </div>
   );
 };

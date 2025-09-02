@@ -995,7 +995,7 @@ export default function Pickems() {
   };
 
   return (
-    <div className="relative flex flex-col md:flex-row w-auto md:h-[calc(100vh-48px)] overflow-auto md:overflow-hidden">
+    <div className="relative flex flex-row w-auto h-[calc(100vh-48px)] overflow-hidden">
       {/* Left Section - Fixed Header with Conditional Scroll */}
       <div className="relative flex flex-col w-full md:w-[60vw] z-10 border-white/30 border-r">
         {/* Fixed Alert Container */}
@@ -1022,7 +1022,7 @@ export default function Pickems() {
         </div>
 
         {/* Content Area - Scroll only on mobile */}
-        <div className="md:overflow-hidden overflow-y-auto flex-1 relative">
+        <div className="overflow-hidden overflow-y-auto flex-1 relative">
           {/* Background Image */}
           <div
             className="absolute inset-0 -z-10"
@@ -1035,10 +1035,10 @@ export default function Pickems() {
           />
 
           {/* Cards Container */}
-          <div className="relative h-[300px] md:h-full py-6 overflow-y-auto">
+          <div className="relative h-full py-6 overflow-y-auto">
             <AnimatedGroup
               preset="scale"
-              className="relative grid sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 grid-cols-2 gap-3 md:gap-6  pb-2 md:pb-8 items-center justify-center lg:justify-evenly m-auto px-4 w-6/6 md:w-5/6 lg:w-full"
+              className="relative grid sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 grid-cols-2 gap-3 md:gap-6  md:pb-2 pb-[50px] md:pb-8 items-center justify-center lg:justify-evenly m-auto px-4 w-6/6 md:w-5/6 lg:w-full"
             >
               {playerSlots.map((slot) => (
                 <div key={slot.id} className="relative">
@@ -1072,7 +1072,7 @@ export default function Pickems() {
       </div>
 
       {/* Right Section - Player Selection */}
-      <div className="md:flex flex-col w-full pb-10 md:pb-4 md:w-[35vw] mt-6 md:h-full  overflow-hidden ">
+      <div className="md:flex hidden md:block flex-col w-full pb-10 md:pb-4 md:w-[35vw] mt-6 md:h-full  overflow-hidden ">
         <h1 className="text-xl font-azonix text-white text-center font-bold lg:mb-4">
           Select your Picks
         </h1>

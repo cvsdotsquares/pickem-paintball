@@ -289,7 +289,7 @@ export default function Statistics() {
   };
 
   return (
-    <div className="relative left-0 flex flex-col w-auto scroll-smooth overflow-y-scroll font-inter">
+    <div className="relative left-0 flex flex-col w-auto scroll-smooth overflow-y-scroll font-inter pb-20">
       <div>
         <section>
           <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
