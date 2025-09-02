@@ -108,14 +108,15 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
+    <div className="flex min-h-screen">
       <img
         src="/bg.webp"
         alt="Paintball players"
-        className="object-cover absolute inset-0 brightness-[0.7] contrast-[110%] saturate-[120%] size-full"
+        className="object-cover fixed inset-0 brightness-[0.7] contrast-[110%] saturate-[120%] size-full"
         loading="lazy"
       />
-      <Card className="w-full max-w-md bg-transparent backdrop-blur-md text-white">
+      <div className="flex items-center justify-center p-4 w-full  overflow-auto">
+      <Card className="w-full max-w-md bg-transparent backdrop-blur-md text-white m-auto">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center  uppercase">
             Come Join US!
@@ -147,8 +148,8 @@ const LoginPage: React.FC = () => {
               Log in
             </Button>
             <div className="flex flex-row-reverse items-center justify-between m-auto">
-              <div className="text-center text-sm text-white">
-                Don&apos;t have <br className="flex md:hidden" /> an account?{" "}
+              <div className="text-end text-sm text-white sm:w-3/5">
+                Don&apos;t have  an account?{" "}
                 <br className="flex md:hidden" />
                 <a href="/register" className="text-blue-300 underline">
                   Sign up
@@ -156,11 +157,11 @@ const LoginPage: React.FC = () => {
               </div>
 
               {/* Forgot Password Link */}
-              <div className="text-center text-white text-sm ">
+              <div className="text-left text-white text-sm sm:w-2/5">
                 <button
                   type="button"
                   onClick={() => setShowResetForm(!showResetForm)}
-                  className="text-blue-300 underline"
+                  className="text-blue-300 underline text-left"
                 >
                   Forgot Password?
                 </button>
@@ -229,6 +230,7 @@ const LoginPage: React.FC = () => {
           </form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };

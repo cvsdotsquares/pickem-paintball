@@ -83,7 +83,7 @@ const Drawer: React.FC = () => {
 
 
 
-                    <div className="w-[287px] flex justify-center">
+                    <div className="w-full flex justify-center">
                         {/* <img
                             loading="lazy"
                             src="/logo.png"
@@ -95,7 +95,7 @@ const Drawer: React.FC = () => {
 
 
                 </div>
-                <ul className="flex flex-col gap-5 pt-10 pl-10 text-stone-800 font-bold text-xl border-l-[0.5px] m-5 ">
+                <ul className="flex flex-col gap-5 pt-5 pl-10 text-stone-800 font-bold text-xl border-l-[0.5px] m-5 ">
                     {/* <li className="p-2.5 transform-origin-left-5 will-change-transform-opacity-filter">
                         <a href="tel:+14165647271" onClick={handleClose} className="text-blue-800 hover:underline">+1 (416) 564-7271</a>
                     </li>
@@ -113,7 +113,7 @@ const Drawer: React.FC = () => {
                         <a href="/#reviews" onClick={handleClose}>Testimonials</a>
                     </li> */}
                     <li className="p-2.5 transform-origin-left-5 will-change-transform-opacity-filter">
-                        <div className=" flex ">
+                        <div className=" flex justify-center">
                             <button onClick={handleClose} className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-bold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50">
                                 <a href="/dashboard">Login/Register</a>
                             </button>

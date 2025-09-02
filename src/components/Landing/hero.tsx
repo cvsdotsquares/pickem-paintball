@@ -40,7 +40,7 @@ export const HeroSection = () => {
         className="object-cover absolute inset-0 brightness-[0.7] contrast-[110%] filter saturate-[120%]  size-full"
       />
       <h1 className="relative p-2 my-auto whitespace-break-spaces  items-center font-extrabold font-inter text-justify tracking-tight text-white/90 max-w-screen md:text-6xl lg:text-7xl sm:text-4xl text-3xl z-10">
-        <span className=" text-pretty mx-auto md:-ml-5 lg:-ml-10 -ml-4 sm:-mb-7 -mb-10 justify-start flex flex-row gap-2">
+        <span className=" text-pretty mx-auto md:-ml-5 lg:-ml-10 md:-ml-4 sm:-mb-7 md-mb-10 -mb-8 justify-start flex flex-row gap-2">
           Pick&apos;em Paintball{"\n"}
           {"\n"}
         </span>
@@ -48,7 +48,7 @@ export const HeroSection = () => {
           Every pick matters
           {"\n"}
         </span>
-        <span className=" text-pretty text-right justify-end mr-10 mt-5 flex flex-row gap-2">
+        <span className=" text-pretty text-right md:justify-end mr-10 mt-5 flex flex-row gap-2">
           <div className="flex text-center text-black">
             <Button
               onClick={handleGoToApp}

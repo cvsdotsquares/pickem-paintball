@@ -175,7 +175,7 @@ export function FilterUI({
           </button>
 
           {isSortOpen && (
-            <div className="absolute right-0 mt-2 w-56 bg-neutral-900 text-white rounded-lg shadow-sm shadow-neutral-400 z-50 p-2">
+            <div className="absolute lg:right-0 mt-2 w-56 bg-neutral-900 text-white rounded-lg shadow-sm shadow-neutral-400 z-50 p-2">
               <div className="max-h-60 overflow-y-auto">
                 {sortOptions.map((option) => (
                   <div
@@ -229,7 +229,7 @@ export function FilterUI({
           </button>
 
           {isFilterOpen && (
-            <div className="absolute right-0 mt-2 w-72 bg-neutral-900 text-white rounded-lg shadow-sm shadow-neutral-400 z-50 p-4">
+            <div className="absolute right-0 md:-right-9 lg:right-0 mt-2 w-64 lg:w-72 bg-neutral-900 text-white rounded-lg shadow-sm shadow-neutral-400 z-50 p-4">
               <div className="space-y-4">
                 {/* Cost Range Section */}
                 <div>

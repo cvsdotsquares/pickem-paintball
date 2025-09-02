@@ -328,14 +328,14 @@ const RegisterPage: React.FC = () => {
     }
   };
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <Image
+    <div className="flex min-h-screen">     
+       <img
         src="/bg.webp"
         alt="Paintball players"
-        fill
-        className="object-cover absolute inset-0 brightness-[0.7] contrast-[110%] saturate-[120%] size-full"
-        priority
+        className="object-cover fixed inset-0 brightness-[0.7] contrast-[110%] saturate-[120%] size-full"
+        loading="lazy"
       />
+      <div className="flex items-center justify-center p-4 w-full  overflow-auto">
       <Card className="w-full max-w-md bg-transparent backdrop-blur-md text-white">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center uppercase">
@@ -578,6 +578,7 @@ const RegisterPage: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 };

@@ -68,10 +68,11 @@ const Header: React.FC = () => {
                             src="/logo.svg"
                             alt="logo"
                             width="200"
+                            className='w-[150px] md:w-[200px]'
                         />
                     </a> 
                 </div>
-                <div className="md:hidden absolute z-[99] top-4 right-5">
+                <div className="md:hidden absolute z-[99] md:top-4 top-2 right-5">
                     <Drawer />
                 </div>
                 {/* Navigation */}
