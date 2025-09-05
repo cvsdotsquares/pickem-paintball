@@ -67,7 +67,7 @@ body {
 
 .logographics::before {
     content: "";
-    background-image: url(/_next/static/media/pick-icon.1e2c1afb.svg);
+    background-image: url(../../public/pick-icon.svg);
     position: absolute;
     right: 2px;
     top: 2px;
