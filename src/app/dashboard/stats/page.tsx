@@ -15,6 +15,7 @@ export interface Event {
   status: string;
   event_place: string;
   year?: string;
+  lockDate?: any; // Firestore timestamp
 }
 // sort type definitions
 interface SortConfig {
@@ -52,6 +53,7 @@ export default function Statistics() {
             status: doc.get("status") || "archived",
             event_place: doc.get("event_place") || "0",
             year: doc.get("year") || yearFromId,
+            lockDate: doc.get("lockDate") || null,
           };
         });
 
@@ -76,7 +78,12 @@ export default function Statistics() {
             yearEvents.sort((a, b) => {
               const placeA = parseInt(a.event_place ?? "0") || 0;
               const placeB = parseInt(b.event_place ?? "0") || 0;
-              return placeB - placeA;
+              if (placeB !== placeA) return placeB - placeA;
+              // Then sort by lockDate (descending)
+              if (a.lockDate && b.lockDate) {
+                return b.lockDate.seconds - a.lockDate.seconds;
+              }
+              return 0;
             })
           );
 
