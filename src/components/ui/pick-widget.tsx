@@ -342,14 +342,14 @@ export const PickWidget = () => {
               </div>
             </div>
 
-            {/* Action Button */}
+            {/* Action Button
             <div className="absolute start-1/2 bottom-0 flex md:h-8 md:w-8 h-6 w-6 -translate-x-1/2 items-center justify-center rounded-2xl bg-gradient-to-b from-orange-500 to-yellow-500 text-2xl/none font-extrabold tracking-tighter text-white">
               {isSlot ? (
                 <IoMdCloseCircle className="text-white" />
               ) : (
                 <PiPlusBold />
               )}
-            </div>
+            </div>*/}
           </div>
 
           {/* Player Name */}

@@ -986,7 +986,7 @@ export default function Pickems() {
         day: "numeric",
         hour: "2-digit",
         minute: "2-digit",
-        timeZoneName: "short",
+        //timeZoneName: "short",
       });
     } catch (error) {
       console.error("Error formatting date:", error);
