@@ -31,7 +31,7 @@ export default function Statistics() {
   const [liveEvent, setLiveEvent] = useState<Event | null>(null);
 
   //const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "Rank", direction: "ascending" });
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>({ key: "Rank", direction: "ascending" });
   const [livePicks, setLivePicks] = useState<Set<string>>(new Set());
 
 
