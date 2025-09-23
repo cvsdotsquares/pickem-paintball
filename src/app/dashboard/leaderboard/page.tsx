@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Fragment } from "react";
@@ -28,6 +29,7 @@ interface PlayerPick {
   name: string;
   kills: number;
   cost: number;
+  rank?: number | string;
 }
 
 interface LiveEvent {
@@ -38,6 +40,8 @@ interface LiveEvent {
 }
 
 export default function Leaderboard() {
+  // State for expanding/collapsing current user's picks (hidden by default)
+  const [expandCurrentUser, setExpandCurrentUser] = useState<boolean>(false);
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -155,6 +159,7 @@ export default function Leaderboard() {
                     const playerName =
                       playerDoc.get("Player") || "Unknown Player";
                     const playerCost = playerDoc.get("Cost") || 0;
+                    const playerRank = playerDoc.get("Rank") ?? 0;
 
                     totalPoints += totalKills;
                     picks.push({
@@ -162,6 +167,7 @@ export default function Leaderboard() {
                       name: playerName,
                       kills: totalKills,
                       cost: playerCost,
+                      rank: playerRank === undefined || playerRank === null ? 0 : playerRank,
                     });
 
                     if (totalKills > mvp.kills) {
@@ -269,45 +275,109 @@ export default function Leaderboard() {
 
       {/* Current User Card (sticky on mobile) */}
       {currentUserData && (
-        <div className="sticky top-0 z-10 mb-4 bg-gray-800/80 backdrop-blur-sm rounded-lg p-2 sm:p-3 shadow border border-gray-700">
-          <div className="flex items-center">
-            <div className="relative">
-              {currentUserData.profilePicture ? (
-                <img
-                  src={currentUserData.profilePicture}
-                  alt="Profile"
-                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-yellow-400"
-                />
-              ) : (
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-700 flex items-center justify-center border-2 border-yellow-400">
-                  <FaUser className="text-xl text-gray-400" />
+        <>
+          <div
+            className="sticky top-0 z-10 mb-4 bg-gray-800/80 backdrop-blur-sm rounded-lg p-2 sm:p-3 shadow border border-gray-700 cursor-pointer"
+            onClick={() => setExpandCurrentUser((prev) => !prev)}
+            aria-label={expandCurrentUser ? 'Collapse picks' : 'Expand picks'}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="relative">
+                  {currentUserData.profilePicture ? (
+                    <img
+                      src={currentUserData.profilePicture}
+                      alt="Profile"
+                      className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-yellow-400"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-700 flex items-center justify-center border-2 border-yellow-400">
+                      <FaUser className="text-xl text-gray-400" />
+                    </div>
+                  )}
+                  {currentUserRank && (
+                    <div className="absolute -top-1 -right-1 bg-yellow-500 text-black w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs">
+                      #{currentUserRank}
+                    </div>
+                  )}
                 </div>
-              )}
-              {currentUserRank && (
-                <div className="absolute -top-1 -right-1 bg-yellow-500 text-black w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs">
-                  #{currentUserRank}
+                <div className="ml-3">
+                  <h3 className="font-bold text-sm sm:text-base flex items-center">
+                    {currentUserData.displayName}
+                    <span className="ml-1 text-xs bg-blue-600 px-1.5 py-0.5 rounded">
+                      You
+                    </span>
+                  </h3>
+                  <div className="flex items-center mt-0.5">
+                    <FaTrophy className="text-yellow-400 mr-1 text-sm" />
+                    <span className="font-medium text-sm">
+                      {currentUserData.totalPoints} kills
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    MVP: {currentUserData.mvp}
+                  </p>
                 </div>
-              )}
-            </div>
-            <div className="ml-3">
-              <h3 className="font-bold text-sm sm:text-base flex items-center">
-                {currentUserData.displayName}
-                <span className="ml-1 text-xs bg-blue-600 px-1.5 py-0.5 rounded">
-                  You
-                </span>
-              </h3>
-              <div className="flex items-center mt-0.5">
-                <FaTrophy className="text-yellow-400 mr-1 text-sm" />
-                <span className="font-medium text-sm">
-                  {currentUserData.totalPoints} kills
-                </span>
               </div>
-              <p className="text-xs text-gray-400">
-                MVP: {currentUserData.mvp}
-              </p>
+              {expandCurrentUser ? (
+                <FaChevronUp className="text-gray-400 text-sm" />
+              ) : (
+                <FaChevronDown className="text-gray-400 text-sm" />
+              )}
             </div>
           </div>
-        </div>
+          {/* Expanded row for current user's picks */}
+          <AnimatePresence>
+            {expandCurrentUser && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mb-4 bg-gray-800/70 rounded-lg p-3 shadow border border-gray-700"
+              >
+                <h3 className="text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1">
+                  Your Team
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {currentUserData.picks
+                    .sort((a, b) => {
+                      if (b.kills !== a.kills) return b.kills - a.kills;
+                      return a.name.localeCompare(b.name);
+                    })
+                    .map((pick) => (
+                      <div
+                        key={pick.id}
+                        className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors"
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="text-white text-xs font-medium truncate">
+                            {pick.name}
+                          </span>
+                          <span className="text-green-400 text-xs font-medium">
+                            {pick.kills} kills
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center mt-1 text-xs">
+                          <span className="text-gray-400">
+                            Rank: {pick.rank ?? 0}
+                          </span>
+                          <span className="text-gray-400">
+                            ${pick.cost}
+                          </span>
+                          <span className="text-yellow-400">
+                            {pick.kills === 0 || pick.cost === 0
+                              ? 0
+                              : (pick.cost / pick.kills).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
       )}
 
       {/* Search Bar */}
@@ -372,7 +442,7 @@ export default function Leaderboard() {
           <thead>
             <tr className="bg-gray-700/80">
               <th className="px-2 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider sticky left-0 z-20">
-                Rank
+                Sr. Number
               </th>
               <th className="px-2 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                 Player
@@ -412,6 +482,7 @@ export default function Leaderboard() {
                         )}
                       </div>
                     </td>
+
                     <td className="px-2 py-2 whitespace-nowrap">
                       <div className="flex items-center">
                         {user.profilePicture ? (
@@ -484,14 +555,15 @@ export default function Leaderboard() {
                                     </div>
                                     <div className="flex justify-between items-center mt-1 text-xs">
                                       <span className="text-gray-400">
+                                        Rank: {pick.rank ?? 0}
+                                      </span>
+                                      <span className="text-gray-400">
                                         ${pick.cost}
                                       </span>
                                       <span className="text-yellow-400">
-                                        {(
-                                          (pick.kills / pick.cost) *
-                                          100
-                                        ).toFixed(1)}
-                                        %
+                                        {pick.kills === 0 || pick.cost === 0
+                                          ? 0
+                                          : (pick.cost / pick.kills).toFixed(2)}
                                       </span>
                                     </div>
                                   </div>

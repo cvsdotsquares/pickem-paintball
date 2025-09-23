@@ -30,7 +30,8 @@ export default function Statistics() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [liveEvent, setLiveEvent] = useState<Event | null>(null);
 
-  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  //const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "Rank", direction: "ascending" });
   const [livePicks, setLivePicks] = useState<Set<string>>(new Set());
 
 
@@ -280,7 +281,6 @@ export default function Statistics() {
               : String(bValue).localeCompare(String(aValue));
           });
         }
-
         setRowData(players);
         console.log("Player data fetched successfully:", players);
       } catch (error: any) {
