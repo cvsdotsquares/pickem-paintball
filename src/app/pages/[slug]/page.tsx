@@ -31,7 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/ca
 
 export default function CMSPage() {
   const { slug } = useParams();
-  const [page, setPage] = useState(null);
+  const [page, setPage] = useState<any>(null);
 
   useEffect(() => {
     if (!slug) return;
