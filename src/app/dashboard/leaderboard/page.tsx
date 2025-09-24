@@ -1,12 +1,13 @@
 
 "use client";
 
-import { useState, useEffect, Fragment } from "react";
+import { useState, useEffect, Fragment, ReactNode } from "react";
 import { db, storage } from "@/src/lib/firebaseClient";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getDownloadURL, ref } from "firebase/storage";
 import { motion, AnimatePresence } from "framer-motion";
+import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
 import {
   FaChevronDown,
   FaChevronUp,
@@ -16,6 +17,7 @@ import {
 } from "react-icons/fa";
 
 interface User {
+  rank: ReactNode;
   id: string;
   displayName: string;
   totalPoints: number;
@@ -195,9 +197,12 @@ export default function Leaderboard() {
         );
 
         // Filter out users with no picks and sort by totalPoints
+
+        // Sort users and assign rank
         const sortedUsers = usersData
           .filter((user) => user.picks.length > 0)
-          .sort((a, b) => b.totalPoints - a.totalPoints);
+          .sort((a, b) => b.totalPoints - a.totalPoints)
+          .map((user, idx) => ({ ...user, rank: idx + 1 }));
 
         setUsers(sortedUsers);
         setFilteredUsers(sortedUsers);
@@ -254,10 +259,8 @@ export default function Leaderboard() {
     );
   }
 
-  // Get current user's rank
-  const currentUserRank = currentUserData
-    ? filteredUsers.findIndex((user) => user.id === currentUserId) + 1
-    : null;
+  // Get current user's rank from user.rank property
+  const currentUserRank = currentUserData?.rank ?? null;
 
   // Slice the users array for current page display
   const paginatedUsers = filteredUsers.slice(
@@ -268,9 +271,29 @@ export default function Leaderboard() {
   return (
     <div className="p-2 sm:pt-0 pb-10 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-black text-white">
       {/* Event Header */}
+      <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
+        <div
+          className="absolute inset-0 top-0 brightness-110"
+          style={{
+            backgroundImage: "url('/stats-center.webp')",
+            backgroundSize: "cover",
+            backgroundPosition: "0 40%",
+            backgroundRepeat: "no-repeat",
+          }}
+        />
+        <div className="absolute inset-0 shadow-black shadow-[inset_0px_4px_50px_0px_] pointer-events-none"></div>
+        <ProgressiveBlur
+          className="pointer-events-none absolute bottom-0 left-0 h-[50%] w-full"
+          blurIntensity={1}
+        />
+        <div className="absolute inset-0 bg-black/45 pointer-events-none"></div>
+
+        <h1 className="relative font-azonix max-w-full m-auto md:text-7xl text-4xl">
+          Event Leaderboard
+        </h1>
+      </header>
       <div className="mb-4 text-center pt-3 sm:pt-7">
         <h1 className="text-xl sm:text-2xl font-bold mb-1">{liveEvent.name}</h1>
-        <p className="text-sm sm:text-base">Event Leaderboard</p>
       </div>
 
       {/* Current User Card (sticky on mobile) */}
@@ -363,10 +386,10 @@ export default function Leaderboard() {
                             Rank: {pick.rank ?? 0}
                           </span>
                           <span className="text-gray-400">
-                            ${pick.cost}
+                            Cost:${pick.cost}
                           </span>
                           <span className="text-yellow-400">
-                            {pick.kills === 0 || pick.cost === 0
+                            ROI:{pick.kills === 0 || pick.cost === 0
                               ? 0
                               : (pick.cost / pick.kills).toFixed(2)}
                           </span>
@@ -442,7 +465,7 @@ export default function Leaderboard() {
           <thead>
             <tr className="bg-gray-700/80">
               <th className="px-2 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider sticky left-0 z-20">
-                Sr. Number
+                Rank
               </th>
               <th className="px-2 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                 Player
@@ -473,7 +496,7 @@ export default function Leaderboard() {
                     <td className="px-2 py-2 whitespace-nowrap text-sm sticky left-0 z-10 bg-inherit">
                       <div className="flex items-center">
                         <span className="font-medium">
-                          {index + 1 + (page - 1) * pageSize}
+                          {user.rank}
                         </span>
                         {currentUserId === user.id && (
                           <span className="ml-1 text-xs bg-blue-600 px-1 py-0.5 rounded">
@@ -558,10 +581,10 @@ export default function Leaderboard() {
                                         Rank: {pick.rank ?? 0}
                                       </span>
                                       <span className="text-gray-400">
-                                        ${pick.cost}
+                                        Cost:${pick.cost}
                                       </span>
                                       <span className="text-yellow-400">
-                                        {pick.kills === 0 || pick.cost === 0
+                                        ROI: {pick.kills === 0 || pick.cost === 0
                                           ? 0
                                           : (pick.cost / pick.kills).toFixed(2)}
                                       </span>
