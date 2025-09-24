@@ -300,7 +300,7 @@ export default function Leaderboard() {
       {currentUserData && (
         <>
           <div
-            className="sticky top-0 z-10 mb-4 bg-gray-800/80 backdrop-blur-sm rounded-lg p-2 sm:p-3 shadow border border-gray-700 cursor-pointer"
+            className="sticky top-0 z-10 mb-4 bg-gray-800/100 rounded-lg p-2 sm:p-3 shadow border border-gray-700 cursor-pointer"
             onClick={() => setExpandCurrentUser((prev) => !prev)}
             aria-label={expandCurrentUser ? 'Collapse picks' : 'Expand picks'}
           >
