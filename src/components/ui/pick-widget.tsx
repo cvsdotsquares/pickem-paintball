@@ -401,7 +401,7 @@ export const PickWidget = () => {
         <div className="flex flex-col justify-center h-full w-full">
           <AnimatedGroup
             preset="scale"
-            className="relative md:mt-3 left-0 grid sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 grid-cols-2  gap-4 m-auto justify-center h-full py-2 px-4 lg:px-4 xl:px-8 w-full"
+            className="relative md:mt-3 left-0 grid sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 grid-cols-3  gap-2 sm:gap-4 m-auto justify-center h-full py-2 px-4 lg:px-4 xl:px-8 w-full"
           >
             {playerSlots.map((slot) => (
               <div key={slot.id}>

@@ -46,32 +46,23 @@ export default function CMSPage() {
   if (!page) return <div>Loading...</div>;
 
   return (
-    <div className="flex min-h-screen">
-      <img
+    <div className=" bg-slate-900 text-white">
+      {/* <img
         src="/bg.webp"
         alt="Paintball players"
         className="object-cover fixed inset-0 brightness-[0.7] contrast-[110%] saturate-[120%] size-full"
         loading="lazy"
-      />
+      /> */}
       <Head>
         <title>{page.metaTitle || page.title}</title>
         <meta name="description" content={page.metaDescription || ""} />
       </Head>
-      <div className="flex items-center justify-center p-4 w-full  overflow-auto">
-      <Card className="w-full max-w-md bg-transparent backdrop-blur-md text-white m-auto">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center  uppercase">
-            {page.title}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-
-                <div dangerouslySetInnerHTML={{ __html: page.body }} />
-
-        </CardContent>
-      </Card>
-      </div>
-
+    
+          <div className="w-full flex pt-8 px-4">
+            <h1 className="text-3xl font-bold mb-4 text-orange-600 mb-0">{page.title}</h1>
+          </div>
+          <div dangerouslySetInnerHTML={{ __html: page.body }} />
+        
     </div>
   );
 }
