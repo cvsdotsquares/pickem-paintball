@@ -11,7 +11,7 @@ import {
 import { ref, uploadBytes, getDownloadURL, StorageReference } from "firebase/storage";
 import { auth, db, googleProvider, storage } from "./firebaseClient";
 import { NextRouter } from "next/router";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc } from "firebase/firestore";
 
 // Auth operations
 export const loginWithEmail = (email: string, password: string) => {
@@ -33,7 +33,7 @@ export const logout = () => {
 };
 export const updateFirestoreName = async (userId: string, newName: string) => {
     const userDocRef = doc(db, "users", userId);
-    await updateDoc(userDocRef, { name: newName });
+    await setDoc(userDocRef, { name: newName });
 };
 export const checkEmailVerification = (router: NextRouter, setError: (message: string) => void) => {
     onAuthStateChanged(auth, (user) => {
