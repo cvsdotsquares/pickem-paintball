@@ -3,10 +3,13 @@
 // Learn more: https://nextjs.org/docs/api-reference/next.config.js/introduction
 
 const nextConfig = {
-  reactStrictMode: false, 
+  reactStrictMode: false,
   eslint: {
-        ignoreDuringBuilds: true,
-    },
+    ignoreDuringBuilds: true,
+  },
+  images: {
+    domains: ["lh3.googleusercontent.com"],
+  },
 };
 
 export default nextConfig;
