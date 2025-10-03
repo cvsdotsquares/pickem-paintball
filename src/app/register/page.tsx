@@ -426,7 +426,7 @@ const RegisterPage: React.FC = () => {
                   />
                   <label htmlFor="terms" className="select-none">
                     By clicking this you have read and are agreeing to our
-                    <a href="/terms&conditions" className="underline hover:text-blue-300 ml-1">Terms &amp; Conditions</a>.
+                    <a href="/pages/terms-and-conditions" className="underline hover:text-blue-300 ml-1">Terms &amp; Conditions</a>.
                   </label>
                 </div>
               </div>
