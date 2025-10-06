@@ -13,7 +13,8 @@ import {
   deleteUserAccount,
   updateFirestoreName,
 } from "@/src/lib/auth";
-import { auth } from "@/src/lib/firebaseClient";
+import { auth, db } from "@/src/lib/firebaseClient";
+import { doc, getDoc } from "firebase/firestore";
 
 function AccountSettings() {
   // States for profile info
@@ -41,15 +42,27 @@ function AccountSettings() {
   }, []);
   useEffect(() => {
     if (auth.currentUser) {
-      const displayName = auth.currentUser.displayName || ""; // Full name, split if needed
-      const email = auth.currentUser.email || "";
+      const fetchUserData = async () => {
+      if (auth.currentUser) {
+        const userDocRef = doc(db, "users", auth.currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        const email = auth.currentUser.email || "";
 
-      // Assuming displayName is "FirstName LastName"
-      const [firstName, lastName] = displayName.split(" ");
-
-      setFirstName(firstName || ""); // Set to empty string if undefined
-      setLastName(lastName || ""); // Set to empty string if undefined
-      setEmailPlaceholder(email);
+        // Assuming displayName is "FirstName LastName"
+        let first = userDoc.data()?.firstName;
+        let last = userDoc.data()?.lastName;
+        if (!first && !last) {
+          const displayName = auth.currentUser.displayName || ""; // Full name, split if needed
+          const [f, l] = displayName.split(" ");
+          first = f || "";
+          last = l || "";
+        }
+        setFirstName(first || ""); // Set to empty string if undefined
+        setLastName(last || ""); // Set to empty string if undefined
+        setEmailPlaceholder(email);
+      }
+    };
+    fetchUserData();
     }
   }, []);
 
