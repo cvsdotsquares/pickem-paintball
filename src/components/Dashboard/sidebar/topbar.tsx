@@ -37,23 +37,29 @@ const PageHeader: React.FC = () => {
 
   function getDisplayName(userData: UserData | null): string {
     if (!userData) return "Guest";
-
-    if (userData.username?.trim()) {
-      return userData.username;
-    }
-
+    console.log("User Data:", userData); // Debugging line
     const firstName = userData.firstname?.trim() || "";
     const lastName = userData.lastname?.trim() || "";
-
+    const name = userData.name?.trim() || "";
+    if (name) {
+      return name;
+    }
     if (firstName && lastName) {
       return `${firstName} ${lastName}`;
     }
     if (firstName) {
       return firstName;
     }
+
     if (lastName) {
       return lastName;
     }
+
+    if (userData.username?.trim()) {
+      return userData.username;
+    }
+
+
 
     return userData.name || "Guest";
   }

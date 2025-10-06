@@ -1003,7 +1003,7 @@ export default function Pickems() {
           {/* Left Content */}
           <div className="flex flex-col gap-1 md:mx-3 lg:mx-5 mx-4 md:text-base text-[10px] my-2 font-azonix">
             <div>
-              Pick’Em closing on {""} <br className="md:hidden" />
+              Pick’Em closes on {""} <br className="md:hidden" />
               {formatLocalDateTime(liveEvent.lockDate)}
             </div>
             <div>Budget: ${remainingBudget.toLocaleString()}</div>

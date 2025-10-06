@@ -42,6 +42,7 @@ const RegisterPage: React.FC = () => {
   const [step, setStep] = useState<number>(1);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [googleNameMissing, setGoogleNameMissing] = useState(false);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -303,12 +304,18 @@ const RegisterPage: React.FC = () => {
       const user = userCredential.user;
 
       // Auto-fill all fields from Google
-      const googleNameParts = user.displayName?.split(" ") || [];
+      if (!user.displayName) {
+        setGoogleNameMissing(true);
+        setFirstName("");
+        setLastName("");
+      } else {
+        setGoogleNameMissing(false);
+        const googleNameParts = user.displayName.split(" ");
+        setFirstName(googleNameParts[0] || "");
+        setLastName(googleNameParts.slice(1).join(" ") || "");
+      }
       const suggestedUsername =
         user.email?.split("@")[0]?.replace(/[^a-zA-Z0-9_]/g, "_") || "user";
-
-      setFirstName(googleNameParts[0] || "");
-      setLastName(googleNameParts.slice(1).join(" ") || "");
       setUsername(suggestedUsername);
       setEmail(user.email || "");
 
@@ -328,7 +335,7 @@ const RegisterPage: React.FC = () => {
     }
   };
   return (
-    <div className="flex min-h-screen">     
+    <div className="flex min-h-screen">
        <img
         src="/bg.webp"
         alt="Paintball players"
@@ -419,7 +426,7 @@ const RegisterPage: React.FC = () => {
                   />
                   <label htmlFor="terms" className="select-none">
                     By clicking this you have read and are agreeing to our
-                    <a href="/terms&conditions" className="underline hover:text-blue-300 ml-1">Terms &amp; Conditions</a>.
+                    <a href="/pages/terms-and-conditions" className="underline hover:text-blue-300 ml-1">Terms &amp; Conditions</a>.
                   </label>
                 </div>
               </div>
@@ -495,21 +502,20 @@ const RegisterPage: React.FC = () => {
                   placeholder="First Name"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  required={
-                    auth.currentUser?.providerData[0]?.providerId !==
-                    "google.com"
-                  }
+                  required
                 />
                 <Input
                   type="text"
                   placeholder="Last Name"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  required={
-                    auth.currentUser?.providerData[0]?.providerId !==
-                    "google.com"
-                  }
+                  required
                 />
+                {googleNameMissing && (
+                  <p className="text-yellow-400 text-sm">
+                    Google account does not provide a name. Please enter your first and last name.
+                  </p>
+                )}
                 <Input
                   type="text"
                   placeholder="Username"

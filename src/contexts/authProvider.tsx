@@ -12,8 +12,10 @@ import {
   signOut,
   GoogleAuthProvider,
   sendEmailVerification,
+  updateProfile,
 } from "firebase/auth";
-import { auth } from "../lib/firebaseClient";
+import { auth, db } from "../lib/firebaseClient";
+import { doc, getDoc } from "firebase/firestore";
 
 interface AuthContextType {
   user: User | null;
@@ -62,6 +64,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await signOut(auth); // Sign out unverified user
       throw new Error("Please verify your email before logging in.");
     }
+    // After sign-in, ensure displayName is populated from Firestore firstname/lastname
+    //const user = result.user;
+    console.log("Google Sign-In User:", user); // Debugging line
+    try {
+      if (user && (!user.displayName || user.displayName.trim() === "")) {
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+        console.log("email Sign-In User Document:", userDoc); // Debugging line
+        if (userDoc.exists()) {
+          const raw = userDoc.data();
+          const fn = typeof raw?.firstname === "string" ? raw.firstname.trim() : "";
+          const ln = typeof raw?.lastname === "string" ? raw.lastname.trim() : "";
+          if (fn || ln) {
+            const displayName = `${fn} ${ln}`.trim();
+            await updateProfile(user, { displayName });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error syncing displayName from Firestore:", err);
+    }
     // User is verified, setUser will be called by onAuthStateChanged
   };
 
@@ -75,8 +98,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loginWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, provider);
     // Google users are considered verified
+
+    // After sign-in, ensure displayName is populated from Firestore firstname/lastname
+    const user = result.user;
+    console.log("Google Sign-In User:", user); // Debugging line
+    try {
+      if (user && (!user.displayName || user.displayName.trim() === "")) {
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+        console.log("Sign-In User Document:", userDoc); // Debugging line
+        if (userDoc.exists()) {
+          const raw = userDoc.data();
+          const fn = typeof raw?.firstname === "string" ? raw.firstname.trim() : "";
+          const ln = typeof raw?.lastname === "string" ? raw.lastname.trim() : "";
+          if (fn || ln) {
+            const displayName = `${fn} ${ln}`.trim();
+            await updateProfile(user, { displayName });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error syncing displayName from Firestore:", err);
+    }
   };
 
   const logout = async () => {

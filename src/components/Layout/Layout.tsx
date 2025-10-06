@@ -17,6 +17,8 @@ import { LuLogOut } from "react-icons/lu";
 import { FaTableList } from "react-icons/fa6";
 import { ImStatsBars } from "react-icons/im";
 import { ToastContainer } from "react-toastify";
+import { FaQuestionCircle } from "react-icons/fa";
+import { HiOutlineDocumentText } from "react-icons/hi";
 
 interface LayoutProps {
   children: ReactNode;
@@ -44,6 +46,18 @@ const links = [
     icon: <PiRankingThin className="h-5 w-5 shrink-0 text-neutral-200" />,
   },
 ];
+const cmslinks = [
+  {
+    label: "Faq",
+    href: "/pages/faq",
+    icon: <FaQuestionCircle className="h-5 w-5 shrink-0 text-neutral-200" />,
+  },
+  {
+    label: "Terms and Conditions",
+    href: "/pages/terms-and-conditions",
+    icon: <HiOutlineDocumentText className="h-5 w-5 shrink-0 text-neutral-200" />,
+  },
+];
 
 export const Logo = () => {
   return (
@@ -53,14 +67,14 @@ export const Logo = () => {
     >
       <motion.span
         initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}       
+        animate={{ opacity: 1 }}
       >
       <img
-                            loading="lazy"
-                            src="/logo.svg"
-                            alt="logo"
-                            width="130"
-                        />
+        loading="lazy"
+        src="/logo.svg"
+        alt="logo"
+        width="130"
+      />
         </motion.span>
     </Link>
   );
@@ -87,6 +101,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             </div>
             <div>
+              <div className="md:mt-8 flex md:flex-col flex-row gap-2">
+                {cmslinks.map((link, idx) => (
+                  <SidebarLink key={idx} link={link} />
+                ))}
+              </div>
               <Logoutbtn
                 text="Log out"
                 icon={
@@ -98,6 +117,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </Sidebar>
         <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-around bg-stone-950 text-white p-2 md:hidden">
           {links.map((link, index) => (
+            <Link
+              key={index}
+              href={link.href}
+              className="flex flex-col items-center justify-center text-xs hover:text-stone-300"
+            >
+              {link.icon}
+              <span className="text-[10px] mt-1">{link.label}</span>
+            </Link>
+          ))}
+           {cmslinks.map((link, index) => (
             <Link
               key={index}
               href={link.href}

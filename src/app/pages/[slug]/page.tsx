@@ -1,7 +1,7 @@
 "use client";
 
 import { Metadata } from "next";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { db } from "@/src/lib/firebaseClient";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -31,6 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/ca
 
 export default function CMSPage() {
   const { slug } = useParams();
+  const router = useRouter();
   const [page, setPage] = useState<any>(null);
 
   useEffect(() => {
@@ -57,12 +58,25 @@ export default function CMSPage() {
         <title>{page.metaTitle || page.title}</title>
         <meta name="description" content={page.metaDescription || ""} />
       </Head>
-    
-          <div className="w-full flex pt-8 px-4">
-            <h1 className="text-3xl font-bold mb-4 text-orange-600 mb-0">{page.title}</h1>
+
+          <div className="w-full flex items-center gap-4 pt-8 px-4">
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push('/dashboard');
+                }
+              }}
+              className="rounded border border-orange-600/40 text-orange-400 hover:bg-orange-600/10 px-3 py-1 text-sm transition"
+              aria-label="Go back"
+            >
+              ← Back
+            </button>
+            <h1 className="text-3xl font-bold text-orange-600 mb-0">{page.title}</h1>
           </div>
           <div dangerouslySetInnerHTML={{ __html: page.body }} />
-        
+
     </div>
   );
 }
