@@ -299,8 +299,9 @@ export default function Leaderboard() {
       {/* Current User Card (sticky on mobile) */}
       {currentUserData && (
         <>
+        <div className="sticky top-0 z-10 bg-gray-800/100 rounded-lg  shadow border border-gray-700 mb-4 sm:mb-0">
           <div
-            className="sticky top-0 z-10 mb-4 bg-gray-800/100 rounded-lg p-2 sm:p-3 shadow border border-gray-700 cursor-pointer"
+            className=" mb-0  p-2 sm:p-3 cursor-pointer"
             onClick={() => setExpandCurrentUser((prev) => !prev)}
             aria-label={expandCurrentUser ? 'Collapse picks' : 'Expand picks'}
           >
@@ -357,7 +358,7 @@ export default function Leaderboard() {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
-                className="mb-4 bg-gray-800/70 rounded-lg p-3 shadow border border-gray-700"
+                className="mb-0 p-3"
               >
                 <h3 className="text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1">
                   Your Team
@@ -381,14 +382,14 @@ export default function Leaderboard() {
                             {pick.kills} kills
                           </span>
                         </div>
-                        <div className="flex justify-between items-center mt-1 text-xs">
+                        <div className="flex grid grid-cols-3 justify-between items-center mt-1 text-xs">
                           <span className="text-gray-400">
                             Rank: {pick.rank ?? 0}
                           </span>
                           <span className="text-gray-400">
                             Cost:${pick.cost}
                           </span>
-                          <span className="text-yellow-400">
+                          <span className="text-yellow-400 text-end">
                             ROI:{pick.kills === 0 || pick.cost === 0
                               ? 0
                               : (pick.cost / pick.kills).toFixed(2)}
@@ -400,11 +401,12 @@ export default function Leaderboard() {
               </motion.div>
             )}
           </AnimatePresence>
+          </div>
         </>
       )}
 
       {/* Search Bar */}
-      <div className="relative mb-4">
+      <div className="relative mt-4 mb-4">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <FaSearch className="text-gray-400 text-sm" />
         </div>
