@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, Fragment, ReactNode } from "react";
+import { useState, useEffect, Fragment, ReactNode, useRef } from "react";
 import { db, storage } from "@/src/lib/firebaseClient";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
@@ -51,6 +51,10 @@ export default function Leaderboard() {
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentUserData, setCurrentUserData] = useState<User | null>(null);
+  // Height management for expanded picks scroll
+  const cardWrapperRef = useRef<HTMLDivElement | null>(null);
+  const picksContainerRef = useRef<HTMLDivElement | null>(null);
+  const [picksMaxHeight, setPicksMaxHeight] = useState<number | null>(null);
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -64,7 +68,33 @@ export default function Leaderboard() {
   // Toggle expanded view for user picks
   const toggleExpand = (userId: string) => {
     setExpandedUserId(expandedUserId === userId ? null : userId);
+    setExpandCurrentUser(false);
   };
+  const toggleTopExpand = () => {
+    setExpandedUserId(null);
+    setExpandCurrentUser((prev) => !prev);
+  };
+
+  // Compute available height for picks when expanded so the card stays pinned
+  useEffect(() => {
+    if (!expandCurrentUser) { setPicksMaxHeight(null); return; }
+    const compute = () => {
+      if (!cardWrapperRef.current) return;
+      const rect = cardWrapperRef.current.getBoundingClientRect();
+      const viewportH = window.innerHeight;
+      // Space left below the card container (including its non-expanded content already rendered)
+      const remaining = viewportH - rect.top - 150; // 24px bottom padding margin allowance
+      // Minimum sensible height
+      setPicksMaxHeight(Math.max(remaining, 120));
+    };
+    compute();
+    window.addEventListener('resize', compute);
+    window.addEventListener('orientationchange', compute);
+    return () => {
+      window.removeEventListener('resize', compute);
+      window.removeEventListener('orientationchange', compute);
+    };
+  }, [expandCurrentUser, currentUserData]);
 
   // Fetch live event
   useEffect(() => {
@@ -269,7 +299,7 @@ export default function Leaderboard() {
   );
 
   return (
-    <div className="p-2 pt-0 sm:pt-0 pb-10 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-black text-white">
+  <div className="p-2 pt-0 sm:pt-0 pb-10 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-black text-white">
       {/* Event Header */}
       <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
         <div
@@ -299,10 +329,11 @@ export default function Leaderboard() {
       {/* Current User Card (sticky on mobile) */}
       {currentUserData && (
         <>
-        <div className="sticky top-0 z-10 bg-gray-800/100 rounded-lg  shadow border border-gray-700 mb-4 sm:mb-0">
+  <div ref={cardWrapperRef} className="sticky top-0 z-10 bg-[#101010] pt-4 pb-4 mb-4 sm:mb-0">
+          <div className="bg-gray-800/100 rounded-lg  shadow border border-gray-700">
           <div
             className=" mb-0  p-2 sm:p-3 cursor-pointer"
-            onClick={() => setExpandCurrentUser((prev) => !prev)}
+            onClick={() => toggleTopExpand()}
             aria-label={expandCurrentUser ? 'Collapse picks' : 'Expand picks'}
           >
             <div className="flex items-center justify-between">
@@ -335,7 +366,7 @@ export default function Leaderboard() {
                   <div className="flex items-center mt-0.5">
                     <FaTrophy className="text-yellow-400 mr-1 text-sm" />
                     <span className="font-medium text-sm">
-                      {currentUserData.totalPoints} kills
+                     Confirmed Kills: {currentUserData.totalPoints}
                     </span>
                   </div>
                   <p className="text-xs text-gray-400">
@@ -358,49 +389,61 @@ export default function Leaderboard() {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
-                className="mb-0 p-3"
+                className="mb-0 p-0"
               >
-                <h3 className="text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1">
-                  Your Team
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {currentUserData.picks
-                    .sort((a, b) => {
-                      if (b.kills !== a.kills) return b.kills - a.kills;
-                      return a.name.localeCompare(b.name);
-                    })
-                    .map((pick) => (
-                      <div
-                        key={pick.id}
-                        className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors"
-                      >
-                        <div className="flex justify-between items-center">
-                          <span className="text-white text-xs font-medium truncate">
-                            {pick.name}
-                          </span>
-                          <span className="text-green-400 text-xs font-medium">
-                            {pick.kills} kills
-                          </span>
+                <div
+                  ref={picksContainerRef}
+                  style={picksMaxHeight ? { maxHeight: picksMaxHeight, overflowY: 'auto' } : undefined}
+                  className="px-3 pb-3 border-t border-gray-700/70 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-600"
+                >
+                  <h3 className="pt-3 text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1 sticky top-0 bg-gray-800/100 z-10">
+                    Your Team
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {currentUserData.picks
+                      .sort((a, b) => {
+                        if (b.kills !== a.kills) return b.kills - a.kills;
+                        return a.name.localeCompare(b.name);
+                      })
+                      .map((pick) => (
+                        <div
+                          key={pick.id}
+                          className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors"
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="text-white text-xs font-medium truncate">
+                              {pick.name}
+                            </span>
+                            <span className="text-green-400 text-xs font-medium">
+                              Confirmed Kills: {pick.kills}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center mt-1 text-xs">
+                            <span className="text-gray-400 w-1/3">
+                              Rank: {pick.rank ?? 0}
+                            </span>
+                            <span className="flex text-gray-400 w-1/3">
+                              <span className="w-1/2 text-end">
+                                Cost:
+                              </span>
+                              <span className="w-1/2 text-start">
+                                &nbsp;${pick.cost}
+                              </span>
+                            </span>
+                            <span className="text-yellow-400 text-end w-1/3">
+                              ROI: ${pick.kills === 0 || pick.cost === 0
+                                ? 0
+                                : (pick.cost / pick.kills).toFixed(2)}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex grid grid-cols-3 justify-between items-center mt-1 text-xs">
-                          <span className="text-gray-400">
-                            Rank: {pick.rank ?? 0}
-                          </span>
-                          <span className="text-gray-400">
-                            Cost:${pick.cost}
-                          </span>
-                          <span className="text-yellow-400 text-end">
-                            ROI:{pick.kills === 0 || pick.cost === 0
-                              ? 0
-                              : (pick.cost / pick.kills).toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                  </div>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
+          </div>
           </div>
         </>
       )}
@@ -575,20 +618,25 @@ export default function Leaderboard() {
                                         {pick.name}
                                       </span>
                                       <span className="text-green-400 text-xs font-medium">
-                                        {pick.kills} kills
+                                        Confirmed Kills: {pick.kills}
                                       </span>
                                     </div>
                                     <div className="flex justify-between items-center mt-1 text-xs">
-                                      <span className="text-gray-400">
+                                      <span className="text-gray-400 w-1/3">
                                         Rank: {pick.rank ?? 0}
                                       </span>
-                                      <span className="text-gray-400">
-                                        Cost:${pick.cost}
+                                      <span className="flex text-gray-400 w-1/3">
+                                        <span className="w-1/2 text-end">
+                                          Cost:
+                                        </span>
+                                        <span className="w-1/2 text-start">
+                                          &nbsp;${pick.cost}
+                                        </span>
                                       </span>
-                                      <span className="text-yellow-400">
-                                        ROI: {pick.kills === 0 || pick.cost === 0
+                                      <span className="text-yellow-400 text-end w-1/3">
+                                        ROI: ${pick.kills === 0 || pick.cost === 0
                                           ? 0
-                                          : (pick.cost / pick.kills).toFixed(2)}
+                                          : (pick.cost / pick.kills).toFixed(0)}
                                       </span>
                                     </div>
                                   </div>

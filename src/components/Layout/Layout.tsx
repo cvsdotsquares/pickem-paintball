@@ -19,6 +19,7 @@ import { ImStatsBars } from "react-icons/im";
 import { ToastContainer } from "react-toastify";
 import { FaQuestionCircle } from "react-icons/fa";
 import { HiOutlineDocumentText } from "react-icons/hi";
+import ProfileCompletion from "./ProfileCompletion";
 
 interface LayoutProps {
   children: ReactNode;
@@ -48,12 +49,12 @@ const links = [
 ];
 const cmslinks = [
   {
-    label: "Faq",
+    label: "FAQ",
     href: "/pages/faq",
     icon: <FaQuestionCircle className="h-5 w-5 shrink-0 text-neutral-200" />,
   },
   {
-    label: "Terms and Conditions",
+    label: "T&Cs",
     href: "/pages/terms-and-conditions",
     icon: <HiOutlineDocumentText className="h-5 w-5 shrink-0 text-neutral-200" />,
   },
@@ -161,6 +162,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         />
         {children}
       </main>
+      <ProfileCompletion />
     </div>
   );
 };
