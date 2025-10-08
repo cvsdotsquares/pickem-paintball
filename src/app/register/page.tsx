@@ -73,6 +73,23 @@ const RegisterPage: React.FC = () => {
   const [usernameDebounceTimer, setUsernameDebounceTimer] =
     useState<NodeJS.Timeout | null>(null);
 
+  // Auto-check prefilled username when entering step 2 (e.g., Google suggested)
+  useEffect(() => {
+    const run = async () => {
+      if (step === 2 && username && isUsernameAvailable === null && usernameRegex.test(username)) {
+        try {
+          setIsCheckingUsername(true);
+            const unique = await checkUsernameUnique(username);
+            setIsUsernameAvailable(unique);
+        } finally {
+          setIsCheckingUsername(false);
+        }
+      }
+    };
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
   // If redirected from Google login as a new user (?googleNew=1) and already signed in, skip to step 2.
   useEffect(() => {
     const isGoogleNew = searchParams.get('googleNew') === '1';
@@ -238,8 +255,18 @@ const RegisterPage: React.FC = () => {
     }
 
     if (isUsernameAvailable === null && username) {
-      setError("Please wait while we check username availability");
-      return;
+      // Perform immediate check (user may have a prefilled username and clicked quickly)
+      try {
+        setIsCheckingUsername(true);
+        const uniqueNow = await checkUsernameUnique(username);
+        setIsUsernameAvailable(uniqueNow);
+        if (!uniqueNow) {
+          setError("Please choose a different username");
+          return;
+        }
+      } finally {
+        setIsCheckingUsername(false);
+      }
     }
 
     if (
