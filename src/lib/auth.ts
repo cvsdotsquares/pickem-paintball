@@ -31,9 +31,12 @@ export const loginWithGoogle = () => {
 export const logout = () => {
     return signOut(auth);
 };
-export const updateFirestoreName = async (userId: string, newName: string) => {
+export const updateFirestoreName = async (userId: string, newName: string, firstName?: string, lastName?: string) => {
     const userDocRef = doc(db, "users", userId);
-    await setDoc(userDocRef, { name: newName });
+    const payload: Record<string, any> = { name: newName };
+    if (firstName !== undefined) payload.firstName = firstName;
+    if (lastName !== undefined) payload.lastName = lastName;
+    await setDoc(userDocRef, payload, { merge: true });
 };
 export const checkEmailVerification = (router: NextRouter, setError: (message: string) => void) => {
     onAuthStateChanged(auth, (user) => {

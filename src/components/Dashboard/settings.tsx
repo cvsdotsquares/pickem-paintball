@@ -349,7 +349,9 @@ function AccountSettings() {
       }
       await updateFirestoreName(
         auth.currentUser.uid,
-        `${firstName} ${lastName}`
+        `${firstName} ${lastName}`.trim(),
+        firstName.trim(),
+        lastName.trim()
       );
 
       // If email field is filled, update the email too (requires reauthentication)
