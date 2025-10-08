@@ -17,6 +17,7 @@ const ProfileCompletion: React.FC<Props> = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
+  const [originalUsername, setOriginalUsername] = useState<string>("");
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,13 +36,18 @@ const ProfileCompletion: React.FC<Props> = () => {
           const data: any = snap.data();
           console.log("ProfileCompletion fetch data:", data); // Debugging line
           const fn = (data.firstName || "").trim();
-            const ln = (data.lastName || "").trim();
-            const un = (data.username || "").trim();
+          const ln = (data.lastName || "").trim();
+          const un = (data.username || "").trim();
           if (!fn || !ln || !un) {
             setFirstName(fn);
             setLastName(ln);
             setUsername(un);
+            setOriginalUsername(un.toLowerCase());
             setOpen(true);
+          }
+          else {
+            // Store original for unchanged detection even if modal not opened (future proof if logic changes)
+            setOriginalUsername(un.toLowerCase());
           }
         } else {
           // No user doc yet -> force completion
@@ -58,19 +64,31 @@ const ProfileCompletion: React.FC<Props> = () => {
 
   const checkUsernameUnique = useCallback(async (value: string) => {
     if (!value || !usernameRegex.test(value)) { setUsernameAvailable(null); return; }
+    // If unchanged from original, treat as available
+    if (originalUsername && value.toLowerCase() === originalUsername) {
+      setUsernameAvailable(true);
+      return;
+    }
     setCheckingUsername(true);
     try {
       const usersRef = collection(db, "users");
       const qy = query(usersRef, where("username", "==", value.toLowerCase()));
       const snapshot = await getDocs(qy);
-      setUsernameAvailable(snapshot.empty);
+      if (snapshot.empty) {
+        setUsernameAvailable(true);
+      } else {
+        const currentUid = auth.currentUser?.uid;
+        // If every doc returned is actually the current user, it's effectively available
+        const others = snapshot.docs.filter(d => d.id !== currentUid);
+        setUsernameAvailable(others.length === 0);
+      }
     } catch (e) {
       console.error("Username check error", e);
       setUsernameAvailable(null);
     } finally {
       setCheckingUsername(false);
     }
-  }, []);
+  }, [originalUsername]);
 
   // Debounce username checking
   useEffect(() => {
@@ -88,13 +106,15 @@ const ProfileCompletion: React.FC<Props> = () => {
     if (!firstName || !lastName || !username) { setError("All fields required"); return; }
     if (!nameRegex.test(firstName) || !nameRegex.test(lastName)) { setError("Invalid name format"); return; }
     if (!usernameRegex.test(username)) { setError("Invalid username format"); return; }
-    if (usernameAvailable === false) { setError("Username already taken"); return; }
+    if (originalUsername && username.toLowerCase() === originalUsername) {
+      // unchanged -> fine
+    } else if (usernameAvailable === false) { setError("Username already taken"); return; }
     setSaving(true);
     try {
       const uid = auth.currentUser.uid;
       await setDoc(doc(db, "users", uid), {
-        firstname: firstName.trim(),
-        lastname: lastName.trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         username: username.trim().toLowerCase(),
       }, { merge: true });
       const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
