@@ -69,7 +69,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     console.log("Google Sign-In User:", user); // Debugging line
     try {
       if (user && (!user.displayName || user.displayName.trim() === "")) {
-        const userDocRef = doc(c, "users", user.uid);
+        const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
         console.log("email Sign-In User Document:", userDoc); // Debugging line
         if (userDoc.exists()) {
