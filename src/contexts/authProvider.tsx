@@ -69,13 +69,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     console.log("Google Sign-In User:", user); // Debugging line
     try {
       if (user && (!user.displayName || user.displayName.trim() === "")) {
-        const userDocRef = doc(db, "users", user.uid);
+        const userDocRef = doc(c, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
         console.log("email Sign-In User Document:", userDoc); // Debugging line
         if (userDoc.exists()) {
           const raw = userDoc.data();
-          const fn = typeof raw?.firstname === "string" ? raw.firstname.trim() : "";
-          const ln = typeof raw?.lastname === "string" ? raw.lastname.trim() : "";
+          const fn = typeof raw?.firstName === "string" ? raw.firstName.trim() : "";
+          const ln = typeof raw?.lastName === "string" ? raw.lastName.trim() : "";
           if (fn || ln) {
             const displayName = `${fn} ${ln}`.trim();
             await updateProfile(user, { displayName });
@@ -111,8 +111,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log("Sign-In User Document:", userDoc); // Debugging line
         if (userDoc.exists()) {
           const raw = userDoc.data();
-          const fn = typeof raw?.firstname === "string" ? raw.firstname.trim() : "";
-          const ln = typeof raw?.lastname === "string" ? raw.lastname.trim() : "";
+          const fn = typeof raw?.firstName === "string" ? raw.firstName.trim() : "";
+          const ln = typeof raw?.lastName === "string" ? raw.lastName.trim() : "";
           if (fn || ln) {
             const displayName = `${fn} ${ln}`.trim();
             await updateProfile(user, { displayName });

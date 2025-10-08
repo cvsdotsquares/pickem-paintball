@@ -10,19 +10,19 @@ import UserHead from "./head";
 const PageHeader: React.FC = () => {
   interface UserData {
     name: string;
-    firstname: string;
+    firstName: string;
     profilePicture: string;
     isPro: boolean;
     badges: string[];
     country: string;
-    lastname: string;
+    lastName: string;
     username: string;
   }
 
   const defaultUserData: UserData = {
     name: "Guest",
-    firstname: "",
-    lastname: "",
+    firstName: "",
+    lastName: "",
     profilePicture:
       "https://cdn-icons-png.freepik.com/256/14024/14024658.png?semt=ais_hybrid",
     isPro: false,
@@ -38,8 +38,8 @@ const PageHeader: React.FC = () => {
   function getDisplayName(userData: UserData | null): string {
     if (!userData) return "Guest";
     console.log("User Data:", userData); // Debugging line
-    const firstName = userData.firstname?.trim() || "";
-    const lastName = userData.lastname?.trim() || "";
+    const firstName = userData.firstName?.trim() || "";
+    const lastName = userData.lastName?.trim() || "";
     const name = userData.name?.trim() || "";
     if (name) {
       return name;
