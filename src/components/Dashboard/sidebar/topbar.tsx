@@ -103,8 +103,8 @@ const PageHeader: React.FC = () => {
             ? rawData.badges
             : defaultUserData.badges,
           country: rawData?.country?.trim() || "",
-          firstname: rawData?.firstname?.trim() || "",
-          lastname: rawData?.lastname?.trim() || "",
+          firstName: rawData?.firstName?.trim() || "",
+          lastName: rawData?.lastName?.trim() || "",
         };
 
         setUserData(validatedUserData);
