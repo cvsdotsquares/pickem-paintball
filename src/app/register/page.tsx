@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useRef, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   loginWithGoogle,
   registerWithEmail,
@@ -39,6 +39,7 @@ import Image from "next/image";
 const RegisterPage: React.FC = () => {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<number>(1);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -71,6 +72,27 @@ const RegisterPage: React.FC = () => {
   const badWords = ["badword1", "badword2"]; // Add actual bad words here
   const [usernameDebounceTimer, setUsernameDebounceTimer] =
     useState<NodeJS.Timeout | null>(null);
+
+  // If redirected from Google login as a new user (?googleNew=1) and already signed in, skip to step 2.
+  useEffect(() => {
+    const isGoogleNew = searchParams.get('googleNew') === '1';
+    const currentUser = auth.currentUser;
+    if (isGoogleNew && currentUser) {
+      // Prefill from auth object
+      if (currentUser.displayName) {
+        const parts = currentUser.displayName.split(' ');
+        if (!firstName) setFirstName(parts[0] || '');
+        if (!lastName) setLastName(parts.slice(1).join(' ') || '');
+      }
+      if (currentUser.email && !email) setEmail(currentUser.email);
+      if (!username && currentUser.email) {
+        const suggested = currentUser.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
+        setUsername(suggested);
+      }
+      setStep(2);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const handleUsernameChange = async (
     e: React.ChangeEvent<HTMLInputElement>

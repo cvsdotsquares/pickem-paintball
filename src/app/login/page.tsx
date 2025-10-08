@@ -27,14 +27,21 @@ const LoginPage: React.FC = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      if (user.emailVerified) {
-        router.push("/dashboard");
-      } else {
-        setError("Please verify your email before logging in.");
-        signOut(auth); // Sign out unverified users
+    const checkUser = async () => {
+      if (user) {
+        if (user.emailVerified) {
+          const userRef = doc(db, "users", user.uid);
+          const userDoc = await getDoc(userRef);
+          if (userDoc.exists()) {
+            router.push("/dashboard");
+          }
+        } else {
+          setError("Please verify your email before logging in.");
+          signOut(auth); // Sign out unverified users
+        }
       }
-    }
+    };
+    checkUser();
   }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,17 +87,15 @@ const LoginPage: React.FC = () => {
       const userDoc = await getDoc(userRef);
 
       if (!userDoc.exists()) {
-        // If the user doesn't exist, create a new document
-        await setDoc(userRef, {
-          email: user.email,
-          createdAt: new Date(),
-          pickems: {}, // Initialize with empty pickems
-          total_points: 0, // Initialize total points
-        });
-        console.log("User created in Firestore");
+        // New Google user: send to registration completion instead of auto-creating
+        router.push("/register?googleNew=1");
+        return;
+      }else {
+        // Existing user proceeds to dashboard
+        router.push("/dashboard");
       }
 
-      router.push("/dashboard");
+
     } catch (err) {
       setError("Google login failed.");
     }
