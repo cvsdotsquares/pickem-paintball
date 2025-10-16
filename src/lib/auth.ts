@@ -38,6 +38,12 @@ export const updateFirestoreName = async (userId: string, newName: string, first
     if (lastName !== undefined) payload.lastName = lastName;
     await setDoc(userDocRef, payload, { merge: true });
 };
+
+// Unified user upsert helper to avoid accidental overwrites
+export const upsertUserDoc = async (userId: string, data: Record<string, any>) => {
+    const userDocRef = doc(db, 'users', userId);
+    await setDoc(userDocRef, data, { merge: true });
+};
 export const checkEmailVerification = (router: NextRouter, setError: (message: string) => void) => {
     onAuthStateChanged(auth, (user) => {
         if (user) {

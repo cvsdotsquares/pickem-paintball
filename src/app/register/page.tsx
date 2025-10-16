@@ -286,7 +286,7 @@ const RegisterPage: React.FC = () => {
     try {
       const user = auth.currentUser;
       if (user) {
-        await updateFirestoreName(user.uid, `${firstName} ${lastName}`);
+  await updateFirestoreName(user.uid, `${firstName} ${lastName}`.trim(), firstName.trim(), lastName.trim());
 
         await setDoc(
           doc(db, "users", user.uid),
