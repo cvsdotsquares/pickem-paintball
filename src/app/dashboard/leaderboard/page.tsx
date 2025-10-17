@@ -329,7 +329,7 @@ export default function Leaderboard() {
       {/* Current User Card (sticky on mobile) */}
       {currentUserData && (
         <>
-  <div ref={cardWrapperRef} className="sticky top-0 z-10 bg-[#101010] pt-4 pb-4 mb-4 sm:mb-0">
+  <div ref={cardWrapperRef} className="sticky top-0 z-10 bg-black pt-4 pb-4 mb-4 sm:mb-0">
           <div className="bg-gray-800/100 rounded-lg  shadow border border-gray-700">
           <div
             className=" mb-0  p-2 sm:p-3 cursor-pointer"
