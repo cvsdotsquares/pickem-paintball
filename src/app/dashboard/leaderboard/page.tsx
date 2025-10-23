@@ -394,7 +394,7 @@ export default function Leaderboard() {
                 <div
                   ref={picksContainerRef}
                   style={picksMaxHeight ? { maxHeight: picksMaxHeight, overflowY: 'auto' } : undefined}
-                  className="px-3 pb-3 border-t border-gray-700/70 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-600"
+                  className="px-3 pb-3 max-h-200px border-t border-gray-700/70 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-600"
                 >
                   <h3 className="pt-3 text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1 sticky top-0 bg-gray-800/100 z-10">
                     Your Team
