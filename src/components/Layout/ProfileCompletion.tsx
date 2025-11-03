@@ -163,7 +163,7 @@ const ProfileCompletion: React.FC<Props> = () => {
         </div>
         {error && <p className="text-sm text-red-500">{error}</p>}
         <div className="flex gap-2 justify-end pt-2">
-          <Button type="button" variant="secondary" onClick={() => setOpen(false)} disabled={saving}>Later</Button>
+          {/* <Button type="button" variant="secondary" onClick={() => setOpen(false)} disabled={saving}>Later</Button> */}
           <Button type="button" className="bg-green-600 hover:bg-green-700" onClick={handleSave} disabled={saving || checkingUsername}>
             {saving ? "Saving..." : "Save"}
           </Button>
