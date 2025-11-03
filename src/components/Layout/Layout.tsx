@@ -116,12 +116,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           </SidebarBody>
         </Sidebar>
-        <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-around bg-stone-950 text-white p-2 md:hidden">
+        <div className="fixed bottom-0 overflow-auto left-0 right-0 z-50 flex justify-around bg-stone-950 text-white p-2 md:hidden">
           {links.map((link, index) => (
             <Link
               key={index}
               href={link.href}
-              className="flex flex-col items-center justify-center text-xs hover:text-stone-300"
+              className="flex min-w-[85px] flex-col items-center justify-center text-xs hover:text-stone-300"
             >
               {link.icon}
               <span className="text-[10px] mt-1">{link.label}</span>
@@ -131,7 +131,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Link
               key={index}
               href={link.href}
-              className="flex flex-col items-center justify-center text-xs hover:text-stone-300"
+              className="flex min-w-[85px] flex-col items-center justify-center text-xs hover:text-stone-300"
             >
               {link.icon}
               <span className="text-[10px] mt-1">{link.label}</span>
@@ -140,7 +140,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className="flex flex-col items-center justify-center text-xs hover:text-stone-300"
+            className="flex min-w-[85px] flex-col items-center justify-center text-xs hover:text-stone-300"
           >
             <LuLogOut className="h-5 w-5 shrink-0 text-neutral-200" />
             <span className="text-[10px] mt-1">Log out</span>

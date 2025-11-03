@@ -389,12 +389,12 @@ export default function Leaderboard() {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
-                className="mb-0 p-0"
+                className="mb-0 p-0 "
               >
                 <div
                   ref={picksContainerRef}
-                  style={picksMaxHeight ? { maxHeight: picksMaxHeight, overflowY: 'auto' } : undefined}
-                  className="px-3 pb-3 border-t border-gray-700/70 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-600"
+                  
+                  className="px-3  max-h-[280px] overflow-auto pb-3 border-t border-gray-700/70 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-600"
                 >
                   <h3 className="pt-3 text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1 sticky top-0 bg-gray-800/100 z-10">
                     Your Team
