@@ -63,7 +63,7 @@ export default function Pickems() {
   }>({ id: null, lockDate: null, timeLeft: "" });
   const [remainingBudget, setRemainingBudget] = useState(1000000); // $1,000,000 initial budget
   const [visiblePlayersCount, setVisiblePlayersCount] = useState(9);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [costRange, setCostRange] = useState<[number, number]>([0, 1000000]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -110,6 +110,7 @@ export default function Pickems() {
   }) => {
     setSortOption({ field, direction });
     setVisiblePlayersCount(9); // Reset visible count when sorting changes
+    setIsLoadingMore(false); // Reset loading state when sorting changes
   };
 
   // In your component
@@ -208,6 +209,7 @@ export default function Pickems() {
   }, [selectedPlayers, availablePlayers, visiblePlayersCount]);
 
   const handleScroll = useCallback(() => {
+    // Check if we should load more
     if (isLoadingMore || visiblePlayers.length >= filteredPlayers.length)
       return;
 
@@ -218,21 +220,40 @@ export default function Pickems() {
 
     const { scrollTop, scrollHeight, clientHeight } = container;
 
-    // Different thresholds for mobile/desktop
-    const threshold = isMobile ? scrollHeight * 0.25 : 100; // 25% for mobile, 100px for desktop
+    // Improved threshold calculation - use fixed pixel values for better reliability
+    const threshold = isMobile ? 200 : 300; // 200px for mobile, 300px for desktop
     const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
 
+    console.log("Scroll debug:", {
+      scrollTop,
+      scrollHeight,
+      clientHeight,
+      distanceFromBottom,
+      threshold,
+      shouldLoadMore: distanceFromBottom < threshold,
+      isLoadingMore,
+      visibleCount: visiblePlayers.length,
+      totalCount: filteredPlayers.length
+    });
+
     if (distanceFromBottom < threshold) {
+      console.log("Triggering load more...");
       setIsLoadingMore(true);
-      setTimeout(
-        () => {
-          setVisiblePlayersCount((prev) =>
-            Math.min(prev + (isMobile ? 6 : 9), filteredPlayers.length)
-          );
-          setIsLoadingMore(false);
-        },
-        isMobile ? 200 : 300
-      );
+
+      // Use requestAnimationFrame for better performance
+      requestAnimationFrame(() => {
+        setTimeout(
+          () => {
+            setVisiblePlayersCount((prev) => {
+              const newCount = Math.min(prev + (isMobile ? 6 : 9), filteredPlayers.length);
+              console.log("Updating visible count:", prev, "->", newCount);
+              return newCount;
+            });
+            setIsLoadingMore(false);
+          },
+          isMobile ? 200 : 300
+        );
+      });
     }
   }, [isLoadingMore, visiblePlayers.length, filteredPlayers.length, isMobile]);
 
@@ -247,10 +268,17 @@ export default function Pickems() {
         scrollable: container.scrollHeight > container.clientHeight,
       });
 
-      // Trigger initial check
+      // Attach scroll event listener
+      container.addEventListener("scroll", handleScroll, { passive: true });
+
+      // Trigger initial check after a delay to ensure DOM is ready
       setTimeout(handleScroll, 600);
+
+      return () => {
+        container.removeEventListener("scroll", handleScroll);
+      };
     }
-  }, [visiblePlayers]);
+  }, [visiblePlayers, handleScroll, isMobile]);
 
   const db = getFirestore();
   const { user } = useAuth();
@@ -262,41 +290,6 @@ export default function Pickems() {
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   };
 
-  useEffect(() => {
-    const container = mobileScrollRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      console.log("Scroll position:", {
-        scrollTop,
-        scrollHeight,
-        clientHeight,
-        distanceFromBottom: scrollHeight - (scrollTop + clientHeight),
-      });
-      const threshold = 50;
-      const isNearBottom =
-        scrollHeight - (scrollTop + clientHeight) < threshold;
-
-      if (
-        isNearBottom &&
-        !isLoadingMore &&
-        visiblePlayers.length < filteredPlayers.length
-      ) {
-        setIsLoadingMore(true);
-        setTimeout(() => {
-          setVisiblePlayersCount((prev) =>
-            Math.min(prev + 9, filteredPlayers.length)
-          );
-          setIsLoadingMore(false);
-        }, 200);
-      }
-    };
-
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => container.removeEventListener("scroll", handleScroll);
-  }, [isLoadingMore, visiblePlayers.length, filteredPlayers.length]);
-
   const handleFilter = ({
     searchTerm: newSearchTerm,
     costRange: newCostRange,
@@ -305,6 +298,8 @@ export default function Pickems() {
     setSearchTerm(newSearchTerm);
     setCostRange(newCostRange);
     setSelectedTeams(newSelectedTeams);
+    setVisiblePlayersCount(9); // Reset visible count when filters change
+    setIsLoadingMore(false); // Reset loading state when filters change
   };
 
   // Your existing live event fetch
@@ -394,6 +389,8 @@ export default function Pickems() {
       if (!liveEvent.id) return;
 
       try {
+        setIsLoadingMore(true); // Set loading state when starting data fetch
+
         // Fetch raw players from Firestore
         const rawPlayers = await fetchFromFirestore(
           `events/${liveEvent.id}/players`
@@ -422,10 +419,12 @@ export default function Pickems() {
         if (isMounted) {
           setRowData(players);
           setTeams(uniqueTeams);
+          setIsLoadingMore(false); // Clear loading state after data is loaded
         }
       } catch (error) {
         if (isMounted) {
           console.error("Error fetching players:", error);
+          setIsLoadingMore(false); // Clear loading state on error
         }
       }
     };
@@ -1143,7 +1142,14 @@ export default function Pickems() {
               className="flex justify-center mx-auto flex-col items-center py-8"
             >
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white mb-4"></div>
-              <div className="text-white/70">Fetching players data</div>
+              <div className="text-white/70">
+                {rowData.length === 0 ? "Loading players..." : "Loading more players..."}
+              </div>
+              {rowData.length > 0 && (
+                <div className="text-white/50 text-sm mt-1">
+                  Showing {visiblePlayers.length} of {filteredPlayers.length} players
+                </div>
+              )}
             </motion.div>
           ) : (
             visiblePlayers.length === 0 && (
@@ -1152,7 +1158,7 @@ export default function Pickems() {
                 animate={{ opacity: 1 }}
                 className="text-center py-8 text-white/70"
               >
-                No players match your filters
+                {rowData.length === 0 ? "No players available" : "No players match your filters"}
               </motion.div>
             )
           )}

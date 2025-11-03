@@ -262,6 +262,21 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
 
     let filtered = [...typedData];
 
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(player => 
+        player.Player?.toLowerCase().includes(searchLower) ||
+        player.Team?.toLowerCase().includes(searchLower) ||
+        player.Number?.toString().includes(searchTerm)
+      );
+    }
+
+    // Apply team filter
+    if (selectedTeam !== "All") {
+      filtered = filtered.filter(player => player.Team === selectedTeam);
+    }
+
     // Apply myPicks filter if enabled
     if (showOnlyMyPicks && myPicks && myPicks.size > 0) {
       const myPicksNormalized = new Set<string>();
@@ -300,6 +315,11 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     selectedTeam,
     isDataLoading, // Add this dependency
   ]);
+
+  // Reset pagination when search or team filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedTeam, showOnlyMyPicks]);
 
   // Add this useEffect to ensure pagination updates after filtering
   useEffect(() => {
@@ -380,10 +400,8 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   };
 
   useEffect(() => {
-    setTotalPages(Math.ceil(data.length / rowsPerPage));
-    // Reset to first page when data changes
-    setCurrentPage(1);
-  }, [data, rowsPerPage]);
+    setTotalPages(Math.ceil(filteredData.length / rowsPerPage));
+  }, [filteredData, rowsPerPage]);
   const fetchPlayerPicture = async (leagueId: string): Promise<string> => {
     const storage = getStorage();
     const folderPath = `players/`;
