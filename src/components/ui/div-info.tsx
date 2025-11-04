@@ -224,9 +224,9 @@ const DivisionInfo = () => {
                     </div>
                     <div className="flex items-center justify-between p-2 bg-blue-900/30 rounded-lg">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center">
+                        {/* <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center">
                           <FaUser className="text-gray-300 text-xs" />
-                        </div>
+                        </div> */}
                         <div>
                           <div className="text-xs font-medium">You</div>
                           <div className="text-xs text-gray-300">

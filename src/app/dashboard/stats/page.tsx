@@ -16,6 +16,7 @@ export interface Event {
   event_place: string;
   year?: string;
   lockDate?: any; // Firestore timestamp
+  event_logo?: string; // Event logo URL
 }
 // sort type definitions
 interface SortConfig {
@@ -55,6 +56,7 @@ export default function Statistics() {
             event_place: doc.get("event_place") || "0",
             year: doc.get("year") || yearFromId,
             lockDate: doc.get("lockDate") || null,
+            event_logo: doc.get("event_logo") || null, // Include event logo
           };
         });
 
@@ -153,11 +155,12 @@ export default function Statistics() {
     status: string;
     onClick: () => void;
     isSelected: boolean;
+    event_logo?: string; // Add event logo prop
   }
 
   let backgroundIndex = 0; // Global counter to track the background index
 
-  function EventCard({ name, status, onClick, isSelected }: LogoCardProps) {
+  function EventCard({ name, status, onClick, isSelected, event_logo }: LogoCardProps) {
     // Use the current index and update for the next call
     const backgroundSrc = `/background${backgroundIndex}.jpg`;
     backgroundIndex = (backgroundIndex + 1) % 3; // Cycle through 0, 1, 2
@@ -170,40 +173,56 @@ export default function Statistics() {
         }`}
       >
         <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg  logographics">
-          <img
-            src={backgroundSrc}
-            alt="Event card background"
-            className="absolute inset-0 w-full h-full object-cover rounded-lg"
-          />
-          <div className="relative flex flex-col items-center justify-center p-4 text-white overflow-auto">
-            {name && (
-              <div
-                className="text-center font-azonix"
-                style={{
-                  fontSize: "clamp(0.8rem, 2vw, 1.5rem)", // Dynamic font size
-                  lineHeight: "1.2",
-                  overflow: "hidden", // Ensures no horizontal overflow
-                  textOverflow: "ellipsis",
-                  whiteSpace: "wrap",
-                }}
-              >
-                {name}
+          {/* Use event_logo if available, otherwise fallback to background image */}
+          {event_logo ? (
+            <>
+              {/* White background for PNG logos */}
+              <div className="absolute inset-0 bg-white rounded-lg"></div>
+              <img
+                src={event_logo}
+                alt={`${name} logo`}
+                className="absolute inset-0 w-full h-full object-cover rounded-lg"
+              />
+            </>
+          ) : (
+            <>
+              <img
+                src={backgroundSrc}
+                alt="Event card background"
+                className="absolute inset-0 w-full h-full object-cover rounded-lg"
+              />
+              {/* Only show text overlay when no event logo */}
+              <div className="relative flex flex-col items-center justify-center p-4 text-white overflow-auto">
+                {name && (
+                  <div
+                    className="text-center font-azonix"
+                    style={{
+                      fontSize: "clamp(0.8rem, 2vw, 1.5rem)", // Dynamic font size
+                      lineHeight: "1.2",
+                      overflow: "hidden", // Ensures no horizontal overflow
+                      textOverflow: "ellipsis",
+                      whiteSpace: "wrap",
+                    }}
+                  >
+                    {name}
+                  </div>
+                )}
+                {status && (
+                  <div
+                    className={`text-center font-azonix ${
+                      status === "live" ? "text-red-500" : "text-gray-300"
+                    }`}
+                    style={{
+                      fontSize: "clamp(0.5rem, 1.5vw, 1rem)", // Scales based on viewport
+                      lineHeight: "1.2",
+                    }}
+                  >
+                    {status}
+                  </div>
+                )}
               </div>
-            )}
-            {status && (
-              <div
-                className={`text-center font-azonix ${
-                  status === "live" ? "text-red-500" : "text-gray-300"
-                }`}
-                style={{
-                  fontSize: "clamp(0.5rem, 1.5vw, 1rem)", // Scales based on viewport
-                  lineHeight: "1.2",
-                }}
-              >
-                {status}
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </article>
     );
@@ -349,6 +368,7 @@ export default function Statistics() {
                 status={event.status}
                 onClick={() => setSelectedEvent(event)}
                 isSelected={selectedEvent?.id === event.id}
+                event_logo={event.event_logo} // Pass event logo
               />
             ))}
           </div>

@@ -32,6 +32,7 @@ export interface Player {
   league_id: string; // Added league_id
   picture?: string; // Optional picture URL
   pictureLoading?: boolean; // check loaded
+  img_url?: string; // New field for direct image URL
 }
 
 export interface Event {
@@ -405,7 +406,9 @@ export default function Pickems() {
           Rank: raw.Rank,
           team_id: raw.team_id,
           Cost: raw.Cost,
-          pictureLoading: true, // PICTURES ARE LOADING
+          img_url: raw.img_url, // Include img_url if available
+          picture: raw.img_url && raw.img_url.trim() !== "" ? raw.img_url : undefined, // Set picture immediately if img_url available
+          pictureLoading: !(raw.img_url && raw.img_url.trim() !== ""), // Only loading if no img_url
         }));
         // Get unique teams from the same data
         // Extract unique teams safely
@@ -445,8 +448,14 @@ export default function Pickems() {
           if (player.picture) return null; // Skip if already loaded
 
           try {
-            const picture = await fetchPlayerPicture(player.league_id);
-            return { player_id: player.player_id, picture };
+            // Check if img_url is available first
+            if (player.img_url && player.img_url.trim() !== "") {
+              return { player_id: player.player_id, picture: player.img_url };
+            } else {
+              // Fallback to Firebase Storage lookup
+              const picture = await fetchPlayerPicture(player.league_id);
+              return { player_id: player.player_id, picture };
+            }
           } catch (error) {
             return {
               player_id: player.player_id,
@@ -503,8 +512,14 @@ export default function Pickems() {
 
               const picksWithPictures = await Promise.all(
                 savedPicks.map(async (player) => {
-                  const picture = await fetchPlayerPicture(player.league_id);
-                  return { ...player, picture };
+                  // Check if img_url is available first
+                  if (player.img_url && player.img_url.trim() !== "") {
+                    return { ...player, picture: player.img_url };
+                  } else {
+                    // Fallback to Firebase Storage lookup
+                    const picture = await fetchPlayerPicture(player.league_id);
+                    return { ...player, picture };
+                  }
                 })
               );
 

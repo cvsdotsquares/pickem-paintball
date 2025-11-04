@@ -196,6 +196,7 @@ export interface Player {
   Unclassified?: number;
   picture?: string;
   pictureLoading?: boolean;
+  img_url?: string; // New field for direct image URL
   [key: string]: any; // Add index signature to allow dynamic access
 }
 type TablePlayer = Player & {
@@ -265,7 +266,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     // Apply search filter
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(player => 
+      filtered = filtered.filter(player =>
         player.Player?.toLowerCase().includes(searchLower) ||
         player.Team?.toLowerCase().includes(searchLower) ||
         player.Number?.toString().includes(searchTerm)
@@ -429,11 +430,18 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     await Promise.allSettled(
       updatedPlayers.map(async (player) => {
         try {
-          const picture = await fetchPlayerPicture(
-            player.league_id ? player.league_id : ""
-          );
-          player.picture = picture;
-          player.pictureLoading = false;
+          // Check if img_url is available first
+          if (player.img_url && player.img_url.trim() !== "") {
+            player.picture = player.img_url;
+            player.pictureLoading = false;
+          } else {
+            // Fallback to Firebase Storage lookup
+            const picture = await fetchPlayerPicture(
+              player.league_id ? player.league_id : ""
+            );
+            player.picture = picture;
+            player.pictureLoading = false;
+          }
         } catch (error) {
           player.picture = "/placeholder.svg";
           player.pictureLoading = false;
@@ -474,15 +482,15 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     }
   };
   const fetchPlayersWithPictures = async (players: Player[]) => {
-    // Set initial state with placeholders
+    // Set initial state with placeholders or img_url if available
     const playersWithPlaceholders = players.map((player) => ({
       ...player,
-      picture: "/placeholder.svg",
-      pictureLoading: true,
+      picture: player.img_url && player.img_url.trim() !== "" ? player.img_url : "/placeholder.svg",
+      pictureLoading: player.img_url && player.img_url.trim() !== "" ? false : true,
     }));
     setVisibleData(playersWithPlaceholders);
 
-    // Load actual images in background
+    // Load actual images in background only for players without img_url
     loadPlayerImages(players);
     return playersWithPlaceholders;
   };
@@ -499,6 +507,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   // Update the headers mapping to ensure proper column display
   const headers = useMemo(() => {
     const keys = Object.keys(data[0] || {});
+
     const excludedKeys = new Set(
       [
         "id",
@@ -508,8 +517,22 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
         "team_id",
         "picture",
         "pictureLoading",
+        "img_url", // Exclude img_url from table display
+        "IMG_URL", // Handle uppercase variation
+        "Img_Url", // Handle mixed case variation
       ].map((k) => k.toLowerCase())
     );
+
+    // Also exclude any key that contains 'img' and 'url'
+    const additionalExclusions = keys.filter(key => {
+      const lowerKey = key.toLowerCase();
+      return (lowerKey.includes('img') && lowerKey.includes('url')) ||
+             lowerKey === 'imgurl' ||
+             lowerKey === 'image_url' ||
+             lowerKey === 'imageurl';
+    });
+
+    additionalExclusions.forEach(key => excludedKeys.add(key.toLowerCase()));
 
     // Define our preferred column order
     const columnOrder = [
@@ -531,11 +554,12 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     const keyMap: Record<string, string> = {};
     keys.forEach((key) => {
       const normalized = normalizeHeaderKey(key);
-      if (!excludedKeys.has(key.toLowerCase()) && !keyMap[normalized]) {
+      const isExcluded = excludedKeys.has(key.toLowerCase());
+
+      if (!isExcluded && !keyMap[normalized]) {
         keyMap[normalized] = key;
       }
     });
-
     // Sort headers according to our preferred order
     return columnOrder
       .filter((header) => keyMap[header])
@@ -1004,7 +1028,11 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                       "team_id",
                       "picture",
                       "pictureLoading",
-                    ].includes(key) // Exclude specific keys
+                      "img_url", // Exclude img_url from table display
+                      "IMG_URL", // Handle uppercase variation
+                      "Img_Url", // Handle mixed case variation
+                    ].includes(key) &&
+                    !key.toLowerCase().includes('img') // Exclude any field containing 'img'
                 )
                 .map((key, index) => (
                   <th
@@ -1144,8 +1172,14 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                       "team_id",
                       "picture",
                       "pictureLoading",
+                      "img_url", // Exclude img_url from table display
+                      "IMG_URL", // Handle uppercase variation
+                      "Img_Url", // Handle mixed case variation
                     ]; // Keys to exclude
-                    return !excludedKeys.includes(key);
+                    const lowerKey = key.toLowerCase();
+                    return !excludedKeys.includes(key) &&
+                           !(lowerKey.includes('img') && lowerKey.includes('url')) &&
+                           !['imgurl', 'image_url', 'imageurl'].includes(lowerKey);
                   })
                   .map(([key, value]) => (
                     <td
