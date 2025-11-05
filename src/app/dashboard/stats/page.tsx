@@ -177,11 +177,11 @@ export default function Statistics() {
           {event_logo ? (
             <>
               {/* White background for PNG logos */}
-              <div className="absolute inset-0 bg-white rounded-lg"></div>
+              <div className="absolute inset-0 bg-black rounded-lg"></div>
               <img
                 src={event_logo}
                 alt={`${name} logo`}
-                className="absolute inset-0 w-full h-full object-cover rounded-lg"
+                className="absolute inset-0 w-full h-full object-scale-down rounded-lg"
               />
             </>
           ) : (

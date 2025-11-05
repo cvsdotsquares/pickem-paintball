@@ -17,6 +17,8 @@ import ActionButtons from "./action-btns";
 import { TiTick } from "react-icons/ti";
 import { PiPlusBold } from "react-icons/pi";
 
+// Use the Player interface from pick-em page which already includes img_url
+
 export const PickWidget = () => {
   const [liveEvent, setLiveEvent] = useState<{
     id: string | null;
@@ -87,20 +89,26 @@ export const PickWidget = () => {
     return () => clearInterval(interval);
   }, [liveEvent.lockDate]);
 
-  const fetchPlayerPicture = async (leagueId: string): Promise<string> => {
+  const fetchPlayerPicture = async (player: Player): Promise<string> => {
     try {
+      // Check if img_url is available first
+      if (player.img_url && player.img_url.trim() !== "") {
+        return player.img_url;
+      }
+
+      // Fallback to Firebase Storage lookup
       const storage = getStorage();
       const folderPath = `players/`;
       const storageRef = ref(storage, folderPath);
       const fileList = await listAll(storageRef);
       const matchingFile = fileList.items.find((item) =>
-        item.name.startsWith(`${leagueId}_`)
+        item.name.startsWith(`${player.league_id}_`)
       );
       return matchingFile
         ? await getDownloadURL(matchingFile)
         : "/placeholder.svg";
     } catch (error) {
-      console.error(`Error fetching picture for leagueId: ${leagueId}`, error);
+      console.error(`Error fetching picture for player: ${player.Player}`, error);
       return "/placeholder.svg";
     }
   };
@@ -163,11 +171,12 @@ export const PickWidget = () => {
       try {
         const updatedPlayers = await Promise.all(
           rowData.map(async (player) => {
-            if (!player.picture) {
-              const picture = await fetchPlayerPicture(player.league_id);
-              return { ...player, picture };
+            // Check if we need to load an image (no picture or still using placeholder)
+            if (!player.picture || player.picture === "/placeholder.svg") {
+              const picture = await fetchPlayerPicture(player);
+              return { ...player, picture, pictureLoading: false };
             }
-            return player;
+            return { ...player, pictureLoading: false };
           })
         );
         setRowData(updatedPlayers);
@@ -198,8 +207,9 @@ export const PickWidget = () => {
           Rank: raw.Rank,
           team_id: raw.team_id,
           Cost: raw.Cost,
-          picture: "/placeholder.svg",
-          pictureLoading: true,
+          img_url: raw.img_url, // Include img_url if available
+          picture: raw.img_url && raw.img_url.trim() !== "" ? raw.img_url : "/placeholder.svg", // Set picture immediately if img_url available
+          pictureLoading: !(raw.img_url && raw.img_url.trim() !== ""), // Only loading if no img_url
         }));
 
         setRowData(players);
@@ -239,12 +249,16 @@ export const PickWidget = () => {
 
               const savedPicks = playerDocs
                 .filter((doc) => doc.exists())
-                .map((doc) => ({
-                  ...doc.data(),
-                  player_id: doc.id,
-                  picture: "/placeholder.svg",
-                  pictureLoading: true,
-                }));
+                .map((doc) => {
+                  const data = doc.data();
+                  return {
+                    ...data,
+                    player_id: doc.id,
+                    img_url: data?.img_url, // Include img_url if available
+                    picture: data?.img_url && data.img_url.trim() !== "" ? data.img_url : "/placeholder.svg", // Set picture immediately if img_url available
+                    pictureLoading: !(data?.img_url && data.img_url.trim() !== ""), // Only loading if no img_url
+                  };
+                });
 
               setTemporaryPicks(savedPicks);
               setPlayerSlots((prevSlots) =>
@@ -254,11 +268,15 @@ export const PickWidget = () => {
                 }))
               );
 
-              // Then load images in the background
+              // Load images in the background only for players without img_url
               const picksWithPictures = await Promise.all(
                 savedPicks.map(async (player) => {
-                  const picture = await fetchPlayerPicture(player.league_id);
-                  return { ...player, picture, pictureLoading: false };
+                  if (player.img_url && player.img_url.trim() !== "") {
+                    return { ...player, pictureLoading: false };
+                  } else {
+                    const picture = await fetchPlayerPicture(player);
+                    return { ...player, picture, pictureLoading: false };
+                  }
                 })
               );
 

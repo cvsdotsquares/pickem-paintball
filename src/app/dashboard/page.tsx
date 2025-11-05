@@ -11,6 +11,7 @@ export interface Player {
   player: string;
   team: string;
   cost: number | string;
+  img_url?: string; // Add img_url support for consistency
 }
 
 export interface Event {
