@@ -73,26 +73,16 @@ function ProfilePage() {
           const currentUserId: string = auth.currentUser?.uid || ""; // Ensure the user is logged in and UID is available
 
           if (currentUserId) {
-            const storagePath = `user/${currentUserId}/profile_200x200`; // Adjust the file name/extension if needed
-            console.log("Generated Firebase Storage path:", storagePath);
+            const storagePath = `user/${currentUserId}/profile_200x200`;
             try {
               const storageRef: StorageReference = ref(storage, storagePath);
-              console.log("Storage reference created for path:", storagePath);
-              // Fetch the profile picture from Firebase Storage
               const validProfilePicture = await getDownloadURL(storageRef);
               profilePicture = validProfilePicture;
             } catch (error) {
-              console.error(
-                "Error fetching profile picture from Firebase Storage:",
-                error
-              );
-              // Use default if not found or invalid
+              // Profile picture not found in Storage - this is expected for new users
+              // who haven't uploaded a profile picture yet. Silently fall back to default.
               profilePicture = defaultUserData.profilePicture;
             }
-          } else {
-            console.log(
-              "No authenticated user found, using default profile picture."
-            );
           }
 
           // Validate and set defaults for other fields

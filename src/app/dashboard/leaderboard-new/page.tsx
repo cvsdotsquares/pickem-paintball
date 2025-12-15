@@ -3,7 +3,7 @@
 
 import { useState, useEffect, Fragment, ReactNode, useRef } from "react";
 import { db, storage } from "@/src/lib/firebaseClient";
-import { collection, doc, getDoc, getDocs } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getDownloadURL, ref } from "firebase/storage";
 import { motion, AnimatePresence } from "framer-motion";
@@ -41,6 +41,32 @@ interface LiveEvent {
   timeLeft: string;
 }
 
+// Reusable component for displaying picks grid
+const PicksGrid = ({ picks }: { picks: PlayerPick[] }) => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+    {picks
+      .sort((a, b) => (b.kills !== a.kills ? b.kills - a.kills : a.name.localeCompare(b.name)))
+      .map((pick) => (
+        <div key={pick.id} className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors">
+          <div className="flex justify-between items-center">
+            <span className="text-white text-xs font-medium truncate">{pick.name}</span>
+            <span className="text-green-400 text-xs font-medium">Confirmed Kills: {pick.kills}</span>
+          </div>
+          <div className="flex justify-between items-center mt-1 text-xs">
+            <span className="text-gray-400 w-1/3">Rank: {pick.rank ?? 0}</span>
+            <span className="flex text-gray-400 w-1/3">
+              <span className="w-1/2 text-end">Cost:</span>
+              <span className="w-1/2 text-start">&nbsp;${pick.cost}</span>
+            </span>
+            <span className="text-yellow-400 text-end w-1/3">
+              ROI: ${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(2)}
+            </span>
+          </div>
+        </div>
+      ))}
+  </div>
+);
+
 export default function Leaderboard() {
   // State for expanding/collapsing current user's picks (hidden by default)
   const [expandCurrentUser, setExpandCurrentUser] = useState<boolean>(false);
@@ -55,6 +81,12 @@ export default function Leaderboard() {
   const cardWrapperRef = useRef<HTMLDivElement | null>(null);
   const picksContainerRef = useRef<HTMLDivElement | null>(null);
   const [picksMaxHeight, setPicksMaxHeight] = useState<number | null>(null);
+  // Profile picture cache (persists across re-renders)
+  const profilePictureCache = useRef<Map<string, string | null>>(new Map());
+  // Data cache key and timestamp
+  const CACHE_KEY = 'leaderboard_data_cache';
+  const CACHE_TIMESTAMP_KEY = 'leaderboard_cache_timestamp';
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -96,168 +128,233 @@ export default function Leaderboard() {
     };
   }, [expandCurrentUser, currentUserData]);
 
-  // Fetch live event
+  // Fetch live event using optimized query
   useEffect(() => {
     const fetchLiveEvent = async () => {
       try {
-        const eventsCollection = collection(db, "events");
-        const querySnapshot = await getDocs(eventsCollection);
-        const events = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const eventsRef = collection(db, "events");
+        const q = query(eventsRef, where("status", "==", "live"));
+        const querySnapshot = await getDocs(q);
 
-        const liveEvent = events.find((e: any) => e.status === "live");
+        if (!querySnapshot.empty) {
+          const eventDoc = querySnapshot.docs[0];
+          const eventData = eventDoc.data() as any;
+          const lockDate = eventData.lockDate?.toDate?.() || null;
 
-        if (liveEvent) {
-          const eventRef = doc(db, "events", liveEvent.id);
-          const eventSnap = await getDoc(eventRef);
-
-          if (eventSnap.exists()) {
-            const eventData = eventSnap.data();
-            const lockDate = eventData.lockDate?.toDate
-              ? eventData.lockDate.toDate()
-              : null;
-
-            setLiveEvent({
-              id: liveEvent.id,
-              name: eventData.name || "Current Event",
-              lockDate,
-              timeLeft: "",
-            });
-          }
+          setLiveEvent({
+            id: eventDoc.id,
+            name: eventData.name || "Current Event",
+            lockDate,
+            timeLeft: "",
+          });
         }
       } catch (error) {
         console.error("Error fetching live event:", error);
       }
     };
-
     fetchLiveEvent();
   }, []);
 
-  // Fetch profile picture from Firebase Storage
+  // Fetch profile picture from Firebase Storage with caching
   const fetchProfilePicture = async (userId: string) => {
+    // Check cache first
+    if (profilePictureCache.current.has(userId)) {
+      return profilePictureCache.current.get(userId);
+    }
+
     try {
       const storagePath = `user/${userId}/profile_200x200`;
       const storageRef = ref(storage, storagePath);
-      return await getDownloadURL(storageRef);
+      const url = await getDownloadURL(storageRef);
+      // Cache successful result
+      profilePictureCache.current.set(userId, url);
+      return url;
     } catch (error) {
+      // Cache null to avoid re-fetching 404s
+      profilePictureCache.current.set(userId, null);
       return null;
     }
   };
 
-  useEffect(() => {
-    async function fetchLeaderboardData() {
-      if (!liveEvent) return;
+  // Fetch player details for a user's picks
+  const fetchPlayerDetails = async (playerIds: string[], eventId: string) => {
+    let totalPoints = 0;
+    let mvp = { playerName: "None", kills: 0 };
+    const picks: PlayerPick[] = [];
 
-      try {
-        const usersCollection = collection(db, "users");
-        const querySnapshot = await getDocs(usersCollection);
+    await Promise.all(
+      playerIds.map(async (playerId) => {
+        if (!playerId) return;
+        try {
+          const playerRef = doc(db, `events/${eventId}/players/${playerId}`);
+          const playerDoc = await getDoc(playerRef);
 
-        const usersData = await Promise.all(
-          querySnapshot.docs.map(async (userDoc) => {
-            const userId = userDoc.id;
-            const displayName =
-              userDoc.get("name") || userDoc.get("username") || "Unknown User";
+          if (playerDoc.exists()) {
+            const kills = playerDoc.get("Confirmed Kills") || 0;
+            const name = playerDoc.get("Player") || "Unknown Player";
+            const cost = playerDoc.get("Cost") || 0;
+            const rank = playerDoc.get("Rank") ?? 0;
 
-            // Fetch profile picture
-            let profilePicture = null;
-            try {
-              profilePicture = await fetchProfilePicture(userId);
-            } catch (error) {
-              console.error(`Error fetching profile for ${userId}:`, error);
+            totalPoints += kills;
+            picks.push({ id: playerId, name, kills, cost, rank });
+
+            if (kills > mvp.kills) {
+              mvp = { playerName: name, kills };
             }
+          }
+        } catch (error) {
+          console.error(`Error fetching player ${playerId}:`, error);
+        }
+      })
+    );
 
-            const pickems = userDoc.get("pickems") || {};
-            const playerIds = Array.isArray(pickems[liveEvent.id])
-              ? pickems[liveEvent.id]
-              : [];
+    return { totalPoints, mvp, picks };
+  };
 
-            let totalPoints = 0;
-            let mvp = { playerName: "None", kills: 0 };
-            const picks: PlayerPick[] = [];
+  useEffect(() => {
+    if (!liveEvent) return;
 
-            await Promise.allSettled(
-              playerIds.map(async (playerId: string | null) => {
-                if (!playerId) return;
+    // Helper to load cached data
+    const loadFromCache = () => {
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
 
-                try {
-                  const playerPath = `events/${liveEvent.id}/players/${playerId}`;
-                  const playerRef = doc(db, playerPath);
-                  const playerDoc = await getDoc(playerRef);
+        if (cached && timestamp) {
+          const age = Date.now() - parseInt(timestamp);
+          if (age < CACHE_DURATION) {
+            const cachedData = JSON.parse(cached);
+            if (cachedData.eventId === liveEvent.id) {
+              const sortedUsers = cachedData.users.map((user: User, idx: number) => ({
+                ...user,
+                rank: idx + 1
+              }));
 
-                  if (playerDoc.exists()) {
-                    const totalKills = playerDoc.get("Confirmed Kills") || 0;
-                    const playerName =
-                      playerDoc.get("Player") || "Unknown Player";
-                    const playerCost = playerDoc.get("Cost") || 0;
-                    const playerRank = playerDoc.get("Rank") ?? 0;
+              const top10 = sortedUsers.slice(0, 10);
+              setUsers(top10);
+              setFilteredUsers(top10);
 
-                    totalPoints += totalKills;
-                    picks.push({
-                      id: playerId,
-                      name: playerName,
-                      kills: totalKills,
-                      cost: playerCost,
-                      rank: playerRank === undefined || playerRank === null ? 0 : playerRank,
-                    });
+              if (currentUserId) {
+                const currentUser = sortedUsers.find((u: User) => u.id === currentUserId);
+                currentUser && setCurrentUserData(currentUser);
+              }
 
-                    if (totalKills > mvp.kills) {
-                      mvp = { playerName, kills: totalKills };
-                    }
-                  }
-                } catch (error) {
-                  console.error(
-                    `Error fetching player data for ID: ${playerId}`,
-                    error
-                  );
+              setLoading(false);
+              return true; // Cache loaded successfully
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading cache:', error);
+      }
+      return false; // Cache not available
+    };
+
+    // Helper to save data to cache
+    const saveToCache = (users: User[]) => {
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          eventId: liveEvent.id,
+          users,
+        }));
+        localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+      } catch (error) {
+        console.error('Error saving cache:', error);
+      }
+    };
+
+    // Try to load from cache first
+    const cacheLoaded = loadFromCache();
+
+    (async () => {
+      try {
+        const snapshot = await getDocs(
+          query(collection(db, "users"), where(`pickems.${liveEvent.id}`, "!=", null))
+        );
+
+        const usersWithPicks = snapshot.docs
+          .map((userDoc) => {
+            const playerIds = userDoc.get(`pickems.${liveEvent.id}`) || [];
+            return Array.isArray(playerIds) && playerIds.length > 0
+              ? {
+                  id: userDoc.id,
+                  displayName: userDoc.get("name") || userDoc.get("username") || "Unknown User",
+                  playerIds,
                 }
-              })
-            );
+              : null;
+          })
+          .filter((item): item is { id: string; displayName: string; playerIds: string[] } => item !== null);
 
+        if (usersWithPicks.length === 0) {
+          setLoading(false);
+          return;
+        }
+
+        const allUserData = await Promise.all(
+          usersWithPicks.map(async (user) => {
+            const { totalPoints, mvp, picks } = await fetchPlayerDetails(user.playerIds, liveEvent.id);
             return {
-              id: userId,
-              displayName,
+              id: user.id,
+              displayName: user.displayName,
               totalPoints,
               mvp: mvp.playerName,
               picks,
-              profilePicture: profilePicture || undefined,
+              profilePicture: undefined,
             };
           })
         );
 
-        // Filter out users with no picks and sort by totalPoints
-
-        // Sort users and assign rank
-        const sortedUsers = usersData
-          .filter((user) => user.picks.length > 0)
+        const sortedUsers = allUserData
           .sort((a, b) => b.totalPoints - a.totalPoints)
           .map((user, idx) => ({ ...user, rank: idx + 1 }));
 
-        setUsers(sortedUsers);
-        setFilteredUsers(sortedUsers);
+        // Save fresh data to cache
+        saveToCache(sortedUsers);
 
-        // Find and set current user data if logged in
+        const top10Users = sortedUsers.slice(0, 10);
+        const remainingUsers = sortedUsers.slice(10);
+
+        // Update UI with fresh data (only if different from cache)
+        setUsers(top10Users);
+        setFilteredUsers(top10Users);
         if (currentUserId) {
-          const currentUser = sortedUsers.find(
-            (user) => user.id === currentUserId
-          );
-          if (currentUser) {
-            setCurrentUserData(currentUser);
-          }
+          const currentUser = sortedUsers.find((u) => u.id === currentUserId);
+          currentUser && setCurrentUserData(currentUser);
         }
 
-        setLoading(false);
+        // If cache wasn't loaded, now we can hide loading
+        if (!cacheLoaded) {
+          setLoading(false);
+        }
+
+        Promise.all(sortedUsers.map((user) => fetchProfilePicture(user.id))).then((pictures) => {
+          const profileMap = new Map(sortedUsers.map((user, idx) => [user.id, pictures[idx]]));
+          const updateWithPictures = (prev: User[]) =>
+            prev.map((user) => ({ ...user, profilePicture: profileMap.get(user.id) || undefined }));
+
+          setUsers(updateWithPictures);
+          setFilteredUsers(updateWithPictures);
+          if (currentUserId) {
+            setCurrentUserData((prev) =>
+              prev ? { ...prev, profilePicture: profileMap.get(currentUserId) || undefined } : prev
+            );
+          }
+        });
+
+        if (remainingUsers.length > 0) {
+          setTimeout(() => {
+            setUsers(sortedUsers);
+            setFilteredUsers(sortedUsers);
+          }, 500);
+        }
       } catch (error) {
         console.error("Error fetching leaderboard data:", error);
-        setLoading(false);
+        if (!cacheLoaded) {
+          setLoading(false);
+        }
       }
-    }
-
-    fetchLeaderboardData();
-  }, [liveEvent, currentUserId]);
-
-  // Filter users based on search query
+    })();
+  }, [liveEvent, currentUserId]);  // Filter users based on search query
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setFilteredUsers(users);
@@ -297,9 +394,8 @@ export default function Leaderboard() {
     (page - 1) * pageSize,
     page * pageSize
   );
-
   return (
-  <div className="p-2 pt-0 sm:pt-0 pb-10 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-black text-white">
+    <div className="p-2 pt-0 sm:pt-0 pb-10 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-black text-white">
       {/* Event Header */}
       <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
         <div
@@ -329,121 +425,81 @@ export default function Leaderboard() {
       {/* Current User Card (sticky on mobile) */}
       {currentUserData && (
         <>
-  <div ref={cardWrapperRef} className="sticky top-0 z-10 bg-black pt-4 pb-4 mb-4 sm:mb-0">
-          <div className="bg-gray-800/100 rounded-lg  shadow border border-gray-700">
-          <div
-            className=" mb-0  p-2 sm:p-3 cursor-pointer"
-            onClick={() => toggleTopExpand()}
-            aria-label={expandCurrentUser ? 'Collapse picks' : 'Expand picks'}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="relative">
-                  {currentUserData.profilePicture ? (
-                    <img
-                      src={currentUserData.profilePicture}
-                      alt="Profile"
-                      className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-yellow-400"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-700 flex items-center justify-center border-2 border-yellow-400">
-                      <FaUser className="text-xl text-gray-400" />
+          <div ref={cardWrapperRef} className="sticky top-0 z-10 bg-black pt-4 pb-4 mb-4 sm:mb-0">
+            <div className="bg-gray-800/100 rounded-lg  shadow border border-gray-700">
+              <div
+                className=" mb-0  p-2 sm:p-3 cursor-pointer"
+                onClick={() => toggleTopExpand()}
+                aria-label={expandCurrentUser ? 'Collapse picks' : 'Expand picks'}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="relative">
+                      {currentUserData.profilePicture ? (
+                        <img
+                          src={currentUserData.profilePicture}
+                          alt="Profile"
+                          className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-yellow-400"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-700 flex items-center justify-center border-2 border-yellow-400">
+                          <FaUser className="text-xl text-gray-400" />
+                        </div>
+                      )}
+                      {currentUserRank && (
+                        <div className="absolute -top-1 -right-1 bg-yellow-500 text-black w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs">
+                          #{currentUserRank}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {currentUserRank && (
-                    <div className="absolute -top-1 -right-1 bg-yellow-500 text-black w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs">
-                      #{currentUserRank}
+                    <div className="ml-3">
+                      <h3 className="font-bold text-sm sm:text-base flex items-center">
+                        {currentUserData.displayName}
+                        <span className="ml-1 text-xs bg-blue-600 px-1.5 py-0.5 rounded">
+                          You
+                        </span>
+                      </h3>
+                      <div className="flex items-center mt-0.5">
+                        <FaTrophy className="text-yellow-400 mr-1 text-sm" />
+                        <span className="font-medium text-sm">
+                          Confirmed Kills: {currentUserData.totalPoints}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        MVP: {currentUserData.mvp}
+                      </p>
                     </div>
-                  )}
-                </div>
-                <div className="ml-3">
-                  <h3 className="font-bold text-sm sm:text-base flex items-center">
-                    {currentUserData.displayName}
-                    <span className="ml-1 text-xs bg-blue-600 px-1.5 py-0.5 rounded">
-                      You
-                    </span>
-                  </h3>
-                  <div className="flex items-center mt-0.5">
-                    <FaTrophy className="text-yellow-400 mr-1 text-sm" />
-                    <span className="font-medium text-sm">
-                     Confirmed Kills: {currentUserData.totalPoints}
-                    </span>
                   </div>
-                  <p className="text-xs text-gray-400">
-                    MVP: {currentUserData.mvp}
-                  </p>
+                  {expandCurrentUser ? (
+                    <FaChevronUp className="text-gray-400 text-sm" />
+                  ) : (
+                    <FaChevronDown className="text-gray-400 text-sm" />
+                  )}
                 </div>
               </div>
-              {expandCurrentUser ? (
-                <FaChevronUp className="text-gray-400 text-sm" />
-              ) : (
-                <FaChevronDown className="text-gray-400 text-sm" />
-              )}
+              {/* Expanded row for current user's picks */}
+              <AnimatePresence>
+                {expandCurrentUser && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="mb-0 p-0 "
+                  >
+                    <div
+                      ref={picksContainerRef}
+                      className="px-3 max-h-[280px] overflow-auto pb-3 border-t border-gray-700/70 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-600"
+                    >
+                      <h3 className="pt-3 text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1 sticky top-0 bg-gray-800/100 z-10">
+                        Your Team
+                      </h3>
+                      <PicksGrid picks={currentUserData.picks} />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          </div>
-          {/* Expanded row for current user's picks */}
-          <AnimatePresence>
-            {expandCurrentUser && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-                className="mb-0 p-0 "
-              >
-                <div
-                  ref={picksContainerRef}
-
-                  className="px-3  max-h-[280px] overflow-auto pb-3 border-t border-gray-700/70 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-600"
-                >
-                  <h3 className="pt-3 text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1 sticky top-0 bg-gray-800/100 z-10">
-                    Your Team
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {currentUserData.picks
-                      .sort((a, b) => {
-                        if (b.kills !== a.kills) return b.kills - a.kills;
-                        return a.name.localeCompare(b.name);
-                      })
-                      .map((pick) => (
-                        <div
-                          key={pick.id}
-                          className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors"
-                        >
-                          <div className="flex justify-between items-center">
-                            <span className="text-white text-xs font-medium truncate">
-                              {pick.name}
-                            </span>
-                            <span className="text-green-400 text-xs font-medium">
-                              Confirmed Kills: {pick.kills}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center mt-1 text-xs">
-                            <span className="text-gray-400 w-1/3">
-                              Rank: {pick.rank ?? 0}
-                            </span>
-                            <span className="flex text-gray-400 w-1/3">
-                              <span className="w-1/2 text-end">
-                                Cost:
-                              </span>
-                              <span className="w-1/2 text-start">
-                                &nbsp;${pick.cost}
-                              </span>
-                            </span>
-                            <span className="text-yellow-400 text-end w-1/3">
-                              ROI: ${pick.kills === 0 || pick.cost === 0
-                                ? 0
-                                : (pick.cost / pick.kills).toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          </div>
           </div>
         </>
       )}
@@ -531,11 +587,10 @@ export default function Leaderboard() {
               paginatedUsers.map((user, index) => (
                 <Fragment key={user.id}>
                   <tr
-                    className={`hover:bg-gray-700/50 transition-colors ${
-                      currentUserId === user.id
-                        ? "bg-blue-900/30"
-                        : "bg-gray-800/30"
-                    }`}
+                    className={`hover:bg-gray-700/50 transition-colors ${currentUserId === user.id
+                      ? "bg-blue-900/30"
+                      : "bg-gray-800/30"
+                      }`}
                     onClick={() => toggleExpand(user.id)}
                   >
                     <td className="px-2 py-2 whitespace-nowrap text-sm sticky left-0 z-10 bg-inherit">
@@ -601,47 +656,7 @@ export default function Leaderboard() {
                             <h3 className="text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1">
                               {user.displayName}'s Team
                             </h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                              {user.picks
-                                .sort((a, b) => {
-                                  if (b.kills !== a.kills)
-                                    return b.kills - a.kills; // Sort by kills descending
-                                  return a.name.localeCompare(b.name); // If kills equal, sort by name ascending
-                                })
-                                .map((pick) => (
-                                  <div
-                                    key={pick.id}
-                                    className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors"
-                                  >
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-white text-xs font-medium truncate">
-                                        {pick.name}
-                                      </span>
-                                      <span className="text-green-400 text-xs font-medium">
-                                        Confirmed Kills: {pick.kills}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between items-center mt-1 text-xs">
-                                      <span className="text-gray-400 w-1/3">
-                                        Rank: {pick.rank ?? 0}
-                                      </span>
-                                      <span className="flex text-gray-400 w-1/3">
-                                        <span className="w-1/2 text-end">
-                                          Cost:
-                                        </span>
-                                        <span className="w-1/2 text-start">
-                                          &nbsp;${pick.cost}
-                                        </span>
-                                      </span>
-                                      <span className="text-yellow-400 text-end w-1/3">
-                                        ROI: ${pick.kills === 0 || pick.cost === 0
-                                          ? 0
-                                          : (pick.cost / pick.kills).toFixed(0)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                ))}
-                            </div>
+                            <PicksGrid picks={user.picks} />
                           </div>
                         </td>
                       </motion.tr>

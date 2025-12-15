@@ -118,7 +118,6 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
 
           if (userSnap.exists()) {
             const userData = userSnap.data();
-            console.log("User data fetched:", userData);
 
             if (
               userData.pickems &&

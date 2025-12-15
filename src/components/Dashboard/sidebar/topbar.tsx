@@ -1,123 +1,38 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { auth, db, storage } from "@/src/lib/firebaseClient";
-import { doc, getDoc } from "firebase/firestore";
-import { getDownloadURL, ref, StorageReference } from "firebase/storage";
+import React from "react";
 import { useAuth } from "@/src/contexts/authProvider";
 import UserHead from "./head";
+import type { UserData } from "@/src/contexts/authProvider";
+
+function getDisplayName(userData: UserData | null): string {
+  if (!userData) return "Guest";
+
+  const firstName = userData.firstName?.trim() || "";
+  const lastName = userData.lastName?.trim() || "";
+  const name = userData.name?.trim() || "";
+
+  if (name) {
+    return name;
+  }
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  }
+  if (firstName) {
+    return firstName;
+  }
+  if (lastName) {
+    return lastName;
+  }
+  if (userData.username?.trim()) {
+    return userData.username;
+  }
+
+  return "Guest";
+}
 
 const PageHeader: React.FC = () => {
-  interface UserData {
-    name: string;
-    firstName: string;
-    profilePicture: string;
-    isPro: boolean;
-    badges: string[];
-    country: string;
-    lastName: string;
-    username: string;
-  }
-
-  const defaultUserData: UserData = {
-    name: "Guest",
-    firstName: "",
-    lastName: "",
-    profilePicture:
-      "https://cdn-icons-png.freepik.com/256/14024/14024658.png?semt=ais_hybrid",
-    isPro: false,
-    badges: [],
-    country: "",
-    username: "",
-  };
-
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const { user } = useAuth();
-
-  function getDisplayName(userData: UserData | null): string {
-    if (!userData) return "Guest";
-    console.log("User Data:", userData); // Debugging line
-    const firstName = userData.firstName?.trim() || "";
-    const lastName = userData.lastName?.trim() || "";
-    const name = userData.name?.trim() || "";
-    if (name) {
-      return name;
-    }
-    if (firstName && lastName) {
-      return `${firstName} ${lastName}`;
-    }
-    if (firstName) {
-      return firstName;
-    }
-
-    if (lastName) {
-      return lastName;
-    }
-
-    if (userData.username?.trim()) {
-      return userData.username;
-    }
-
-
-
-    return userData.name || "Guest";
-  }
-
-  useEffect(() => {
-    async function fetchUserData() {
-      try {
-        if (!user) {
-          setUserData(defaultUserData);
-          return;
-        }
-
-        const currentUserId = user.uid;
-        const userDocRef = doc(db, "users", currentUserId);
-        const userDoc = await getDoc(userDocRef);
-
-        if (!userDoc.exists()) {
-          setUserData(defaultUserData);
-          return;
-        }
-
-        const rawData = userDoc.data();
-        let profilePicture = defaultUserData.profilePicture;
-
-        if (currentUserId) {
-          const storagePath = `user/${currentUserId}/profile_200x200`;
-          try {
-            const storageRef: StorageReference = ref(storage, storagePath);
-            profilePicture = await getDownloadURL(storageRef);
-          } catch (error) {
-            console.error("Error fetching profile picture:", error);
-          }
-        }
-
-        const validatedUserData: UserData = {
-          name: rawData?.name?.trim() || defaultUserData.name,
-          username: rawData?.username?.trim() || "",
-          profilePicture,
-          isPro: rawData?.isPro ?? defaultUserData.isPro,
-          badges: Array.isArray(rawData?.badges)
-            ? rawData.badges
-            : defaultUserData.badges,
-          country: rawData?.country?.trim() || "",
-          firstName: rawData?.firstName?.trim() || "",
-          lastName: rawData?.lastName?.trim() || "",
-        };
-
-        setUserData(validatedUserData);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        setUserData(defaultUserData);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchUserData();
-  }, [user]);
+  const { userData } = useAuth();
 
   return (
     <div className="relative inset-y-0 top-0 left-0 right-0 z-30 w-full h-[48px]">

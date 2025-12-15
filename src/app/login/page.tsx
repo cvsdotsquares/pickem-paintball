@@ -121,59 +121,101 @@ const LoginPage: React.FC = () => {
         loading="lazy"
       />
       <div className="flex items-center justify-center p-4 w-full  overflow-auto">
-      <Card className="w-full max-w-md bg-transparent backdrop-blur-md text-white m-auto">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center  uppercase">
-            Come Join US!
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <Input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            <Button
-              type="submit"
-              className="w-full bg-black text-white hover:bg-gray-800"
-            >
-              Log in
-            </Button>
-            <div className="flex flex-row-reverse items-center justify-between m-auto">
-              <div className="text-end text-sm text-white sm:w-3/5">
-                Don&apos;t have  an account?{" "}
-                <br className="flex md:hidden" />
-                <a href="/register" className="text-blue-300 underline">
-                  Sign up
-                </a>
-              </div>
-
-              {/* Forgot Password Link */}
-              <div className="text-left text-white text-sm sm:w-2/5">
-                <button
-                  type="button"
-                  onClick={() => setShowResetForm(!showResetForm)}
-                  className="text-blue-300 underline text-left"
+        <Card className="w-full max-w-md bg-transparent backdrop-blur-md text-white m-auto">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-center  uppercase">
+              Come Join US!
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Render either login form or password reset form, never both */}
+            {!showResetForm ? (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                  <Input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                {error && <p className="text-red-500 text-sm">{error}</p>}
+                <Button
+                  type="submit"
+                  className="w-full bg-black text-white hover:bg-gray-800"
                 >
-                  Forgot Password?
-                </button>
-              </div>
-            </div>
-            {/* Password Reset Form */}
-            {showResetForm && (
+                  Log in
+                </Button>
+                <div className="flex flex-row-reverse items-center justify-between m-auto">
+                  <div className="text-end text-sm text-white sm:w-3/5">
+                    Don&apos;t have  an account?{" "}
+                    <br className="flex md:hidden" />
+                    <a href="/register" className="text-blue-300 underline">
+                      Sign up
+                    </a>
+                  </div>
+                  {/* Forgot Password Link */}
+                  <div className="text-left text-white text-sm sm:w-2/5">
+                    <button
+                      type="button"
+                      onClick={() => setShowResetForm(true)}
+                      className="text-blue-300 underline text-left"
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-gray-300" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 rounded text-black font-inter font-extrabold text-xl">
+                      OR
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  className="w-full bg-white text-black border border-gray-300 hover:bg-gray-100"
+                >
+                  {/* Google Icon */}
+                  <svg
+                    className="w-5 h-5 mr-2"
+                    viewBox="0 0 48 48"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fill="#EA4335"
+                      d="M24 9.5c3.28 0 6.27 1.25 8.47 3.28l6.24-6.24C34.13 3.43 29.29 1 24 1 14.4 1 6.21 6.53 2.39 14.24l7.25 5.63C11.43 14.1 17.2 9.5 24 9.5z"
+                    />
+                    <path
+                      fill="#4285F4"
+                      d="M46.61 24.63c0-1.45-.13-2.85-.38-4.2H24v8.16h12.74c-.55 2.99-2.23 5.52-4.8 7.23l7.25 5.63C43.99 37.73 46.61 31.65 46.61 24.63z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M10.25 28.8c-1.22-3.68-1.22-7.68 0-11.36l-7.25-5.63C-.63 17.54-.63 31.73 2.99 40.75l7.26-5.62z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M24 46c5.29 0 10.13-1.83 13.91-4.97l-7.25-5.63C28.74 37.57 26.49 38.5 24 38.5c-6.8 0-12.57-4.6-14.36-10.86l-7.26 5.62C6.21 41.47 14.4 46 24 46z"
+                    />
+                    <path fill="none" d="M0 0h48v48H0z" />
+                  </svg>
+                  Log in with Google
+                </Button>
+              </form>
+            ) : (
               <form onSubmit={handlePasswordReset} className="space-y-4 mt-4">
                 <Input
                   type="email"
@@ -182,59 +224,26 @@ const LoginPage: React.FC = () => {
                   onChange={(e) => setResetEmail(e.target.value)}
                   required
                 />
+                {error && <p className="text-red-500 text-sm">{error}</p>}
                 <Button
                   type="submit"
                   className="w-full bg-blue-500 text-white hover:bg-blue-600"
                 >
                   Reset Password
                 </Button>
+                <div className="flex justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowResetForm(false)}
+                    className="text-blue-300 underline text-sm"
+                  >
+                    Back to Login
+                  </button>
+                </div>
               </form>
             )}
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 rounded text-black font-inter font-extrabold text-xl">
-                  OR
-                </span>
-              </div>
-            </div>
-            <Button
-              type="button"
-              onClick={handleGoogleLogin}
-              className="w-full bg-white text-black border border-gray-300 hover:bg-gray-100"
-            >
-              {/* Google Icon */}
-              <svg
-                className="w-5 h-5 mr-2"
-                viewBox="0 0 48 48"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fill="#EA4335"
-                  d="M24 9.5c3.28 0 6.27 1.25 8.47 3.28l6.24-6.24C34.13 3.43 29.29 1 24 1 14.4 1 6.21 6.53 2.39 14.24l7.25 5.63C11.43 14.1 17.2 9.5 24 9.5z"
-                />
-                <path
-                  fill="#4285F4"
-                  d="M46.61 24.63c0-1.45-.13-2.85-.38-4.2H24v8.16h12.74c-.55 2.99-2.23 5.52-4.8 7.23l7.25 5.63C43.99 37.73 46.61 31.65 46.61 24.63z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M10.25 28.8c-1.22-3.68-1.22-7.68 0-11.36l-7.25-5.63C-.63 17.54-.63 31.73 2.99 40.75l7.26-5.62z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M24 46c5.29 0 10.13-1.83 13.91-4.97l-7.25-5.63C28.74 37.57 26.49 38.5 24 38.5c-6.8 0-12.57-4.6-14.36-10.86l-7.26 5.62C6.21 41.47 14.4 46 24 46z"
-                />
-                <path fill="none" d="M0 0h48v48H0z" />
-              </svg>
-              Log in with Google
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
