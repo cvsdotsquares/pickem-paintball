@@ -172,24 +172,6 @@ const LoginPage: React.FC = () => {
                 </button>
               </div>
             </div>
-            {/* Password Reset Form */}
-            {showResetForm && (
-              <form onSubmit={handlePasswordReset} className="space-y-4 mt-4">
-                <Input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={resetEmail}
-                  onChange={(e) => setResetEmail(e.target.value)}
-                  required
-                />
-                <Button
-                  type="submit"
-                  className="w-full bg-blue-500 text-white hover:bg-blue-600"
-                >
-                  Reset Password
-                </Button>
-              </form>
-            )}
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -233,6 +215,24 @@ const LoginPage: React.FC = () => {
               Log in with Google
             </Button>
           </form>
+          {/* Password Reset Form */}
+          {showResetForm && (
+            <form onSubmit={handlePasswordReset} className="space-y-4 mt-4">
+              <Input
+                type="email"
+                placeholder="Enter your email"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                required
+              />
+              <Button
+                type="submit"
+                className="w-full bg-blue-500 text-white hover:bg-blue-600"
+              >
+                Reset Password
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
       </div>
