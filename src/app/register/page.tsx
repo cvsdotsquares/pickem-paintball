@@ -295,7 +295,7 @@ const RegisterPage: React.FC = () => {
             lastName,
             username: username.trim().toLowerCase(),
             email: user.email || email,
-            profilePicture: profilePictureUrl,
+            profilePicture: profilePictureUrl || `user/${user.uid}/profile_200x200`,
           },
           { merge: true }
         );

@@ -393,7 +393,7 @@ export default function Leaderboard() {
               >
                 <div
                   ref={picksContainerRef}
-                  
+
                   className="px-3  max-h-[280px] overflow-auto pb-3 border-t border-gray-700/70 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-600"
                 >
                   <h3 className="pt-3 text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1 sticky top-0 bg-gray-800/100 z-10">

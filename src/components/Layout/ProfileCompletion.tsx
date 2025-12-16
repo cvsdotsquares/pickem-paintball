@@ -34,7 +34,6 @@ const ProfileCompletion: React.FC<Props> = () => {
         const snap = await getDoc(ref);
         if (snap.exists()) {
           const data: any = snap.data();
-          console.log("ProfileCompletion fetch data:", data); // Debugging line
           const fn = (data.firstName || "").trim();
           const ln = (data.lastName || "").trim();
           const un = (data.username || "").trim();

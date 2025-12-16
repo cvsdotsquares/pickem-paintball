@@ -104,13 +104,14 @@ export const uploadProfilePicture = async (file: File): Promise<string> => {
     if (!auth.currentUser) {
         throw new Error("No authenticated user found");
     }
-    const filePath = `user/${auth.currentUser.uid}/profile`;
+    const storagePath = `user/${auth.currentUser.uid}/profile_200x200`;
     // Explicitly type the storage reference for TypeScript
-    const storageRef: StorageReference = ref(storage, filePath);
+    const storageRef: StorageReference = ref(storage, storagePath);
     await uploadBytes(storageRef, file);
     const downloadURL = await getDownloadURL(storageRef);
     await updateProfile(auth.currentUser, { photoURL: downloadURL });
-    return downloadURL;
+    // Return the storage path, not the download URL
+    return storagePath;
 };
 
 // Delete the user account after reauthentication
