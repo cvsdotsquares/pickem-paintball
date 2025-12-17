@@ -1,23 +1,23 @@
+import { db } from '@/src/lib/firebaseClient';
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { NextResponse } from 'next/server';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
 
-// Initialize Firebase Admin (only once)
-if (!getApps().length) {
-  try {
-    initializeApp({
-      credential: cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      }),
-    });
-  } catch (error) {
-    console.error('Firebase admin initialization error:', error);
-  }
+interface LeaderboardPick {
+  id: string;
+  name: string;
+  kills: number;
+  cost: number;
+  rank: number | string;
 }
 
-const db = getFirestore();
+interface LeaderboardUser {
+  id: string;
+  displayName: string;
+  totalPoints: number;
+  mvp: string;
+  picks: LeaderboardPick[];
+  rank?: number;
+}
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 300; // Cache for 5 minutes
@@ -31,20 +31,26 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Event ID required' }, { status: 400 });
     }
 
-    // Fetch users with picks for this event
-    const usersSnapshot = await db.collection('users')
-      .where(`pickems.${eventId}`, '!=', null)
-      .get();
+    const usersRef = collection(db, 'users');
+    const usersQuery = query(usersRef, where(`pickems.${eventId}`, '!=', null));
+    const usersSnapshot = await getDocs(usersQuery);
 
     if (usersSnapshot.empty) {
-      return NextResponse.json({ users: [] });
+      return NextResponse.json(
+        { users: [], cachedAt: new Date().toISOString() },
+        {
+          headers: {
+            'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+          },
+        }
+      );
     }
 
-    // Fetch player details and calculate points
     const usersData = await Promise.all(
       usersSnapshot.docs.map(async (userDoc) => {
-        const userData = userDoc.data();
-        const playerIds = userData.pickems?.[eventId] || [];
+        const userData = userDoc.data() as Record<string, any>;
+        const pickems = userData.pickems || {};
+        const playerIds = Array.isArray(pickems[eventId]) ? pickems[eventId] : [];
 
         if (!Array.isArray(playerIds) || playerIds.length === 0) {
           return null;
@@ -52,27 +58,24 @@ export async function GET(request: Request) {
 
         let totalPoints = 0;
         let mvp = { playerName: 'None', kills: 0 };
-        const picks: any[] = [];
+        const picks: LeaderboardPick[] = [];
 
-        // Fetch player details in parallel
         await Promise.all(
           playerIds.map(async (playerId: string) => {
             if (!playerId) return;
 
             try {
-              const playerDoc = await db
-                .collection('events')
-                .doc(eventId)
-                .collection('players')
-                .doc(playerId)
-                .get();
+              const playerPath = `events/${eventId}/players/${playerId}`;
+              const playerRef = doc(db, playerPath);
+              const playerDoc = await getDoc(playerRef);
 
-              if (playerDoc.exists) {
-                const playerData = playerDoc.data();
-                const kills = playerData?.['Confirmed Kills'] || 0;
-                const name = playerData?.Player || 'Unknown Player';
-                const cost = playerData?.Cost || 0;
-                const rank = playerData?.Rank ?? 0;
+              if (playerDoc.exists()) {
+                const kills = playerDoc.get('Confirmed Kills') || 0;
+                const name = playerDoc.get('Player') || 'Unknown Player';
+                const cost = playerDoc.get('Cost') || 0;
+                const rankValue = playerDoc.get('Rank');
+                const rank =
+                  rankValue === undefined || rankValue === null ? 0 : rankValue;
 
                 totalPoints += kills;
                 picks.push({ id: playerId, name, kills, cost, rank });
@@ -93,15 +96,13 @@ export async function GET(request: Request) {
           totalPoints,
           mvp: mvp.playerName,
           picks,
-          // Add any other fields needed for the datatable here
-        };
+        } as LeaderboardUser;
       })
     );
 
-    // Filter nulls and sort by points
     const sortedUsers = usersData
-      .filter((user) => user !== null)
-      .sort((a, b) => b!.totalPoints - a!.totalPoints)
+      .filter((user): user is LeaderboardUser => user !== null)
+      .sort((a, b) => b.totalPoints - a.totalPoints)
       .map((user, idx) => ({ ...user, rank: idx + 1 }));
 
     return NextResponse.json(
