@@ -6,6 +6,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { getDownloadURL, ref, StorageReference } from "firebase/storage";
 import { useAuth } from "@/src/contexts/authProvider";
 import UserHead from "./head";
+import { getFirebaseStorageUrl } from "@/src/lib/storage";
 
 // Cache for user data to prevent refetching
 const userDataCache = new Map<string, { data: any; timestamp: number }>();
@@ -105,20 +106,9 @@ const PageHeader: React.FC = () => {
 
         const rawData = userDoc.data();
         let profilePicture = defaultUserData.profilePicture;
-
-        if (currentUserId) {
-          const storagePath = `user/${currentUserId}/profile_200x200`;
-          try {
-            const storageRef: StorageReference = ref(storage, storagePath);
-            profilePicture = await getDownloadURL(storageRef);
-          } catch (error) {
-            // Silently use default profile picture if not found
-            // Only log if it's not an object-not-found error
-            if (error instanceof Error && !error.message.includes('object-not-found')) {
-              console.error("Error fetching profile picture:", error);
-            }
-            profilePicture = defaultUserData.profilePicture;
-          }
+        
+        if (rawData?.profilePicture) {
+          profilePicture = getFirebaseStorageUrl(rawData.profilePicture);
         }
 
         const validatedUserData: UserData = {

@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { auth, db } from "@/src/lib/firebaseClient";
 import { doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { updateProfile } from "firebase/auth";
+import { uploadProfilePicture } from "@/src/lib/auth";
 import Button from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 
@@ -23,6 +24,7 @@ const ProfileCompletion: React.FC<Props> = () => {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [profilePicture, setProfilePicture] = useState<File | null>(null);
 
   // Fetch existing data
   useEffect(() => {
@@ -111,11 +113,19 @@ const ProfileCompletion: React.FC<Props> = () => {
     setSaving(true);
     try {
       const uid = auth.currentUser.uid;
-      await setDoc(doc(db, "users", uid), {
+      const userData: any = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         username: username.trim().toLowerCase(),
-      }, { merge: true });
+      };
+      
+      // Upload profile picture if provided
+      if (profilePicture) {
+        const storagePath = await uploadProfilePicture(profilePicture);
+        userData.profilePicture = storagePath;
+      }
+      
+      await setDoc(doc(db, "users", uid), userData, { merge: true });
       const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
       if (!auth.currentUser.displayName || auth.currentUser.displayName !== displayName) {
         await updateProfile(auth.currentUser, { displayName });
@@ -157,6 +167,16 @@ const ProfileCompletion: React.FC<Props> = () => {
               {username && usernameAvailable === true && <span className="text-green-500">✓ Available</span>}
               {username && usernameAvailable === false && <span className="text-red-500">✗ Taken</span>}
               {username && !usernameRegex.test(username) && <span className="text-red-500">Invalid characters</span>}
+            </div>
+          </div>
+          <div>
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setProfilePicture(e.target.files?.[0] || null)}
+            />
+            <div className="mt-1 text-xs text-neutral-400">
+              Optional: Upload profile picture
             </div>
           </div>
         </div>

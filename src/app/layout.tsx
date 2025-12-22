@@ -59,7 +59,7 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${hanson.variable} ${azonix.variable}`}
     >
-      <body className={` bg-gray-100`}>
+      <body className={` bg-gray-100`} suppressHydrationWarning>
         <ErrorBoundary>
           <AuthProvider>
             <NextTopLoader

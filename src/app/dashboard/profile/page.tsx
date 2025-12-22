@@ -13,6 +13,7 @@ import { RiTeamLine } from "react-icons/ri";
 import { auth, db, storage } from "@/src/lib/firebaseClient";
 import { useAuth } from "@/src/contexts/authProvider";
 import { getDownloadURL, ref, StorageReference } from "firebase/storage";
+import { getFirebaseStorageUrl } from "@/src/lib/storage";
 
 // Define a TypeScript interface for the user data
 interface UserData {
@@ -66,33 +67,11 @@ function ProfilePage() {
           const rawData = userDoc.data();
           console.log("Raw user data:", rawData);
 
-          // Check if the profile picture is available and valid in Firestore
+          // Get profile picture from user data or use default
           let profilePicture = defaultUserData.profilePicture;
-
-          // Generate the storage path using the current user's UID
-          const currentUserId: string = auth.currentUser?.uid || ""; // Ensure the user is logged in and UID is available
-
-          if (currentUserId) {
-            const storagePath = `user/${currentUserId}/profile_200x200`; // Adjust the file name/extension if needed
-            console.log("Generated Firebase Storage path:", storagePath);
-            try {
-              const storageRef: StorageReference = ref(storage, storagePath);
-              console.log("Storage reference created for path:", storagePath);
-              // Fetch the profile picture from Firebase Storage
-              const validProfilePicture = await getDownloadURL(storageRef);
-              profilePicture = validProfilePicture;
-            } catch (error) {
-              console.error(
-                "Error fetching profile picture from Firebase Storage:",
-                error
-              );
-              // Use default if not found or invalid
-              profilePicture = defaultUserData.profilePicture;
-            }
-          } else {
-            console.log(
-              "No authenticated user found, using default profile picture."
-            );
+          
+          if (rawData?.profilePicture) {
+            profilePicture = getFirebaseStorageUrl(rawData.profilePicture);
           }
 
           // Validate and set defaults for other fields
