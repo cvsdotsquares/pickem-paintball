@@ -7,8 +7,8 @@
  * @param defaultValue Optional default value if the path doesn't exist
  * @returns The value at the path, or defaultValue if not found
  */
-export function getNestedValue<T = any>(
-  obj: Record<string, any> | null | undefined,
+export function getNestedValue<T = unknown>(
+  obj: Record<string, unknown> | null | undefined,
   path: string,
   defaultValue?: T
 ): T {
@@ -17,13 +17,13 @@ export function getNestedValue<T = any>(
   }
 
   const pathArray = path.split(".");
-  let current: any = obj;
+  let current: unknown = obj;
 
   for (const key of pathArray) {
     if (current === null || current === undefined || typeof current !== "object") {
       return defaultValue as T;
     }
-    current = current[key];
+    current = (current as Record<string, unknown>)[key];
   }
 
   return (current !== undefined ? current : defaultValue) as T;
@@ -58,7 +58,7 @@ export function isEmpty(value: unknown): boolean {
  * @param values The provided values
  * @returns A merged object with fallbacks applied
  */
-export function createWithFallbacks<T extends Record<string, any>>(
+export function createWithFallbacks<T extends Record<string, unknown>>(
   defaults: T,
   values?: Partial<T>
 ): T {
@@ -67,7 +67,7 @@ export function createWithFallbacks<T extends Record<string, any>>(
   }
 
   return Object.keys(defaults).reduce((result, key) => {
-    (result as Record<string, any>)[key] = !isEmpty(values[key]) ? values[key] : defaults[key];
+    (result as Record<string, unknown>)[key] = !isEmpty(values[key]) ? values[key] : defaults[key];
     return result;
   }, { ...defaults }) as T;
 }

@@ -105,7 +105,7 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     try {
       await sendPasswordResetEmail(auth, resetEmail); // Send reset email
-      alert("Password reset email sent. Check your inbox!");
+      alert("Your password reset email has been sent. Please check your inbox and spam folder.");
       setShowResetForm(false); // Hide the reset form
     } catch (err) {
       setError("Error sending password reset email.");
