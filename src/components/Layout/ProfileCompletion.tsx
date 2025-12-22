@@ -7,7 +7,9 @@ import { uploadProfilePicture } from "@/src/lib/auth";
 import Button from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 
-interface Props {}
+interface Props {
+  // Empty interface for future extensibility
+}
 
 const nameRegex = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
 const usernameRegex = /^[a-zA-Z0-9_]+$/;

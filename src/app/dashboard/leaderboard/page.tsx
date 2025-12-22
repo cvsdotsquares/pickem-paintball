@@ -599,7 +599,7 @@ export default function Leaderboard() {
                         <td colSpan={5} className="px-2 py-2">
                           <div className="pb-2">
                             <h3 className="text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1">
-                              {user.displayName}'s Team
+                              {user.displayName}&apos;s Team
                             </h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                               {user.picks
