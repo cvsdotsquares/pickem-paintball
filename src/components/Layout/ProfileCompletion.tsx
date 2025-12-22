@@ -8,7 +8,7 @@ import Button from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 
 interface Props {
-  // Empty interface for future extensibility
+  [key: string]: never; // Explicitly empty interface
 }
 
 const nameRegex = /^[A-Za-z]+(?: [A-Za-z]+)*$/;

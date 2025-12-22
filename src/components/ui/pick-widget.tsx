@@ -11,11 +11,8 @@ import {
 import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
 import { useEffect, useState } from "react";
 import { AnimatedGroup } from "./animations/grp";
-import { IoMdCloseCircle } from "react-icons/io";
 import { GiCardPickup } from "react-icons/gi";
 import ActionButtons from "./action-btns";
-import { TiTick } from "react-icons/ti";
-import { PiPlusBold } from "react-icons/pi";
 
 // Use the Player interface from pick-em page which already includes img_url
 
@@ -25,8 +22,7 @@ export const PickWidget = () => {
     lockDate: Date | null;
     timeLeft: string;
   }>({ id: null, lockDate: null, timeLeft: "" });
-  const [rowData, setRowData] = useState<any[]>([]);
-  const [temporaryPicks, setTemporaryPicks] = useState<Player[]>([]);
+  const [rowData, setRowData] = useState<Player[]>([]);
   const [playerSlots, setPlayerSlots] = useState(
     Array.from({ length: 10 }, (_, i) => ({
       id: i + 1,
@@ -35,7 +31,6 @@ export const PickWidget = () => {
       player: null as Player | null,
     }))
   );
-  const [isLoadingImages, setIsLoadingImages] = useState(false);
   const [teamLogos, setTeamLogos] = useState<Record<string, string>>({});
 
   const db = getFirestore();
@@ -52,7 +47,7 @@ export const PickWidget = () => {
   useEffect(() => {
     const fetchLiveEvent = async () => {
       const events = await fetchFromFirestore("events");
-      const live = events.find((e: any) => e.status === "live");
+      const live = events.find((e: { status: string }) => e.status === "live");
       if (live) {
         setLiveEvent({
           id: live.id,
@@ -62,7 +57,7 @@ export const PickWidget = () => {
       }
     };
     fetchLiveEvent();
-  }, []);
+  }, [fetchFromFirestore]);
 
   // Update countdown timer
   useEffect(() => {
@@ -113,25 +108,6 @@ export const PickWidget = () => {
     }
   };
 
-  const fetchTeamLogo = async (teamId: string): Promise<string> => {
-    const storage = getStorage();
-    const folderPath = `t-logo/`;
-    const storageRef = ref(storage, folderPath);
-
-    try {
-      const fileList = await listAll(storageRef);
-      const matchingFile = fileList.items.find((item) =>
-        item.name.startsWith(`${teamId}_`)
-      );
-      return matchingFile
-        ? await getDownloadURL(matchingFile)
-        : "/team-placeholder.svg";
-    } catch (error) {
-      console.error(`Error fetching logo for teamId: ${teamId}`, error);
-      return "/team-placeholder.svg";
-    }
-  };
-
   // Fetch all team logos when component mounts
   useEffect(() => {
     const fetchAllTeamLogos = async () => {
@@ -167,7 +143,6 @@ export const PickWidget = () => {
     if (rowData.length === 0) return;
 
     const loadImages = async () => {
-      setIsLoadingImages(true);
       try {
         const updatedPlayers = await Promise.all(
           rowData.map(async (player) => {
@@ -182,13 +157,11 @@ export const PickWidget = () => {
         setRowData(updatedPlayers);
       } catch (error) {
         console.error("Error loading player images:", error);
-      } finally {
-        setIsLoadingImages(false);
       }
     };
 
     loadImages();
-  }, [rowData.length]);
+  }, [rowData.length, fetchPlayerPicture]);
 
   useEffect(() => {
     const fetchPlayers = async () => {
@@ -199,7 +172,16 @@ export const PickWidget = () => {
           `events/${liveEvent.id}/players`
         );
 
-        const players: Player[] = rawPlayers.map((raw: any) => ({
+        const players: Player[] = rawPlayers.map((raw: {
+          player_id: string;
+          league_id: string;
+          Player: string;
+          Team: string;
+          Rank: number;
+          team_id: string;
+          Cost: number;
+          img_url?: string;
+        }) => ({
           player_id: raw.player_id,
           league_id: raw.league_id,
           Player: raw.Player,
@@ -219,7 +201,7 @@ export const PickWidget = () => {
     };
 
     fetchPlayers();
-  }, [liveEvent.id]);
+  }, [liveEvent.id, fetchFromFirestore]);
 
   // Fetch user picks from the firestore if exist already
   useEffect(() => {
@@ -244,7 +226,7 @@ export const PickWidget = () => {
               );
 
               const playerDocs = await Promise.all(
-                playerRefs.map((playerRef: any) => getDoc(playerRef))
+                playerRefs.map((playerRef) => getDoc(playerRef))
               );
 
               const savedPicks = playerDocs
@@ -260,7 +242,6 @@ export const PickWidget = () => {
                   };
                 });
 
-              setTemporaryPicks(savedPicks);
               setPlayerSlots((prevSlots) =>
                 prevSlots.map((slot, index) => ({
                   ...slot,
@@ -280,7 +261,6 @@ export const PickWidget = () => {
                 })
               );
 
-              setTemporaryPicks(picksWithPictures);
               setPlayerSlots((prevSlots) =>
                 prevSlots.map((slot, index) => ({
                   ...slot,
@@ -296,7 +276,7 @@ export const PickWidget = () => {
 
       fetchPicks();
     }
-  }, [user, liveEvent.id, db]);
+  }, [user, liveEvent.id, db, fetchPlayerPicture]);
 
   const formatCost = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -314,8 +294,6 @@ export const PickWidget = () => {
     player?: Player;
     isSlot?: boolean;
   }) => {
-    const teamLogo = player?.team_id ? teamLogos[player.team_id] : null;
-
     return (
       <div
         key={

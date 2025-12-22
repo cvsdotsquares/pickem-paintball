@@ -142,7 +142,7 @@ const DisplayTable: React.FC<DisplayTableProps> = ({
 // Example usage component that demonstrates how to use DisplayTable with the player stats data
 export const PlayerStatsTable: React.FC = () => {
   // Import cell renderers from TableCellRenderers.tsx
-  const cellRenderers = require("./cellrenderer");
+  const cellRenderers = await import("./cellrenderer");
   const {
     playerInfoRenderer,
     matchInfoRenderer,
