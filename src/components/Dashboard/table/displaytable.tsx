@@ -1,6 +1,13 @@
 "use client";
 import { getNestedValue } from "@/src/lib/nested-values";
 import * as React from "react";
+import {
+  matchInfoRenderer,
+  performanceRenderer,
+  playerInfoRenderer,
+  priceInfoRenderer,
+  simpleStatRenderer,
+} from "./cellrenderer";
 
 // Types for the table data and configuration
 export type CellData = string | number | React.ReactNode;
@@ -141,16 +148,6 @@ const DisplayTable: React.FC<DisplayTableProps> = ({
 
 // Example usage component that demonstrates how to use DisplayTable with the player stats data
 export const PlayerStatsTable: React.FC = () => {
-  // Import cell renderers from TableCellRenderers.tsx
-  const cellRenderers = await import("./cellrenderer");
-  const {
-    playerInfoRenderer,
-    matchInfoRenderer,
-    performanceRenderer,
-    simpleStatRenderer,
-    priceInfoRenderer,
-  } = cellRenderers;
-
   // Column definitions with fallbacks
   const columns: ColumnDefinition[] = [
     {

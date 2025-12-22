@@ -146,6 +146,7 @@ function LeaderboardNewContent() {
 
   const auth = getAuth();
   const currentUserId = auth.currentUser?.uid;
+  const currentUserDetails = currentUserId ? userDetailsMap.get(currentUserId) : undefined;
 
   // Fetch live event
   useEffect(() => {
@@ -743,7 +744,7 @@ function LeaderboardNewContent() {
               onClick={async () => {
                 setExpandCurrentUser(!expandCurrentUser);
                 // Fetch user details if not already cached
-                if (!expandCurrentUser && !userDetailsMap.has(currentUserId) && liveEvent) {
+                if (currentUserId && !expandCurrentUser && !userDetailsMap.has(currentUserId) && liveEvent) {
                   await fetchUserDetails(currentUserId, 0, true);
                 }
               }}
@@ -800,7 +801,7 @@ function LeaderboardNewContent() {
               </div>
             </div>
             <AnimatePresence>
-              {expandCurrentUser && userDetailsMap.get(currentUserId) && (
+              {expandCurrentUser && currentUserDetails && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
@@ -813,7 +814,7 @@ function LeaderboardNewContent() {
                       Your Team
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {userDetailsMap.get(currentUserId)!.picks
+                      {currentUserDetails.picks
                         .slice()
                         .sort((a, b) => {
                           if (b.kills !== a.kills) return b.kills - a.kills;
