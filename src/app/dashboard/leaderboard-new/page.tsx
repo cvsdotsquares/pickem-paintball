@@ -436,6 +436,7 @@ function LeaderboardNewContent() {
           const userData: User = {
             id: userId,
             displayName,
+            profilePicture: userDoc.get("profilePicture") || undefined,
             pickemData: userDoc.get("pickemData") || undefined,
           };
           if (liveEvent) {
