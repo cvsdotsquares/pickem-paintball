@@ -39,6 +39,7 @@ interface User {
     PTS: string;
     Status: string;
   }>;
+  [key: string]: any; // Allow dynamic event fields like world_cup_2025Rank
 }
 
 interface PlayerPick {
@@ -246,12 +247,18 @@ function LeaderboardNewContent() {
             const pickems = userDoc.get("pickems") || {};
             return Array.isArray(pickems[liveEvent.id]) && pickems[liveEvent.id].length > 0;
           })
-          .map((userDoc) => ({
-            id: userDoc.id,
-            displayName: userDoc.get("name") || userDoc.get("username") || "Unknown User",
-            profilePicture: userDoc.get("profilePicture") || undefined,
-            pickemData: userDoc.get("pickemData") || undefined,
-          }));
+          .map((userDoc) => {
+            const userData: User = {
+              id: userDoc.id,
+              displayName: userDoc.get("name") || userDoc.get("username") || "Unknown User",
+              profilePicture: userDoc.get("profilePicture") || undefined,
+              pickemData: userDoc.get("pickemData") || undefined,
+            };
+            userData[`${liveEvent.id}Rank`] = userDoc.get(`${liveEvent.id}Rank`);
+            userData[`${liveEvent.id}PTS`] = userDoc.get(`${liveEvent.id}PTS`);
+            userData[`${liveEvent.id}MVP`] = userDoc.get(`${liveEvent.id}MVP`);
+            return userData;
+          });
 
         // Adjust hasMore based on filtered results
         const filteredCount = participants.length;
@@ -303,6 +310,9 @@ function LeaderboardNewContent() {
             profilePicture,
             pickemData,
             rank: undefined, // Placeholder for now
+            [`${liveEvent.id}Rank`]: userDoc.get(`${liveEvent.id}Rank`),
+            [`${liveEvent.id}PTS`]: userDoc.get(`${liveEvent.id}PTS`),
+            [`${liveEvent.id}MVP`]: userDoc.get(`${liveEvent.id}MVP`),
           });
 
           // Don't fetch user details immediately - let user click to expand
@@ -552,7 +562,14 @@ function LeaderboardNewContent() {
     setPageLoading(true);
 
     // User already has profilePicture and pickemData from search
-    setUsers([user]);
+    setUsers([{
+      ...user,
+      ...(liveEvent && {
+        [`${liveEvent.id}Rank`]: user[`${liveEvent.id}Rank`],
+        [`${liveEvent.id}PTS`]: user[`${liveEvent.id}PTS`],
+        [`${liveEvent.id}MVP`]: user[`${liveEvent.id}MVP`],
+      })
+    }]);
     setHasMorePages(false);
     setPageLoading(false);
   }, [liveEvent]);
@@ -593,12 +610,18 @@ function LeaderboardNewContent() {
             const pickems = userDoc.get("pickems") || {};
             return Array.isArray(pickems[liveEvent.id]) && pickems[liveEvent.id].length > 0;
           })
-          .map((userDoc) => ({
-            id: userDoc.id,
-            displayName: userDoc.get("name") || userDoc.get("username") || "Unknown User",
-            profilePicture: userDoc.get("profilePicture") || undefined,
-            pickemData: userDoc.get("pickemData") || undefined,
-          }));
+          .map((userDoc) => {
+            const userData: User = {
+              id: userDoc.id,
+              displayName: userDoc.get("name") || userDoc.get("username") || "Unknown User",
+              profilePicture: userDoc.get("profilePicture") || undefined,
+              pickemData: userDoc.get("pickemData") || undefined,
+            };
+            userData[`${liveEvent.id}Rank`] = userDoc.get(`${liveEvent.id}Rank`);
+            userData[`${liveEvent.id}PTS`] = userDoc.get(`${liveEvent.id}PTS`);
+            userData[`${liveEvent.id}MVP`] = userDoc.get(`${liveEvent.id}MVP`);
+            return userData;
+          });
         
         // Wave update effect
         freshUsers.forEach((freshUser, index) => {
@@ -736,7 +759,7 @@ function LeaderboardNewContent() {
             </div>
           </div>
         </div>
-      ) : currentUserData && liveEvent && currentUserData.pickemData && currentUserData.pickemData[liveEvent.id] && (
+      ) : currentUserData && liveEvent && currentUserData[`${liveEvent.id}Rank`] && (
         <div className="sticky top-0 z-10 bg-black pt-4 pb-4 mb-4">
           <div className="bg-gray-800/100 rounded-lg shadow border border-gray-700">
             <div
@@ -763,9 +786,9 @@ function LeaderboardNewContent() {
                         <FaUser className="text-xl text-gray-400" />
                       </div>
                     )}
-                    {liveEvent && currentUserData.pickemData && currentUserData.pickemData[liveEvent.id] && (
+                    {liveEvent && currentUserData[`${liveEvent.id}Rank`] && (
                       <div className="absolute -top-1 -right-1 bg-yellow-500 text-black w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs">
-                        #{currentUserData.pickemData[liveEvent.id].Rank}
+                        #{currentUserData[`${liveEvent.id}Rank`]}
                       </div>
                     )}
                   </div>
@@ -779,14 +802,14 @@ function LeaderboardNewContent() {
                     <div className="flex items-center mt-0.5">
                       <FaTrophy className="text-yellow-400 mr-1 text-sm" />
                       <span className="font-medium text-sm">
-                        Confirmed Kills: {currentUserData?.pickemData && liveEvent && currentUserData.pickemData[liveEvent.id]
-                          ? currentUserData.pickemData[liveEvent.id].PTS
+                        Confirmed Kills: {liveEvent && currentUserData[`${liveEvent.id}PTS`] !== undefined
+                          ? currentUserData[`${liveEvent.id}PTS`]
                           : 0}
                       </span>
                     </div>
                     <p className="text-xs text-gray-400">
-                      MVP: {currentUserData?.pickemData && liveEvent && currentUserData.pickemData[liveEvent.id]
-                        ? currentUserData.pickemData[liveEvent.id].MVP
+                      MVP: {liveEvent && currentUserData[`${liveEvent.id}MVP`] !== undefined
+                        ? currentUserData[`${liveEvent.id}MVP`] || "None"
                         : "None"}
                     </p>
                   </div>
@@ -975,10 +998,10 @@ function LeaderboardNewContent() {
                 const isExpanded = expandedUserId === user.id;
                 const isLoading = userDetailsLoading === user.id;
 
-                // Get rank from pickemData for current live event, fallback to pagination rank
+                // Get rank from direct field for current live event, fallback to pagination rank
                 let displayRank = isSearchMode ? "-" : (page - 1) * itemsPerPage + index + 1;
-                if (liveEvent && user.pickemData && user.pickemData[liveEvent.id]) {
-                  displayRank = user.pickemData[liveEvent.id].Rank;
+                if (liveEvent && user[`${liveEvent.id}Rank`]) {
+                  displayRank = user[`${liveEvent.id}Rank`];
                 }
 
                 return (
@@ -1032,14 +1055,14 @@ function LeaderboardNewContent() {
                       </td>
 
                       <td className="px-2 py-2 whitespace-nowrap text-xs sm:text-sm font-medium">
-                        {liveEvent && user.pickemData && user.pickemData[liveEvent.id]
-                          ? user.pickemData[liveEvent.id].PTS
+                        {liveEvent && user[`${liveEvent.id}PTS`] !== undefined
+                          ? user[`${liveEvent.id}PTS`]
                           : "-"}
                       </td>
 
                       <td className="px-2 py-2 whitespace-nowrap text-xs sm:text-sm text-gray-300 hidden sm:table-cell">
-                        {liveEvent && user.pickemData && user.pickemData[liveEvent.id]
-                          ? user.pickemData[liveEvent.id].MVP
+                        {liveEvent && user[`${liveEvent.id}MVP`] !== undefined
+                          ? user[`${liveEvent.id}MVP`] || "None"
                           : "-"}
                       </td>
 
