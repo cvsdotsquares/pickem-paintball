@@ -4,27 +4,35 @@ import { NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
-// Initialize Firebase Admin if not already initialized
-if (!getApps().length) {
+// Initialize Firebase Admin at runtime only
+let adminInitialized = false;
+
+function initializeFirebaseAdmin() {
+  if (adminInitialized || getApps().length > 0) {
+    return true;
+  }
+
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
   if (!privateKey || !clientEmail || !projectId) {
-    throw new Error('Firebase Admin credentials are required for authentication services');
+    return false;
   }
-    try {
-      initializeApp({
-        credential: cert({
-          projectId,
-          clientEmail,
-          privateKey: privateKey.replace(/\\n/g, '\n'),
-        }),
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown initialization error';
-      throw new Error(`Failed to initialize Firebase Admin: ${errorMessage}`);
-    }
+
+  try {
+    initializeApp({
+      credential: cert({
+        projectId,
+        clientEmail,
+        privateKey: privateKey.replace(/\\n/g, '\n'),
+      }),
+    });
+    adminInitialized = true;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 interface LeaderboardUser {
@@ -60,6 +68,9 @@ export async function GET(request: Request) {
       }
       const token = authHeader.split('Bearer ')[1];
       try {
+        if (!initializeFirebaseAdmin()) {
+          return NextResponse.json({ error: 'Authentication service unavailable' }, { status: 503 });
+        }
         await getAuth().verifyIdToken(token);
       } catch (authError) {
         return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
