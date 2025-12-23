@@ -506,24 +506,27 @@ function LeaderboardNewContent() {
         }
       }
 
-      // Sort: pickemData users first, then by rank
+      // Sort: users with rank data first, then by rank (ascending)
       matchingUsers.sort((a, b) => {
-        const aHasData = a.pickemData?.[liveEvent.id]?.Rank;
-        const bHasData = b.pickemData?.[liveEvent.id]?.Rank;
+        const aRank = liveEvent ? a[`${liveEvent.id}Rank`] : null;
+        const bRank = liveEvent ? b[`${liveEvent.id}Rank`] : null;
 
-        // Users with pickemData always come first
-        if (aHasData && !bHasData) return -1;
-        if (!aHasData && bHasData) return 1;
+        // Users with rank data always come first
+        if (aRank && !bRank) return -1;
+        if (!aRank && bRank) return 1;
 
-        // If both have data, sort by rank (ascending)
-        if (aHasData && bHasData) {
-          return parseInt(aHasData) - parseInt(bHasData);
+        // If both have rank data, sort by rank (ascending)
+        if (aRank && bRank) {
+          return parseInt(aRank) - parseInt(bRank);
         }
 
-        // If neither has data, sort alphabetically
+        // If neither has rank data, sort alphabetically
         return a.displayName.localeCompare(b.displayName);
       });
-      setUsers(matchingUsers);
+      
+      // Limit results to itemsPerPage
+      const limitedUsers = matchingUsers.slice(0, itemsPerPage);
+      setUsers(limitedUsers);
       setHasMorePages(false); // No pagination in search mode
       setPageLoading(false);
 
