@@ -1,13 +1,19 @@
 import { db } from '@/src/lib/firebaseClient';
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { NextResponse } from 'next/server';
+import { auth } from '@/src/lib/firebaseClient';
+import { getAuth } from 'firebase-admin/auth';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
-interface LeaderboardPick {
-  id: string;
-  name: string;
-  kills: number;
-  cost: number;
-  rank: number | string;
+// Initialize Firebase Admin if not already initialized
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
 }
 
 interface LeaderboardUser {
@@ -15,7 +21,6 @@ interface LeaderboardUser {
   displayName: string;
   totalPoints: number;
   mvp: string;
-  picks: LeaderboardPick[];
   rank?: number;
 }
 
@@ -24,6 +29,31 @@ export const revalidate = 300; // Cache for 5 minutes
 
 export async function GET(request: Request) {
   try {
+    // Check authentication - support both user tokens and API key
+    const authHeader = request.headers.get('Authorization');
+    const apiKey = request.headers.get('X-API-Key');
+    
+    if (!authHeader && !apiKey) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verify API key for server-to-server calls (Google Apps Script)
+    if (apiKey) {
+      if (apiKey !== process.env.API_SECRET_KEY) {
+        return NextResponse.json({ error: 'Invalid API key' }, { status: 401 });
+      }
+    } else {
+      // Verify Firebase user token for client calls
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const token = authHeader.split('Bearer ')[1];
+      try {
+        await getAuth().verifyIdToken(token);
+      } catch (authError) {
+        return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      }
+    }
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get('eventId');
 
@@ -58,7 +88,6 @@ export async function GET(request: Request) {
 
         let totalPoints = 0;
         let mvp = { playerName: 'None', kills: 0 };
-        const picks: LeaderboardPick[] = [];
 
         await Promise.all(
           playerIds.map(async (playerId: string) => {
@@ -72,13 +101,8 @@ export async function GET(request: Request) {
               if (playerDoc.exists()) {
                 const kills = playerDoc.get('Confirmed Kills') || 0;
                 const name = playerDoc.get('Player') || 'Unknown Player';
-                const cost = playerDoc.get('Cost') || 0;
-                const rankValue = playerDoc.get('Rank');
-                const rank =
-                  rankValue === undefined || rankValue === null ? 0 : rankValue;
 
                 totalPoints += kills;
-                picks.push({ id: playerId, name, kills, cost, rank });
 
                 if (kills > mvp.kills) {
                   mvp = { playerName: name, kills };
@@ -95,7 +119,6 @@ export async function GET(request: Request) {
           displayName: userData.name || userData.username || 'Unknown User',
           totalPoints,
           mvp: mvp.playerName,
-          picks,
         } as LeaderboardUser;
       })
     );
