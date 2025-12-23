@@ -431,7 +431,7 @@ function LeaderboardNewContent() {
       for (const userDoc of querySnapshot.docs) {
         const displayName = userDoc.get("name") || userDoc.get("username") || "Unknown User";
         const userId = userDoc.id;
-
+        
         if (displayName.toLowerCase().includes(searchTermLower)) {
           const userData: User = {
             id: userId,
@@ -476,7 +476,7 @@ function LeaderboardNewContent() {
 
       const constraints: QueryConstraint[] = [
         where(`pickems.${liveEvent.id}`, "!=", null),
-        limit(100), // Fetch more to filter client-side
+        limit(500), // Increased limit to get more users
       ];
 
       const searchQuery = query(usersCollection, ...constraints);
@@ -544,10 +544,9 @@ function LeaderboardNewContent() {
     }
 
     if (value.trim()) {
-      setShowSuggestions(true);
-      // Debounce search suggestions
+      // Debounce search execution
       const timer = setTimeout(() => {
-        fetchSearchSuggestions(value);
+        executeSearch(value);
       }, 300);
       setSearchDebounceTimer(timer);
     } else {
@@ -909,7 +908,6 @@ function LeaderboardNewContent() {
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            onFocus={() => searchQuery.trim() && setShowSuggestions(true)}
             placeholder="Search players..."
             className="w-full pl-9 pr-10 py-2 text-sm bg-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-white"
           />
@@ -924,20 +922,6 @@ function LeaderboardNewContent() {
           )}
         </form>
 
-        {/* Search Suggestions Dropdown */}
-        {showSuggestions && searchSuggestions.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-gray-800 rounded-lg shadow-lg border border-gray-700 max-h-64 overflow-y-auto">
-            {searchSuggestions.map((suggestion) => (
-              <button
-                key={suggestion.id}
-                onClick={() => handleSuggestionClick(suggestion)}
-                className="w-full px-3 py-2 hover:bg-gray-700 transition-colors text-left"
-              >
-                <span className="text-sm">{suggestion.displayName}</span>
-              </button>
-            ))}
-          </div>
-        )}
       </div>
       )}
       
