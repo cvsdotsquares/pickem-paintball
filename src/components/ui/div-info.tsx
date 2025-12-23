@@ -247,7 +247,7 @@ const DivisionInfo = () => {
 
                 {!currentUserData && user?.uid && (
                   <div className="mt-3 pt-3 border-t border-gray-700 text-xs text-center">
-                    You haven't entered this event yet
+                    You haven&apos;t entered this event yet
                   </div>
                 )}
               </div>

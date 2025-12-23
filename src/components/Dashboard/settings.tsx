@@ -3,6 +3,8 @@ import React, { useState, useRef, useEffect } from "react";
 import Button from "../ui/button";
 import { TextField } from "../ui/TextField";
 import Alert from "../ui/Alert";
+import { auth, db } from "@/src/lib/firebaseClient";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
 // Import the auth functions
 import {
@@ -13,8 +15,6 @@ import {
   deleteUserAccount,
   updateFirestoreName,
 } from "@/src/lib/auth";
-import { auth, db } from "@/src/lib/firebaseClient";
-import { doc, getDoc } from "firebase/firestore";
 
 function AccountSettings() {
   // States for profile info
@@ -82,9 +82,17 @@ function AccountSettings() {
     const file = event.target.files?.[0];
     if (file) {
       try {
-        const downloadURL = await uploadProfilePicture(file);
+        const storagePath = await uploadProfilePicture(file);
+        // Update Firestore with the storage path
+        if (auth.currentUser) {
+          await setDoc(
+            doc(db, "users", auth.currentUser.uid),
+            { profilePicture: storagePath },
+            { merge: true }
+          );
+        }
         setMessage("Profile picture updated!");
-        console.log("New profile picture URL:", downloadURL);
+        console.log("Profile picture storage path:", storagePath);
       } catch (err: any) {
         setError(err.message);
       }

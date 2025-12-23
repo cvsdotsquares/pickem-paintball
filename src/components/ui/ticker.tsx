@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
-import { GiGooeyImpact, GiGooeyMolecule } from "react-icons/gi";
+import { GiGooeyMolecule } from "react-icons/gi";
 import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 
 interface TickerItemProps {
@@ -29,7 +29,7 @@ export const NewsTicker: React.FC = () => {
     });
 
     const xRaw = useTransform(scrollYProgress, [0, 1], [0, -1000]); // Adjusted to control horizontal movement
-    const x = useSpring(xRaw, { mass: 1, stiffness: 150, damping: 25 }); // Smoothened spring physics
+    useSpring(xRaw, { mass: 1, stiffness: 150, damping: 25 }); // Smoothened spring physics
 
     const tickerItems = [
         "Pick your squad",

@@ -27,15 +27,26 @@ const DEFAULT_FALLBACKS = {
 
 // Player Info Cell Renderer with fallbacks
 export const playerInfoRenderer = (value: any, rowData: any) => {
-  const playerImage =
-    getNestedValue(rowData, "playerImage") || DEFAULT_FALLBACKS.playerImage;
-  const playerName =
-    getNestedValue(rowData, "playerName") || DEFAULT_FALLBACKS.playerName;
-  const playerDetails =
-    getNestedValue(rowData, "playerDetails") || DEFAULT_FALLBACKS.playerDetails;
-  const statsButtonImage =
-    getNestedValue(rowData, "statsButtonImage") ||
-    DEFAULT_FALLBACKS.statsButtonImage;
+  const playerImage = getNestedValue<string>(
+    rowData,
+    "playerImage",
+    DEFAULT_FALLBACKS.playerImage
+  );
+  const playerName = getNestedValue<string>(
+    rowData,
+    "playerName",
+    DEFAULT_FALLBACKS.playerName
+  );
+  const playerDetails = getNestedValue<string>(
+    rowData,
+    "playerDetails",
+    DEFAULT_FALLBACKS.playerDetails
+  );
+  const statsButtonImage = getNestedValue<string>(
+    rowData,
+    "statsButtonImage",
+    DEFAULT_FALLBACKS.statsButtonImage
+  );
 
   return (
     <div className="flex relative gap-4 items-center pr-3 pl-6 w-full h-full bg-stone-950 max-md:pl-5">
@@ -79,21 +90,46 @@ export const playerInfoRenderer = (value: any, rowData: any) => {
 
 // Match Info Cell Renderer with fallbacks
 export const matchInfoRenderer = (value: any, rowData: any) => {
-  const homeTeam = getNestedValue(rowData, "homeTeam") || {};
-  const awayTeam = getNestedValue(rowData, "awayTeam") || {};
-  const homeTeamCode =
-    getNestedValue(homeTeam, "code") || DEFAULT_FALLBACKS.teamCode;
-  const homeTeamLogo =
-    getNestedValue(homeTeam, "logo") || DEFAULT_FALLBACKS.teamLogo;
-  const awayTeamCode =
-    getNestedValue(awayTeam, "code") || DEFAULT_FALLBACKS.teamCode;
-  const awayTeamLogo =
-    getNestedValue(awayTeam, "logo") || DEFAULT_FALLBACKS.teamLogo;
-  const gameWeek =
-    getNestedValue(rowData, "gameWeek") || DEFAULT_FALLBACKS.gameWeek;
-  const infoButtonImage =
-    getNestedValue(rowData, "infoButtonImage") ||
-    DEFAULT_FALLBACKS.infoButtonImage;
+  const homeTeam = getNestedValue<Record<string, unknown>>(
+    rowData,
+    "homeTeam",
+    {}
+  );
+  const awayTeam = getNestedValue<Record<string, unknown>>(
+    rowData,
+    "awayTeam",
+    {}
+  );
+  const homeTeamCode = getNestedValue<string>(
+    homeTeam,
+    "code",
+    DEFAULT_FALLBACKS.teamCode
+  );
+  const homeTeamLogo = getNestedValue<string>(
+    homeTeam,
+    "logo",
+    DEFAULT_FALLBACKS.teamLogo
+  );
+  const awayTeamCode = getNestedValue<string>(
+    awayTeam,
+    "code",
+    DEFAULT_FALLBACKS.teamCode
+  );
+  const awayTeamLogo = getNestedValue<string>(
+    awayTeam,
+    "logo",
+    DEFAULT_FALLBACKS.teamLogo
+  );
+  const gameWeek = getNestedValue<string>(
+    rowData,
+    "gameWeek",
+    DEFAULT_FALLBACKS.gameWeek
+  );
+  const infoButtonImage = getNestedValue<string>(
+    rowData,
+    "infoButtonImage",
+    DEFAULT_FALLBACKS.infoButtonImage
+  );
 
   return (
     <div className="flex gap-1 justify-center items-center px-3.5 py-11 bg-stone-950 w-full h-full">

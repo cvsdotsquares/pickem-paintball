@@ -11,7 +11,7 @@ import {
 import { ref, uploadBytes, getDownloadURL, StorageReference } from "firebase/storage";
 import { auth, db, googleProvider, storage } from "./firebaseClient";
 import { NextRouter } from "next/router";
-import { doc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 
 // Auth operations
 export const loginWithEmail = (email: string, password: string) => {
@@ -33,14 +33,14 @@ export const logout = () => {
 };
 export const updateFirestoreName = async (userId: string, newName: string, firstName?: string, lastName?: string) => {
     const userDocRef = doc(db, "users", userId);
-    const payload: Record<string, any> = { name: newName };
+    const payload: Record<string, string> = { name: newName };
     if (firstName !== undefined) payload.firstName = firstName;
     if (lastName !== undefined) payload.lastName = lastName;
     await setDoc(userDocRef, payload, { merge: true });
 };
 
 // Unified user upsert helper to avoid accidental overwrites
-export const upsertUserDoc = async (userId: string, data: Record<string, any>) => {
+export const upsertUserDoc = async (userId: string, data: Record<string, unknown>) => {
     const userDocRef = doc(db, 'users', userId);
     await setDoc(userDocRef, data, { merge: true });
 };
@@ -104,13 +104,14 @@ export const uploadProfilePicture = async (file: File): Promise<string> => {
     if (!auth.currentUser) {
         throw new Error("No authenticated user found");
     }
-    const filePath = `user/${auth.currentUser.uid}/profile`;
+    const storagePath = `user/${auth.currentUser.uid}/profile_200x200`;
     // Explicitly type the storage reference for TypeScript
-    const storageRef: StorageReference = ref(storage, filePath);
+    const storageRef: StorageReference = ref(storage, storagePath);
     await uploadBytes(storageRef, file);
     const downloadURL = await getDownloadURL(storageRef);
     await updateProfile(auth.currentUser, { photoURL: downloadURL });
-    return downloadURL;
+    // Return the storage path, not the download URL
+    return storagePath;
 };
 
 // Delete the user account after reauthentication
