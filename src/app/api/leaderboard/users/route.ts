@@ -1,19 +1,30 @@
 import { db } from '@/src/lib/firebaseClient';
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { NextResponse } from 'next/server';
-import { auth } from '@/src/lib/firebaseClient';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
 // Initialize Firebase Admin if not already initialized
 if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  });
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+
+  if (!privateKey || !clientEmail || !projectId) {
+    throw new Error('Firebase Admin credentials are required for authentication services');
+  }
+    try {
+      initializeApp({
+        credential: cert({
+          projectId,
+          clientEmail,
+          privateKey: privateKey.replace(/\\n/g, '\n'),
+        }),
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown initialization error';
+      throw new Error(`Failed to initialize Firebase Admin: ${errorMessage}`);
+    }
 }
 
 interface LeaderboardUser {
@@ -109,7 +120,11 @@ export async function GET(request: Request) {
                 }
               }
             } catch (error) {
-              console.error(`Error fetching player ${playerId}:`, error);
+              console.error(`Error fetching player data:`, {
+                playerId: playerId?.replace(/[\r\n]/g, ''),
+                eventId: eventId?.replace(/[\r\n]/g, ''),
+                error: error instanceof Error ? error.message : 'Unknown error'
+              });
             }
           })
         );
@@ -137,7 +152,8 @@ export async function GET(request: Request) {
       }
     );
   } catch (error) {
-    console.error('Leaderboard API error:', error);
+    const sanitizedError = error instanceof Error ? error.message.replace(/[\r\n]/g, '') : 'Unknown error';
+    console.error('Leaderboard API error:', sanitizedError);
     return NextResponse.json({ error: 'Failed to fetch leaderboard' }, { status: 500 });
   }
 }
