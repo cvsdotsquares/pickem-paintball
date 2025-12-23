@@ -433,11 +433,17 @@ function LeaderboardNewContent() {
         const userId = userDoc.id;
 
         if (displayName.toLowerCase().includes(searchTermLower)) {
-          matchingUsers.push({
+          const userData: User = {
             id: userId,
             displayName,
             pickemData: userDoc.get("pickemData") || undefined,
-          });
+          };
+          if (liveEvent) {
+            userData[`${liveEvent.id}Rank`] = userDoc.get(`${liveEvent.id}Rank`);
+            userData[`${liveEvent.id}PTS`] = userDoc.get(`${liveEvent.id}PTS`);
+            userData[`${liveEvent.id}MVP`] = userDoc.get(`${liveEvent.id}MVP`);
+          }
+          matchingUsers.push(userData);
 
           if (matchingUsers.length >= 10) break;
         }
@@ -483,12 +489,18 @@ function LeaderboardNewContent() {
         const displayName = userDoc.get("name") || userDoc.get("username") || "Unknown User";
 
         if (displayName.toLowerCase().includes(searchTermLower)) {
-          matchingUsers.push({
+          const userData: User = {
             id: userDoc.id,
             displayName,
             profilePicture: userDoc.get("profilePicture") || undefined,
             pickemData: userDoc.get("pickemData") || undefined,
-          });
+          };
+          if (liveEvent) {
+            userData[`${liveEvent.id}Rank`] = userDoc.get(`${liveEvent.id}Rank`);
+            userData[`${liveEvent.id}PTS`] = userDoc.get(`${liveEvent.id}PTS`);
+            userData[`${liveEvent.id}MVP`] = userDoc.get(`${liveEvent.id}MVP`);
+          }
+          matchingUsers.push(userData);
           userDocsToFetch.push({ id: userDoc.id, doc: userDoc });
         }
       }
