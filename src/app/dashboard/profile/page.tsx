@@ -47,7 +47,6 @@ function ProfilePage() {
   // Fetch user details on component mount
   useEffect(() => {
     async function fetchUserData() {
-      console.log("Starting fetchUserData...");
 
       try {
         if (!user) {
@@ -69,7 +68,7 @@ function ProfilePage() {
 
           // Get profile picture from user data or use default
           let profilePicture = defaultUserData.profilePicture;
-          
+
           if (rawData?.profilePicture) {
             profilePicture = getFirebaseStorageUrl(rawData.profilePicture);
           }
@@ -119,7 +118,6 @@ function ProfilePage() {
         setUserData(defaultUserData);
       } finally {
         setLoading(false);
-        console.log("Finished fetchUserData.");
       }
     }
 

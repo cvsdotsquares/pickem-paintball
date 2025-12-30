@@ -158,6 +158,10 @@ function LeaderboardNewContent() {
         const cachedEvent = getLiveEventFromCache();
         if (cachedEvent) {
           setLiveEvent(cachedEvent);
+          // Reset pagination when setting live event from cache
+          setPage(1);
+          setLastDoc(null);
+          participantsCache.clear();
           return;
         }
 
@@ -184,6 +188,10 @@ function LeaderboardNewContent() {
           setLiveEventCache(event);
 
           setLiveEvent(event);
+          // Reset pagination when setting live event
+          setPage(1);
+          setLastDoc(null);
+          participantsCache.clear();
         } else {
           setLiveEvent(null);
         }
@@ -289,6 +297,15 @@ function LeaderboardNewContent() {
 
     fetchParticipants();
   }, [liveEvent, page, itemsPerPage, isSearchMode]);
+
+  // Reset pagination and cache when liveEvent changes
+  useEffect(() => {
+    if (liveEvent) {
+      setPage(1);
+      setLastDoc(null);
+      participantsCache.clear();
+    }
+  }, [liveEvent?.id]);
 
   // Fetch current user data
   useEffect(() => {

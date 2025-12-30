@@ -233,7 +233,6 @@ export default function Statistics() {
     async function fetchPlayers() {
       if (!selectedEvent) return;
       try {
-        console.log("Fetching player data for event:", selectedEvent.id);
         const playersCollection = collection(
           db,
           `events/${selectedEvent.id}/players`
@@ -301,7 +300,6 @@ export default function Statistics() {
           });
         }
         setRowData(players);
-        console.log("Player data fetched successfully:", players);
       } catch (error: any) {
         console.error("Error fetching player data:", error.message);
       }
