@@ -73,7 +73,6 @@ const UserProfile = () => {
 
   useEffect(() => {
     async function fetchUserData() {
-      console.log("Starting fetchUserData...");
 
       try {
         if (!user) {

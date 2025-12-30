@@ -225,20 +225,7 @@ export default function Pickems() {
     const threshold = isMobile ? 200 : 300; // 200px for mobile, 300px for desktop
     const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
 
-    console.log("Scroll debug:", {
-      scrollTop,
-      scrollHeight,
-      clientHeight,
-      distanceFromBottom,
-      threshold,
-      shouldLoadMore: distanceFromBottom < threshold,
-      isLoadingMore,
-      visibleCount: visiblePlayers.length,
-      totalCount: filteredPlayers.length
-    });
-
     if (distanceFromBottom < threshold) {
-      console.log("Triggering load more...");
       setIsLoadingMore(true);
 
       // Use requestAnimationFrame for better performance
@@ -247,7 +234,6 @@ export default function Pickems() {
           () => {
             setVisiblePlayersCount((prev) => {
               const newCount = Math.min(prev + (isMobile ? 6 : 9), filteredPlayers.length);
-              console.log("Updating visible count:", prev, "->", newCount);
               return newCount;
             });
             setIsLoadingMore(false);
@@ -263,11 +249,6 @@ export default function Pickems() {
       ? mobileScrollRef.current
       : desktopScrollRef.current;
     if (container) {
-      console.log("scroll container dimensions:", {
-        scrollHeight: container.scrollHeight,
-        clientHeight: container.clientHeight,
-        scrollable: container.scrollHeight > container.clientHeight,
-      });
 
       // Attach scroll event listener
       container.addEventListener("scroll", handleScroll, { passive: true });
