@@ -17,7 +17,7 @@ import { LuLogOut } from "react-icons/lu";
 import { FaTableList } from "react-icons/fa6";
 import { ImStatsBars } from "react-icons/im";
 import { ToastContainer } from "react-toastify";
-import { FaQuestionCircle } from "react-icons/fa";
+import { FaQuestionCircle, FaTrophy } from "react-icons/fa";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import ProfileCompletion from "./ProfileCompletion";
 
@@ -35,6 +35,11 @@ const links = [
     label: "Statistics",
     href: "/dashboard/stats",
     icon: <ImStatsBars className="h-5 w-5 shrink-0 text-neutral-200" />,
+  },
+  {
+    label: "Season Totals",
+    href: "/dashboard/season-totals",
+    icon: <FaTrophy className="h-5 w-5 shrink-0 text-neutral-200" />,
   },
   {
     label: "Live PickEm",

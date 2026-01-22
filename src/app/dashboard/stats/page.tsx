@@ -8,6 +8,7 @@ import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
 import { motion } from "framer-motion";
 import { Player } from "../pick-em/page";
 import { useAuth } from "@/src/contexts/authProvider";
+import SeasonTotals from "@/src/components/Dashboard/SeasonTotals";
 
 export interface Event {
   id: string;
@@ -357,29 +358,55 @@ export default function Statistics() {
             </div>
           </div>
 
-          {/* Events Carousel */}
-          <div className="flex flex-row overflow-x-auto gap-4 items-center p-4 w-full">
-            {filteredEvents.map((event, index) => (
-              <EventCard
-                key={index}
-                name={event.name}
-                status={event.status}
-                onClick={() => setSelectedEvent(event)}
-                isSelected={selectedEvent?.id === event.id}
-                event_logo={event.event_logo} // Pass event logo
-              />
-            ))}
+          {/* Main Content Area */}
+          <div className="flex flex-col xl:flex-row gap-6 px-4 mt-6">
+            {/* Left Side - Season Totals Card */}
+            <div className="xl:w-2/3">
+              <SeasonTotals selectedYear={selectedYear} />
+            </div>
+            
+            {/* Right Side - Events Carousel */}
+            <div className="xl:w-1/3">
+              {/* Events Carousel */}
+              <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl p-4">
+                <h3 className="text-lg font-bold text-white font-azonix mb-4">Select Event</h3>
+                <div className="flex flex-row overflow-x-auto gap-4 items-center">
+                  {filteredEvents.map((event, index) => (
+                    <EventCard
+                      key={index}
+                      name={event.name}
+                      status={event.status}
+                      onClick={() => setSelectedEvent(event)}
+                      isSelected={selectedEvent?.id === event.id}
+                      event_logo={event.event_logo}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* The table with animated sticky behavior */}
-        <motion.section className="  flex flex-col items-center md:overflow-y-hidden justify-center ">
-          <MatchupTable
-            data={rowData}
-            sortConfig={sortConfig}
-            onSortChange={setSortConfig}
-            myPicks={livePicks}
-          />
+        {/* Individual Event Table */}
+        <motion.section className="px-4 mt-6">
+          <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-white font-azonix">
+                {selectedEvent?.name || 'Select Event'} - Player Stats
+              </h3>
+              {selectedEvent?.status === 'live' && (
+                <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm animate-pulse">
+                  🔴 LIVE
+                </span>
+              )}
+            </div>
+            <MatchupTable
+              data={rowData}
+              sortConfig={sortConfig}
+              onSortChange={setSortConfig}
+              myPicks={livePicks}
+            />
+          </div>
         </motion.section>
       </div>
     </div>
