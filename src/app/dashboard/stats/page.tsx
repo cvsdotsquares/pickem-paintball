@@ -31,10 +31,14 @@ export default function Statistics() {
   const [selectedYear, setSelectedYear] = useState<string>("All");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [liveEvent, setLiveEvent] = useState<Event | null>(null);
+  const [showSeasonTable, setShowSeasonTable] = useState<boolean>(false);
+  const [selectedSeasonYear, setSelectedSeasonYear] = useState<string | null>(null);
 
   //const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
   const [sortConfig, setSortConfig] = useState<SortConfig | null>({ key: "Rank", direction: "ascending" });
   const [livePicks, setLivePicks] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(25);
 
 
   const { user } = useAuth();
@@ -211,14 +215,15 @@ export default function Statistics() {
                 {status && (
                   <div
                     className={`text-center font-azonix ${
-                      status === "live" ? "text-red-500" : "text-gray-300"
+                      status === "live" ? "text-red-500" : 
+                      status === "season" ? "text-blue-400" : "text-gray-300"
                     }`}
                     style={{
                       fontSize: "clamp(0.5rem, 1.5vw, 1rem)", // Scales based on viewport
                       lineHeight: "1.2",
                     }}
                   >
-                    {status}
+                    {status === "season" ? "SEASON" : status}
                   </div>
                 )}
               </div>
@@ -229,11 +234,115 @@ export default function Statistics() {
     );
   }
 
+  // Fetch season data when season table is shown
+  useEffect(() => {
+    async function fetchSeasonData() {
+      console.log('fetchSeasonData called, showSeasonTable:', showSeasonTable);
+      if (!showSeasonTable) {
+        setRowData([]);
+        return;
+      }
+      
+      const yearToFetch = selectedYear === "All" ? selectedSeasonYear || "2025" : selectedYear;
+      
+      try {
+        setRowData([]);
+        
+        const seasonPlayersQuery = collection(db, `players/season_${yearToFetch}/players`);
+        const seasonSnapshot = await getDocs(seasonPlayersQuery);
+        
+        if (seasonSnapshot.empty) {
+          setRowData([]);
+          return;
+        }
+        
+        const seasonPlayers = seasonSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          
+          // Base data structure matching MatchupTable expectations
+          const playerData: any = {
+            player_id: data.playerId || doc.id,
+            Rank: data.seasonRank || 999,
+            Player: data.playerName || 'Unknown Player',
+            Team: data.team || 'Unknown Team',
+            "Total Kills": data.totalConfirmedKills || 0,
+            Number: data.playerNumber || '',
+            
+            // Aggregated stats
+            Gunfights: data.gunfights || 0,
+            Breakshooting: data.breakshooting || 0,
+            Movement: data.movement || 0,
+            "Zone Coverage": data.zoneCoverage || 0,
+            Pressure: data.pressure || 0,
+            Trades: data.trades || 0,
+            Unclassified: data.unclassified || 0,
+            picture: '/placeholder.svg'
+          };
+          
+          // Add event-specific kills based on year
+          if (yearToFetch === "2025") {
+            playerData["World Cup"] = data.world_cup_2025?.confirmedKills || 0;
+            playerData["Lone Star"] = data.lonestar_open_2025?.confirmedKills || 0;
+            playerData["Mid West"] = data.midwest_open_2025?.confirmedKills || 0;
+            playerData["Atlantic City"] = data.atlantic_city_2025?.confirmedKills || 0;
+            playerData["Tampa Bay"] = data.tampa_bay_2025?.confirmedKills || 0;
+          } else if (yearToFetch === "2024") {
+            playerData["World Cup"] = data.world_cup_2024?.confirmedKills || 0;
+            playerData["Lone Star"] = data.lonestar_open_2024?.confirmedKills || 0;
+            playerData["Mid West"] = data.midwest_open_2024?.confirmedKills || 0;
+            playerData["Atlantic City"] = data.atlantic_city_2024?.confirmedKills || 0;
+            playerData["Tampa Bay"] = data.tampa_bay_2024?.confirmedKills || 0;
+          }
+          
+          return playerData;
+        });
+        
+        console.log('Season players loaded:', seasonPlayers);
+        setRowData(seasonPlayers);
+        setCurrentPage(1);
+        
+      } catch (error) {
+        console.error("Error fetching season data:", error);
+        setRowData([]);
+      }
+    }
+    
+    fetchSeasonData();
+  }, [showSeasonTable, selectedSeasonYear, selectedYear]);
+
+  // Handle sorting separately to avoid infinite re-renders
+  const sortedRowData = useMemo(() => {
+    if (rowData.length > 0 && sortConfig) {
+      return [...rowData].sort((a, b) => {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+
+        if (typeof aValue === "number" && typeof bValue === "number") {
+          return sortConfig.direction === "ascending"
+            ? aValue - bValue
+            : bValue - aValue;
+        }
+
+        return sortConfig.direction === "ascending"
+          ? String(aValue).localeCompare(String(bValue))
+          : String(bValue).localeCompare(String(aValue));
+      });
+    }
+    return rowData;
+  }, [rowData, sortConfig]);
+
   // Fetch player data based on the selected event
   useEffect(() => {
     async function fetchPlayers() {
-      if (!selectedEvent) return;
+      if (!selectedEvent || showSeasonTable) {
+        if (!showSeasonTable) setRowData([]); // Clear data when no event selected
+        return;
+      }
+      
       try {
+        // Clear existing data first
+        setRowData([]);
+        
         const playersCollection = collection(
           db,
           `events/${selectedEvent.id}/players`
@@ -301,16 +410,30 @@ export default function Statistics() {
           });
         }
         setRowData(players);
+        setCurrentPage(1);
       } catch (error: any) {
         console.error("Error fetching player data:", error.message);
       }
     }
     fetchPlayers();
-  }, [selectedEvent]);
+  }, [selectedEvent, showSeasonTable]);
 
   // Handle event selection from the dropdown
   const handleEventSelect = (event: Event) => {
     setSelectedEvent(event);
+    setShowSeasonTable(false);
+    setRowData([]); // Clear existing data when switching to event
+  };
+
+  // Handle season card click
+  const handleSeasonSelect = (year?: string) => {
+    setSelectedEvent(null);
+    setShowSeasonTable(true);
+    if (year) {
+      setSelectedSeasonYear(year);
+    } else {
+      setSelectedSeasonYear(null);
+    }
   };
 
   return (
@@ -360,24 +483,41 @@ export default function Statistics() {
 
           {/* Main Content Area */}
           <div className="flex flex-col xl:flex-row gap-6 px-4 mt-6">
-            {/* Left Side - Season Totals Card */}
-            <div className="xl:w-2/3">
-              <SeasonTotals selectedYear={selectedYear} />
-            </div>
-            
             {/* Right Side - Events Carousel */}
-            <div className="xl:w-1/3">
+              <div className="w-full">
               {/* Events Carousel */}
               <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl p-4">
                 <h3 className="text-lg font-bold text-white font-azonix mb-4">Select Event</h3>
                 <div className="flex flex-row overflow-x-auto gap-4 items-center">
+                  {/* Season Card - Show only for specific years, not "All" */}
+                  {selectedYear !== "All" && (
+                    <EventCard
+                      key="season"
+                      name={`Season ${selectedYear}`}
+                      status="season"
+                      onClick={() => handleSeasonSelect(selectedYear)}
+                      isSelected={showSeasonTable}
+                      event_logo={undefined}
+                    />
+                  )}
+                  {/* Show season cards for all available years when "All" is selected */}
+                  {selectedYear === "All" && years.filter(year => year !== "All").map((year) => (
+                    <EventCard
+                      key={`season-${year}`}
+                      name={`Season ${year}`}
+                      status="season"
+                      onClick={() => handleSeasonSelect(year)}
+                      isSelected={showSeasonTable && selectedSeasonYear === year}
+                      event_logo={undefined}
+                    />
+                  ))}
                   {filteredEvents.map((event, index) => (
                     <EventCard
                       key={index}
                       name={event.name}
                       status={event.status}
-                      onClick={() => setSelectedEvent(event)}
-                      isSelected={selectedEvent?.id === event.id}
+                      onClick={() => handleEventSelect(event)}
+                      isSelected={selectedEvent?.id === event.id && !showSeasonTable}
                       event_logo={event.event_logo}
                     />
                   ))}
@@ -387,25 +527,102 @@ export default function Statistics() {
           </div>
         </section>
 
-        {/* Individual Event Table */}
+        {/* Individual Event Table or Season Table */}
         <motion.section className="px-4 mt-6">
           <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-white font-azonix">
-                {selectedEvent?.name || 'Select Event'} - Player Stats
-              </h3>
-              {selectedEvent?.status === 'live' && (
-                <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm animate-pulse">
-                  🔴 LIVE
-                </span>
-              )}
-            </div>
-            <MatchupTable
-              data={rowData}
-              sortConfig={sortConfig}
-              onSortChange={setSortConfig}
-              myPicks={livePicks}
-            />
+            {showSeasonTable ? (
+              // Season Table
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-white font-azonix">
+                    Season {selectedYear === "All" ? selectedSeasonYear || "2025" : selectedYear} - Player Rankings
+                  </h3>
+                  <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
+                    SEASON TOTALS
+                  </span>
+                </div>
+                <MatchupTable
+                  data={sortedRowData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)}
+                  sortConfig={sortConfig}
+                  onSortChange={setSortConfig}
+                  myPicks={livePicks}
+                />
+                
+                {sortedRowData.length > itemsPerPage && (
+                  <div className="flex justify-between items-center mt-4 text-white">
+                    <div className="text-sm">
+                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, sortedRowData.length)} of {sortedRowData.length} players
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600"
+                      >
+                        Previous
+                      </button>
+                      <span className="px-3 py-1 bg-gray-800 rounded">
+                        {currentPage} of {Math.ceil(sortedRowData.length / itemsPerPage)}
+                      </span>
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(sortedRowData.length / itemsPerPage)))}
+                        disabled={currentPage === Math.ceil(sortedRowData.length / itemsPerPage)}
+                        className="px-3 py-1 bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              // Individual Event Table
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-white font-azonix">
+                    {selectedEvent?.name || 'Select Event'} - Player Stats
+                  </h3>
+                  {selectedEvent?.status === 'live' && (
+                    <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm animate-pulse">
+                      🔴 LIVE
+                    </span>
+                  )}
+                </div>
+                <MatchupTable
+                  data={rowData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)}
+                  sortConfig={sortConfig}
+                  onSortChange={setSortConfig}
+                  myPicks={livePicks}
+                />
+                
+                {rowData.length > itemsPerPage && (
+                  <div className="flex justify-between items-center mt-4 text-white">
+                    <div className="text-sm">
+                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, rowData.length)} of {rowData.length} players
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600"
+                      >
+                        Previous
+                      </button>
+                      <span className="px-3 py-1 bg-gray-800 rounded">
+                        {currentPage} of {Math.ceil(rowData.length / itemsPerPage)}
+                      </span>
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(rowData.length / itemsPerPage)))}
+                        disabled={currentPage === Math.ceil(rowData.length / itemsPerPage)}
+                        className="px-3 py-1 bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </motion.section>
       </div>

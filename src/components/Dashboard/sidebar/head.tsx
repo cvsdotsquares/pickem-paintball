@@ -3,6 +3,7 @@ import Link from "next/link";
 import React from "react";
 import { FaBell } from "react-icons/fa6";
 import { ImCog } from "react-icons/im";
+import NotificationBell from "../../Notifications/NotificationBell";
 
 interface UserHeadProps {
   username?: string | null;
@@ -38,12 +39,7 @@ const UserHead: React.FC<UserHeadProps> = ({
 
         {/* Action Icons Section */}
         <div className="flex gap-1 items-center">
-          <button
-            className="flex justify-center items-center w-10 h-10 cursor-pointer rounded-[32px]"
-            aria-label="Notifications"
-          >
-            <FaBell size={14} className="text-white" />
-          </button>
+          <NotificationBell />
           <Link
             href={"/dashboard/profile"}
             className="flex justify-center items-center w-8 h-7 rounded-2xl cursor-pointer bg-white bg-opacity-20"

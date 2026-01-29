@@ -23,6 +23,10 @@ import { getAuth } from "firebase/auth";
 import { LeaderboardSkeleton } from "@/src/components/LoadingSkeleton";
 import { ErrorBoundaryWrapper } from "@/src/components/ErrorBoundaryWrapper";
 import { getFirebaseStorageUrl } from "@/src/lib/storage";
+import LeagueSelector from "@/src/components/Leagues/LeagueSelector";
+import CreateLeagueModal from "@/src/components/Leagues/CreateLeagueModal";
+import JoinLeagueModal from "@/src/components/Leagues/JoinLeagueModal";
+import { useLeague } from "@/src/contexts/LeagueContext";
 
 interface LiveEvent {
   id: string;
@@ -117,6 +121,7 @@ const getProfilePictureUrl = async (storagePath: string): Promise<string | undef
 };
 
 function LeaderboardNewContent() {
+  const { selectedLeague } = useLeague();
   const [liveEvent, setLiveEvent] = useState<LiveEvent | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [eventLoading, setEventLoading] = useState<boolean>(true);
@@ -142,6 +147,11 @@ function LeaderboardNewContent() {
   const [currentUserData, setCurrentUserData] = useState<User & { rank?: number } | null>(null);
   const [expandCurrentUser, setExpandCurrentUser] = useState<boolean>(false);
   const [updatingRows, setUpdatingRows] = useState<Set<string>>(new Set());
+  
+  // League modals
+  const [showCreateLeague, setShowCreateLeague] = useState(false);
+  const [showJoinLeague, setShowJoinLeague] = useState(false);
+  
   const PAGE_SIZES = [10, 20, 50];
   const MAX_RETRIES = 3;
 
@@ -217,7 +227,7 @@ function LeaderboardNewContent() {
         const usersCollection = collection(db, "users");
 
         // Check cache first
-        const cacheKey = `${liveEvent.id}:${itemsPerPage}:${page}`;
+        const cacheKey = `${liveEvent.id}:${itemsPerPage}:${page}:${selectedLeague?.id || 'all'}`;
         const cached = participantsCache.get(cacheKey);
         if (cached) {
           setUsers(cached.users);
@@ -229,13 +239,24 @@ function LeaderboardNewContent() {
 
         // Build query with dynamic event-specific rank field
         const eventRankField = `${liveEvent.id}Rank`;
-        const constraints: QueryConstraint[] = [
-          orderBy(eventRankField),
-          limit(itemsPerPage + 1),
-        ];
+        let constraints: QueryConstraint[];
+        
+        if (selectedLeague) {
+          // For league filtering, use simpler query without orderBy
+          constraints = [
+            where('leagues', 'array-contains', selectedLeague.id),
+            limit(itemsPerPage * 3) // Get more docs to sort client-side
+          ];
+        } else {
+          // For all players, use existing orderBy query
+          constraints = [
+            orderBy(eventRankField),
+            limit(itemsPerPage + 1),
+          ];
+        }
 
-        // Pagination with startAfter
-        if (page > 1 && lastDoc) {
+        // Pagination with startAfter (only for non-league queries)
+        if (page > 1 && lastDoc && !selectedLeague) {
           constraints.push(startAfter(lastDoc));
         }
 
@@ -250,11 +271,7 @@ function LeaderboardNewContent() {
         const docsToDisplay = querySnapshot.docs.slice(0, itemsPerPage);
 
         // Create participants and filter for event participation
-        const participants: User[] = docsToDisplay
-          .filter((userDoc) => {
-            const pickems = userDoc.get("pickems") || {};
-            return Array.isArray(pickems[liveEvent.id]) && pickems[liveEvent.id].length > 0;
-          })
+        let participants: User[] = docsToDisplay
           .map((userDoc) => {
             const userData: User = {
               id: userDoc.id,
@@ -268,9 +285,37 @@ function LeaderboardNewContent() {
             return userData;
           });
 
+        // For league filtering, show all league members (even if they didn't participate in current event)
+        if (selectedLeague) {
+          // Keep all league members, don't filter by event participation
+          participants = participants;
+        } else {
+          // For "All Players", only show event participants
+          participants = participants.filter((user) => {
+            const pickems = docsToDisplay.find(doc => doc.id === user.id)?.get("pickems") || {};
+            return Array.isArray(pickems[liveEvent.id]) && pickems[liveEvent.id].length > 0;
+          });
+        }
+
+        // Sort by rank if league is selected (client-side sorting)
+        if (selectedLeague) {
+          participants = participants
+            .sort((a, b) => {
+              const aRank = parseInt(a[`${liveEvent.id}Rank`]) || 999999; // Users without rank go to bottom
+              const bRank = parseInt(b[`${liveEvent.id}Rank`]) || 999999;
+              return aRank - bRank;
+            })
+            .slice((page - 1) * itemsPerPage, page * itemsPerPage); // Client-side pagination
+        }
+
         // Adjust hasMore based on filtered results
         const filteredCount = participants.length;
-        setHasMorePages(filteredCount === itemsPerPage && querySnapshot.docs.length > itemsPerPage);
+        if (selectedLeague) {
+          // For league queries, check if we have more data
+          setHasMorePages(querySnapshot.docs.length >= itemsPerPage * 3 && filteredCount === itemsPerPage);
+        } else {
+          setHasMorePages(filteredCount === itemsPerPage && querySnapshot.docs.length > itemsPerPage);
+        }
 
         setUsers(participants);
 
@@ -296,16 +341,16 @@ function LeaderboardNewContent() {
     }
 
     fetchParticipants();
-  }, [liveEvent, page, itemsPerPage, isSearchMode]);
+  }, [liveEvent, page, itemsPerPage, isSearchMode, selectedLeague]);
 
-  // Reset pagination and cache when liveEvent changes
+  // Reset pagination and cache when liveEvent or selectedLeague changes
   useEffect(() => {
     if (liveEvent) {
       setPage(1);
       setLastDoc(null);
       participantsCache.clear();
     }
-  }, [liveEvent?.id]);
+  }, [liveEvent?.id, selectedLeague?.id]);
 
   // Fetch current user data
   useEffect(() => {
@@ -913,6 +958,14 @@ function LeaderboardNewContent() {
         </div>
       )}
 
+      {/* League Selector */}
+      {!eventLoading && (
+        <LeagueSelector 
+          onCreateLeague={() => setShowCreateLeague(true)}
+          onJoinLeague={() => setShowJoinLeague(true)}
+        />
+      )}
+
       {/* Search Bar */}
       {eventLoading ? (
         <div className="relative mt-4 mb-4">
@@ -1207,6 +1260,15 @@ function LeaderboardNewContent() {
           </div>
         </div>
       )}
+      {/* League Modals */}
+      <CreateLeagueModal 
+        isOpen={showCreateLeague} 
+        onClose={() => setShowCreateLeague(false)} 
+      />
+      <JoinLeagueModal 
+        isOpen={showJoinLeague} 
+        onClose={() => setShowJoinLeague(false)} 
+      />
     </div>
   );
 }

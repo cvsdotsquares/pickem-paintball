@@ -1,0 +1,184 @@
+"use client";
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/src/contexts/authProvider';
+import { League } from '@/src/lib/league-types';
+import { FaSearch, FaUsers, FaLock, FaGlobe, FaUserPlus } from 'react-icons/fa';
+
+interface LeagueBrowserProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
+  const { user } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [leagues, setLeagues] = useState<League[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'my-leagues'>('all');
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchLeagues();
+    }
+  }, [isOpen, filter]);
+
+  const fetchLeagues = async () => {
+    setLoading(true);
+    try {
+      const endpoint = filter === 'my-leagues' 
+        ? `/api/leagues/user/${user?.uid}`
+        : '/api/leagues/search';
+      
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      setLeagues(data.leagues || []);
+    } catch (error) {
+      console.error('Error fetching leagues:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const requestToJoin = async (leagueId: string) => {
+    try {
+      const response = await fetch(`/api/leagues/${leagueId}/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.uid })
+      });
+      
+      if (response.ok) {
+        // Create notification for league admins
+        const league = leagues.find(l => l.id === leagueId);
+        if (league) {
+          for (const adminId of league.admins) {
+            await fetch('/api/notifications', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: adminId,
+                type: 'league_request',
+                leagueId,
+                leagueName: league.name,
+                message: `${user?.displayName || 'Someone'} requested to join "${league.name}"`
+              })
+            });
+          }
+        }
+        
+        alert('Request sent!');
+        fetchLeagues();
+      }
+    } catch (error) {
+      console.error('Error requesting to join:', error);
+    }
+  };
+
+  const filteredLeagues = leagues.filter(league =>
+    league.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-900 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-700">
+          <h2 className="text-xl font-bold text-white mb-4">Browse Leagues</h2>
+          
+          {/* Filter Tabs */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
+              }`}
+            >
+              All Leagues
+            </button>
+            <button
+              onClick={() => setFilter('my-leagues')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                filter === 'my-leagues' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
+              }`}
+            >
+              My Leagues
+            </button>
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search leagues..."
+              className="w-full pl-10 pr-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div className="p-6">
+          {loading ? (
+            <div className="text-center py-8 text-gray-400">Loading leagues...</div>
+          ) : (
+            <div className="space-y-3">
+              {filteredLeagues.map((league) => (
+                <div key={league.id} className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-white font-medium">{league.name}</h3>
+                        {league.settings.isPublic ? (
+                          <FaGlobe className="text-green-400 text-sm" />
+                        ) : (
+                          <FaLock className="text-yellow-400 text-sm" />
+                        )}
+                      </div>
+                      <p className="text-gray-400 text-sm mb-2">{league.description}</p>
+                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <FaUsers />
+                          {league.memberCount} members
+                        </span>
+                        <span>{league.settings.isPublic ? 'Public' : 'Private'}</span>
+                        {league.settings.requiresApproval && <span>Requires Approval</span>}
+                      </div>
+                    </div>
+                    
+                    {filter === 'all' && !league.members.includes(user?.uid || '') && (
+                      <button
+                        onClick={() => requestToJoin(league.id)}
+                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-1"
+                      >
+                        <FaUserPlus />
+                        Request Join
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              
+              {filteredLeagues.length === 0 && (
+                <div className="text-center py-8 text-gray-400">
+                  {filter === 'my-leagues' ? 'You are not in any leagues yet' : 'No leagues found'}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="p-6 border-t border-gray-700">
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
