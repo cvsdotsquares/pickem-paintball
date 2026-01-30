@@ -36,11 +36,11 @@ const links = [
     href: "/dashboard/stats",
     icon: <ImStatsBars className="h-5 w-5 shrink-0 text-neutral-200" />,
   },
-  {
-    label: "Season Totals",
-    href: "/dashboard/season-totals",
-    icon: <FaTrophy className="h-5 w-5 shrink-0 text-neutral-200" />,
-  },
+  // {
+  //   label: "Season Totals",
+  //   href: "/dashboard/season-totals",
+  //   icon: <FaTrophy className="h-5 w-5 shrink-0 text-neutral-200" />,
+  // },
   {
     label: "Live PickEm",
     href: "/dashboard/pick-em",
