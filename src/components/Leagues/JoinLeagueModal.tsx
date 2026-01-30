@@ -104,14 +104,7 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
           onClose={() => hideToast(toast.id)}
         />
       ))}
-      {loading && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60]">
-          <div className="bg-gray-800 rounded-lg p-6 flex flex-col items-center gap-3">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-            <p className="text-white">Processing...</p>
-          </div>
-        </div>
-      )}
+      {/* Remove global loader - only show button loader */}
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
@@ -173,9 +166,16 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
               <button
                 type="submit"
                 disabled={loading || !inviteCode.trim()}
-                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center justify-center gap-2"
               >
-                {loading ? 'Joining...' : 'Join League'}
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Joining...
+                  </>
+                ) : (
+                  'Join League'
+                )}
               </button>
             </form>
           )}

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/src/contexts/authProvider';
 import { League } from '@/src/lib/league-types';
-import { FaSearch, FaUsers, FaLock, FaGlobe, FaUserPlus } from 'react-icons/fa';
+import { FaSearch, FaUsers, FaLock, FaGlobe, FaUserPlus, FaTimes } from 'react-icons/fa';
 import { getFirebaseStorageUrl } from '@/src/lib/storage';
 import { useToast } from '@/src/hooks/useToast';
 import Toast from '../ui/Toast';
@@ -20,6 +20,7 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
   const [leagues, setLeagues] = useState<League[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [requestingLeagueId, setRequestingLeagueId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'my-leagues'>('all');
 
   const getLeagueIconUrl = (league: League): string | null => {
@@ -68,7 +69,7 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
   };
 
   const requestToJoin = async (leagueId: string) => {
-    setActionLoading(true);
+    setRequestingLeagueId(leagueId);
     try {
       const response = await fetch(`/api/leagues/${leagueId}/request`, {
         method: 'POST',
@@ -88,6 +89,7 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
                 type: 'league_request',
                 leagueId,
                 leagueName: league.name,
+                requestUserId: user?.uid,
                 message: `${user?.displayName || 'Someone'} requested to join "${league.name}"`
               })
             });
@@ -103,7 +105,7 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
       console.error('Error requesting to join:', error);
       showToast('Error sending request', 'error');
     } finally {
-      setActionLoading(false);
+      setRequestingLeagueId(null);
     }
   };
 
@@ -123,18 +125,19 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
           onClose={() => hideToast(toast.id)}
         />
       ))}
-      {actionLoading && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60]">
-          <div className="bg-gray-800 rounded-lg p-6 flex flex-col items-center gap-3">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-            <p className="text-white">Processing...</p>
-          </div>
-        </div>
-      )}
+      {/* Remove global loader - only show button loader */}
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-700">
-          <h2 className="text-xl font-bold text-white mb-4">Browse Leagues</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-white">Browse Leagues</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              <FaTimes className="text-xl" />
+            </button>
+          </div>
           
           {/* Filter Tabs */}
           <div className="flex gap-2 mb-4">
@@ -213,11 +216,20 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
                     {filter === 'all' && !league.members.includes(user?.uid || '') && (
                       <button
                         onClick={() => requestToJoin(league.id)}
-                        disabled={actionLoading}
+                        disabled={requestingLeagueId === league.id}
                         className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center gap-1"
                       >
-                        <FaUserPlus />
-                        Request Join
+                        {requestingLeagueId === league.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            Requesting...
+                          </>
+                        ) : (
+                          <>
+                            <FaUserPlus />
+                            Request Join
+                          </>
+                        )}
                       </button>
                     )}
                   </div>

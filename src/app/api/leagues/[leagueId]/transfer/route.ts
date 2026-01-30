@@ -30,17 +30,29 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Target user is not a member' }, { status: 400 });
     }
 
-    // Add new admin
-    const updates: any = {
-      admins: arrayUnion(toUserId)
-    };
-
-    // Optionally remove old admin
+    // Build new admins array
+    let newAdmins = [...leagueData.admins];
+    if (!newAdmins.includes(toUserId)) {
+      newAdmins.push(toUserId);
+    }
     if (removeOldAdmin) {
-      updates.admins = arrayRemove(fromUserId);
+      newAdmins = newAdmins.filter(id => id !== fromUserId);
     }
 
-    await updateDoc(leagueRef, updates);
+    await updateDoc(leagueRef, { admins: newAdmins });
+
+    // Update user documents
+    const toUserRef = doc(db, 'users', toUserId);
+    await updateDoc(toUserRef, {
+      adminLeagues: arrayUnion(leagueId)
+    });
+
+    if (removeOldAdmin) {
+      const fromUserRef = doc(db, 'users', fromUserId);
+      await updateDoc(fromUserRef, {
+        adminLeagues: arrayRemove(leagueId)
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

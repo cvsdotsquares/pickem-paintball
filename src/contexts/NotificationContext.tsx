@@ -10,6 +10,7 @@ interface Notification {
   type: 'league_invite' | 'league_request' | 'league_approved' | 'league_rejected';
   leagueId: string;
   leagueName: string;
+  requestUserId?: string;
   message: string;
   read: boolean;
   createdAt: any;

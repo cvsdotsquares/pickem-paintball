@@ -34,6 +34,8 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [inviteUsername, setInviteUsername] = useState('');
+  const [userSuggestions, setUserSuggestions] = useState<LeagueMember[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [leagueSettings, setLeagueSettings] = useState(league.settings);
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [iconFile, setIconFile] = useState<File | null>(null);
@@ -42,6 +44,10 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
+  const [showTransferConfirm, setShowTransferConfirm] = useState(false);
+  const [transferUserId, setTransferUserId] = useState<string | null>(null);
+  const [removeOldAdmin, setRemoveOldAdmin] = useState(false);
+  const [transferLoading, setTransferLoading] = useState(false);
 
   const isUserAdmin = user && league.admins.includes(user.uid);
 
@@ -76,6 +82,8 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
           });
           
           const resolvedMembers = (await Promise.all(memberPromises)).filter(Boolean) as LeagueMember[];
+          console.log('Resolved members:', resolvedMembers);
+          console.log('League members array:', league.members);
           setMembers(resolvedMembers);
         }
         
@@ -134,7 +142,6 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
             })
           });
           showToast('Member approved successfully', 'success');
-          // Remove from pending requests
           setPendingRequests(prev => prev.filter(r => r.id !== userId));
         } else if (action === 'reject') {
           showToast('Request rejected', 'success');
@@ -144,6 +151,10 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
           setMembers(prev => prev.filter(m => m.id !== userId));
         } else if (action === 'makeAdmin') {
           showToast('Admin rights granted', 'success');
+          await refreshUserLeagues();
+          setMembers(prev => prev.map(m => 
+            m.id === userId ? { ...m, isAdmin: true } : m
+          ));
         }
         
         await refreshUserLeagues();
@@ -171,7 +182,7 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
       if (response.ok) {
         setLeagueSettings(newSettings);
         showToast('Settings updated successfully', 'success');
-        refreshUserLeagues();
+        await refreshUserLeagues();
       } else {
         showToast('Failed to update settings', 'error');
       }
@@ -184,23 +195,24 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
   };
 
   // Transfer admin rights
-  const handleTransferAdmin = async (toUserId: string) => {
-    if (!confirm('Transfer admin rights to this user? You will remain an admin unless you choose to remove yourself.')) return;
+  const handleTransferAdmin = async () => {
+    if (!transferUserId) return;
     
-    const removeOldAdmin = confirm('Do you want to remove yourself as admin?');
-    
-    setActionLoading(true);
+    setTransferLoading(true);
     try {
       const response = await fetch(`/api/leagues/${league.id}/transfer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fromUserId: user?.uid, toUserId, removeOldAdmin })
+        body: JSON.stringify({ fromUserId: user?.uid, toUserId: transferUserId, removeOldAdmin })
       });
       
       if (response.ok) {
         showToast('Admin rights transferred successfully', 'success');
-        refreshUserLeagues();
-        window.location.reload();
+        await refreshUserLeagues();
+        setShowTransferConfirm(false);
+        setTransferUserId(null);
+        setRemoveOldAdmin(false);
+        onClose();
       } else {
         showToast('Failed to transfer admin rights', 'error');
       }
@@ -208,49 +220,116 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
       console.error('Error transferring admin:', error);
       showToast('Error transferring admin rights', 'error');
     } finally {
-      setActionLoading(false);
+      setTransferLoading(false);
+    }
+  };
+
+  // Search users by username
+  const searchUsers = async (searchTerm: string) => {
+    if (!searchTerm.trim() || searchTerm.length < 2) {
+      setUserSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    try {
+      const usersRef = collection(db, 'users');
+      const querySnapshot = await getDocs(usersRef);
+      
+      const matchingUsers: LeagueMember[] = [];
+      querySnapshot.forEach((doc) => {
+        const userData = doc.data();
+        const username = userData.username || '';
+        const name = userData.name || '';
+        
+        if (username.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            name.toLowerCase().includes(searchTerm.toLowerCase())) {
+          if (!league.members.includes(doc.id)) {
+            matchingUsers.push({
+              id: doc.id,
+              displayName: name || username || 'Unknown User',
+              profilePicture: userData.profilePicture,
+              isAdmin: false
+            });
+          }
+        }
+      });
+      
+      setUserSuggestions(matchingUsers.slice(0, 5));
+      setShowSuggestions(matchingUsers.length > 0);
+    } catch (error) {
+      console.error('Error searching users:', error);
     }
   };
 
   // Invite by username
-  const handleInviteByUsername = async () => {
-    if (!inviteUsername.trim()) return;
+  const handleInviteByUsername = async (userId?: string, displayName?: string) => {
+    const targetUserId = userId;
+    
+    if (!targetUserId) {
+      if (!inviteUsername.trim()) return;
+      
+      setInviteLoading(true);
+      try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('username', '==', inviteUsername.trim()));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          const userDoc = querySnapshot.docs[0];
+          const foundUserId = userDoc.id;
+          
+          if (league.members.includes(foundUserId)) {
+            showToast('User is already a member of this league', 'error');
+            setInviteLoading(false);
+            return;
+          }
+          
+          await fetch('/api/notifications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: foundUserId,
+              type: 'league_invite',
+              leagueId: league.id,
+              leagueName: league.name,
+              message: `You have been invited to join "${league.name}" league`
+            })
+          });
+          
+          setInviteUsername('');
+          setShowSuggestions(false);
+          showToast('Invitation sent successfully!', 'success');
+        } else {
+          showToast('User not found. Please check the username', 'error');
+        }
+      } catch (error) {
+        console.error('Error inviting user:', error);
+        showToast('Error sending invitation. Please try again', 'error');
+      } finally {
+        setInviteLoading(false);
+      }
+      return;
+    }
     
     setInviteLoading(true);
     try {
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('username', '==', inviteUsername.trim()));
-      const querySnapshot = await getDocs(q);
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: targetUserId,
+          type: 'league_invite',
+          leagueId: league.id,
+          leagueName: league.name,
+          message: `You have been invited to join "${league.name}" league`
+        })
+      });
       
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
-        const userId = userDoc.id;
-        
-        // Check if user is already a member
-        if (league.members.includes(userId)) {
-          showToast('User is already a member of this league', 'error');
-          setInviteLoading(false);
-          return;
-        }
-        
-        // Send invitation notification instead of direct join
-        await fetch('/api/notifications', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            type: 'league_invite',
-            leagueId: league.id,
-            leagueName: league.name,
-            message: `You have been invited to join "${league.name}" league`
-          })
-        });
-        
-        setInviteUsername('');
-        showToast('Invitation sent successfully!', 'success');
-      } else {
-        showToast('User not found. Please check the username', 'error');
-      }
+      setInviteUsername('');
+      setShowSuggestions(false);
+      setUserSuggestions([]);
+      showToast('Invitation sent successfully!', 'success');
     } catch (error) {
       console.error('Error inviting user:', error);
       showToast('Error sending invitation. Please try again', 'error');
@@ -439,31 +518,55 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
               {/* Invite by Username */}
               <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-4">
                 <h4 className="text-white font-medium mb-2">Invite by Username</h4>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={inviteUsername}
-                    onChange={(e) => setInviteUsername(e.target.value)}
-                    placeholder="Enter username"
-                    className="flex-1 px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
-                  />
-                  <button
-                    onClick={handleInviteByUsername}
-                    disabled={inviteLoading}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center justify-center gap-1"
-                  >
-                    {inviteLoading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Inviting...
-                      </>
-                    ) : (
-                      <>
-                        <FaUserPlus />
-                        Invite
-                      </>
-                    )}
-                  </button>
+                <div className="relative">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={inviteUsername}
+                      onChange={(e) => {
+                        setInviteUsername(e.target.value);
+                        searchUsers(e.target.value);
+                      }}
+                      onFocus={() => inviteUsername.length >= 2 && setShowSuggestions(true)}
+                      placeholder="Enter username"
+                      className="flex-1 px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    />
+                    <button
+                      onClick={() => handleInviteByUsername()}
+                      disabled={inviteLoading}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center justify-center gap-1"
+                    >
+                      {inviteLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Inviting...
+                        </>
+                      ) : (
+                        <>
+                          <FaUserPlus />
+                          Invite
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  
+                  {/* User Suggestions Dropdown */}
+                  {showSuggestions && userSuggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 rounded-lg border border-gray-600 shadow-lg z-10 max-h-48 overflow-y-auto">
+                      {userSuggestions.map((suggestion) => (
+                        <button
+                          key={suggestion.id}
+                          onClick={() => handleInviteByUsername(suggestion.id, suggestion.displayName)}
+                          className="w-full text-left px-3 py-2 hover:bg-gray-600 transition-colors flex items-center gap-2"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-sm">
+                            {suggestion.displayName.charAt(0)}
+                          </div>
+                          <span className="text-white text-sm">{suggestion.displayName}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -504,7 +607,10 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                           )}
                           {member.isAdmin && league.admins.length > 1 && (
                             <button 
-                              onClick={() => handleTransferAdmin(member.id)}
+                              onClick={() => {
+                                setTransferUserId(member.id);
+                                setShowTransferConfirm(true);
+                              }}
                               className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs transition-colors"
                             >
                               Transfer
@@ -684,6 +790,58 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
         onConfirm={handleDeleteLeague}
         onCancel={() => setShowDeleteConfirm(false)}
       />
+      
+      {/* Transfer Admin Confirmation */}
+      {showTransferConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-gray-900 rounded-xl max-w-md w-full p-6 border border-gray-700">
+            <h3 className="text-xl font-bold text-white mb-4">Transfer Admin Rights</h3>
+            <p className="text-gray-300 mb-4">
+              Transfer admin rights to this user? You will remain an admin unless you choose to remove yourself.
+            </p>
+            
+            <div className="mb-6">
+              <label className="flex items-center gap-2 text-white cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={removeOldAdmin}
+                  onChange={(e) => setRemoveOldAdmin(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm">Remove myself as admin</span>
+              </label>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowTransferConfirm(false);
+                  setTransferUserId(null);
+                  setRemoveOldAdmin(false);
+                }}
+                disabled={transferLoading}
+                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleTransferAdmin}
+                disabled={transferLoading}
+                className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                {transferLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Transferring...
+                  </>
+                ) : (
+                  'Transfer'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

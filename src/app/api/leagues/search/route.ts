@@ -19,10 +19,9 @@ export async function GET(request: NextRequest) {
       ...doc.data()
     })) as any[];
 
-    // Filter client-side for public, searchable leagues
+    // Filter client-side for public leagues (searchable is optional)
     leagues = leagues.filter(league => 
-      league.settings?.isPublic === true && 
-      league.settings?.isSearchable === true
+      league.settings?.isPublic === true
     );
 
     // Filter by search term if provided

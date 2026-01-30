@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/src/lib/firebaseClient';
-import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, arrayRemove, increment, getDoc } from 'firebase/firestore';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ leagueId: string }> }) {
   try {
@@ -13,7 +13,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (action === 'approve') {
       await updateDoc(leagueRef, {
         members: arrayUnion(userId),
-        pendingRequests: arrayRemove(userId)
+        pendingRequests: arrayRemove(userId),
+        memberCount: increment(1)
       });
       await updateDoc(userRef, {
         leagues: arrayUnion(leagueId),
@@ -28,7 +29,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
     } else if (action === 'remove') {
       await updateDoc(leagueRef, {
-        members: arrayRemove(userId)
+        members: arrayRemove(userId),
+        memberCount: increment(-1)
       });
       await updateDoc(userRef, {
         leagues: arrayRemove(leagueId)

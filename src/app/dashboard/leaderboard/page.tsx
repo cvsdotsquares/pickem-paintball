@@ -336,10 +336,10 @@ function LeaderboardNewContent() {
             limit(itemsPerPage * 3) // Get more docs to sort client-side
           ];
         } else {
-          // For all players, use existing orderBy query
+          // For all players, use simple orderBy on rank field
           constraints = [
             orderBy(eventRankField),
-            limit(itemsPerPage + 1),
+            limit(itemsPerPage * 5), // Get more to filter client-side
           ];
         }
 
@@ -351,12 +351,21 @@ function LeaderboardNewContent() {
         const participantsQuery = query(usersCollection, ...constraints);
         const querySnapshot = await getDocs(participantsQuery);
 
-        // Check if there are more pages
-        const hasMore = querySnapshot.docs.length > itemsPerPage;
+        // Check if there are more pages (before filtering)
+        const docsBeforeFilter = querySnapshot.docs;
+        
+        // Filter for event participation first
+        const docsWithParticipation = docsBeforeFilter.filter((doc) => {
+          const pickems = doc.get("pickems") || {};
+          return Array.isArray(pickems[liveEvent.id]) && pickems[liveEvent.id].length > 0;
+        });
+        
+        // Check if there are more pages after filtering
+        const hasMore = docsWithParticipation.length > itemsPerPage;
         setHasMorePages(hasMore);
 
         // Get only the required amount of documents
-        const docsToDisplay = querySnapshot.docs.slice(0, itemsPerPage);
+        const docsToDisplay = docsWithParticipation.slice(0, itemsPerPage);
 
         // Create participants and filter for event participation
         let participants: User[] = docsToDisplay
@@ -373,36 +382,41 @@ function LeaderboardNewContent() {
             return userData;
           });
 
-        // For league filtering, show all league members (even if they didn't participate in current event)
+        // For league filtering, show only league members who participated in current event
         if (selectedLeague) {
-          // Keep all league members, don't filter by event participation
-          participants = participants;
-        } else {
-          // For "All Players", only show event participants
-          participants = participants.filter((user) => {
-            const pickems = docsToDisplay.find(doc => doc.id === user.id)?.get("pickems") || {};
+          const docsWithPickems = querySnapshot.docs.filter((doc) => {
+            const pickems = doc.get("pickems") || {};
             return Array.isArray(pickems[liveEvent.id]) && pickems[liveEvent.id].length > 0;
           });
-        }
-
-        // Sort by rank if league is selected (client-side sorting)
-        if (selectedLeague) {
-          participants = participants
+          
+          participants = docsWithPickems
+            .map((userDoc) => {
+              const userData: User = {
+                id: userDoc.id,
+                displayName: userDoc.get("name") || userDoc.get("username") || "Unknown User",
+                profilePicture: userDoc.get("profilePicture") || undefined,
+                pickemData: userDoc.get("pickemData") || undefined,
+              };
+              userData[`${liveEvent.id}Rank`] = userDoc.get(`${liveEvent.id}Rank`);
+              userData[`${liveEvent.id}PTS`] = userDoc.get(`${liveEvent.id}PTS`);
+              userData[`${liveEvent.id}MVP`] = userDoc.get(`${liveEvent.id}MVP`);
+              return userData;
+            })
             .sort((a, b) => {
-              const aRank = parseInt(a[`${liveEvent.id}Rank`]) || 999999; // Users without rank go to bottom
+              const aRank = parseInt(a[`${liveEvent.id}Rank`]) || 999999;
               const bRank = parseInt(b[`${liveEvent.id}Rank`]) || 999999;
               return aRank - bRank;
             })
-            .slice((page - 1) * itemsPerPage, page * itemsPerPage); // Client-side pagination
+            .slice((page - 1) * itemsPerPage, page * itemsPerPage);
         }
 
         // Adjust hasMore based on filtered results
-        const filteredCount = participants.length;
         if (selectedLeague) {
-          // For league queries, check if we have more data
-          setHasMorePages(querySnapshot.docs.length >= itemsPerPage * 3 && filteredCount === itemsPerPage);
-        } else {
-          setHasMorePages(filteredCount === itemsPerPage && querySnapshot.docs.length > itemsPerPage);
+          const totalWithPickems = querySnapshot.docs.filter((doc) => {
+            const pickems = doc.get("pickems") || {};
+            return Array.isArray(pickems[liveEvent.id]) && pickems[liveEvent.id].length > 0;
+          }).length;
+          setHasMorePages(totalWithPickems > page * itemsPerPage);
         }
 
         setUsers(participants);

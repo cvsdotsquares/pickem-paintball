@@ -44,6 +44,7 @@ export interface LeagueNotification {
   leagueName: string;
   fromUser?: string;
   fromUserName?: string;
+  requestUserId?: string;
   message: string;
   read: boolean;
   createdAt: any;
