@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     let leagues = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    }));
+    })) as any[];
 
     // Filter client-side for public, searchable leagues
     leagues = leagues.filter(league => 

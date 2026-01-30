@@ -20,6 +20,17 @@
   }
 }
 
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -62,6 +73,9 @@ body {
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  .animate-slide-in {
+    animation: slide-in 0.3s ease-out;
   }
 }
 

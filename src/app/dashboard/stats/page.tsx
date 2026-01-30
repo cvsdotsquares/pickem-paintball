@@ -314,8 +314,8 @@ export default function Statistics() {
   const sortedRowData = useMemo(() => {
     if (rowData.length > 0 && sortConfig) {
       return [...rowData].sort((a, b) => {
-        const aValue = a[sortConfig.key];
-        const bValue = b[sortConfig.key];
+        const aValue = (a as any)[sortConfig.key];
+        const bValue = (b as any)[sortConfig.key];
 
         if (typeof aValue === "number" && typeof bValue === "number") {
           return sortConfig.direction === "ascending"
@@ -395,8 +395,8 @@ export default function Statistics() {
         // Apply sorting if sortConfig exists
         if (sortConfig) {
           players = [...players].sort((a, b) => {
-            const aValue = a[sortConfig.key];
-            const bValue = b[sortConfig.key];
+            const aValue = (a as any)[sortConfig.key];
+            const bValue = (b as any)[sortConfig.key];
 
             if (typeof aValue === "number" && typeof bValue === "number") {
               return sortConfig.direction === "ascending"

@@ -31,6 +31,13 @@ import { useLeague } from "@/src/contexts/LeagueContext";
 interface LiveEvent {
   id: string;
   name: string;
+  status?: string;
+  event_place?: string;
+  year?: string;
+  lockDate?: any;
+  event_logo?: string;
+  points?: number;
+  mvp?: string;
 }
 
 interface User {
@@ -123,6 +130,7 @@ const getProfilePictureUrl = async (storagePath: string): Promise<string | undef
 function LeaderboardNewContent() {
   const { selectedLeague } = useLeague();
   const [liveEvent, setLiveEvent] = useState<LiveEvent | null>(null);
+  const [allEvents, setAllEvents] = useState<LiveEvent[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [eventLoading, setEventLoading] = useState<boolean>(true);
   const [usersLoading, setUsersLoading] = useState<boolean>(true);
@@ -133,6 +141,8 @@ function LeaderboardNewContent() {
   const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
   const [hasMorePages, setHasMorePages] = useState(true);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [expandedUserEventId, setExpandedUserEventId] = useState<string | null>(null);
+  const [userEventsMap, setUserEventsMap] = useState<Map<string, LiveEvent[]>>(new Map());
   const [userDetailsLoading, setUserDetailsLoading] = useState<string | null>(null);
   const [currentUserCardLoading, setCurrentUserCardLoading] = useState<boolean>(false);
   const [userDetailsMap, setUserDetailsMap] = useState<Map<string, UserDetails>>(new Map());
@@ -155,66 +165,144 @@ function LeaderboardNewContent() {
   const PAGE_SIZES = [10, 20, 50];
   const MAX_RETRIES = 3;
 
+  // Event Card Component
+  let backgroundIndex = 0;
+  function EventCard({ event, isSelected, onClick }: { event: LiveEvent; isSelected: boolean; onClick: () => void }) {
+    const backgroundSrc = `/background${backgroundIndex}.jpg`;
+    backgroundIndex = (backgroundIndex + 1) % 3;
+
+    return (
+      <article
+        onClick={onClick}
+        className={`relative flex flex-col cursor-pointer md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${
+          isSelected ? "border-4 rounded-xl border-white" : ""
+        }`}
+      >
+        <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg logographics">
+          {event.event_logo ? (
+            <>
+              <div className="absolute inset-0 bg-black rounded-lg"></div>
+              <img
+                src={event.event_logo}
+                alt={`${event.name} logo`}
+                className="absolute inset-0 w-full h-full object-scale-down rounded-lg"
+              />
+            </>
+          ) : (
+            <>
+              <img
+                src={backgroundSrc}
+                alt="Event card background"
+                className="absolute inset-0 w-full h-full object-cover rounded-lg"
+              />
+              <div className="relative flex flex-col items-center justify-center p-4 text-white overflow-auto">
+                {event.name && (
+                  <div
+                    className="text-center font-azonix"
+                    style={{
+                      fontSize: "clamp(0.8rem, 2vw, 1.5rem)",
+                      lineHeight: "1.2",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "wrap",
+                    }}
+                  >
+                    {event.name}
+                  </div>
+                )}
+                {event.status && (
+                  <div
+                    className={`text-center font-azonix ${
+                      event.status === "live" ? "text-red-500" : "text-gray-300"
+                    }`}
+                    style={{
+                      fontSize: "clamp(0.5rem, 1.5vw, 1rem)",
+                      lineHeight: "1.2",
+                    }}
+                  >
+                    {event.status}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </article>
+    );
+  }
+
   const auth = getAuth();
   const currentUserId = auth.currentUser?.uid;
   const currentUserDetails = currentUserId ? userDetailsMap.get(currentUserId) : undefined;
 
-  // Fetch live event
+  // Fetch all events
   useEffect(() => {
-    const fetchLiveEvent = async () => {
+    const fetchEvents = async () => {
       try {
-
-        // Check cache first
-        const cachedEvent = getLiveEventFromCache();
-        if (cachedEvent) {
-          setLiveEvent(cachedEvent);
-          // Reset pagination when setting live event from cache
-          setPage(1);
-          setLastDoc(null);
-          participantsCache.clear();
-          return;
-        }
-
-        // Use get() with cache for better performance
         const eventsCollection = collection(db, "events");
-        const liveEventQuery = query(
-          eventsCollection,
-          where("status", "==", "live"),
-          limit(1)
-        );
-
-        const querySnapshot = await getDocs(liveEventQuery);
-
-        if (!querySnapshot.empty) {
-          const eventDoc = querySnapshot.docs[0];
-          const eventData = eventDoc.data();
-
-          const event = {
-            id: eventDoc.id,
-            name: eventData.name || "Current Event",
+        const querySnapshot = await getDocs(eventsCollection);
+        
+        const events: LiveEvent[] = querySnapshot.docs.map((doc) => {
+          const id = doc.id;
+          const yearFromId = id.split("_").pop() ?? new Date().getFullYear().toString();
+          
+          return {
+            id,
+            name: doc.get("name") || "Unnamed Event",
+            status: doc.get("status") || "archived",
+            event_place: doc.get("event_place") || "0",
+            year: doc.get("year") || yearFromId,
+            lockDate: doc.get("lockDate") || null,
+            event_logo: doc.get("event_logo") || null,
           };
+        });
 
-          // Cache the event
-          setLiveEventCache(event);
+        // Sort events
+        const eventsByYear = events.reduce((acc, event) => {
+          const year = event.year ?? "Unknown";
+          if (!acc[year]) acc[year] = [];
+          acc[year].push(event);
+          return acc;
+        }, {} as Record<string, LiveEvent[]>);
 
-          setLiveEvent(event);
-          // Reset pagination when setting live event
-          setPage(1);
-          setLastDoc(null);
-          participantsCache.clear();
-        } else {
-          setLiveEvent(null);
+        const sortedEvents = Object.entries(eventsByYear)
+          .sort(([yearA], [yearB]) => {
+            const numA = parseInt(yearA) || 0;
+            const numB = parseInt(yearB) || 0;
+            return numB - numA;
+          })
+          .flatMap(([_, yearEvents]) =>
+            yearEvents.sort((a, b) => {
+              const placeA = parseInt(a.event_place ?? "0") || 0;
+              const placeB = parseInt(b.event_place ?? "0") || 0;
+              if (placeB !== placeA) return placeB - placeA;
+              if (a.lockDate && b.lockDate) {
+                return b.lockDate.seconds - a.lockDate.seconds;
+              }
+              return 0;
+            })
+          );
+
+        setAllEvents(sortedEvents);
+        
+        // Set default to live event or first event
+        const defaultEvent = sortedEvents.find((e) => e.status === "live") ?? sortedEvents[0];
+        if (defaultEvent) {
+          setLiveEvent(defaultEvent);
         }
+        
+        setPage(1);
+        setLastDoc(null);
+        participantsCache.clear();
       } catch (error) {
-        console.error("Error fetching live event:", error);
+        console.error("Error fetching events:", error);
         setLiveEvent(null);
       } finally {
         setEventLoading(false);
-        }
-
+      }
     };
 
-    fetchLiveEvent();
+    fetchEvents();
   }, []);
 
   // Fetch users with Firestore sorting by currentRank
@@ -393,29 +481,34 @@ function LeaderboardNewContent() {
   }, [liveEvent, currentUserId]);
 
   // Fetch user details when accordion is expanded with retry logic
-  const fetchUserDetails = async (userId: string, retry = 0, isCurrentUserCard = false): Promise<void> => {
+  const fetchUserDetails = async (userId: string, retry = 0, isCurrentUserCard = false, eventId?: string): Promise<void> => {
+    const cacheKey = eventId ? `${userId}:${eventId}` : userId;
+    const targetEventId = eventId || liveEvent?.id;
+    
+    if (!targetEventId) return;
+    
     // Check if already cached
-    if (userDetailsMap.has(userId)) {
+    if (userDetailsMap.has(cacheKey)) {
       return;
     }
 
     // Check if request is already pending
-    if (pendingRequests.has(userId)) {
+    if (pendingRequests.has(cacheKey)) {
       return;
     }
 
-    setPendingRequests(prev => new Set(prev).add(userId));
+    setPendingRequests(prev => new Set(prev).add(cacheKey));
     if (isCurrentUserCard) {
       setCurrentUserCardLoading(true);
     } else {
-      setUserDetailsLoading(userId);
+      setUserDetailsLoading(cacheKey);
     }
     try {
       const user = auth.currentUser;
       const token = user ? await user.getIdToken() : null;
 
       const response = await fetch(
-        `/api/leaderboard/user-details?userId=${userId}&eventId=${liveEvent?.id}`,
+        `/api/leaderboard/user-details?userId=${userId}&eventId=${targetEventId}`,
         {
           cache: 'no-store',
           headers: {
@@ -429,10 +522,10 @@ function LeaderboardNewContent() {
       }
 
       const data = await response.json();
-      setUserDetailsMap((prev) => new Map(prev).set(userId, data));
+      setUserDetailsMap((prev) => new Map(prev).set(cacheKey, data));
       setRetryCount((prev) => {
         const next = new Map(prev);
-        next.delete(userId);
+        next.delete(cacheKey);
         return next;
       });
     } catch (error) {
@@ -441,10 +534,10 @@ function LeaderboardNewContent() {
       // Retry logic
       if (retry < MAX_RETRIES) {
         const currentRetry = retry + 1;
-        setRetryCount((prev) => new Map(prev).set(userId, currentRetry));
+        setRetryCount((prev) => new Map(prev).set(cacheKey, currentRetry));
         setTimeout(() => {
-          fetchUserDetails(userId, currentRetry);
-        }, Math.pow(2, currentRetry) * 1000); // Exponential backoff
+          fetchUserDetails(userId, currentRetry, isCurrentUserCard, eventId);
+        }, Math.pow(2, currentRetry) * 1000);
       }
     } finally {
       if (isCurrentUserCard) {
@@ -454,23 +547,61 @@ function LeaderboardNewContent() {
       }
       setPendingRequests(prev => {
         const next = new Set(prev);
-        next.delete(userId);
+        next.delete(cacheKey);
         return next;
       });
+    }
+  };
+
+  // Fetch user's all events when row is expanded
+  const fetchUserEvents = async (userId: string): Promise<void> => {
+    if (userEventsMap.has(userId)) return;
+
+    try {
+      const userDocRef = doc(db, "users", userId);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists()) {
+        const pickems = userDoc.get("pickems") || {};
+        const userEventIds = Object.keys(pickems).filter(eventId => 
+          Array.isArray(pickems[eventId]) && pickems[eventId].length > 0
+        );
+        
+        // Get event details for user's events with points and MVP
+        const userEvents = allEvents.filter(event => userEventIds.includes(event.id)).map(event => ({
+          ...event,
+          points: userDoc.get(`${event.id}PTS`) || 0,
+          mvp: userDoc.get(`${event.id}MVP`) || "None"
+        }));
+        setUserEventsMap(prev => new Map(prev).set(userId, userEvents));
+      }
+    } catch (error) {
+      console.error("Error fetching user events:", error);
     }
   };
 
   const toggleExpand = useCallback(async (userId: string) => {
     if (expandedUserId === userId) {
       setExpandedUserId(null);
+      setExpandedUserEventId(null);
     } else {
       setExpandedUserId(userId);
-      // Fetch details if not already cached
-      if (!userDetailsMap.has(userId) && liveEvent) {
-        await fetchUserDetails(userId, 0, false);
+      setExpandedUserEventId(null);
+      await fetchUserEvents(userId);
+    }
+  }, [expandedUserId, allEvents]);
+
+  const toggleEventExpand = useCallback(async (userId: string, eventId: string) => {
+    if (expandedUserEventId === eventId) {
+      setExpandedUserEventId(null);
+    } else {
+      setExpandedUserEventId(eventId);
+      const cacheKey = `${userId}:${eventId}`;
+      if (!userDetailsMap.has(cacheKey)) {
+        await fetchUserDetails(userId, 0, false, eventId);
       }
     }
-  }, [expandedUserId, userDetailsMap, liveEvent]);
+  }, [expandedUserEventId, userDetailsMap]);
 
   // Fetch search suggestions (autocomplete)
   const fetchSearchSuggestions = async (searchTerm: string) => {
@@ -815,12 +946,34 @@ function LeaderboardNewContent() {
           Event Leaderboard
         </h1>
       </header>
+      {/* Events Carousel */}
+      <div className="px-4 mt-6">
+        <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl p-4">
+          <h3 className="text-lg font-bold text-white font-azonix mb-4">Select Event</h3>
+          <div className="flex flex-row overflow-x-auto gap-4 items-center">
+            {allEvents.map((event) => (
+              <EventCard
+                key={event.id}
+                event={event}
+                isSelected={liveEvent?.id === event.id}
+                onClick={() => {
+                  setLiveEvent(event);
+                  setPage(1);
+                  setLastDoc(null);
+                  participantsCache.clear();
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className="mb-4 text-center pt-3 sm:pt-7">
-        {eventLoading ? (
+        {/* {eventLoading ? (
           <div className="h-8 bg-gray-700 rounded w-48 mx-auto animate-pulse"></div>
         ) : (
           <h1 className="text-xl sm:text-2xl font-bold mb-1">{liveEvent?.name}</h1>
-        )}
+        )} */}
       </div>
 
       {/* Current User Card */}
@@ -913,7 +1066,7 @@ function LeaderboardNewContent() {
                     <h3 className="pt-3 text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1 sticky top-0 bg-gray-800/100 z-10">
                       Your Team
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
                       {currentUserDetails.picks
                         .slice()
                         .sort((a, b) => {
@@ -925,27 +1078,16 @@ function LeaderboardNewContent() {
                             key={pick.id}
                             className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors"
                           >
-                            <div className="flex justify-between items-center">
-                              <span className="text-white text-xs font-medium truncate">
-                                {pick.name}
-                              </span>
-                              <span className="text-green-400 text-xs font-medium">
-                                Confirmed Kills: {pick.kills}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center mt-1 text-xs">
-                              <span className="text-gray-400 w-1/3">
-                                Rank: {pick.rank ?? 0}
-                              </span>
-                              <span className="flex text-gray-400 w-1/3">
-                                <span className="w-1/2 text-end">Cost:</span>
-                                <span className="w-1/2 text-start">&nbsp;${pick.cost}</span>
-                              </span>
-                              <span className="text-yellow-400 text-end w-1/3">
-                                ROI: ${pick.kills === 0 || pick.cost === 0
-                                  ? 0
-                                  : (pick.cost / pick.kills).toFixed(2)}
-                              </span>
+                            <div className="grid grid-cols-2 gap-x-4 text-xs">
+                              <div>
+                                <div className="text-white font-medium truncate mb-1">{pick.name}</div>
+                                <div className="text-gray-400">Rank: <span className="text-white">{pick.rank ?? 0}</span></div>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="text-gray-400">Confirmed Kills: <span className="text-green-400 font-medium">{pick.kills}</span></div>
+                                <div className="text-gray-400">Cost: <span className="text-white">${pick.cost}</span></div>
+                                <div className="text-gray-400">ROI: <span className="text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(2)}</span></div>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -1064,7 +1206,7 @@ function LeaderboardNewContent() {
               <LeaderboardSkeleton rows={itemsPerPage} />
             ) : users.length > 0 ? (
               users.map((user, index) => {
-                const userDetails = userDetailsMap.get(user.id);
+                const userEvents = userEventsMap.get(user.id) || [];
                 const isExpanded = expandedUserId === user.id;
                 const isLoading = userDetailsLoading === user.id;
 
@@ -1149,9 +1291,9 @@ function LeaderboardNewContent() {
                       </td>
                     </tr>
 
-                    {/* Expanded row for picks */}
+                    {/* Expanded row for events list */}
                     <AnimatePresence>
-                      {isExpanded && userDetails && (
+                      {isExpanded && (
                         <motion.tr
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
@@ -1162,45 +1304,91 @@ function LeaderboardNewContent() {
                           <td colSpan={5} className="px-2 py-2">
                             <div className="pb-2">
                               <h3 className="text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1">
-                                {user.displayName}&apos;s Team
+                                {user.displayName}&apos;s Events
                               </h3>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                {userDetails.picks
-                                  .slice()
-                                  .sort((a, b) => {
-                                    if (b.kills !== a.kills) return b.kills - a.kills;
-                                    return a.name.localeCompare(b.name);
-                                  })
-                                  .map((pick) => (
-                                    <div
-                                      key={pick.id}
-                                      className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors"
-                                    >
-                                      <div className="flex justify-between items-center">
-                                        <span className="text-white text-xs font-medium truncate">
-                                          {pick.name}
-                                        </span>
-                                        <span className="text-green-400 text-xs font-medium">
-                                          Confirmed Kills: {pick.kills}
-                                        </span>
+                              {userEvents.length === 0 ? (
+                                <p className="text-xs text-gray-400">No events participated</p>
+                              ) : (
+                                <div className="space-y-2">
+                                  {userEvents.map((event) => {
+                                    const eventCacheKey = `${user.id}:${event.id}`;
+                                    const eventDetails = userDetailsMap.get(eventCacheKey);
+                                    const isEventExpanded = expandedUserEventId === event.id;
+                                    const isEventLoading = userDetailsLoading === eventCacheKey;
+                                    
+                                    return (
+                                      <div key={event.id} className="bg-gray-700/30 rounded">
+                                        <div
+                                          className="flex items-center justify-between p-2 cursor-pointer hover:bg-gray-700/50"
+                                          onClick={() => toggleEventExpand(user.id, event.id)}
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-white text-xs font-medium">{event.name}</span>
+                                            <span className={`text-xs px-2 py-0.5 rounded ${
+                                              event.status === "live" ? "bg-red-500/20 text-red-400" : "bg-gray-600 text-gray-300"
+                                            }`}>
+                                              {event.status}
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center gap-3">
+                                            <div className="text-xs text-gray-400">
+                                              Points: <span className="text-green-400 font-medium">{event.points}</span>
+                                            </div>
+                                            <div className="text-xs text-gray-400">
+                                              MVP: <span className="text-yellow-400">{event.mvp}</span>
+                                            </div>
+                                            {isEventLoading ? (
+                                              <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-blue-500"></div>
+                                            ) : isEventExpanded ? (
+                                              <FaChevronUp className="text-gray-400 text-xs" />
+                                            ) : (
+                                              <FaChevronDown className="text-gray-400 text-xs" />
+                                            )}
+                                          </div>
+                                        </div>
+                                        <AnimatePresence>
+                                          {isEventExpanded && eventDetails && (
+                                            <motion.div
+                                              initial={{ opacity: 0, height: 0 }}
+                                              animate={{ opacity: 1, height: "auto" }}
+                                              exit={{ opacity: 0, height: 0 }}
+                                              transition={{ duration: 0.2 }}
+                                              className="border-t border-gray-700/50 p-2"
+                                            >
+                                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                                                {eventDetails.picks
+                                                  .slice()
+                                                  .sort((a, b) => {
+                                                    if (b.kills !== a.kills) return b.kills - a.kills;
+                                                    return a.name.localeCompare(b.name);
+                                                  })
+                                                  .map((pick) => (
+                                                    <div
+                                                      key={pick.id}
+                                                      className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors"
+                                                    >
+                                                      <div className="grid grid-cols-2 gap-x-4 text-xs">
+                                                        <div>
+                                                          <div className="text-white font-medium truncate mb-1">{pick.name}</div>
+                                                          <div className="text-gray-400">Rank: <span className="text-white">{pick.rank ?? 0}</span></div>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                          <div className="text-gray-400">Confirmed Kills: <span className="text-green-400 font-medium">{pick.kills}</span></div>
+                                                          <div className="text-gray-400">Cost: <span className="text-white">${pick.cost}</span></div>
+                                                          <div className="text-gray-400">ROI: <span className="text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(0)}</span></div>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  ))}
+                                              </div>
+                                            </motion.div>
+                                          )}
+                                        </AnimatePresence>
                                       </div>
-                                      <div className="flex justify-between items-center mt-1 text-xs">
-                                        <span className="text-gray-400 w-1/3">
-                                          Rank: {pick.rank ?? 0}
-                                        </span>
-                                        <span className="flex text-gray-400 w-1/3">
-                                          <span className="w-1/2 text-end">Cost:</span>
-                                          <span className="w-1/2 text-start">&nbsp;${pick.cost}</span>
-                                        </span>
-                                        <span className="text-yellow-400 text-end w-1/3">
-                                          ROI: ${pick.kills === 0 || pick.cost === 0
-                                            ? 0
-                                            : (pick.cost / pick.kills).toFixed(0)}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  ))}
-                              </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           </td>
                         </motion.tr>

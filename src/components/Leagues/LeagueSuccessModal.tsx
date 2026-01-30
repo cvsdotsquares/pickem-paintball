@@ -38,7 +38,7 @@ export default function LeagueSuccessModal({ isOpen, onClose, leagueName, invite
         {/* Content */}
         <div className="p-6 space-y-4">
           <div className="text-center">
-            <h3 className="text-lg font-bold text-white mb-2">"{leagueName}"</h3>
+            <h3 className="text-lg font-bold text-white mb-2">&quot;{leagueName}&quot;</h3>
             <p className="text-gray-300 text-sm">Your league has been created successfully!</p>
           </div>
 
@@ -66,7 +66,7 @@ export default function LeagueSuccessModal({ isOpen, onClose, leagueName, invite
           {/* Instructions */}
           <div className="bg-blue-900/30 border border-blue-500/30 rounded-lg p-3">
             <p className="text-blue-200 text-sm text-center">
-              Friends can join by clicking "Join League" and entering this code
+              Friends can join by clicking &quot;Join League&quot; and entering this code
             </p>
           </div>
 

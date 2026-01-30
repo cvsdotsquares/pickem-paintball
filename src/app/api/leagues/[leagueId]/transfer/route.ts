@@ -2,9 +2,9 @@ import { db } from '@/src/lib/firebaseClient';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest, { params }: { params: { leagueId: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ leagueId: string }> }) {
   try {
-    const { leagueId } = params;
+    const { leagueId } = await params;
     const { fromUserId, toUserId, removeOldAdmin } = await request.json();
 
     if (!fromUserId || !toUserId) {

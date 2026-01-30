@@ -114,6 +114,19 @@ export const uploadProfilePicture = async (file: File): Promise<string> => {
     return storagePath;
 };
 
+// Upload league icon
+export const uploadLeagueIcon = async (file: File, leagueId: string): Promise<string> => {
+    if (!auth.currentUser) {
+        throw new Error("No authenticated user found");
+    }
+    const storagePath = `league-icons/${leagueId}_icon_200x200`;
+    const storageRef: StorageReference = ref(storage, storagePath);
+    await uploadBytes(storageRef, file);
+    // Get and return the download URL
+    const downloadURL = await getDownloadURL(storageRef);
+    return downloadURL;
+};
+
 // Delete the user account after reauthentication
 export const deleteUserAccount = async (currentPassword: string) => {
     if (!auth.currentUser) {

@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/src/contexts/authProvider';
 import { League } from '@/src/lib/league-types';
 import { FaSearch, FaUsers, FaLock, FaGlobe, FaUserPlus } from 'react-icons/fa';
+import { getFirebaseStorageUrl } from '@/src/lib/storage';
+import { useToast } from '@/src/hooks/useToast';
+import Toast from '../ui/Toast';
 
 interface LeagueBrowserProps {
   isOpen: boolean;
@@ -12,10 +15,29 @@ interface LeagueBrowserProps {
 
 export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
   const { user } = useAuth();
+  const { toasts, showToast, hideToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [leagues, setLeagues] = useState<League[]>([]);
   const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'my-leagues'>('all');
+
+  const getLeagueIconUrl = (league: League): string | null => {
+    if (!league.icon) return null;
+    
+    let iconUrl = league.icon;
+    
+    // If it's already a full URL, decode HTML entities
+    if (iconUrl.startsWith('http')) {
+      iconUrl = iconUrl.replace(/&amp;/g, '&');
+      return iconUrl;
+    }
+    
+    // Otherwise, convert storage path to URL
+    const url = getFirebaseStorageUrl(iconUrl);
+    console.log('Generated URL for', league.name, ':', url);
+    return url;
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -32,15 +54,21 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
       
       const response = await fetch(endpoint);
       const data = await response.json();
+      console.log('Fetched leagues:', data.leagues);
+      data.leagues?.forEach((league: League) => {
+        console.log(`League: ${league.name}, Icon: ${league.icon}`);
+      });
       setLeagues(data.leagues || []);
     } catch (error) {
       console.error('Error fetching leagues:', error);
+      showToast('Failed to load leagues', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   const requestToJoin = async (leagueId: string) => {
+    setActionLoading(true);
     try {
       const response = await fetch(`/api/leagues/${leagueId}/request`, {
         method: 'POST',
@@ -49,7 +77,6 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
       });
       
       if (response.ok) {
-        // Create notification for league admins
         const league = leagues.find(l => l.id === leagueId);
         if (league) {
           for (const adminId of league.admins) {
@@ -67,11 +94,16 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
           }
         }
         
-        alert('Request sent!');
+        showToast('Join request sent successfully!', 'success');
         fetchLeagues();
+      } else {
+        showToast('Failed to send request', 'error');
       }
     } catch (error) {
       console.error('Error requesting to join:', error);
+      showToast('Error sending request', 'error');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -82,7 +114,24 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <>
+      {toasts.map(toast => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => hideToast(toast.id)}
+        />
+      ))}
+      {actionLoading && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60]">
+          <div className="bg-gray-800 rounded-lg p-6 flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <p className="text-white">Processing...</p>
+          </div>
+        </div>
+      )}
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-700">
           <h2 className="text-xl font-bold text-white mb-4">Browse Leagues</h2>
@@ -127,31 +176,45 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
             <div className="space-y-3">
               {filteredLeagues.map((league) => (
                 <div key={league.id} className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-white font-medium">{league.name}</h3>
-                        {league.settings.isPublic ? (
-                          <FaGlobe className="text-green-400 text-sm" />
-                        ) : (
-                          <FaLock className="text-yellow-400 text-sm" />
-                        )}
-                      </div>
-                      <p className="text-gray-400 text-sm mb-2">{league.description}</p>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <FaUsers />
-                          {league.memberCount} members
-                        </span>
-                        <span>{league.settings.isPublic ? 'Public' : 'Private'}</span>
-                        {league.settings.requiresApproval && <span>Requires Approval</span>}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 flex-1">
+                      {getLeagueIconUrl(league) ? (
+                        <img
+                          src={getLeagueIconUrl(league) as string}
+                          alt={league.name}
+                          className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-gray-700 flex items-center justify-center text-white font-bold">
+                          {league.name.charAt(0)}
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-white font-medium">{league.name}</h3>
+                          {league.settings.isPublic ? (
+                            <FaGlobe className="text-green-400 text-sm" />
+                          ) : (
+                            <FaLock className="text-yellow-400 text-sm" />
+                          )}
+                        </div>
+                        <p className="text-gray-400 text-sm mb-2">{league.description}</p>
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <FaUsers />
+                            {league.memberCount} members
+                          </span>
+                          <span>{league.settings.isPublic ? 'Public' : 'Private'}</span>
+                          {league.settings.requiresApproval && <span>Requires Approval</span>}
+                        </div>
                       </div>
                     </div>
                     
                     {filter === 'all' && !league.members.includes(user?.uid || '') && (
                       <button
                         onClick={() => requestToJoin(league.id)}
-                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-1"
+                        disabled={actionLoading}
+                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center gap-1"
                       >
                         <FaUserPlus />
                         Request Join
@@ -179,6 +242,7 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

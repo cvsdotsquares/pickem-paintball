@@ -492,7 +492,7 @@ export default function SeasonTotalsPage() {
           <div className="text-center py-12 text-gray-400">
             <div className="text-6xl mb-4">📊</div>
             {searchQuery ? (
-              <p className="text-xl mb-2">No players found matching "{searchQuery}"</p>
+              <p className="text-xl mb-2">No players found matching &quot;{searchQuery}&quot;</p>
             ) : (
               <>
                 <p className="text-xl mb-2">No season data available for {selectedYear}</p>

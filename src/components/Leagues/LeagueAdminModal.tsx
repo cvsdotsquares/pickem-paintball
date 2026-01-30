@@ -7,6 +7,9 @@ import { League } from '@/src/lib/league-types';
 import { FaTimes, FaUsers, FaCopy, FaTrash, FaCrown, FaCheck, FaTimes as FaReject, FaUserPlus, FaImage } from 'react-icons/fa';
 import { db } from '@/src/lib/firebaseClient';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import ConfirmDialog from '../ui/ConfirmDialog';
+import { useToast } from '@/src/hooks/useToast';
+import Toast from '../ui/Toast';
 
 interface LeagueAdminModalProps {
   isOpen: boolean;
@@ -23,7 +26,8 @@ interface LeagueMember {
 
 export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdminModalProps) {
   const { user } = useAuth();
-  const { refreshUserLeagues } = useLeague();
+  const { refreshUserLeagues, setSelectedLeague } = useLeague();
+  const { toasts, showToast, hideToast } = useToast();
   const [activeTab, setActiveTab] = useState<'members' | 'requests' | 'settings'>('members');
   const [members, setMembers] = useState<LeagueMember[]>([]);
   const [pendingRequests, setPendingRequests] = useState<LeagueMember[]>([]);
@@ -33,6 +37,11 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
   const [leagueSettings, setLeagueSettings] = useState(league.settings);
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [iconFile, setIconFile] = useState<File | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
 
   const isUserAdmin = user && league.admins.includes(user.uid);
 
@@ -103,6 +112,7 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
 
   // Handle member actions
   const handleMemberAction = async (userId: string, action: string) => {
+    setProcessingRequestId(userId);
     try {
       const response = await fetch(`/api/leagues/${league.id}/members`, {
         method: 'POST',
@@ -111,7 +121,6 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
       });
       
       if (response.ok) {
-        // Create notification for approved users
         if (action === 'approve') {
           await fetch('/api/notifications', {
             method: 'POST',
@@ -124,18 +133,34 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
               message: `You have been accepted to join "${league.name}"`
             })
           });
+          showToast('Member approved successfully', 'success');
+          // Remove from pending requests
+          setPendingRequests(prev => prev.filter(r => r.id !== userId));
+        } else if (action === 'reject') {
+          showToast('Request rejected', 'success');
+          setPendingRequests(prev => prev.filter(r => r.id !== userId));
+        } else if (action === 'remove') {
+          showToast('Member removed successfully', 'success');
+          setMembers(prev => prev.filter(m => m.id !== userId));
+        } else if (action === 'makeAdmin') {
+          showToast('Admin rights granted', 'success');
         }
         
-        refreshUserLeagues();
-        window.location.reload();
+        await refreshUserLeagues();
+      } else {
+        showToast('Action failed. Please try again', 'error');
       }
     } catch (error) {
       console.error('Error managing member:', error);
+      showToast('Error performing action', 'error');
+    } finally {
+      setProcessingRequestId(null);
     }
   };
 
   // Handle settings update
   const handleSettingsUpdate = async (newSettings: any) => {
+    setActionLoading(true);
     try {
       const response = await fetch(`/api/leagues/${league.id}/settings`, {
         method: 'PUT',
@@ -145,10 +170,16 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
       
       if (response.ok) {
         setLeagueSettings(newSettings);
+        showToast('Settings updated successfully', 'success');
         refreshUserLeagues();
+      } else {
+        showToast('Failed to update settings', 'error');
       }
     } catch (error) {
       console.error('Error updating settings:', error);
+      showToast('Error updating settings', 'error');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -158,6 +189,7 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
     
     const removeOldAdmin = confirm('Do you want to remove yourself as admin?');
     
+    setActionLoading(true);
     try {
       const response = await fetch(`/api/leagues/${league.id}/transfer`, {
         method: 'POST',
@@ -166,11 +198,17 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
       });
       
       if (response.ok) {
+        showToast('Admin rights transferred successfully', 'success');
         refreshUserLeagues();
         window.location.reload();
+      } else {
+        showToast('Failed to transfer admin rights', 'error');
       }
     } catch (error) {
       console.error('Error transferring admin:', error);
+      showToast('Error transferring admin rights', 'error');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -178,6 +216,7 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
   const handleInviteByUsername = async () => {
     if (!inviteUsername.trim()) return;
     
+    setInviteLoading(true);
     try {
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('username', '==', inviteUsername.trim()));
@@ -189,7 +228,8 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
         
         // Check if user is already a member
         if (league.members.includes(userId)) {
-          alert('User is already a member of this league');
+          showToast('User is already a member of this league', 'error');
+          setInviteLoading(false);
           return;
         }
         
@@ -207,13 +247,15 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
         });
         
         setInviteUsername('');
-        alert('Invitation sent successfully!');
+        showToast('Invitation sent successfully!', 'success');
       } else {
-        alert('User not found. Please check the username.');
+        showToast('User not found. Please check the username', 'error');
       }
     } catch (error) {
       console.error('Error inviting user:', error);
-      alert('Error sending invitation. Please try again.');
+      showToast('Error sending invitation. Please try again', 'error');
+    } finally {
+      setInviteLoading(false);
     }
   };
 
@@ -224,13 +266,13 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      showToast('Please select an image file', 'error');
       return;
     }
 
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      alert('Image size must be less than 2MB');
+      showToast('Image size must be less than 2MB', 'error');
       return;
     }
 
@@ -247,24 +289,71 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
 
       if (response.ok) {
         const data = await response.json();
-        alert('Icon uploaded successfully!');
+        showToast('Icon uploaded successfully!', 'success');
         refreshUserLeagues();
         window.location.reload();
       } else {
-        alert('Failed to upload icon');
+        showToast('Failed to upload icon', 'error');
       }
     } catch (error) {
       console.error('Error uploading icon:', error);
-      alert('Error uploading icon');
+      showToast('Error uploading icon', 'error');
     } finally {
       setUploadingIcon(false);
+    }
+  };
+
+  // Handle league deletion
+  const handleDeleteLeague = async () => {
+    setShowDeleteConfirm(false);
+    setDeleteLoading(true);
+    
+    try {
+      const response = await fetch(`/api/leagues/${league.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.uid })
+      });
+      
+      if (response.ok) {
+        showToast('League deleted successfully', 'success');
+        setSelectedLeague(null);
+        await refreshUserLeagues();
+        setDeleteLoading(false);
+        onClose();
+      } else {
+        const error = await response.json();
+        showToast(error.error || 'Failed to delete league', 'error');
+        setDeleteLoading(false);
+      }
+    } catch (error) {
+      console.error('Error deleting league:', error);
+      showToast('Error deleting league', 'error');
+      setDeleteLoading(false);
     }
   };
 
   if (!isOpen || !isUserAdmin) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <>
+      {toasts.map(toast => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => hideToast(toast.id)}
+        />
+      ))}
+      {actionLoading && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60]">
+          <div className="bg-gray-800 rounded-lg p-6 flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <p className="text-white">Processing...</p>
+          </div>
+        </div>
+      )}
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
@@ -360,10 +449,20 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                   />
                   <button
                     onClick={handleInviteByUsername}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-1"
+                    disabled={inviteLoading}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center justify-center gap-1"
                   >
-                    <FaUserPlus />
-                    Invite
+                    {inviteLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Inviting...
+                      </>
+                    ) : (
+                      <>
+                        <FaUserPlus />
+                        Invite
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -449,14 +548,25 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                       <div className="flex gap-2">
                         <button 
                           onClick={() => handleMemberAction(request.id, 'approve')}
-                          className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm transition-colors flex items-center gap-1"
+                          disabled={processingRequestId === request.id}
+                          className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded text-sm transition-colors flex items-center gap-1"
                         >
-                          <FaCheck />
-                          Accept
+                          {processingRequestId === request.id ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                              Accepting...
+                            </>
+                          ) : (
+                            <>
+                              <FaCheck />
+                              Accept
+                            </>
+                          )}
                         </button>
                         <button 
                           onClick={() => handleMemberAction(request.id, 'reject')}
-                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors flex items-center gap-1"
+                          disabled={processingRequestId === request.id}
+                          className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded text-sm transition-colors flex items-center gap-1"
                         >
                           <FaReject />
                           Reject
@@ -540,14 +650,40 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
               </div>
 
               <div className="border-t border-gray-700 pt-4">
-                <button className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
-                  Delete League
+                <button 
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={deleteLoading}
+                  className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  {deleteLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <FaTrash />
+                      Delete League
+                    </>
+                  )}
                 </button>
               </div>
             </div>
           )}
         </div>
       </div>
-    </div>
+      </div>
+      
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete League"
+        message={`Are you sure you want to delete "${league.name}"? This action cannot be undone and will permanently delete all league data.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+        onConfirm={handleDeleteLeague}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+    </>
   );
 }

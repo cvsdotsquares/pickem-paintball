@@ -4,6 +4,7 @@ import React from "react";
 import { FaBell } from "react-icons/fa6";
 import { ImCog } from "react-icons/im";
 import NotificationBell from "../../Notifications/NotificationBell";
+import SupportButton from "../../Subscription/SupportButton";
 
 interface UserHeadProps {
   username?: string | null;
@@ -38,7 +39,8 @@ const UserHead: React.FC<UserHeadProps> = ({
         </Link>
 
         {/* Action Icons Section */}
-        <div className="flex gap-1 items-center">
+        <div className="flex gap-2 items-center">
+          {/* <SupportButton /> */}
           <NotificationBell />
           <Link
             href={"/dashboard/profile"}

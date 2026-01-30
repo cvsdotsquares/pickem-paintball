@@ -8,6 +8,9 @@ import { db } from '@/src/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 import LeagueAdminModal from './LeagueAdminModal';
 import LeagueBrowser from './LeagueBrowser';
+import ConfirmDialog from '../ui/ConfirmDialog';
+import { useToast } from '@/src/hooks/useToast';
+import Toast from '../ui/Toast';
 
 interface LeagueSelectorProps {
   onCreateLeague: () => void;
@@ -17,10 +20,13 @@ interface LeagueSelectorProps {
 export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueSelectorProps) {
   const { user } = useAuth();
   const { selectedLeague, userLeagues, setSelectedLeague } = useLeague();
+  const { toasts, showToast, hideToast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showBrowser, setShowBrowser] = useState(false);
   const [actualMemberCount, setActualMemberCount] = useState<number | null>(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [leaveLoading, setLeaveLoading] = useState(false);
 
   const handleLeagueSelect = (league: any) => {
     setSelectedLeague(league);
@@ -28,12 +34,18 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
   };
 
   const isSelectedLeagueAdmin = selectedLeague && user && selectedLeague.admins?.includes(user.uid);
+  
+  console.log('Selected League:', selectedLeague?.name);
+  console.log('User ID:', user?.uid);
+  console.log('League Admins:', selectedLeague?.admins);
+  console.log('Is Admin:', isSelectedLeagueAdmin);
 
   // Leave league handler
   const handleLeaveLeague = async () => {
     if (!selectedLeague || !user) return;
     
-    if (!confirm(`Are you sure you want to leave "${selectedLeague.name}"?`)) return;
+    setShowLeaveConfirm(false);
+    setLeaveLoading(true);
     
     try {
       const response = await fetch(`/api/leagues/${selectedLeague.id}/leave`, {
@@ -45,15 +57,20 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
       const data = await response.json();
       
       if (!response.ok) {
-        alert(data.error || 'Failed to leave league');
+        showToast(data.error || 'Failed to leave league', 'error');
+        setLeaveLoading(false);
         return;
       }
       
+      showToast('Successfully left the league', 'success');
       setSelectedLeague(null);
-      window.location.reload();
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error('Error leaving league:', error);
-      alert('Failed to leave league');
+      showToast('Failed to leave league', 'error');
+      setLeaveLoading(false);
     }
   };
 
@@ -85,6 +102,15 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
   }, [selectedLeague]);
 
   return (
+    <>
+      {toasts.map(toast => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => hideToast(toast.id)}
+        />
+      ))}
     <div className="relative">
       {/* League Selector Dropdown */}
       <div className="flex gap-2 items-center mb-4">
@@ -217,10 +243,18 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
                 <div className="text-xs text-gray-400">Members</div>
               </div>
               <button
-                onClick={handleLeaveLeague}
-                className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs transition-colors"
+                onClick={() => setShowLeaveConfirm(true)}
+                disabled={leaveLoading}
+                className="px-2 py-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded text-xs transition-colors flex items-center gap-1"
               >
-                Leave
+                {leaveLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                    Leaving...
+                  </>
+                ) : (
+                  'Leave'
+                )}
               </button>
             </div>
           </div>
@@ -265,6 +299,19 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
           league={selectedLeague}
         />
       )}
+
+      {/* Leave League Confirmation */}
+      <ConfirmDialog
+        isOpen={showLeaveConfirm}
+        title="Leave League"
+        message={`Are you sure you want to leave "${selectedLeague?.name}"? You will need an invite code to rejoin.`}
+        confirmText="Leave"
+        cancelText="Cancel"
+        type="danger"
+        onConfirm={handleLeaveLeague}
+        onCancel={() => setShowLeaveConfirm(false)}
+      />
     </div>
+    </>
   );
 }

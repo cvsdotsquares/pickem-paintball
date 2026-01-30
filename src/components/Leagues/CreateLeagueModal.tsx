@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '@/src/contexts/authProvider';
 import { useLeague } from '@/src/contexts/LeagueContext';
 import { createLeague } from '@/src/lib/league-utils';
-import { FaTimes, FaLock, FaGlobe, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { uploadLeagueIcon } from '@/src/lib/auth';
+import { FaTimes, FaLock, FaGlobe, FaEye, FaEyeSlash, FaUpload } from 'react-icons/fa';
 import LeagueSuccessModal from './LeagueSuccessModal';
+import { useToast } from '@/src/hooks/useToast';
+import Toast from '../ui/Toast';
 
 interface CreateLeagueModalProps {
   isOpen: boolean;
@@ -15,9 +18,13 @@ interface CreateLeagueModalProps {
 export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModalProps) {
   const { user } = useAuth();
   const { refreshUserLeagues } = useLeague();
+  const { toasts, showToast, hideToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [createdLeague, setCreatedLeague] = useState({ name: '', inviteCode: '' });
+  const [iconFile, setIconFile] = useState<File | null>(null);
+  const [iconPreview, setIconPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -27,6 +34,18 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
     seasonSpecific: false,
     resetFrequency: 'never' as 'never' | 'event' | 'season'
   });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setIconFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setIconPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,19 +58,22 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
       const userLeaguesData = await userLeaguesResponse.json();
       
       if (userLeaguesData.leagues?.length >= 25) {
-        alert('You have reached the maximum limit of 25 leagues.');
+        showToast('You have reached the maximum limit of 25 leagues', 'error');
         setLoading(false);
         return;
       }
 
-      // Check subscription (placeholder - implement actual subscription check)
-      // TODO: Implement subscription modal intercept
-      const hasSubscription = true; // Replace with actual check
-      if (!hasSubscription) {
-        alert('You need an active subscription to create a league.');
-        setLoading(false);
-        return;
-      }
+      // Check subscription - show hard-gate modal
+      const userDoc = await fetch(`/api/users/${user.uid}/subscription`);
+      const { isSubscribed } = await userDoc.json();
+      
+      // if (!isSubscribed) {
+      //   setLoading(false);
+      //   onClose();
+      //   // Trigger hard-gate modal from parent
+      //   window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate' } }));
+      //   return;
+      // }
 
       const settings = {
         isPublic: formData.isPublic,
@@ -62,13 +84,33 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
       };
 
       const result = await createLeague(formData.name, formData.description, settings, user.uid);
+      
+      // Upload icon if provided
+      if (iconFile) {
+        try {
+          console.log('Uploading icon for league:', result.leagueId);
+          const iconUrl = await uploadLeagueIcon(iconFile, result.leagueId);
+          console.log('Icon uploaded, URL:', iconUrl);
+          // Update league with icon URL
+          const updateResponse = await fetch(`/api/leagues/${result.leagueId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ icon: iconUrl })
+          });
+          const updateResult = await updateResponse.json();
+          console.log('Update response:', updateResult);
+        } catch (error) {
+          console.error('Error uploading icon:', error);
+        }
+      }
+      
       await refreshUserLeagues();
       
-      // Show success modal with invite code
       setCreatedLeague({ name: formData.name, inviteCode: result.inviteCode });
       setShowSuccess(true);
       
-      // Reset form
+      setIconFile(null);
+      setIconPreview(null);
       setFormData({
         name: '',
         description: '',
@@ -80,7 +122,7 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
       });
     } catch (error) {
       console.error('Error creating league:', error);
-      alert('Failed to create league. Please try again.');
+      showToast('Failed to create league. Please try again', 'error');
     } finally {
       setLoading(false);
     }
@@ -94,7 +136,16 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <>
+      {toasts.map(toast => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => hideToast(toast.id)}
+        />
+      ))}
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
@@ -109,6 +160,36 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* League Icon */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              League Icon (Optional)
+            </label>
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center overflow-hidden">
+                {iconPreview ? (
+                  <img src={iconPreview} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <FaUpload className="text-gray-500" />
+                )}
+              </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              >
+                Choose Image
+              </button>
+            </div>
+          </div>
+
           {/* League Name */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -221,9 +302,16 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
             <button
               type="submit"
               disabled={loading || !formData.name.trim()}
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center justify-center gap-2"
             >
-              {loading ? 'Creating...' : 'Create League'}
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Creating...
+                </>
+              ) : (
+                'Create League'
+              )}
             </button>
           </div>
         </form>
@@ -236,6 +324,7 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
         leagueName={createdLeague.name}
         inviteCode={createdLeague.inviteCode}
       />
-    </div>
+      </div>
+    </>
   );
 }

@@ -6,6 +6,8 @@ import { useLeague } from '@/src/contexts/LeagueContext';
 import { joinLeagueByCode, searchPublicLeagues } from '@/src/lib/league-utils';
 import { League } from '@/src/lib/league-types';
 import { FaTimes, FaSearch, FaUsers, FaLock, FaGlobe } from 'react-icons/fa';
+import { useToast } from '@/src/hooks/useToast';
+import Toast from '../ui/Toast';
 
 interface JoinLeagueModalProps {
   isOpen: boolean;
@@ -15,54 +17,76 @@ interface JoinLeagueModalProps {
 export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProps) {
   const { user } = useAuth();
   const { refreshUserLeagues } = useLeague();
+  const { toasts, showToast, hideToast } = useToast();
   const [activeTab, setActiveTab] = useState<'code' | 'search'>('code');
   const [inviteCode, setInviteCode] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<League[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const handleJoinByCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !inviteCode.trim()) return;
 
     setLoading(true);
-    setError('');
     try {
       await joinLeagueByCode(inviteCode.trim().toUpperCase(), user.uid);
       await refreshUserLeagues();
+      showToast('Successfully joined league!', 'success');
       setInviteCode('');
       onClose();
     } catch (error: any) {
-      setError(error.message || 'Failed to join league');
+      showToast(error.message || 'Failed to join league', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   const handleSearch = async () => {
+    if (!searchTerm.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    
     setLoading(true);
     try {
       const results = await searchPublicLeagues(searchTerm);
       setSearchResults(results);
     } catch (error) {
       console.error('Error searching leagues:', error);
+      showToast('Failed to search leagues', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleJoinLeague = async (leagueId: string) => {
+  const handleJoinLeague = async (league: League) => {
     if (!user) return;
     
     setLoading(true);
     try {
-      // For now, just join by finding the invite code
-      // In a full implementation, this would be a separate API call
-      console.log('Join league:', leagueId);
-      await refreshUserLeagues();
-    } catch (error) {
+      if (league.settings.requiresApproval) {
+        const response = await fetch(`/api/leagues/${league.id}/request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.uid })
+        });
+        
+        if (response.ok) {
+          showToast('Join request sent!', 'success');
+          onClose();
+        } else {
+          throw new Error('Failed to send request');
+        }
+      } else {
+        await joinLeagueByCode(league.inviteCode, user.uid);
+        await refreshUserLeagues();
+        showToast('Successfully joined league!', 'success');
+        onClose();
+      }
+    } catch (error: any) {
       console.error('Error joining league:', error);
+      showToast(error.message || 'Failed to join league', 'error');
     } finally {
       setLoading(false);
     }
@@ -71,7 +95,24 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <>
+      {toasts.map(toast => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => hideToast(toast.id)}
+        />
+      ))}
+      {loading && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60]">
+          <div className="bg-gray-800 rounded-lg p-6 flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <p className="text-white">Processing...</p>
+          </div>
+        </div>
+      )}
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
@@ -129,12 +170,6 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
                 </p>
               </div>
 
-              {error && (
-                <div className="p-3 bg-red-900/50 border border-red-500/50 rounded-lg">
-                  <p className="text-red-200 text-sm">{error}</p>
-                </div>
-              )}
-
               <button
                 type="submit"
                 disabled={loading || !inviteCode.trim()}
@@ -167,37 +202,49 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
 
               {/* Search Results */}
               <div className="space-y-2 max-h-60 overflow-y-auto">
-                {searchResults.map((league) => (
-                  <div
-                    key={league.id}
-                    className="p-3 bg-gray-800 rounded-lg border border-gray-700"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center mb-1">
-                          {league.settings.isPublic ? (
-                            <FaGlobe className="mr-2 text-green-400 text-sm" />
-                          ) : (
-                            <FaLock className="mr-2 text-red-400 text-sm" />
-                          )}
-                          <h3 className="font-medium text-white">{league.name}</h3>
+                {searchResults.map((league) => {
+                  const isMember = user && league.members.includes(user.uid);
+                  return (
+                    <div
+                      key={league.id}
+                      className="p-3 bg-gray-800 rounded-lg border border-gray-700"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center mb-1">
+                            {league.settings.isPublic ? (
+                              <FaGlobe className="mr-2 text-green-400 text-sm" />
+                            ) : (
+                              <FaLock className="mr-2 text-red-400 text-sm" />
+                            )}
+                            <h3 className="font-medium text-white">{league.name}</h3>
+                          </div>
+                          <p className="text-sm text-gray-300 mb-2">{league.description}</p>
+                          <div className="flex items-center text-xs text-gray-400">
+                            <FaUsers className="mr-1" />
+                            {league.memberCount} members
+                          </div>
                         </div>
-                        <p className="text-sm text-gray-300 mb-2">{league.description}</p>
-                        <div className="flex items-center text-xs text-gray-400">
-                          <FaUsers className="mr-1" />
-                          {league.memberCount} members
-                        </div>
+                        {isMember ? (
+                          <button
+                            disabled
+                            className="px-3 py-1 bg-gray-600 text-gray-400 rounded text-sm cursor-not-allowed"
+                          >
+                            Joined
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleJoinLeague(league)}
+                            disabled={loading}
+                            className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded text-sm transition-colors"
+                          >
+                            {league.settings.requiresApproval ? 'Request' : 'Join'}
+                          </button>
+                        )}
                       </div>
-                      <button
-                        onClick={() => handleJoinLeague(league.id)}
-                        disabled={loading}
-                        className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded text-sm transition-colors"
-                      >
-                        {league.settings.requiresApproval ? 'Request' : 'Join'}
-                      </button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {searchResults.length === 0 && searchTerm && !loading && (
                   <div className="text-center py-4 text-gray-400">
@@ -209,6 +256,7 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
