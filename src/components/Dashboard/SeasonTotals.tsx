@@ -77,7 +77,7 @@ export default function SeasonTotals({
         
         const players: any[] = querySnapshot.docs.map((doc) => {
           const data = doc.data();
-          console.log('Raw season data:', data);
+
           
           // Create base player object
           const player: any = {
@@ -97,11 +97,11 @@ export default function SeasonTotals({
             picture: '/placeholder.svg'
           };
           
-          console.log('Transformed player:', player);
+  
           return player;
         });
         
-        console.log('All season players:', players);
+    
         
         // Apply sorting if sortConfig exists
         if (sortConfig) {

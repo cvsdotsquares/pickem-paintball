@@ -48,7 +48,7 @@
 //     noClick: true,
 //     onDrop: handleFileChange,
 //     onDropRejected: (error:any) => {
-//       console.log(error);
+//      
 //     },
 //   });
 

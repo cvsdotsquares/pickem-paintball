@@ -54,17 +54,17 @@ function ProfilePage() {
         }
 
         const currentUserId: any = user.uid;
-        console.log("Current user ID:", currentUserId);
+      
 
         // Construct the Firestore document reference
         const userDocRef = doc(db, "users", currentUserId);
-        console.log("Fetching document from path: users/", currentUserId);
+       
 
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists()) {
           const rawData = userDoc.data();
-          console.log("Raw user data:", rawData);
+       
 
           // Get profile picture from user data or use default
           let profilePicture = defaultUserData.profilePicture;
@@ -107,10 +107,10 @@ function ProfilePage() {
                 : defaultUserData.player,
           };
 
-          console.log("Validated user data:", validatedUserData);
+         
           setUserData(validatedUserData);
         } else {
-          console.log("User document not found, using default data.");
+          
           setUserData(defaultUserData);
         }
       } catch (error) {

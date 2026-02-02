@@ -88,9 +88,9 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
       // Upload icon if provided
       if (iconFile) {
         try {
-          console.log('Uploading icon for league:', result.leagueId);
+
           const iconUrl = await uploadLeagueIcon(iconFile, result.leagueId);
-          console.log('Icon uploaded, URL:', iconUrl);
+        
           // Update league with icon URL
           const updateResponse = await fetch(`/api/leagues/${result.leagueId}`, {
             method: 'PATCH',
@@ -98,7 +98,7 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
             body: JSON.stringify({ icon: iconUrl })
           });
           const updateResult = await updateResponse.json();
-          console.log('Update response:', updateResult);
+        
         } catch (error) {
           console.error('Error uploading icon:', error);
         }

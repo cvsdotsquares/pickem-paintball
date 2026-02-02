@@ -64,7 +64,6 @@ const LoginPage: React.FC = () => {
             pickems: {}, // Initialize with empty pickems
             total_points: 0, // Initialize total points
           });
-          console.log("User created in Firestore");
         }
 
         router.push("/dashboard");

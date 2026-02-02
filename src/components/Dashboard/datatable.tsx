@@ -141,9 +141,12 @@ const DiamondScore: React.FC<{
 }> = ({ score, inverted = false }) => {
   // Built-in color logic based on score value
   let color;
-  if (score >= 90) color = "#3aa76d"; // Green for top scores
-  else if (score <= 30) color = "#64748b"; // Gray for low scores
-  else if (score > 60) color = "#4f8af8"; // Blue for above average
+  if (score >= 90)
+    color = "#3aa76d"; // Green for top scores
+  else if (score <= 30)
+    color = "#64748b"; // Gray for low scores
+  else if (score > 60)
+    color = "#4f8af8"; // Blue for above average
   else color = "#e6a443"; // Yellow/orange for mid-range
 
   return (
@@ -176,6 +179,7 @@ type MatchupTableProps = {
   onSortChange?: (config: SortConfig | null) => void;
   myPicks?: Set<string>;
   currentEventId?: string; // Add this
+  isSeasonView?: boolean; // Add this to identify season totals view
 };
 export interface Player {
   id?: string;
@@ -209,7 +213,8 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   onSortChange,
   myPicks,
   currentEventId,
-}) => {
+  isSeasonView = false,
+}) => { 
   const typedData = data as TablePlayer[];
   const [internalSortConfig, setInternalSortConfig] =
     useState<SortConfig | null>(null);
@@ -223,7 +228,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   const [showOnlyMyPicks, setShowOnlyMyPicks] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [currentPageInput, setCurrentPageInput] = useState(
-    currentPage.toString()
+    currentPage.toString(),
   );
   const [rowsPerPage, setRowsPerPage] = useState(20);
   const [totalPages, setTotalPages] = useState(1);
@@ -266,25 +271,26 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     // Apply search filter
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(player =>
-        player.Player?.toLowerCase().includes(searchLower) ||
-        player.Team?.toLowerCase().includes(searchLower) ||
-        player.Number?.toString().includes(searchTerm)
+      filtered = filtered.filter(
+        (player) =>
+          player.Player?.toLowerCase().includes(searchLower) ||
+          player.Team?.toLowerCase().includes(searchLower) ||
+          player.Number?.toString().includes(searchTerm),
       );
     }
 
     // Apply team filter
     if (selectedTeam !== "All") {
-      filtered = filtered.filter(player => player.Team === selectedTeam);
+      filtered = filtered.filter((player) => player.Team === selectedTeam);
     }
 
     // Apply myPicks filter if enabled
     if (showOnlyMyPicks && myPicks && myPicks.size > 0) {
       const myPicksNormalized = new Set<string>();
-      myPicks.forEach(v => myPicksNormalized.add(String(v)));
+      myPicks.forEach((v) => myPicksNormalized.add(String(v)));
 
-      filtered = filtered.filter(player =>
-        myPicksNormalized.has(String(player.player_id))
+      filtered = filtered.filter((player) =>
+        myPicksNormalized.has(String(player.player_id)),
       );
     }
 
@@ -365,7 +371,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     const normalizedDisplay = normalizeHeaderKey(displayText);
     const actualKey = getActualDataKey(
       Object.keys(data[0] || {}),
-      normalizedDisplay
+      normalizedDisplay,
     );
 
     let direction: "ascending" | "descending" = "ascending";
@@ -413,7 +419,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       const matchingFile = fileList.items.find(
         (item) =>
           item.name.startsWith(`${leagueId}_`) ||
-          item.name.startsWith(`${leagueId}-`)
+          item.name.startsWith(`${leagueId}-`),
       );
       return matchingFile
         ? await getDownloadURL(matchingFile)
@@ -437,7 +443,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
           } else {
             // Fallback to Firebase Storage lookup
             const picture = await fetchPlayerPicture(
-              player.league_id ? player.league_id : ""
+              player.league_id ? player.league_id : "",
             );
             player.picture = picture;
             player.pictureLoading = false;
@@ -446,7 +452,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
           player.picture = "/placeholder.svg";
           player.pictureLoading = false;
         }
-      })
+      }),
     );
 
     setVisibleData(updatedPlayers);
@@ -485,8 +491,12 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     // Set initial state with placeholders or img_url if available
     const playersWithPlaceholders = players.map((player) => ({
       ...player,
-      picture: player.img_url && player.img_url.trim() !== "" ? player.img_url : "/placeholder.svg",
-      pictureLoading: player.img_url && player.img_url.trim() !== "" ? false : true,
+      picture:
+        player.img_url && player.img_url.trim() !== ""
+          ? player.img_url
+          : "/placeholder.svg",
+      pictureLoading:
+        player.img_url && player.img_url.trim() !== "" ? false : true,
     }));
     setVisibleData(playersWithPlaceholders);
 
@@ -520,19 +530,21 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
         "img_url", // Exclude img_url from table display
         "IMG_URL", // Handle uppercase variation
         "Img_Url", // Handle mixed case variation
-      ].map((k) => k.toLowerCase())
+      ].map((k) => k.toLowerCase()),
     );
 
     // Also exclude any key that contains 'img' and 'url'
-    const additionalExclusions = keys.filter(key => {
+    const additionalExclusions = keys.filter((key) => {
       const lowerKey = key.toLowerCase();
-      return (lowerKey.includes('img') && lowerKey.includes('url')) ||
-             lowerKey === 'imgurl' ||
-             lowerKey === 'image_url' ||
-             lowerKey === 'imageurl';
+      return (
+        (lowerKey.includes("img") && lowerKey.includes("url")) ||
+        lowerKey === "imgurl" ||
+        lowerKey === "image_url" ||
+        lowerKey === "imageurl"
+      );
     });
 
-    additionalExclusions.forEach(key => excludedKeys.add(key.toLowerCase()));
+    additionalExclusions.forEach((key) => excludedKeys.add(key.toLowerCase()));
 
     // Define our preferred column order
     const columnOrder = [
@@ -577,6 +589,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     showOnlyMyPicks,
     toggleMyPicks,
     myPicksAvailable,
+    isSeasonView,
   }: {
     teams: string[];
     selectedTeam: string;
@@ -586,6 +599,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     showOnlyMyPicks: boolean;
     toggleMyPicks: () => void;
     myPicksAvailable: boolean;
+    isSeasonView: boolean;
   }) {
     const [isOpen, setIsOpen] = useState(false);
 
@@ -643,25 +657,27 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
             </div>
 
             {/* My Picks Toggle */}
-            <div className="flex items-center justify-between mb-4">
-              <label className="flex items-center text-sm font-medium text-white">
-                <FaUserCheck className="mr-2" />
-                My Picks Only
-              </label>
-              <button
-                onClick={toggleMyPicks}
-                disabled={!myPicksAvailable}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                  showOnlyMyPicks ? "bg-blue-600" : "bg-gray-600"
-                } ${!myPicksAvailable ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    showOnlyMyPicks ? "translate-x-6" : "translate-x-1"
-                  }`}
-                />
-              </button>
-            </div>
+            {!isSeasonView && (
+              <div className="flex items-center justify-between mb-4">
+                <label className="flex items-center text-sm font-medium text-white">
+                  <FaUserCheck className="mr-2" />
+                  My Picks Only
+                </label>
+                <button
+                  onClick={toggleMyPicks}
+                  disabled={!myPicksAvailable}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                    showOnlyMyPicks ? "bg-blue-600" : "bg-gray-600"
+                  } ${!myPicksAvailable ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      showOnlyMyPicks ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+            )}
 
             {/* Dark Mode Toggle */}
             <div className="flex items-center justify-between">
@@ -694,7 +710,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
 
   return (
     <div
-      className={`sticky top-0 md:pt-5 h-[80vh] md:h-[100vh] overflow-visible w-full items-center justify-center mx-auto px-4 `}
+      className={`sticky top-0 md:pt-5 h-[80vh] md:h-[100vh] overflow-visible w-full items-center justify-center mx-auto pb-20 md:pb-0`}
     >
       {/* Compact Filters */}
       <div
@@ -736,6 +752,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                 showOnlyMyPicks={showOnlyMyPicks}
                 toggleMyPicks={() => setShowOnlyMyPicks(!showOnlyMyPicks)}
                 myPicksAvailable={!!myPicks && myPicks.size > 0}
+                isSeasonView={isSeasonView}
               />
             </div>
             {/* Team Filter */}
@@ -765,11 +782,11 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               </div>
             </div>
             <div className="hidden md:flex items-center gap-1 flex-row text-[10px] ">
-
-              <button
-                onClick={() => setShowOnlyMyPicks(!showOnlyMyPicks)}
-                disabled={!myPicks || myPicks.size === 0}
-                className={`
+              {!isSeasonView && (
+                <button
+                  onClick={() => setShowOnlyMyPicks(!showOnlyMyPicks)}
+                  disabled={!myPicks || myPicks.size === 0}
+                  className={`
     px-2 py-1.5 rounded-md text-[10px] flex items-center text-nowrap gap-1
     ${themeClasses.bg} ${themeClasses.border} border
     ${
@@ -779,17 +796,18 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     }
     ${!myPicks || myPicks.size === 0 ? "opacity-50 cursor-not-allowed" : ""}
   `}
-                title={
-                  !myPicks || myPicks.size === 0
-                    ? "You haven't made any picks for this event"
-                    : showOnlyMyPicks
-                    ? "Show all players"
-                    : "Show only my picks"
-                }
-              >
-                <FaUserCheck size={10} />
-                <span>My Picks</span>
-              </button>
+                  title={
+                    !myPicks || myPicks.size === 0
+                      ? "You haven't made any picks for this event"
+                      : showOnlyMyPicks
+                        ? "Show all players"
+                        : "Show only my picks"
+                  }
+                >
+                  <FaUserCheck size={10} />
+                  <span>My Picks</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -980,7 +998,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
 
       {/* Table Container */}
       <div
-        className={`flex items-start overflow-scroll h-[70vh] md:h-[80vh]  rounded-lg shadow-[0_0_0_0.3px_#fff]`}
+        className={`flex items-start overflow-scroll h-[70vh] md:h-[80vh] rounded-lg ${themeClasses.bg}`}
       >
         <table className="w-full relative">
           <thead>
@@ -989,7 +1007,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
             >
               {/* Player Column */}
               <th
-                className={`pl-4 pr-1 justify-center md:border-b/60 border-0 text-[12px] ${themeClasses.headerBg} font-medium font-azonix ${themeClasses.headerText} uppercase sticky left-0 tracking-widerz-40`}
+                className={`pl-4 pr-1 justify-center md:border-b/60 border-0 text-[12px] ${themeClasses.headerBg} font-medium font-azonix ${themeClasses.headerText} uppercase sticky left-0 tracking-widerz-40 min-w-[120px] md:min-w-0`}
               >
                 <div
                   className="flex items-center cursor-pointer"
@@ -1001,7 +1019,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               </th>
               {/* Rank Column */}
               <th
-                className={`pr-2 py-2 text-left text-[12px] ${themeClasses.headerBg} font-medium font-azonix ${themeClasses.headerText} uppercase tracking-wider  md:border-r  z-20`}
+                className={`pr-2 py-2 text-left text-[12px] ${themeClasses.headerBg} font-medium font-azonix ${themeClasses.headerText} uppercase tracking-wider md:border-r z-20 w-20 md:w-24`}
               >
                 <div
                   className="flex items-center cursor-pointer"
@@ -1031,13 +1049,12 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                       "img_url", // Exclude img_url from table display
                       "IMG_URL", // Handle uppercase variation
                       "Img_Url", // Handle mixed case variation
-                    ].includes(key) &&
-                    !key.toLowerCase().includes('img') // Exclude any field containing 'img'
+                    ].includes(key) && !key.toLowerCase().includes("img"), // Exclude any field containing 'img'
                 )
                 .map((key, index) => (
                   <th
                     key={index}
-                    className={`pl-2 p-1 text-left text-[12px] font-medium font-azonix ${themeClasses.headerText} uppercase `}
+                    className={`pl-2 p-1 text-left text-[12px] font-medium font-azonix ${themeClasses.headerText} uppercase w-20 md:w-24 min-w-[80px]`}
                   >
                     <div
                       className="flex items-center cursor-pointer"
@@ -1058,7 +1075,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               >
                 {/* Player Column */}
                 <td
-                  className={`p-2 whitespace-nowrap  sticky left-0 z-0 ${themeClasses.bg}`}
+                  className={`p-2 whitespace-nowrap sticky left-0 z-10 ${themeClasses.bg} shadow-[2px_0_5px_rgba(0,0,0,0.3)] min-w-[120px] md:min-w-0 md:shadow-none`}
                 >
                   <div className="flex items-center">
                     <div className="flex-shrink-0  h-10 w-10 flex items-center justify-center rounded-full overflow-hidden bg-gray-600 md:mr-4 mr-1 relative">
@@ -1116,18 +1133,18 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                       )}
                     </div>
 
-                    <div className="max-w-[35vw] whitespace-normal">
+                    <div className="md:max-w-[35vw] max-w-[100px] whitespace-normal">
                       <div
-                        className={`md:text-[12px] text-[12px] font-azonix font-medium ${
+                        className={`md:text-[12px] text-[10px] font-azonix font-medium ${
                           darkMode ? "text-white" : "text-black"
-                        } flex whitespace-normal`}
+                        } whitespace-normal break-words leading-tight`}
                       >
                         {row.Player}
                       </div>
                       <div
-                        className={`md:text-[12px] text-[10px]  font-azonix ${
+                        className={`md:text-[12px] text-[8px] font-azonix ${
                           darkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
+                        } whitespace-normal break-words leading-tight`}
                       >
                         {row.Team}
                       </div>
@@ -1136,7 +1153,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                 </td>
                 {/* Rank Column */}
                 <td
-                  className={`p-2 whitespace-nowrap md:border-r ${themeClasses.border} px-1 z-10 ${themeClasses.bg}`}
+                  className={`p-2 whitespace-nowrap md:border-r ${themeClasses.border} px-1 z-0 ${themeClasses.bg} w-20 md:w-24`}
                 >
                   <div className="text-center text-[12px] font-azonix font-medium">
                     {row.Rank}
@@ -1177,18 +1194,20 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                       "Img_Url", // Handle mixed case variation
                     ]; // Keys to exclude
                     const lowerKey = key.toLowerCase();
-                    return !excludedKeys.includes(key) &&
-                           !(lowerKey.includes('img') && lowerKey.includes('url')) &&
-                           !['imgurl', 'image_url', 'imageurl'].includes(lowerKey);
+                    return (
+                      !excludedKeys.includes(key) &&
+                      !(lowerKey.includes("img") && lowerKey.includes("url")) &&
+                      !["imgurl", "image_url", "imageurl"].includes(lowerKey)
+                    );
                   })
                   .map(([key, value]) => (
                     <td
-                      key={key} // Use key instead of index for better stability
-                      className={`px-2 py-3 whitespace-nowrap text-[12px] font-bold ${
+                      key={key}
+                      className={`px-2 py-3 whitespace-nowrap text-[10px] md:text-[12px] font-bold ${
                         themeClasses.border
                       } text-center ${
                         darkMode ? "text-gray-300" : "text-gray-500"
-                      }`}
+                      } w-20 md:w-24 min-w-[80px]`}
                     >
                       {value as React.ReactNode}
                     </td>

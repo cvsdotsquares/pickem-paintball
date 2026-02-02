@@ -38,11 +38,8 @@ export async function PATCH(
     if (!leagueId) {
       return NextResponse.json({ error: 'League ID is required' }, { status: 400 });
     }
-
-    console.log('Updating league:', leagueId, 'with data:', body);
     const leagueRef = doc(db, 'leagues', leagueId);
     await updateDoc(leagueRef, body);
-    console.log('League updated successfully');
 
     return NextResponse.json({ success: true });
   } catch (error) {

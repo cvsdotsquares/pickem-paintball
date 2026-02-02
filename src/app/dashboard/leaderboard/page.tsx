@@ -131,6 +131,8 @@ function LeaderboardNewContent() {
   const { selectedLeague } = useLeague();
   const [liveEvent, setLiveEvent] = useState<LiveEvent | null>(null);
   const [allEvents, setAllEvents] = useState<LiveEvent[]>([]);
+  const [isSeasonView, setIsSeasonView] = useState(false);
+  const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [eventLoading, setEventLoading] = useState<boolean>(true);
   const [usersLoading, setUsersLoading] = useState<boolean>(true);
@@ -255,7 +257,7 @@ function LeaderboardNewContent() {
             lockDate: doc.get("lockDate") || null,
             event_logo: doc.get("event_logo") || null,
           };
-        });
+        }).filter(event => event.year !== "2024"); // Filter out 2024 events
 
         // Sort events
         const eventsByYear = events.reduce((acc, event) => {
@@ -305,10 +307,57 @@ function LeaderboardNewContent() {
     fetchEvents();
   }, []);
 
+  // Fetch users for season view
+  useEffect(() => {
+    async function fetchSeasonUsers() {
+      if (!isSeasonView || !selectedSeason) return;
+
+      try {
+        setUsersLoading(true);
+        const usersCollection = collection(db, "users");
+        
+        // Get all users who participated in any 2025 event
+        const season2025Events = allEvents.filter(e => e.year === '2025');
+        const querySnapshot = await getDocs(usersCollection);
+        
+        const seasonUsers: User[] = [];
+        querySnapshot.docs.forEach((userDoc) => {
+          const pickems = userDoc.get("pickems") || {};
+          const hasParticipated = season2025Events.some(event => 
+            Array.isArray(pickems[event.id]) && pickems[event.id].length > 0
+          );
+          
+          if (hasParticipated) {
+            seasonUsers.push({
+              id: userDoc.id,
+              displayName: userDoc.get("name") || userDoc.get("username") || "Unknown User",
+              profilePicture: userDoc.get("profilePicture") || undefined,
+              pickemData: userDoc.get("pickemData") || undefined,
+            });
+          }
+        });
+        
+        // Apply pagination for season view
+        const startIndex = (page - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const paginatedUsers = seasonUsers.slice(startIndex, endIndex);
+        
+        setUsers(paginatedUsers);
+        setHasMorePages(endIndex < seasonUsers.length);
+        setUsersLoading(false);
+      } catch (error) {
+        console.error("Error fetching season users:", error);
+        setUsersLoading(false);
+      }
+    }
+
+    fetchSeasonUsers();
+  }, [isSeasonView, selectedSeason, allEvents, page, itemsPerPage]);
+
   // Fetch users with Firestore sorting by currentRank
   useEffect(() => {
     async function fetchParticipants() {
-      if (!liveEvent || isSearchMode) return;
+      if (!liveEvent || isSearchMode || isSeasonView) return;
 
       try {
         setPageLoading(true);
@@ -333,13 +382,13 @@ function LeaderboardNewContent() {
           // For league filtering, use simpler query without orderBy
           constraints = [
             where('leagues', 'array-contains', selectedLeague.id),
-            limit(itemsPerPage * 3) // Get more docs to sort client-side
+            limit(1000) // Increase limit to get all league members
           ];
         } else {
-          // For all players, use simple orderBy on rank field
+          // For all players, fetch users who participated in this event
           constraints = [
-            orderBy(eventRankField),
-            limit(itemsPerPage * 5), // Get more to filter client-side
+            where(`pickems.${liveEvent.id}`, '!=', null),
+            limit(1000), // Increase limit to get all participants
           ];
         }
 
@@ -351,6 +400,8 @@ function LeaderboardNewContent() {
         const participantsQuery = query(usersCollection, ...constraints);
         const querySnapshot = await getDocs(participantsQuery);
 
+        console.log(`Event: ${liveEvent.id}, Total docs fetched: ${querySnapshot.docs.length}`);
+
         // Check if there are more pages (before filtering)
         const docsBeforeFilter = querySnapshot.docs;
         
@@ -360,6 +411,8 @@ function LeaderboardNewContent() {
           return Array.isArray(pickems[liveEvent.id]) && pickems[liveEvent.id].length > 0;
         });
         
+        console.log(`Event: ${liveEvent.id}, Docs with participation: ${docsWithParticipation.length}`);
+        
         // Check if there are more pages after filtering
         const hasMore = docsWithParticipation.length > itemsPerPage;
         setHasMorePages(hasMore);
@@ -367,7 +420,7 @@ function LeaderboardNewContent() {
         // Get only the required amount of documents
         const docsToDisplay = docsWithParticipation.slice(0, itemsPerPage);
 
-        // Create participants and filter for event participation
+        // Create participants
         let participants: User[] = docsToDisplay
           .map((userDoc) => {
             const userData: User = {
@@ -380,6 +433,16 @@ function LeaderboardNewContent() {
             userData[`${liveEvent.id}PTS`] = userDoc.get(`${liveEvent.id}PTS`);
             userData[`${liveEvent.id}MVP`] = userDoc.get(`${liveEvent.id}MVP`);
             return userData;
+          })
+          .sort((a, b) => {
+            // Sort by rank if available, otherwise by points
+            const aRank = parseInt(a[`${liveEvent.id}Rank`]) || 999999;
+            const bRank = parseInt(b[`${liveEvent.id}Rank`]) || 999999;
+            if (aRank !== bRank) return aRank - bRank;
+            
+            const aPts = parseInt(a[`${liveEvent.id}PTS`]) || 0;
+            const bPts = parseInt(b[`${liveEvent.id}PTS`]) || 0;
+            return bPts - aPts;
           });
 
         // For league filtering, show only league members who participated in current event
@@ -443,7 +506,7 @@ function LeaderboardNewContent() {
     }
 
     fetchParticipants();
-  }, [liveEvent, page, itemsPerPage, isSearchMode, selectedLeague]);
+  }, [liveEvent, page, itemsPerPage, isSearchMode, selectedLeague, isSeasonView]);
 
   // Reset pagination and cache when liveEvent or selectedLeague changes
   useEffect(() => {
@@ -451,6 +514,7 @@ function LeaderboardNewContent() {
       setPage(1);
       setLastDoc(null);
       participantsCache.clear();
+      setExpandedUserId(null); // Close expanded rows when event changes
     }
   }, [liveEvent?.id, selectedLeague?.id]);
 
@@ -601,9 +665,16 @@ function LeaderboardNewContent() {
     } else {
       setExpandedUserId(userId);
       setExpandedUserEventId(null);
-      await fetchUserEvents(userId);
+      if (isSeasonView) {
+        await fetchUserEvents(userId);
+      } else {
+        const cacheKey = liveEvent ? `${userId}:${liveEvent.id}` : userId;
+        if (!userDetailsMap.has(cacheKey) && liveEvent) {
+          await fetchUserDetails(userId, 0, false, liveEvent.id);
+        }
+      }
     }
-  }, [expandedUserId, allEvents]);
+  }, [expandedUserId, liveEvent, userDetailsMap, fetchUserDetails, isSeasonView]);
 
   const toggleEventExpand = useCallback(async (userId: string, eventId: string) => {
     if (expandedUserEventId === eventId) {
@@ -924,9 +995,9 @@ function LeaderboardNewContent() {
   }, [page, hasMorePages, isSearchMode, prefetchedPages, liveEvent, lastDoc, itemsPerPage]);
 
   // Show "No active event" only after loading is complete and no event found
-  if (!eventLoading && !liveEvent) {
+  if (!eventLoading && !liveEvent && !isSeasonView) {
     return (
-      <div className="p-2 pt-0 sm:pt-0 pb-10 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-black text-white">
+      <div className="p-2 pt-0 sm:pt-0 pb-24 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-black text-white">
         <div className="flex items-center justify-center min-h-screen">
           <p className="text-center text-white text-lg">
             No active event currently running.
@@ -937,7 +1008,7 @@ function LeaderboardNewContent() {
   }
 
   return (
-    <div className="p-2 pt-0 sm:pt-0 pb-10 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-black text-white">
+    <div className="p-2 pt-0 sm:pt-0 pb-24 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-black text-white">
       {/* Event Header */}
       <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
         <div
@@ -957,7 +1028,7 @@ function LeaderboardNewContent() {
         <div className="absolute inset-0 bg-black/45 pointer-events-none"></div>
 
         <h1 className="relative font-azonix max-w-full m-auto md:text-7xl text-4xl">
-          Event Leaderboard
+          Leaderboard
         </h1>
       </header>
       {/* Events Carousel */}
@@ -965,12 +1036,57 @@ function LeaderboardNewContent() {
         <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl p-4">
           <h3 className="text-lg font-bold text-white font-azonix mb-4">Select Event</h3>
           <div className="flex flex-row overflow-x-auto gap-4 items-center">
+            {/* Season 2025 Card */}
+            <article
+              onClick={() => {
+                setIsSeasonView(true);
+                setSelectedSeason('2025');
+                setLiveEvent(null);
+                setPage(1);
+                setLastDoc(null);
+                participantsCache.clear();
+              }}
+              className={`relative flex flex-col cursor-pointer md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${
+                isSeasonView && selectedSeason === '2025' ? "border-4 rounded-xl border-white" : ""
+              }`}
+            >
+              <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg logographics">
+                <img
+                  src="/background0.jpg"
+                  alt="Season 2025"
+                  className="absolute inset-0 w-full h-full object-cover rounded-lg"
+                />
+                <div className="relative flex flex-col items-center justify-center p-4 text-white overflow-auto">
+                  <div
+                    className="text-center font-azonix"
+                    style={{
+                      fontSize: "clamp(0.8rem, 2vw, 1.5rem)",
+                      lineHeight: "1.2",
+                    }}
+                  >
+                    Season 2025
+                  </div>
+                  <div
+                    className="text-center font-azonix text-yellow-400"
+                    style={{
+                      fontSize: "clamp(0.5rem, 1.5vw, 1rem)",
+                      lineHeight: "1.2",
+                    }}
+                  >
+                    All Events
+                  </div>
+                </div>
+              </div>
+            </article>
+            
             {allEvents.map((event) => (
               <EventCard
                 key={event.id}
                 event={event}
-                isSelected={liveEvent?.id === event.id}
+                isSelected={!isSeasonView && liveEvent?.id === event.id}
                 onClick={() => {
+                  setIsSeasonView(false);
+                  setSelectedSeason(null);
                   setLiveEvent(event);
                   setPage(1);
                   setLastDoc(null);
@@ -1184,7 +1300,7 @@ function LeaderboardNewContent() {
           </button>
           <button
             onClick={handleNextPage}
-            disabled={!hasMorePages || pageLoading}
+            disabled={!hasMorePages || pageLoading || usersLoading}
             className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors"
           >
             Next
@@ -1222,7 +1338,8 @@ function LeaderboardNewContent() {
               users.map((user, index) => {
                 const userEvents = userEventsMap.get(user.id) || [];
                 const isExpanded = expandedUserId === user.id;
-                const isLoading = userDetailsLoading === user.id;
+                const cacheKey = liveEvent ? `${user.id}:${liveEvent.id}` : user.id;
+                const isLoading = isSeasonView ? false : userDetailsLoading === cacheKey;
 
                 // Get rank from direct field for current live event, fallback to pagination rank
                 let displayRank = isSearchMode ? "-" : (page - 1) * itemsPerPage + index + 1;
@@ -1305,7 +1422,7 @@ function LeaderboardNewContent() {
                       </td>
                     </tr>
 
-                    {/* Expanded row for events list */}
+                    {/* Expanded row for current event details or season events */}
                     <AnimatePresence>
                       {isExpanded && (
                         <motion.tr
@@ -1316,94 +1433,140 @@ function LeaderboardNewContent() {
                           className="bg-gray-800/70"
                         >
                           <td colSpan={5} className="px-2 py-2">
-                            <div className="pb-2">
-                              <h3 className="text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1">
-                                {user.displayName}&apos;s Events
-                              </h3>
-                              {userEvents.length === 0 ? (
-                                <p className="text-xs text-gray-400">No events participated</p>
-                              ) : (
-                                <div className="space-y-2">
-                                  {userEvents.map((event) => {
-                                    const eventCacheKey = `${user.id}:${event.id}`;
-                                    const eventDetails = userDetailsMap.get(eventCacheKey);
-                                    const isEventExpanded = expandedUserEventId === event.id;
-                                    const isEventLoading = userDetailsLoading === eventCacheKey;
-                                    
-                                    return (
-                                      <div key={event.id} className="bg-gray-700/30 rounded">
-                                        <div
-                                          className="flex items-center justify-between p-2 cursor-pointer hover:bg-gray-700/50"
-                                          onClick={() => toggleEventExpand(user.id, event.id)}
-                                        >
-                                          <div className="flex items-center gap-2">
-                                            <span className="text-white text-xs font-medium">{event.name}</span>
-                                            <span className={`text-xs px-2 py-0.5 rounded ${
-                                              event.status === "live" ? "bg-red-500/20 text-red-400" : "bg-gray-600 text-gray-300"
-                                            }`}>
-                                              {event.status}
-                                            </span>
-                                          </div>
-                                          <div className="flex items-center gap-3">
-                                            <div className="text-xs text-gray-400">
-                                              Points: <span className="text-green-400 font-medium">{event.points}</span>
+                            {isSeasonView ? (
+                              <div className="pb-2">
+                                <h3 className="text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1">
+                                  {user.displayName}&apos;s Events
+                                </h3>
+                                {userEvents.length === 0 ? (
+                                  <p className="text-xs text-gray-400">No events participated</p>
+                                ) : (
+                                  <div className="space-y-2">
+                                    {userEvents.map((event) => {
+                                      const eventCacheKey = `${user.id}:${event.id}`;
+                                      const eventDetails = userDetailsMap.get(eventCacheKey);
+                                      const isEventExpanded = expandedUserEventId === event.id;
+                                      const isEventLoading = userDetailsLoading === eventCacheKey;
+                                      
+                                      // Calculate MVP from picks (rank 1 player)
+                                      const mvpPlayer = eventDetails?.picks.find(pick => pick.rank === 1 || pick.rank === "1");
+                                      const mvpName = mvpPlayer?.name || "None";
+                                      
+                                      return (
+                                        <div key={event.id} className="bg-gray-700/30 rounded">
+                                          <div
+                                            className="flex items-center justify-between p-2 cursor-pointer hover:bg-gray-700/50"
+                                            onClick={() => toggleEventExpand(user.id, event.id)}
+                                          >
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-white text-xs font-medium">{event.name}</span>
+                                              <span className={`text-xs px-2 py-0.5 rounded ${
+                                                event.status === "live" ? "bg-red-500/20 text-red-400" : "bg-gray-600 text-gray-300"
+                                              }`}>
+                                                {event.status}
+                                              </span>
                                             </div>
-                                            <div className="text-xs text-gray-400">
-                                              MVP: <span className="text-yellow-400">{event.mvp}</span>
+                                            <div className="flex items-center gap-3">
+                                              <div className="text-xs text-gray-400">
+                                                Points: <span className="text-green-400 font-medium">{event.points}</span>
+                                              </div>
+                                              {eventDetails && (
+                                                <div className="text-xs text-gray-400">
+                                                  MVP: <span className="text-yellow-400">{mvpName}</span>
+                                                </div>
+                                              )}
+                                              {isEventLoading ? (
+                                                <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-blue-500"></div>
+                                              ) : isEventExpanded ? (
+                                                <FaChevronUp className="text-gray-400 text-xs" />
+                                              ) : (
+                                                <FaChevronDown className="text-gray-400 text-xs" />
+                                              )}
                                             </div>
-                                            {isEventLoading ? (
-                                              <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-blue-500"></div>
-                                            ) : isEventExpanded ? (
-                                              <FaChevronUp className="text-gray-400 text-xs" />
-                                            ) : (
-                                              <FaChevronDown className="text-gray-400 text-xs" />
-                                            )}
                                           </div>
-                                        </div>
-                                        <AnimatePresence>
-                                          {isEventExpanded && eventDetails && (
-                                            <motion.div
-                                              initial={{ opacity: 0, height: 0 }}
-                                              animate={{ opacity: 1, height: "auto" }}
-                                              exit={{ opacity: 0, height: 0 }}
-                                              transition={{ duration: 0.2 }}
-                                              className="border-t border-gray-700/50 p-2"
-                                            >
-                                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
-                                                {eventDetails.picks
-                                                  .slice()
-                                                  .sort((a, b) => {
-                                                    if (b.kills !== a.kills) return b.kills - a.kills;
-                                                    return a.name.localeCompare(b.name);
-                                                  })
-                                                  .map((pick) => (
-                                                    <div
-                                                      key={pick.id}
-                                                      className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors"
-                                                    >
-                                                      <div className="grid grid-cols-2 gap-x-4 text-xs">
-                                                        <div>
-                                                          <div className="text-white font-medium truncate mb-1">{pick.name}</div>
-                                                          <div className="text-gray-400">Rank: <span className="text-white">{pick.rank ?? 0}</span></div>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                          <div className="text-gray-400">Confirmed Kills: <span className="text-green-400 font-medium">{pick.kills}</span></div>
-                                                          <div className="text-gray-400">Cost: <span className="text-white">${pick.cost}</span></div>
-                                                          <div className="text-gray-400">ROI: <span className="text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(0)}</span></div>
+                                          <AnimatePresence>
+                                            {isEventExpanded && eventDetails && (
+                                              <motion.div
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: "auto" }}
+                                                exit={{ opacity: 0, height: 0 }}
+                                                transition={{ duration: 0.2 }}
+                                                className="border-t border-gray-700/50 p-2"
+                                              >
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                                                  {eventDetails.picks
+                                                    .slice()
+                                                    .sort((a, b) => {
+                                                      if (b.kills !== a.kills) return b.kills - a.kills;
+                                                      return a.name.localeCompare(b.name);
+                                                    })
+                                                    .map((pick) => (
+                                                      <div
+                                                        key={pick.id}
+                                                        className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors"
+                                                      >
+                                                        <div className="grid grid-cols-2 gap-x-4 text-xs">
+                                                          <div>
+                                                            <div className="text-white font-medium truncate mb-1">{pick.name}</div>
+                                                            <div className="text-gray-400">Rank: <span className="text-white">{pick.rank ?? 0}</span></div>
+                                                          </div>
+                                                          <div className="space-y-1">
+                                                            <div className="text-gray-400">Confirmed Kills: <span className="text-green-400 font-medium">{pick.kills}</span></div>
+                                                            <div className="text-gray-400">Cost: <span className="text-white">${pick.cost}</span></div>
+                                                            <div className="text-gray-400">ROI: <span className="text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(0)}</span></div>
+                                                          </div>
                                                         </div>
                                                       </div>
-                                                    </div>
-                                                  ))}
-                                              </div>
-                                            </motion.div>
-                                          )}
-                                        </AnimatePresence>
+                                                    ))}
+                                                </div>
+                                              </motion.div>
+                                            )}
+                                          </AnimatePresence>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            ) : isLoading ? (
+                              <div className="flex items-center justify-center py-4">
+                                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+                              </div>
+                            ) : userDetailsMap.has(liveEvent ? `${user.id}:${liveEvent.id}` : user.id) ? (
+                              <div className="pb-2">
+                                <h3 className="text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1">
+                                  {user.displayName}&apos;s Team
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                                  {userDetailsMap.get(liveEvent ? `${user.id}:${liveEvent.id}` : user.id)?.picks
+                                    .slice()
+                                    .sort((a, b) => {
+                                      if (b.kills !== a.kills) return b.kills - a.kills;
+                                      return a.name.localeCompare(b.name);
+                                    })
+                                    .map((pick) => (
+                                      <div
+                                        key={pick.id}
+                                        className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors"
+                                      >
+                                        <div className="grid grid-cols-2 gap-x-4 text-xs">
+                                          <div>
+                                            <div className="text-white font-medium truncate mb-1">{pick.name}</div>
+                                            <div className="text-gray-400">Rank: <span className="text-white">{pick.rank ?? 0}</span></div>
+                                          </div>
+                                          <div className="space-y-1">
+                                            <div className="text-gray-400">Confirmed Kills: <span className="text-green-400 font-medium">{pick.kills}</span></div>
+                                            <div className="text-gray-400">Cost: <span className="text-white">${pick.cost}</span></div>
+                                            <div className="text-gray-400">ROI: <span className="text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(0)}</span></div>
+                                          </div>
+                                        </div>
                                       </div>
-                                    );
-                                  })}
+                                    ))}
                                 </div>
-                              )}
-                            </div>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-gray-400 py-2">No team data available</p>
+                            )}
                           </td>
                         </motion.tr>
                       )}
@@ -1425,43 +1588,45 @@ function LeaderboardNewContent() {
       </div>
 
       {/* Pagination - Bottom */}
-      {!isSearchMode && users.length > 0 && (
-        <div className="flex flex-row items-center justify-between mt-4 gap-2 mb-7 sm:mb-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-300">Rows:</span>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-              disabled={pageLoading}
-              className="bg-gray-800 text-white text-xs rounded px-2 py-1 border border-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {PAGE_SIZES.map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
-          </div>
+      {
+      // !isSearchMode && users.length > 0 && (
+      //   <div className="flex flex-row items-center justify-between mt-4 gap-2 mb-7 sm:mb-0">
+      //     <div className="flex items-center gap-2">
+      //       <span className="text-xs text-gray-300">Rows:</span>
+      //       <select
+      //         value={itemsPerPage}
+      //         onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+      //         disabled={pageLoading}
+      //         className="bg-gray-800 text-white text-xs rounded px-2 py-1 border border-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+      //       >
+      //         {PAGE_SIZES.map((size) => (
+      //           <option key={size} value={size}>
+      //             {size}
+      //           </option>
+      //         ))}
+      //       </select>
+      //     </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-300">Page {page}</span>
-            <button
-              onClick={handlePreviousPage}
-              disabled={page === 1 || pageLoading}
-              className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors border border-gray-700"
-            >
-              Prev
-            </button>
-            <button
-              onClick={handleNextPage}
-              disabled={!hasMorePages || pageLoading}
-              className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors border border-gray-700"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
+      //     <div className="flex items-center gap-2">
+      //       <span className="text-xs text-gray-300">Page {page}</span>
+      //       <button
+      //         onClick={handlePreviousPage}
+      //         disabled={page === 1 || pageLoading}
+      //         className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors border border-gray-700"
+      //       >
+      //         Prev
+      //       </button>
+      //       <button
+      //         onClick={handleNextPage}
+      //         disabled={!hasMorePages || pageLoading}
+      //         className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors border border-gray-700"
+      //       >
+      //         Next
+      //       </button>
+      //     </div>
+      //   </div>
+      // )
+      }
       {/* League Modals */}
       <CreateLeagueModal 
         isOpen={showCreateLeague} 

@@ -82,8 +82,7 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
           });
           
           const resolvedMembers = (await Promise.all(memberPromises)).filter(Boolean) as LeagueMember[];
-          console.log('Resolved members:', resolvedMembers);
-          console.log('League members array:', league.members);
+          
           setMembers(resolvedMembers);
         }
         

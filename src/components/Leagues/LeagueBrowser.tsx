@@ -25,19 +25,7 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
 
   const getLeagueIconUrl = (league: League): string | null => {
     if (!league.icon) return null;
-    
-    let iconUrl = league.icon;
-    
-    // If it's already a full URL, decode HTML entities
-    if (iconUrl.startsWith('http')) {
-      iconUrl = iconUrl.replace(/&amp;/g, '&');
-      return iconUrl;
-    }
-    
-    // Otherwise, convert storage path to URL
-    const url = getFirebaseStorageUrl(iconUrl);
-    console.log('Generated URL for', league.name, ':', url);
-    return url;
+    return getFirebaseStorageUrl(league.icon);
   };
 
   useEffect(() => {
@@ -55,9 +43,9 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
       
       const response = await fetch(endpoint);
       const data = await response.json();
-      console.log('Fetched leagues:', data.leagues);
+  
       data.leagues?.forEach((league: League) => {
-        console.log(`League: ${league.name}, Icon: ${league.icon}`);
+   
       });
       setLeagues(data.leagues || []);
     } catch (error) {

@@ -54,7 +54,7 @@ export default function SeasonTotalsPage() {
       setError(null);
       
       try {
-        console.log(`Fetching season data for: ${selectedYear}`);
+  
         
         const seasonPlayersQuery = query(
           collection(db, `players/season_${selectedYear}/players`),
@@ -100,7 +100,7 @@ export default function SeasonTotalsPage() {
         
         setSeasonPlayers(players);
         setFilteredPlayers(players);
-        console.log(`Loaded ${players.length} season players`);
+     
         
       } catch (error) {
         console.error("Error fetching season data:", error);
@@ -448,44 +448,6 @@ export default function SeasonTotalsPage() {
           </div>
         )}
 
-        {/* Pagination - Bottom */}
-        {!loading && !error && filteredPlayers.length > 0 && (
-          <div className="flex flex-row items-center justify-between mt-4 gap-2 mb-7 sm:mb-0">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-300">Rows:</span>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                disabled={loading}
-                className="bg-gray-800 text-white text-xs rounded px-2 py-1 border border-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-              >
-                {PAGE_SIZES.map((size) => (
-                  <option key={size} value={size}>
-                    {size}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-300">Page {page} of {totalPages}</span>
-              <button
-                onClick={handlePreviousPage}
-                disabled={page === 1 || loading}
-                className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors border border-gray-700"
-              >
-                Prev
-              </button>
-              <button
-                onClick={handleNextPage}
-                disabled={page >= totalPages || loading}
-                className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors border border-gray-700"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Empty State */}
         {!loading && !error && filteredPlayers.length === 0 && (

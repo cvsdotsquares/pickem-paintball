@@ -92,7 +92,7 @@ function AccountSettings() {
           );
         }
         setMessage("Profile picture updated!");
-        console.log("Profile picture storage path:", storagePath);
+    
       } catch (err: any) {
         setError(err.message);
       }

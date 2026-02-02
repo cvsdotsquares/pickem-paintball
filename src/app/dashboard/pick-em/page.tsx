@@ -771,32 +771,22 @@ export default function Pickems() {
   const fetchTeamLogo = async (teamId: string): Promise<string> => {
     const storage = getStorage();
     const folderPath = `t-logo/`; // Path to the folder containing team logos
-    const storageRef = ref(storage, folderPath);
-
-    console.log(`[fetchTeamLogo] Starting fetch for teamId: ${teamId}`); // Debug log
+    const storageRef = ref(storage, folderPath)
 
     try {
       const fileList = await listAll(storageRef);
-      console.log(
-        `[fetchTeamLogo] Found ${fileList.items.length} items in folder`
-      ); // Debug log
+  
 
       const matchingFile = fileList.items.find((item) => {
         const matches = item.name.startsWith(`${teamId}_`);
-        console.log(
-          `[fetchTeamLogo] Checking item ${item.name} - matches: ${matches}`
-        ); // Debug log
+     
         return matches;
       });
 
       if (matchingFile) {
-        console.log(
-          `[fetchTeamLogo] Found matching file: ${matchingFile.name}`
-        ); // Debug log
+     
         const url = await getDownloadURL(matchingFile);
-        console.log(
-          `[fetchTeamLogo] Successfully got URL for ${teamId}: ${url}`
-        ); // Debug log
+  
         return url;
       } else {
         console.warn(

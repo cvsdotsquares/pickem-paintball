@@ -138,9 +138,9 @@ export default function Statistics() {
     fetchLivePicks();
   }, [user, selectedEvent]);
 
-  // Get unique years for filter
+  // Get unique years for filter, excluding 2024
   const years = useMemo(() => {
-    const uniqueYears = new Set(eventsList.map((event) => event.year));
+    const uniqueYears = new Set(eventsList.map((event) => event.year).filter(year => year !== "2024"));
     return [
       "All",
       ...Array.from(uniqueYears).sort(
@@ -149,10 +149,10 @@ export default function Statistics() {
     ];
   }, [eventsList]);
 
-  // Filter events by selected year
+  // Filter events by selected year, excluding 2024
   const filteredEvents = useMemo(() => {
-    if (selectedYear === "All") return eventsList;
-    return eventsList.filter((event) => event.year === selectedYear);
+    const filtered = selectedYear === "All" ? eventsList : eventsList.filter((event) => event.year === selectedYear);
+    return filtered.filter((event) => event.year !== "2024");
   }, [eventsList, selectedYear]);
 
   interface LogoCardProps {
@@ -237,10 +237,9 @@ export default function Statistics() {
   // Fetch season data when season table is shown
   useEffect(() => {
     async function fetchSeasonData() {
-      console.log('fetchSeasonData called, showSeasonTable:', showSeasonTable);
+    
       if (!showSeasonTable) {
-        setRowData([]);
-        return;
+        return; // Don't clear data if not showing season table
       }
       
       const yearToFetch = selectedYear === "All" ? selectedSeasonYear || "2025" : selectedYear;
@@ -296,8 +295,7 @@ export default function Statistics() {
           
           return playerData;
         });
-        
-        console.log('Season players loaded:', seasonPlayers);
+
         setRowData(seasonPlayers);
         setCurrentPage(1);
         
@@ -335,8 +333,7 @@ export default function Statistics() {
   useEffect(() => {
     async function fetchPlayers() {
       if (!selectedEvent || showSeasonTable) {
-        if (!showSeasonTable) setRowData([]); // Clear data when no event selected
-        return;
+        return; // Don't clear data, let other useEffect handle it
       }
       
       try {
@@ -436,6 +433,8 @@ export default function Statistics() {
     }
   };
 
+
+  console.log("Rendered Statistics with selectedEvent:", selectedEvent);
   return (
     <div className="relative left-0 flex flex-col w-auto scroll-smooth overflow-y-scroll font-inter pb-20">
       <div>
@@ -468,7 +467,10 @@ export default function Statistics() {
               {years.map((year) => (
                 <button
                   key={year}
-                  onClick={() => setSelectedYear(year ? year : "")}
+                  onClick={() => {
+                    setSelectedYear(year ? year : "");
+                    // Don't clear selected event when changing year filter
+                  }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium ${
                     selectedYear === year
                       ? "bg-white text-black"
@@ -533,94 +535,44 @@ export default function Statistics() {
             {showSeasonTable ? (
               // Season Table
               <>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-white font-azonix">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
+                  <h3 className="text-lg md:text-xl font-bold text-white font-azonix">
                     Season {selectedYear === "All" ? selectedSeasonYear || "2025" : selectedYear} - Player Rankings
                   </h3>
-                  <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
+                  <span className="bg-blue-500 text-white px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm whitespace-nowrap">
                     SEASON TOTALS
                   </span>
                 </div>
                 <MatchupTable
-                  data={sortedRowData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)}
+                  data={sortedRowData}
                   sortConfig={sortConfig}
                   onSortChange={setSortConfig}
                   myPicks={livePicks}
+                  isSeasonView={true}
                 />
                 
-                {sortedRowData.length > itemsPerPage && (
-                  <div className="flex justify-between items-center mt-4 text-white">
-                    <div className="text-sm">
-                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, sortedRowData.length)} of {sortedRowData.length} players
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        disabled={currentPage === 1}
-                        className="px-3 py-1 bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600"
-                      >
-                        Previous
-                      </button>
-                      <span className="px-3 py-1 bg-gray-800 rounded">
-                        {currentPage} of {Math.ceil(sortedRowData.length / itemsPerPage)}
-                      </span>
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(sortedRowData.length / itemsPerPage)))}
-                        disabled={currentPage === Math.ceil(sortedRowData.length / itemsPerPage)}
-                        className="px-3 py-1 bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                )}
+              
               </>
             ) : (
               // Individual Event Table
               <>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-white font-azonix">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
+                  <h3 className="text-lg md:text-xl font-bold text-white font-azonix">
                     {selectedEvent?.name || 'Select Event'} - Player Stats
                   </h3>
                   {selectedEvent?.status === 'live' && (
-                    <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm animate-pulse">
+                    <span className="bg-red-500 text-white px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm animate-pulse whitespace-nowrap">
                       🔴 LIVE
                     </span>
                   )}
                 </div>
                 <MatchupTable
-                  data={rowData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)}
+                  data={rowData}
                   sortConfig={sortConfig}
                   onSortChange={setSortConfig}
                   myPicks={livePicks}
                 />
-                
-                {rowData.length > itemsPerPage && (
-                  <div className="flex justify-between items-center mt-4 text-white">
-                    <div className="text-sm">
-                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, rowData.length)} of {rowData.length} players
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        disabled={currentPage === 1}
-                        className="px-3 py-1 bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600"
-                      >
-                        Previous
-                      </button>
-                      <span className="px-3 py-1 bg-gray-800 rounded">
-                        {currentPage} of {Math.ceil(rowData.length / itemsPerPage)}
-                      </span>
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(rowData.length / itemsPerPage)))}
-                        disabled={currentPage === Math.ceil(rowData.length / itemsPerPage)}
-                        className="px-3 py-1 bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                )}
+        
               </>
             )}
           </div>

@@ -11,6 +11,7 @@ import LeagueBrowser from './LeagueBrowser';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '@/src/hooks/useToast';
 import Toast from '../ui/Toast';
+import { getFirebaseStorageUrl } from '@/src/lib/storage';
 
 interface LeagueSelectorProps {
   onCreateLeague: () => void;
@@ -34,11 +35,7 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
   };
 
   const isSelectedLeagueAdmin = selectedLeague && user && selectedLeague.admins?.includes(user.uid);
-  
-  console.log('Selected League:', selectedLeague?.name);
-  console.log('User ID:', user?.uid);
-  console.log('League Admins:', selectedLeague?.admins);
-  console.log('Is Admin:', isSelectedLeagueAdmin);
+
 
   // Leave league handler
   const handleLeaveLeague = async () => {
@@ -121,7 +118,7 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
           >
             <div className="flex items-center gap-2">
               {selectedLeague?.icon ? (
-                <img src={selectedLeague.icon} alt={selectedLeague.name} className="w-5 h-5 rounded object-cover" />
+                <img src={getFirebaseStorageUrl(selectedLeague.icon)} alt={selectedLeague.name} className="w-5 h-5 rounded object-cover" />
               ) : selectedLeague ? (
                 <div className="w-5 h-5 rounded bg-gray-600 flex items-center justify-center text-xs">
                   {selectedLeague.name.charAt(0)}
@@ -160,7 +157,7 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {league.icon ? (
-                        <img src={league.icon} alt={league.name} className="w-6 h-6 rounded object-cover" />
+                        <img src={getFirebaseStorageUrl(league.icon)} alt={league.name} className="w-6 h-6 rounded object-cover" />
                       ) : (
                         <div className="w-6 h-6 rounded bg-gray-600 flex items-center justify-center text-xs">
                           {league.name.charAt(0)}
@@ -224,7 +221,7 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               {selectedLeague.icon ? (
-                <img src={selectedLeague.icon} alt={selectedLeague.name} className="w-12 h-12 rounded-lg object-cover" />
+                <img src={getFirebaseStorageUrl(selectedLeague.icon)} alt={selectedLeague.name} className="w-12 h-12 rounded-lg object-cover" />
               ) : (
                 <div className="w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center text-xl font-bold">
                   {selectedLeague.name.charAt(0)}
