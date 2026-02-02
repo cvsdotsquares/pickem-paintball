@@ -62,15 +62,29 @@ async function migratePlayersToNewCollection() {
           const playerId = playerDoc.id;
           const playerData = playerDoc.data();
           
+          // Debug: Print first player data to see structure
+          if (seasonPlayers.size === 0) {
+            console.log('🔍 Sample player data structure:', {
+              playerId,
+              hasImages: !!playerData.images,
+              imagesKeys: playerData.images ? Object.keys(playerData.images) : [],
+              img_url: playerData.img_url,
+              picture: playerData.picture,
+              profilePicture: playerData.profilePicture,
+              images_img_url: playerData.images?.img_url
+            });
+          }
+          
           // Get or create player entry
           if (!seasonPlayers.has(playerId)) {
+            const imgUrl = playerData.images?.img_url || playerData.img_url || playerData.picture || playerData.profilePicture || '';
             seasonPlayers.set(playerId, {
               playerId: playerId,
               playerName: playerData.Player || 'Unknown Player',
               playerNumber: playerData.Number || '',
               team: playerData.Team || 'Unknown Team',
-              profilePicture: playerData.picture || playerData.profilePicture || '',
-              img_url: playerData.img_url || '',
+              profilePicture: playerData.images?.img_url || playerData.picture || playerData.profilePicture || '',
+              img_url: playerData.images?.img_url || playerData.img_url || '',
               season: season,
               eventsParticipated: 0,
               totalConfirmedKills: 0,
@@ -93,14 +107,14 @@ async function migratePlayersToNewCollection() {
             player.team = playerData.Team;
           }
           
-          // Update profile picture if missing
-          if (!player.profilePicture && (playerData.picture || playerData.profilePicture)) {
-            player.profilePicture = playerData.picture || playerData.profilePicture;
+          // Update profile picture if missing - try multiple fields including images.img_url
+          if (!player.profilePicture) {
+            player.profilePicture = playerData.images?.img_url || playerData.picture || playerData.profilePicture || playerData.img_url || '';
           }
           
-          // Update img_url if missing
-          if (!player.img_url && playerData.img_url) {
-            player.img_url = playerData.img_url;
+          // Update img_url if missing - try multiple fields including images.img_url
+          if (!player.img_url) {
+            player.img_url = playerData.images?.img_url || playerData.img_url || playerData.picture || playerData.profilePicture || '';
           }
           
           // Add event data as key in player document
