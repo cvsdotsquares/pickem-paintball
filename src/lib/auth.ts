@@ -119,10 +119,11 @@ export const uploadLeagueIcon = async (file: File, leagueId: string): Promise<st
     if (!auth.currentUser) {
         throw new Error("No authenticated user found");
     }
-    const storagePath = `league-icons/${leagueId}_icon_200x200`;
+    const timestamp = Date.now();
+    const fileExtension = file.type.split('/')[1] || 'jpeg';
+    const storagePath = `league-icons/${leagueId}_${timestamp}.${fileExtension}`;
     const storageRef: StorageReference = ref(storage, storagePath);
     await uploadBytes(storageRef, file);
-    // Get and return the download URL
     const downloadURL = await getDownloadURL(storageRef);
     return downloadURL;
 };
