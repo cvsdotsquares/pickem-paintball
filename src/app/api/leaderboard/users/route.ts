@@ -78,9 +78,20 @@ export async function GET(request: Request) {
     }
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get('eventId');
+    const leagueId = searchParams.get('leagueId');
 
     if (!eventId) {
       return NextResponse.json({ error: 'Event ID required' }, { status: 400 });
+    }
+
+    // If leagueId is provided, filter by league members
+    let leagueMembers: string[] | null = null;
+    if (leagueId) {
+      const leagueRef = doc(db, 'leagues', leagueId);
+      const leagueDoc = await getDoc(leagueRef);
+      if (leagueDoc.exists()) {
+        leagueMembers = leagueDoc.data().members || [];
+      }
     }
 
     const usersRef = collection(db, 'users');

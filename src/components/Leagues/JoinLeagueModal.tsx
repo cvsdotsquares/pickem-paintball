@@ -183,7 +183,7 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
           {/* Search Leagues Tab */}
           {activeTab === 'search' && (
             <div className="space-y-4">
-              <div className="flex gap-2">
+              <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="flex gap-2">
                 <input
                   type="text"
                   value={searchTerm}
@@ -192,13 +192,13 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
                   placeholder="Search public leagues..."
                 />
                 <button
-                  onClick={handleSearch}
+                  type="submit"
                   disabled={loading}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors"
                 >
                   <FaSearch />
                 </button>
-              </div>
+              </form>
 
               {/* Search Results */}
               <div className="space-y-2 max-h-60 overflow-y-auto">

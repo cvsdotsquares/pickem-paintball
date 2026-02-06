@@ -108,10 +108,9 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
           onClose={() => hideToast(toast.id)}
         />
       ))}
-    <div className="relative">
-      {/* League Selector Dropdown */}
+    <div className="relative ">
       <div className="flex gap-2 items-center mb-4">
-        <div className="relative flex-1">
+         <div className="relative flex-1">
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="w-full flex items-center justify-between px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
@@ -178,6 +177,9 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
             </div>
           )}
         </div>
+      </div>
+      {/* League Selector Dropdown */}
+      <div className="flex flex-wrap gap-2 items-center mb-4">
 
         {/* Action Buttons */}
         <button
@@ -214,7 +216,6 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
           </button>
         )}
       </div>
-
       {/* Selected League Info */}
       {selectedLeague && (
         <div className="mb-4 p-4 bg-blue-900/30 border border-blue-500/30 rounded-lg">

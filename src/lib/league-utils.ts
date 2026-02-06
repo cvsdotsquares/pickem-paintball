@@ -94,20 +94,12 @@ export const searchPublicLeagues = async (searchTerm: string = ''): Promise<Leag
 
 // Get user's leagues
 export const getUserLeagues = async (userId: string): Promise<League[]> => {
-  const userDoc = await getDoc(doc(db, 'users', userId));
-  const userData = userDoc.data();
+  const response = await fetch(`/api/leagues/user/${userId}`);
   
-  if (!userData?.leagues || userData.leagues.length === 0) {
-    return [];
+  if (!response.ok) {
+    throw new Error('Failed to fetch user leagues');
   }
 
-  const leagues: League[] = [];
-  for (const leagueId of userData.leagues) {
-    const leagueDoc = await getDoc(doc(db, 'leagues', leagueId));
-    if (leagueDoc.exists()) {
-      leagues.push({ id: leagueDoc.id, ...leagueDoc.data() } as League);
-    }
-  }
-
-  return leagues;
+  const data = await response.json();
+  return data.leagues;
 };
