@@ -696,7 +696,14 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                     <div className="text-white font-medium">League Icon</div>
                     <div className="text-sm text-gray-400">Upload a custom icon for your league (max 2MB)</div>
                     {league.icon && (
-                      <img src={league.icon} alt="League icon" className="mt-2 w-16 h-16 rounded-lg object-cover" />
+                      <img 
+                        src={league.icon.startsWith('http') ? league.icon : `https://firebasestorage.googleapis.com/v0/b/${league.icon}`} 
+                        alt="League icon" 
+                        className="mt-2 w-16 h-16 rounded-lg object-cover" 
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
                     )}
                   </div>
                   <label className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 cursor-pointer">
