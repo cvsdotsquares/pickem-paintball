@@ -40,7 +40,7 @@ const UserHead: React.FC<UserHeadProps> = ({
 
         {/* Action Icons Section */}
         <div className="flex gap-2 items-center">
-          {/* <SupportButton /> */}
+          <SupportButton />
           <NotificationBell />
           <Link
             href={"/dashboard/profile"}

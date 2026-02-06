@@ -67,13 +67,13 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
       const userDoc = await fetch(`/api/users/${user.uid}/subscription`);
       const { isSubscribed } = await userDoc.json();
       
-      // if (!isSubscribed) {
-      //   setLoading(false);
-      //   onClose();
-      //   // Trigger hard-gate modal from parent
-      //   window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate' } }));
-      //   return;
-      // }
+      if (!isSubscribed) {
+        setLoading(false);
+        onClose();
+        // Trigger hard-gate modal from parent
+        window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate' } }));
+        return;
+      }
 
       const settings = {
         isPublic: formData.isPublic,
