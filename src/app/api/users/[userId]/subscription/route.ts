@@ -16,7 +16,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     
     return NextResponse.json({
       isSubscribed: userData.isSubscribed || false,
-      subscriptionTier: userData.subscriptionTier || null
+      subscriptionTier: userData.subscriptionTier || null,
+      stripeCustomerId: userData.stripeCustomerId || null,
+      stripeSubscriptionId: userData.stripeSubscriptionId || null,
+      currentPeriodEnd: userData.subscriptionCurrentPeriodEnd || null,
+      cancelAtPeriodEnd: userData.subscriptionCancelAtPeriodEnd || false
     });
   } catch (error) {
     console.error('Error checking subscription:', error);

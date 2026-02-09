@@ -5,6 +5,7 @@ import { doc, getDoc } from "firebase/firestore";
 import AccountSettings from "@/src/components/Dashboard/settings";
 import Badge from "@/src/components/ui/Badge";
 import { Tabs } from "@/src/components/ui/Tabs";
+import SubscriptionManager from "@/src/components/Subscription/SubscriptionManager";
 import Link from "next/link";
 import { BiMapPin, BiPlusCircle } from "react-icons/bi";
 import { FaPersonRunning } from "react-icons/fa6";
@@ -212,6 +213,11 @@ function ProfilePage() {
             <div className="relative w-full md:w-auto flex flex-col px-5 md:px-3 gap-6 pt-1 md:pt-5 md:pb-5 pb-10 font-sans">
               <h1 className="text-3xl font-azonix">Change account settings!</h1>
               <AccountSettings />
+              
+              <div className="mt-8">
+                <h2 className="text-2xl font-azonix text-white mb-4">Subscription</h2>
+                <SubscriptionManager />
+              </div>
             </div>
           </div>
         </div>
