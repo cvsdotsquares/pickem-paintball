@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FaTimes, FaCheck } from 'react-icons/fa';
+import { useAuth } from '@/src/contexts/authProvider';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ const MODAL_CONTENT = {
 };
 
 export default function SubscriptionModal({ isOpen, onClose, type, onContinueFree }: SubscriptionModalProps) {
+  const { user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState('quarterly');
   const [loading, setLoading] = useState(false);
   const [plans, setPlans] = useState<any[]>([]);
@@ -48,12 +50,17 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
   }, [isOpen]);
 
   const handleSubscribe = async () => {
+    if (!user) {
+      alert('Please login to subscribe');
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: selectedPlan })
+        body: JSON.stringify({ plan: selectedPlan, userId: user.uid })
       });
 
       const { url } = await response.json();
