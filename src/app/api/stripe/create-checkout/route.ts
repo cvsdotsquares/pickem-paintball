@@ -24,6 +24,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
 
+    // Get the base URL from request headers
+    const host = request.headers.get('host');
+    const protocol = request.headers.get('x-forwarded-proto') || 'http';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL || `${protocol}://${host}`;
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -31,8 +36,8 @@ export async function POST(request: NextRequest) {
         price: PRICE_IDS[plan as keyof typeof PRICE_IDS],
         quantity: 1,
       }],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL}/dashboard?subscription=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL}/dashboard?subscription=cancelled`,
+      success_url: `${baseUrl}/dashboard?subscription=success`,
+      cancel_url: `${baseUrl}/dashboard?subscription=cancelled`,
       metadata: {
         userId: userId
       }

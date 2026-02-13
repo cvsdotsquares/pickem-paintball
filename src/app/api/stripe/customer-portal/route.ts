@@ -29,9 +29,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No customer ID found' }, { status: 400 });
     }
 
+    // Get the base URL from request headers
+    const host = request.headers.get('host');
+    const protocol = request.headers.get('x-forwarded-proto') || 'http';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL || `${protocol}://${host}`;
+
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/profile`,
+      return_url: `${baseUrl}/dashboard/profile`,
     });
 
     return NextResponse.json({ url: session.url });
