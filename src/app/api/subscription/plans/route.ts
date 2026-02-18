@@ -11,7 +11,7 @@ const PRICE_IDS = {
 
 export async function GET() {
   try {
-    const plans = [];
+    const plansMap: Record<string, any> = {};
 
     // Fetch each price from Stripe
     for (const [key, priceId] of Object.entries(PRICE_IDS)) {
@@ -22,6 +22,14 @@ export async function GET() {
       const product = price.product as Stripe.Product;
       const amount = price.unit_amount ? (price.unit_amount / 100).toFixed(2) : '0.00';
       
+      console.log(`\n=== ${key.toUpperCase()} Plan ===`);
+      console.log('Product Name:', product.name);
+      console.log('Product Metadata:', product.metadata);
+      console.log('Has features in metadata:', !!product.metadata?.features);
+      if (product.metadata?.features) {
+        console.log('Features:', product.metadata.features);
+      }
+      
       let period = '';
       let savings = '';
       let popular = false;
@@ -30,18 +38,18 @@ export async function GET() {
         if (price.recurring.interval === 'month') {
           if (price.recurring.interval_count === 1) {
             period = '/month';
+            popular = true; // Monthly is most popular
+            savings = 'Save 14%';
           } else if (price.recurring.interval_count === 3) {
-            period = '/3 months';
-            savings = 'Save 13%';
-            popular = true;
+            period = '/event';
           }
         } else if (price.recurring.interval === 'year') {
           period = '/year';
-          savings = 'Save 25%';
+          savings = 'Save 19%';
         }
       }
 
-      plans.push({
+      plansMap[key] = {
         id: key,
         name: product.name || key.charAt(0).toUpperCase() + key.slice(1),
         price: `$${amount}`,
@@ -50,13 +58,37 @@ export async function GET() {
         popular,
         features: product.metadata?.features 
           ? JSON.parse(product.metadata.features)
-          : ['All premium features', 'Create custom leagues', 'Priority support']
-      });
+          : getDefaultFeatures(key)
+      };
     }
+
+    // Order: quarterly, monthly (center/most popular), yearly
+    const plans = [
+      plansMap.quarterly,
+      plansMap.monthly,
+      plansMap.yearly
+    ].filter(Boolean);
 
     return NextResponse.json({ plans });
   } catch (error) {
     console.error('Error fetching plans:', error);
     return NextResponse.json({ error: 'Failed to fetch plans' }, { status: 500 });
   }
+}
+
+function getDefaultFeatures(planType: string): string[] {
+  const commonFeatures = [
+    'Premium features',
+    'Monthly giveaways'
+  ];
+  
+  if (planType === 'quarterly') {
+    return [
+      'Premium features',
+      'Pay only in event months',
+      'Monthly giveaways'
+    ];
+  }
+  
+  return commonFeatures;
 }

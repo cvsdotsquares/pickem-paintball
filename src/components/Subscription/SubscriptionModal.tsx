@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { FaTimes, FaCheck } from 'react-icons/fa';
 import { useAuth } from '@/src/contexts/authProvider';
+import { title } from 'process';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -13,25 +14,57 @@ interface SubscriptionModalProps {
 
 const MODAL_CONTENT = {
   passive: {
-    title: 'Support Pick\'Em Paintball',
-    description: 'Help us keep Pick\'Em Paintball running and support the growth of competitive paintball. Your subscription helps us maintain the platform and add new features.',
-    showContinueFree: false
+    title: 'SUPPORT PICK\'EM PAINTBALL',
+    description: (
+      <>
+        <h2 className="font-bold text-white">Pick'Em Paintball is built by fans, for fans.</h2>
+        <p>Our goal is to develop paintball stats and build a site for the fans.</p>
+        <p>The core game and basic stats will always be free. Subscriptions simply helps support the extra work that makes Pick'Em better for everyone.</p>
+        <p>Even if you choose not subscribe, just playing, sharing, and being part of the community means a huge amount to us. Thank you!</p>
+      </>
+    ),
+    showContinueFree: true,
+    continueButtonText: 'Not today'
   },
   'soft-gate': {
-    title: 'Save Your Picks',
-    description: 'Subscribe to save your picks and compete with friends! You can continue for free, but subscribing unlocks premium features and helps support the platform.',
-    showContinueFree: true
+    title: 'SUPPORT PICK\'EM PAINTBALL',
+    description: (
+      <>
+        <h2 className="font-bold text-white">Pick'Em Paintball is built by fans, for fans.</h2>
+        
+        <p>Our goal is to develop paintball stats and build a site for the fans. To reward those who support us, some features are currently subscriber only.
+        </p>
+        <p>
+        The core game and basic stats will always be free. Subscriptions simply helps support the extra work that makes Pick'Em better for everyone.
+        </p>
+        <p> 
+        Even if you choose not subscribe, just playing, sharing, and being part of the community means a huge amount to us. Thank you!
+        </p>
+      </>
+    ),
+    showContinueFree: true,
+    continueButtonText: 'Continue for Free'
   },
   'hard-gate': {
     title: 'Premium Feature',
-    description: 'Creating custom leagues is a premium feature. Subscribe now to create your own leagues and compete with friends!',
+    description: (
+      <>
+        <h2 className="font-bold text-white">Pick'Em Paintball is built by fans, for fans.</h2>
+        <br />
+        Our goal is to develop paintball stats and build a site for the fans. To reward those who support us, some features are currently subscriber only.
+        <br />
+        The core game and basic stats will always be free. Subscriptions simply helps support the extra work that makes Pick'Em better for everyone.
+        <br />
+        Even if you choose not subscribe, just playing, sharing, and being part of the community means a huge amount to us. Thank you!
+      </>
+    ),
     showContinueFree: false
   }
 };
 
 export default function SubscriptionModal({ isOpen, onClose, type, onContinueFree }: SubscriptionModalProps) {
   const { user } = useAuth();
-  const [selectedPlan, setSelectedPlan] = useState('quarterly');
+  const [selectedPlan, setSelectedPlan] = useState('monthly'); // Default to monthly (most popular)
   const [loading, setLoading] = useState(false);
   const [plans, setPlans] = useState<any[]>([]);
   const content = MODAL_CONTENT[type];
@@ -86,7 +119,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
         </div>
 
         <div className="p-6">
-          <p className="text-gray-300 text-center mb-8">{content.description}</p>
+          <div className="text-gray-300 mb-8 leading-relaxed">{content.description}</div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {plans.map((plan) => (
@@ -137,7 +170,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
                 onClick={() => { onContinueFree?.(); onClose(); }}
                 className="w-full px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium"
               >
-                Continue for Free
+                {content.continueButtonText || 'Continue for Free'}
               </button>
             )}
 

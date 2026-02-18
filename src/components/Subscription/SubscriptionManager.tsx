@@ -31,6 +31,7 @@ export default function SubscriptionManager() {
     try {
       const response = await fetch(`/api/users/${user?.uid}/subscription`);
       const data = await response.json();
+      console.log('Fetched subscription data:', data); // Debug log
       setSubscriptionData(data);
       
       if (data.stripeCustomerId) {
@@ -88,9 +89,9 @@ export default function SubscriptionManager() {
 
   const getPlanName = (tier: string) => {
     const plans: any = {
-      monthly: 'Monthly Plan',
-      quarterly: 'Quarterly Plan',
-      yearly: 'Yearly Plan'
+      monthly: 'Monthly',
+      quarterly: 'Event to Event',
+      yearly: 'Yearly'
     };
     return plans[tier] || tier;
   };
@@ -98,8 +99,8 @@ export default function SubscriptionManager() {
   const getPlanPrice = (tier: string) => {
     const prices: any = {
       monthly: '$4.99/month',
-      quarterly: '$12.99/quarter',
-      yearly: '$44.99/year'
+      quarterly: '$13.99/event',
+      yearly: '$49.99/year'
     };
     return prices[tier] || '';
   };
@@ -122,8 +123,8 @@ export default function SubscriptionManager() {
           <div className="flex items-center gap-3">
             <FaCrown className="text-yellow-400 text-2xl" />
             <div>
-              <h3 className="text-xl font-bold text-white">{getPlanName(subscriptionTier || '')}</h3>
-              <p className="text-blue-200 text-sm">{getPlanPrice(subscriptionTier || '')}</p>
+              <h3 className="text-xl font-bold text-white">{getPlanName(subscriptionData?.subscriptionTier || subscriptionTier || '')}</h3>
+              <p className="text-blue-200 text-sm">{getPlanPrice(subscriptionData?.subscriptionTier || subscriptionTier || '')}</p>
             </div>
           </div>
           <div className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">

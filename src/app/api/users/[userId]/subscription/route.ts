@@ -1,26 +1,33 @@
-import { db } from '@/src/lib/firebaseClient';
-import { doc, getDoc } from 'firebase/firestore';
 import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2026-01-28.clover'
+});
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   try {
     const { userId } = await params;
 
-    const userDoc = await getDoc(doc(db, 'users', userId));
+    // Fetch from Firestore using REST API
+    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${userId}`;
     
-    if (!userDoc.exists()) {
+    const response = await fetch(firestoreUrl);
+    
+    if (!response.ok) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const userData = userDoc.data();
+    const data = await response.json();
+    const fields = data.fields || {};
     
     return NextResponse.json({
-      isSubscribed: userData.isSubscribed || false,
-      subscriptionTier: userData.subscriptionTier || null,
-      stripeCustomerId: userData.stripeCustomerId || null,
-      stripeSubscriptionId: userData.stripeSubscriptionId || null,
-      currentPeriodEnd: userData.subscriptionCurrentPeriodEnd || null,
-      cancelAtPeriodEnd: userData.subscriptionCancelAtPeriodEnd || false
+      isSubscribed: fields.isSubscribed?.booleanValue || false,
+      subscriptionTier: fields.subscriptionTier?.stringValue || null,
+      stripeCustomerId: fields.stripeCustomerId?.stringValue || null,
+      stripeSubscriptionId: fields.stripeSubscriptionId?.stringValue || null,
+      currentPeriodEnd: fields.subscriptionCurrentPeriodEnd?.stringValue || null,
+      cancelAtPeriodEnd: fields.subscriptionCancelAtPeriodEnd?.booleanValue || false
     });
   } catch (error) {
     console.error('Error checking subscription:', error);
