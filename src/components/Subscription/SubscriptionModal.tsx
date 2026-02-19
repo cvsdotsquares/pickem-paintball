@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FaTimes, FaCheck } from 'react-icons/fa';
-import { useAuth } from '@/src/contexts/authProvider';
-import { title } from 'process';
+import { useAuth } from '../../contexts/authProvider';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -58,7 +57,8 @@ const MODAL_CONTENT = {
         Even if you choose not subscribe, just playing, sharing, and being part of the community means a huge amount to us. Thank you!
       </>
     ),
-    showContinueFree: false
+    showContinueFree: false,
+    continueButtonText: ''
   }
 };
 
@@ -170,7 +170,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
                 onClick={() => { onContinueFree?.(); onClose(); }}
                 className="w-full px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium"
               >
-                {content.continueButtonText || 'Continue for Free'}
+                {content.continueButtonText}
               </button>
             )}
 

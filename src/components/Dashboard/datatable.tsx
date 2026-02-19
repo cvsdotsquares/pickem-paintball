@@ -57,13 +57,13 @@ const headerButtons = [
 ];
 
 const lightThemeClasses: ThemeClasses = {
-  bg: "bg-white",
+  bg: "bg-gray-100",
   text: "text-black",
-  border: "border-black",
-  hover: "hover:bg-gray-100",
+  border: "border-gray-300",
+  hover: "hover:bg-gray-200",
   headerBg: "bg-gray-200",
   headerText: "text-gray-800",
-  button: "bg-gray-200 text-gray-800 hover:bg-gray-300",
+  button: "bg-gray-300 text-gray-800 hover:bg-gray-400",
   activeButton: "bg-blue-500 text-white",
   card: "bg-gray-50 border-gray-200",
   progressBg: "bg-gray-300",
@@ -221,7 +221,12 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   const sortConfig =
     propSortConfig !== undefined ? propSortConfig : internalSortConfig;
   const setSortConfig = onSortChange || setInternalSortConfig;
-  const [darkMode, setDarkMode] = useState<boolean>(true);
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return document.documentElement.classList.contains('dark');
+    }
+    return false;
+  });
   const themeClasses = darkMode ? darkThemeClasses : lightThemeClasses;
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedTeam, setSelectedTeam] = useState<string>("All");

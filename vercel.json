@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/subscription-manager",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}

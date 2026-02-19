@@ -113,13 +113,13 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
          <div className="relative flex-1">
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="w-full flex items-center justify-between px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            className="w-full flex items-center justify-between px-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-300 dark:hover:bg-gray-300 dark:bg-gray-700 transition-colors"
           >
             <div className="flex items-center gap-2">
               {selectedLeague?.icon ? (
                 <img src={getFirebaseStorageUrl(selectedLeague.icon)} alt={selectedLeague.name} className="w-5 h-5 rounded object-cover" />
               ) : selectedLeague ? (
-                <div className="w-5 h-5 rounded bg-gray-600 flex items-center justify-center text-xs">
+                <div className="w-5 h-5 rounded bg-gray-400 dark:bg-gray-600 flex items-center justify-center text-xs">
                   {selectedLeague.name.charAt(0)}
                 </div>
               ) : (
@@ -133,12 +133,12 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
           </button>
 
           {isOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 rounded-lg shadow-lg border border-gray-700 z-50">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-gray-200 dark:bg-gray-800 rounded-lg shadow-lg border border-gray-300 dark:border-gray-700 z-50">
               {/* All Players Option */}
               <button
                 onClick={() => handleLeagueSelect(null)}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 transition-colors ${
-                  !selectedLeague ? 'bg-gray-700' : ''
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-300 dark:hover:bg-gray-300 dark:bg-gray-700 transition-colors ${
+                  !selectedLeague ? 'bg-gray-300 dark:bg-gray-700' : ''
                 }`}
               >
                 All Players
@@ -149,8 +149,8 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
                 <button
                   key={league.id}
                   onClick={() => handleLeagueSelect(league)}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 transition-colors ${
-                    selectedLeague?.id === league.id ? 'bg-gray-700' : ''
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-300 dark:hover:bg-gray-300 dark:bg-gray-700 transition-colors ${
+                    selectedLeague?.id === league.id ? 'bg-gray-300 dark:bg-gray-700' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -158,19 +158,19 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
                       {league.icon ? (
                         <img src={getFirebaseStorageUrl(league.icon)} alt={league.name} className="w-6 h-6 rounded object-cover" />
                       ) : (
-                        <div className="w-6 h-6 rounded bg-gray-600 flex items-center justify-center text-xs">
+                        <div className="w-6 h-6 rounded bg-gray-400 dark:bg-gray-600 flex items-center justify-center text-xs">
                           {league.name.charAt(0)}
                         </div>
                       )}
                       <span>{league.name}</span>
                     </div>
-                    <span className="text-xs text-gray-400">{league.memberCount} members</span>
+                    <span className="text-xs text-gray-600 dark:text-gray-400">{league.memberCount} members</span>
                   </div>
                 </button>
               ))}
 
               {userLeagues.length === 0 && (
-                <div className="px-4 py-2 text-sm text-gray-400">
+                <div className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
                   No leagues joined yet
                 </div>
               )}
@@ -218,7 +218,7 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
       </div>
       {/* Selected League Info */}
       {selectedLeague && (
-        <div className="mb-4 p-4 bg-blue-900/30 border border-blue-500/30 rounded-lg">
+        <div className="mb-4 p-4 bg-blue-100/30 dark:bg-blue-900/30 border border-blue-300/30 dark:border-blue-500/30 rounded-lg">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               {selectedLeague.icon ? (
@@ -229,8 +229,8 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
                 </div>
               )}
               <div>
-                <h3 className="font-medium text-white">{selectedLeague.name}</h3>
-                <p className="text-sm text-gray-300">{selectedLeague.description}</p>
+                <h3 className="font-medium text-gray-900 dark:text-white">{selectedLeague.name}</h3>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{selectedLeague.description}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -238,7 +238,7 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
                 <div className="text-sm font-medium text-blue-400">
                   {actualMemberCount !== null ? actualMemberCount : selectedLeague.memberCount}
                 </div>
-                <div className="text-xs text-gray-400">Members</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">Members</div>
               </div>
               <button
                 onClick={() => setShowLeaveConfirm(true)}
@@ -259,11 +259,11 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
           
           {/* Invite Code Display - Only for Admins */}
           {isSelectedLeagueAdmin && (
-            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-600">
+            <div className="bg-gray-200/50 dark:bg-gray-800/50 rounded-lg p-3 border border-gray-400 dark:border-gray-600">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Invite Code</p>
-                  <span className="font-mono font-bold text-white tracking-wider">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Invite Code</p>
+                  <span className="font-mono font-bold text-gray-900 dark:text-white tracking-wider">
                     {selectedLeague.inviteCode}
                   </span>
                 </div>

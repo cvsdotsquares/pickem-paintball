@@ -23,10 +23,10 @@ import { getAuth } from "firebase/auth";
 import { LeaderboardSkeleton } from "@/src/components/LoadingSkeleton";
 import { ErrorBoundaryWrapper } from "@/src/components/ErrorBoundaryWrapper";
 import { getFirebaseStorageUrl } from "@/src/lib/storage";
-import LeagueSelector from "@/src/components/Leagues/LeagueSelector";
-import CreateLeagueModal from "@/src/components/Leagues/CreateLeagueModal";
-import JoinLeagueModal from "@/src/components/Leagues/JoinLeagueModal";
-import { useLeague } from "@/src/contexts/LeagueContext";
+import LeagueSelector from "../../../components/Leagues/LeagueSelector";
+import CreateLeagueModal from "../../../components/Leagues/CreateLeagueModal";
+import JoinLeagueModal from "../../../components/Leagues/JoinLeagueModal";
+import { useLeague } from "../../../contexts/LeagueContext";
 
 interface LiveEvent {
   id: string;
@@ -177,13 +177,13 @@ function LeaderboardNewContent() {
       <article
         onClick={onClick}
         className={`relative flex flex-col cursor-pointer md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${
-          isSelected ? "border-4 rounded-xl border-white" : ""
+          isSelected ? "border-4 rounded-xl border-blue-500 dark:border-white" : ""
         }`}
       >
         <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg logographics">
           {event.event_logo ? (
             <>
-              <div className="absolute inset-0 bg-black rounded-lg"></div>
+              <div className="absolute inset-0 bg-white dark:bg-black rounded-lg"></div>
               <img
                 src={event.event_logo}
                 alt={`${event.name} logo`}
@@ -328,13 +328,28 @@ function LeaderboardNewContent() {
           );
           
           if (hasParticipated) {
+            // Calculate total points across all 2025 events
+            let totalPoints = 0;
+            season2025Events.forEach(event => {
+              const pts = parseFloat(userDoc.get(`${event.id}PTS`)) || 0;
+              totalPoints += pts;
+            });
+            
             seasonUsers.push({
               id: userDoc.id,
               displayName: userDoc.get("name") || userDoc.get("username") || "Unknown User",
               profilePicture: userDoc.get("profilePicture") || undefined,
               pickemData: userDoc.get("pickemData") || undefined,
+              seasonTotalPoints: totalPoints,
             });
           }
+        });
+        
+        // Sort by total points descending
+        seasonUsers.sort((a, b) => {
+          const aPts = a.seasonTotalPoints || 0;
+          const bPts = b.seasonTotalPoints || 0;
+          return bPts - aPts;
         });
         
         // Apply pagination for season view
@@ -417,13 +432,13 @@ function LeaderboardNewContent() {
               return userData;
             })
             .sort((a, b) => {
+              const aPts = parseFloat(a[`${liveEvent.id}PTS`]) || 0;
+              const bPts = parseFloat(b[`${liveEvent.id}PTS`]) || 0;
+              if (bPts !== aPts) return bPts - aPts;
+              
               const aRank = parseInt(a[`${liveEvent.id}Rank`]) || 999999;
               const bRank = parseInt(b[`${liveEvent.id}Rank`]) || 999999;
-              if (aRank !== bRank) return aRank - bRank;
-              
-              const aPts = parseInt(a[`${liveEvent.id}PTS`]) || 0;
-              const bPts = parseInt(b[`${liveEvent.id}PTS`]) || 0;
-              return bPts - aPts;
+              return aRank - bRank;
             })
             .slice((page - 1) * itemsPerPage, page * itemsPerPage);
           
@@ -454,13 +469,13 @@ function LeaderboardNewContent() {
               return userData;
             })
             .sort((a, b) => {
+              const aPts = parseFloat(a[`${liveEvent.id}PTS`]) || 0;
+              const bPts = parseFloat(b[`${liveEvent.id}PTS`]) || 0;
+              if (bPts !== aPts) return bPts - aPts;
+              
               const aRank = parseInt(a[`${liveEvent.id}Rank`]) || 999999;
               const bRank = parseInt(b[`${liveEvent.id}Rank`]) || 999999;
-              if (aRank !== bRank) return aRank - bRank;
-              
-              const aPts = parseInt(a[`${liveEvent.id}PTS`]) || 0;
-              const bPts = parseInt(b[`${liveEvent.id}PTS`]) || 0;
-              return bPts - aPts;
+              return aRank - bRank;
             });
           
           // Store last doc for pagination
@@ -990,7 +1005,7 @@ function LeaderboardNewContent() {
   }
 
   return (
-    <div className="p-2 pt-0 sm:pt-0 pb-24 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-black text-white">
+    <div className="p-2 pt-0 sm:pt-0 pb-24 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-white dark:bg-black text-gray-900 dark:text-white">
       {/* Event Header */}
       <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
         <div
@@ -1015,8 +1030,8 @@ function LeaderboardNewContent() {
       </header>
       {/* Events Carousel */}
       <div className="px-4 mt-6">
-        <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl p-4">
-          <h3 className="text-lg font-bold text-white font-azonix mb-4">Select Event</h3>
+        <div className="bg-gray-100/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl p-4">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white font-azonix mb-4">Select Event</h3>
           <div className="flex flex-row overflow-x-auto gap-4 items-center">
             {/* Season 2025 Card */}
             <article
@@ -1029,7 +1044,7 @@ function LeaderboardNewContent() {
                 participantsCache.clear();
               }}
               className={`relative flex flex-col cursor-pointer md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${
-                isSeasonView && selectedSeason === '2025' ? "border-4 rounded-xl border-white" : ""
+                isSeasonView && selectedSeason === '2025' ? "border-4 rounded-xl border-blue-500 dark:border-white" : ""
               }`}
             >
               <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg logographics">
@@ -1090,8 +1105,8 @@ function LeaderboardNewContent() {
 
       {/* Current User Card */}
       {currentUserLoading ? (
-        <div className="sticky top-0 z-10 bg-black pt-4 pb-4 mb-4">
-          <div className="bg-gray-800/100 rounded-lg shadow border border-gray-700 p-3">
+        <div className="sticky top-0 z-10 bg-white dark:bg-black pt-4 pb-4 mb-4">
+          <div className="bg-gray-200/100 dark:bg-gray-800/100 rounded-lg shadow border border-gray-300 dark:border-gray-700 p-3">
             <div className="flex items-center">
               <div className="w-14 h-14 rounded-full bg-gray-700 animate-pulse mr-3"></div>
               <div className="flex-1">
@@ -1103,7 +1118,7 @@ function LeaderboardNewContent() {
         </div>
       ) : currentUserData && liveEvent && currentUserData[`${liveEvent.id}Rank`] && (
         <div className="sticky top-0 z-10 bg-black pt-4 pb-4 mb-4">
-          <div className="bg-gray-800/100 rounded-lg shadow border border-gray-700">
+          <div className="bg-gray-200/100 dark:bg-gray-800/100 rounded-lg shadow border border-gray-300 dark:border-gray-700">
             <div
               className="p-2 sm:p-3 cursor-pointer"
               onClick={async () => {
@@ -1124,8 +1139,8 @@ function LeaderboardNewContent() {
                         className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-yellow-400"
                       />
                     ) : (
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-700 flex items-center justify-center border-2 border-yellow-400">
-                        <FaUser className="text-xl text-gray-400" />
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center border-2 border-yellow-400">
+                        <FaUser className="text-xl text-gray-500 dark:text-gray-400" />
                       </div>
                     )}
                     {liveEvent && currentUserData[`${liveEvent.id}Rank`] && (
@@ -1149,7 +1164,7 @@ function LeaderboardNewContent() {
                           : 0}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
                       MVP: {liveEvent && currentUserData[`${liveEvent.id}MVP`] !== undefined
                         ? currentUserData[`${liveEvent.id}MVP`] || "None"
                         : "None"}
@@ -1159,9 +1174,9 @@ function LeaderboardNewContent() {
                 {currentUserCardLoading ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
                 ) : expandCurrentUser ? (
-                  <FaChevronUp className="text-gray-400 text-sm" />
+                  <FaChevronUp className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-sm" />
                 ) : (
-                  <FaChevronDown className="text-gray-400 text-sm" />
+                  <FaChevronDown className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-sm" />
                 )}
               </div>
             </div>
@@ -1172,10 +1187,10 @@ function LeaderboardNewContent() {
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="border-t border-gray-700/70"
+                  className="border-t border-gray-300 dark:border-gray-700/70"
                 >
                   <div className="px-3 max-h-[280px] overflow-auto pb-3">
-                    <h3 className="pt-3 text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1 sticky top-0 bg-gray-800/100 z-10">
+                    <h3 className="pt-3 text-xs font-medium text-gray-900 dark:text-white mb-2 border-b border-gray-300 dark:border-gray-700 pb-1 sticky top-0 bg-gray-200/100 dark:bg-gray-800/100 z-10">
                       Your Team
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
@@ -1188,17 +1203,17 @@ function LeaderboardNewContent() {
                         .map((pick) => (
                           <div
                             key={pick.id}
-                            className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors"
+                            className="bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors"
                           >
                             <div className="grid grid-cols-2 gap-x-4 text-xs">
                               <div>
-                                <div className="text-white font-medium truncate mb-1">{pick.name}</div>
-                                <div className="text-gray-400">Rank: <span className="text-white">{pick.rank ?? 0}</span></div>
+                                <div className="text-gray-900 dark:text-white font-medium truncate mb-1">{pick.name}</div>
+                                <div className="text-gray-600 dark:text-gray-400">Rank: <span className="text-gray-900 dark:text-white">{pick.rank ?? 0}</span></div>
                               </div>
                               <div className="space-y-1">
-                                <div className="text-gray-400">Confirmed Kills: <span className="text-green-400 font-medium">{pick.kills}</span></div>
-                                <div className="text-gray-400">Cost: <span className="text-white">${pick.cost}</span></div>
-                                <div className="text-gray-400">ROI: <span className="text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(2)}</span></div>
+                                <div className="text-gray-600 dark:text-gray-400">Confirmed Kills: <span className="text-green-600 dark:text-green-400 font-medium">{pick.kills}</span></div>
+                                <div className="text-gray-600 dark:text-gray-400">Cost: <span className="text-gray-900 dark:text-white">${pick.cost}</span></div>
+                                <div className="text-gray-600 dark:text-gray-400">ROI: <span className="text-yellow-600 dark:text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(2)}</span></div>
                               </div>
                             </div>
                           </div>
@@ -1229,14 +1244,14 @@ function LeaderboardNewContent() {
       <div className="relative mt-4 mb-4">
         <form onSubmit={handleSearchSubmit} className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <FaSearch className="text-gray-400 text-sm" />
+            <FaSearch className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-sm" />
           </div>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search players..."
-            className="w-full pl-9 pr-10 py-2 text-sm bg-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-white"
+            className="w-full pl-9 pr-10 py-2 text-sm bg-gray-200 dark:bg-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900 dark:text-white"
           />
           {searchQuery && (
             <button
@@ -1256,7 +1271,7 @@ function LeaderboardNewContent() {
       {!eventLoading && !isSearchMode && users.length > 0 && (
         <div className="flex flex-row items-center justify-between my-4 gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-300">Rows:</span>
+            <span className="text-xs text-gray-600 dark:text-gray-300">Rows:</span>
             <select
               value={itemsPerPage}
               onChange={(e) => handlePageSizeChange(Number(e.target.value))}
@@ -1272,7 +1287,7 @@ function LeaderboardNewContent() {
         </div>
 
         <div className="flex flex-row items-center gap-2">
-          <span className="text-xs text-gray-300">Page {page}</span>
+          <span className="text-xs text-gray-600 dark:text-gray-300">Page {page}</span>
           <button
             onClick={handlePreviousPage}
             disabled={page === 1 || pageLoading}
@@ -1292,28 +1307,28 @@ function LeaderboardNewContent() {
       )}
 
       {/* Leaderboard Table */}
-      <div className="overflow-x-auto rounded-lg shadow bg-gray-800/50 backdrop-blur-sm">
+      <div className="overflow-x-auto rounded-lg shadow bg-gray-200/50 dark:bg-gray-800/50 backdrop-blur-sm">
         <table className="w-full">
           <thead>
-            <tr className="bg-gray-700/80">
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider sticky left-0 z-20">
+            <tr className="bg-gray-300/80 dark:bg-gray-700/80">
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider sticky left-0 z-20">
                 Rank
               </th>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                 Player
               </th>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                 Pts
               </th>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider hidden sm:table-cell">
                 MVP
               </th>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                 Details
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-700/50">
+          <tbody className="divide-y divide-gray-300/50 dark:divide-gray-700/50">
             {(eventLoading || usersLoading || (pageLoading && page === 1)) ? (
               <LeaderboardSkeleton rows={itemsPerPage} />
             ) : users.length > 0 ? (
@@ -1323,27 +1338,30 @@ function LeaderboardNewContent() {
                 const cacheKey = liveEvent ? `${user.id}:${liveEvent.id}` : user.id;
                 const isLoading = isSeasonView ? false : userDetailsLoading === cacheKey;
 
-                let displayRank = isSearchMode ? "-" : (page - 1) * itemsPerPage + index + 1;
-                if (liveEvent && user[`${liveEvent.id}Rank`]) {
-                  displayRank = user[`${liveEvent.id}Rank`];
-                } else if (selectedLeague) {
-                  // For league members without rank, show "-"
-                  displayRank = "-";
+                let displayRank: string | number;
+                if (isSeasonView) {
+                  // For season view, show sequential rank based on sorted order
+                  displayRank = (page - 1) * itemsPerPage + index + 1;
+                } else if (isSearchMode) {
+                  displayRank = index + 1;
+                } else {
+                  // For individual events, show sequential rank based on sorted order
+                  displayRank = (page - 1) * itemsPerPage + index + 1;
                 }
 
                 return (
                   <Fragment key={user.id}>
                     <tr
-                      className={`hover:bg-gray-700/50 transition-all duration-300 cursor-pointer ${
-                        currentUserId === user.id ? "bg-blue-900/30" : "bg-gray-800/30"
+                      className={`hover:bg-gray-300/50 dark:hover:bg-gray-700/50 transition-all duration-300 cursor-pointer ${
+                        currentUserId === user.id ? "bg-blue-200/30 dark:bg-blue-900/30" : "bg-gray-100/30 dark:bg-gray-800/30"
                       } ${
-                        updatingRows.has(user.id) ? "bg-blue-500/20 scale-[1.02]" : ""
+                        updatingRows.has(user.id) ? "bg-blue-300/20 dark:bg-blue-500/20 scale-[1.02]" : ""
                       }`}
                       onClick={() => toggleExpand(user.id)}
                     >
                       <td className="px-2 py-2 whitespace-nowrap text-sm sticky left-0 z-10 bg-inherit">
                         <div className="flex items-center">
-                          <span className="font-medium">{displayRank}</span>
+                          <span className="font-medium text-gray-900 dark:text-white">{displayRank}</span>
                           {currentUserId === user.id && (
                             <span className="ml-1 text-xs bg-blue-600 px-1 py-0.5 rounded">
                               YOU
@@ -1371,23 +1389,23 @@ function LeaderboardNewContent() {
                               }}
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center mr-2">
-                              <FaUser className="text-gray-400 text-sm" />
+                            <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center mr-2">
+                              <FaUser className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-sm" />
                             </div>
                           )}
-                          <div className="text-xs sm:text-sm truncate max-w-[100px] sm:max-w-[150px]">
+                          <div className="text-xs sm:text-sm truncate max-w-[100px] sm:max-w-[150px] text-gray-900 dark:text-white">
                             {user.displayName}
                           </div>
                         </div>
                       </td>
 
-                      <td className="px-2 py-2 whitespace-nowrap text-xs sm:text-sm font-medium">
+                      <td className="px-2 py-2 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
                         {liveEvent && user[`${liveEvent.id}PTS`] !== undefined
                           ? user[`${liveEvent.id}PTS`]
                           : "-"}
                       </td>
 
-                      <td className="px-2 py-2 whitespace-nowrap text-xs sm:text-sm text-gray-300 hidden sm:table-cell">
+                      <td className="px-2 py-2 whitespace-nowrap text-xs sm:text-sm text-gray-600 dark:text-gray-300 hidden sm:table-cell">
                         {liveEvent && user[`${liveEvent.id}MVP`] !== undefined
                           ? user[`${liveEvent.id}MVP`] || "None"
                           : "-"}
@@ -1398,9 +1416,9 @@ function LeaderboardNewContent() {
                           {isLoading ? (
                             <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
                           ) : isExpanded ? (
-                            <FaChevronUp className="text-gray-400 text-sm" />
+                            <FaChevronUp className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-sm" />
                           ) : (
-                            <FaChevronDown className="text-gray-400 text-sm" />
+                            <FaChevronDown className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-sm" />
                           )}
                         </button>
                       </td>
@@ -1414,16 +1432,16 @@ function LeaderboardNewContent() {
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
                           transition={{ duration: 0.3 }}
-                          className="bg-gray-800/70"
+                          className="bg-gray-200/70 dark:bg-gray-800/70"
                         >
                           <td colSpan={5} className="px-2 py-2">
                             {isSeasonView ? (
                               <div className="pb-2">
-                                <h3 className="text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1">
+                                <h3 className="text-xs font-medium text-gray-900 dark:text-white mb-2 border-b border-gray-300 dark:border-gray-700 pb-1">
                                   {user.displayName}&apos;s Events
                                 </h3>
                                 {userEvents.length === 0 ? (
-                                  <p className="text-xs text-gray-400">No events participated</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">No events participated</p>
                                 ) : (
                                   <div className="space-y-2">
                                     {userEvents.map((event) => {
@@ -1437,34 +1455,34 @@ function LeaderboardNewContent() {
                                       const mvpName = mvpPlayer?.name || "None";
                                       
                                       return (
-                                        <div key={event.id} className="bg-gray-700/30 rounded">
+                                        <div key={event.id} className="bg-gray-300/30 dark:bg-gray-700/30 rounded">
                                           <div
-                                            className="flex items-center justify-between p-2 cursor-pointer hover:bg-gray-700/50"
+                                            className="flex items-center justify-between p-2 cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-700/50"
                                             onClick={() => toggleEventExpand(user.id, event.id)}
                                           >
                                             <div className="flex items-center gap-2">
-                                              <span className="text-white text-xs font-medium">{event.name}</span>
+                                              <span className="text-gray-900 dark:text-white text-xs font-medium">{event.name}</span>
                                               <span className={`text-xs px-2 py-0.5 rounded ${
-                                                event.status === "live" ? "bg-red-500/20 text-red-400" : "bg-gray-600 text-gray-300"
+                                                event.status === "live" ? "bg-red-500/20 text-red-600 dark:text-red-400" : "bg-gray-400 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
                                               }`}>
                                                 {event.status}
                                               </span>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                              <div className="text-xs text-gray-400">
-                                                Points: <span className="text-green-400 font-medium">{event.points}</span>
+                                              <div className="text-xs text-gray-600 dark:text-gray-400">
+                                                Points: <span className="text-green-600 dark:text-green-400 font-medium">{event.points}</span>
                                               </div>
                                               {eventDetails && (
-                                                <div className="text-xs text-gray-400">
-                                                  MVP: <span className="text-yellow-400">{mvpName}</span>
+                                                <div className="text-xs text-gray-600 dark:text-gray-400">
+                                                  MVP: <span className="text-yellow-600 dark:text-yellow-400">{mvpName}</span>
                                                 </div>
                                               )}
                                               {isEventLoading ? (
                                                 <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-blue-500"></div>
                                               ) : isEventExpanded ? (
-                                                <FaChevronUp className="text-gray-400 text-xs" />
+                                                <FaChevronUp className="text-gray-500 dark:text-gray-400 text-xs" />
                                               ) : (
-                                                <FaChevronDown className="text-gray-400 text-xs" />
+                                                <FaChevronDown className="text-gray-500 dark:text-gray-400 text-xs" />
                                               )}
                                             </div>
                                           </div>
@@ -1487,17 +1505,17 @@ function LeaderboardNewContent() {
                                                     .map((pick) => (
                                                       <div
                                                         key={pick.id}
-                                                        className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors"
+                                                        className="bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors"
                                                       >
                                                         <div className="grid grid-cols-2 gap-x-4 text-xs">
                                                           <div>
-                                                            <div className="text-white font-medium truncate mb-1">{pick.name}</div>
-                                                            <div className="text-gray-400">Rank: <span className="text-white">{pick.rank ?? 0}</span></div>
+                                                            <div className="text-gray-900 dark:text-white font-medium truncate mb-1">{pick.name}</div>
+                                                            <div className="text-gray-600 dark:text-gray-400">Rank: <span className="text-gray-900 dark:text-white">{pick.rank ?? 0}</span></div>
                                                           </div>
                                                           <div className="space-y-1">
-                                                            <div className="text-gray-400">Confirmed Kills: <span className="text-green-400 font-medium">{pick.kills}</span></div>
-                                                            <div className="text-gray-400">Cost: <span className="text-white">${pick.cost}</span></div>
-                                                            <div className="text-gray-400">ROI: <span className="text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(0)}</span></div>
+                                                            <div className="text-gray-600 dark:text-gray-400">Confirmed Kills: <span className="text-green-600 dark:text-green-400 font-medium">{pick.kills}</span></div>
+                                                            <div className="text-gray-600 dark:text-gray-400">Cost: <span className="text-gray-900 dark:text-white">${pick.cost}</span></div>
+                                                            <div className="text-gray-600 dark:text-gray-400">ROI: <span className="text-yellow-600 dark:text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(0)}</span></div>
                                                           </div>
                                                         </div>
                                                       </div>
@@ -1518,7 +1536,7 @@ function LeaderboardNewContent() {
                               </div>
                             ) : userDetailsMap.has(liveEvent ? `${user.id}:${liveEvent.id}` : user.id) ? (
                               <div className="pb-2">
-                                <h3 className="text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1">
+                                <h3 className="text-xs font-medium text-gray-900 dark:text-white mb-2 border-b border-gray-300 dark:border-gray-700 pb-1">
                                   {user.displayName}&apos;s Team
                                 </h3>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
@@ -1531,17 +1549,17 @@ function LeaderboardNewContent() {
                                     .map((pick) => (
                                       <div
                                         key={pick.id}
-                                        className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors"
+                                        className="bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors"
                                       >
                                         <div className="grid grid-cols-2 gap-x-4 text-xs">
                                           <div>
-                                            <div className="text-white font-medium truncate mb-1">{pick.name}</div>
-                                            <div className="text-gray-400">Rank: <span className="text-white">{pick.rank ?? 0}</span></div>
+                                            <div className="text-gray-900 dark:text-white font-medium truncate mb-1">{pick.name}</div>
+                                            <div className="text-gray-600 dark:text-gray-400">Rank: <span className="text-gray-900 dark:text-white">{pick.rank ?? 0}</span></div>
                                           </div>
                                           <div className="space-y-1">
-                                            <div className="text-gray-400">Confirmed Kills: <span className="text-green-400 font-medium">{pick.kills}</span></div>
-                                            <div className="text-gray-400">Cost: <span className="text-white">${pick.cost}</span></div>
-                                            <div className="text-gray-400">ROI: <span className="text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(0)}</span></div>
+                                            <div className="text-gray-600 dark:text-gray-400">Confirmed Kills: <span className="text-green-600 dark:text-green-400 font-medium">{pick.kills}</span></div>
+                                            <div className="text-gray-600 dark:text-gray-400">Cost: <span className="text-gray-900 dark:text-white">${pick.cost}</span></div>
+                                            <div className="text-gray-600 dark:text-gray-400">ROI: <span className="text-yellow-600 dark:text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(0)}</span></div>
                                           </div>
                                         </div>
                                       </div>
@@ -1560,7 +1578,7 @@ function LeaderboardNewContent() {
               })
             ) : (
               <tr>
-                <td colSpan={5} className="px-4 py-4 text-center text-xs text-gray-400">
+                <td colSpan={5} className="px-4 py-4 text-center text-xs text-gray-600 dark:text-gray-400">
                   {isSearchMode
                     ? `No participants found matching "${searchQuery}".`
                     : "No participants found."}
@@ -1576,7 +1594,7 @@ function LeaderboardNewContent() {
       // !isSearchMode && users.length > 0 && (
       //   <div className="flex flex-row items-center justify-between mt-4 gap-2 mb-7 sm:mb-0">
       //     <div className="flex items-center gap-2">
-      //       <span className="text-xs text-gray-300">Rows:</span>
+      //       <span className="text-xs text-gray-600 dark:text-gray-300">Rows:</span>
       //       <select
       //         value={itemsPerPage}
       //         onChange={(e) => handlePageSizeChange(Number(e.target.value))}
@@ -1592,7 +1610,7 @@ function LeaderboardNewContent() {
       //     </div>
 
       //     <div className="flex items-center gap-2">
-      //       <span className="text-xs text-gray-300">Page {page}</span>
+      //       <span className="text-xs text-gray-600 dark:text-gray-300">Page {page}</span>
       //       <button
       //         onClick={handlePreviousPage}
       //         disabled={page === 1 || pageLoading}

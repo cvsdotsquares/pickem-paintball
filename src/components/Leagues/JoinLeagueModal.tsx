@@ -106,26 +106,26 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
       ))}
       {/* Remove global loader - only show button loader */}
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
-          <h2 className="text-xl font-bold text-white">Join League</h2>
+        <div className="flex items-center justify-between p-6 border-b border-gray-300 dark:border-gray-700">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Join League</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white transition-colors"
           >
             <FaTimes />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-700">
+        <div className="flex border-b border-gray-300 dark:border-gray-700">
           <button
             onClick={() => setActiveTab('code')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'code'
                 ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-400 hover:text-white'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white'
             }`}
           >
             Invite Code
@@ -135,7 +135,7 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'search'
                 ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-400 hover:text-white'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white'
             }`}
           >
             Search Leagues
@@ -147,18 +147,18 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
           {activeTab === 'code' && (
             <form onSubmit={handleJoinByCode} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Enter Invite Code
                 </label>
                 <input
                   type="text"
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg tracking-wider"
+                  className="w-full px-3 py-2 bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg tracking-wider"
                   placeholder="ABC123"
                   maxLength={6}
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                   Ask your league admin for the 6-character invite code
                 </p>
               </div>
@@ -166,7 +166,7 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
               <button
                 type="submit"
                 disabled={loading || !inviteCode.trim()}
-                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 dark:text-white rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -188,13 +188,13 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Search public leagues..."
                 />
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-gray-900 dark:text-white rounded-lg transition-colors"
                 >
                   <FaSearch />
                 </button>
@@ -207,7 +207,7 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
                   return (
                     <div
                       key={league.id}
-                      className="p-3 bg-gray-800 rounded-lg border border-gray-700"
+                      className="p-3 bg-gray-200 dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -217,10 +217,10 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
                             ) : (
                               <FaLock className="mr-2 text-red-400 text-sm" />
                             )}
-                            <h3 className="font-medium text-white">{league.name}</h3>
+                            <h3 className="font-medium text-gray-900 dark:text-white">{league.name}</h3>
                           </div>
-                          <p className="text-sm text-gray-300 mb-2">{league.description}</p>
-                          <div className="flex items-center text-xs text-gray-400">
+                          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{league.description}</p>
+                          <div className="flex items-center text-xs text-gray-600 dark:text-gray-400">
                             <FaUsers className="mr-1" />
                             {league.memberCount} members
                           </div>
@@ -228,7 +228,7 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
                         {isMember ? (
                           <button
                             disabled
-                            className="px-3 py-1 bg-gray-600 text-gray-400 rounded text-sm cursor-not-allowed"
+                            className="px-3 py-1 bg-gray-600 text-gray-600 dark:text-gray-400 rounded text-sm cursor-not-allowed"
                           >
                             Joined
                           </button>
@@ -236,7 +236,7 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
                           <button
                             onClick={() => handleJoinLeague(league)}
                             disabled={loading}
-                            className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded text-sm transition-colors"
+                            className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-gray-900 dark:text-white rounded text-sm transition-colors"
                           >
                             {league.settings.requiresApproval ? 'Request' : 'Join'}
                           </button>
@@ -247,7 +247,7 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
                 })}
 
                 {searchResults.length === 0 && searchTerm && !loading && (
-                  <div className="text-center py-4 text-gray-400">
+                  <div className="text-center py-4 text-gray-600 dark:text-gray-400">
                     No leagues found matching "{searchTerm}"
                   </div>
                 )}

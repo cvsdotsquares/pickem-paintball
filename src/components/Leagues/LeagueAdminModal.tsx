@@ -425,36 +425,36 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
       ))}
       {actionLoading && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60]">
-          <div className="bg-gray-800 rounded-lg p-6 flex flex-col items-center gap-3">
+          <div className="bg-gray-200 dark:bg-gray-800 rounded-lg p-6 flex flex-col items-center gap-3">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-            <p className="text-white">Processing...</p>
+            <p className="text-gray-900 dark:text-white">Processing...</p>
           </div>
         </div>
       )}
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b border-gray-300 dark:border-gray-700">
           <div>
-            <h2 className="text-xl font-bold text-white">{league.name}</h2>
-            <p className="text-sm text-gray-400">League Administration</p>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{league.name}</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">League Administration</p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white transition-colors"
           >
             <FaTimes />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-700">
+        <div className="flex border-b border-gray-300 dark:border-gray-700">
           <button
             onClick={() => setActiveTab('members')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'members'
                 ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-400 hover:text-white'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white'
             }`}
           >
             <FaUsers className="inline mr-2" />
@@ -465,7 +465,7 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'requests'
                 ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-400 hover:text-white'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white'
             }`}
           >
             Requests ({pendingRequests.length})
@@ -475,7 +475,7 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'settings'
                 ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-400 hover:text-white'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white'
             }`}
           >
             Settings
@@ -487,36 +487,36 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
           {activeTab === 'members' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-white">League Members</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">League Members</h3>
               </div>
 
               {/* Invite Code Section */}
-              <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-4">
+              <div className="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 border border-gray-300 dark:border-gray-700 mb-4">
                 <div className="text-center">
-                  <p className="text-sm text-gray-400 mb-2">Invite Code</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Invite Code</p>
                   <div className="flex items-center justify-center gap-2">
-                    <div className="bg-gray-700 px-4 py-2 rounded-lg">
-                      <span className="text-xl font-mono font-bold text-white tracking-wider">
+                    <div className="bg-gray-300 dark:bg-gray-700 px-4 py-2 rounded-lg">
+                      <span className="text-xl font-mono font-bold text-gray-900 dark:text-white tracking-wider">
                         {league.inviteCode}
                       </span>
                     </div>
                     <button
                       onClick={copyInviteCode}
-                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-1"
+                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-gray-900 dark:text-white rounded-lg transition-colors flex items-center gap-1"
                     >
                       {copied ? <FaCheck /> : <FaCopy />}
                       {copied ? 'Copied!' : 'Copy'}
                     </button>
                   </div>
-                  <p className="text-xs text-gray-400 mt-2">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                     Share this code with friends to join your league
                   </p>
                 </div>
               </div>
 
               {/* Invite by Username */}
-              <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-4">
-                <h4 className="text-white font-medium mb-2">Invite by Username</h4>
+              <div className="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 border border-gray-300 dark:border-gray-700 mb-4">
+                <h4 className="text-gray-900 dark:text-white font-medium mb-2">Invite by Username</h4>
                 <div className="relative">
                   <div className="flex gap-2">
                     <input
@@ -528,12 +528,12 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                       }}
                       onFocus={() => inviteUsername.length >= 2 && setShowSuggestions(true)}
                       placeholder="Enter username"
-                      className="flex-1 px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                      className="flex-1 px-3 py-2 bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
                     />
                     <button
                       onClick={() => handleInviteByUsername()}
                       disabled={inviteLoading}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center justify-center gap-1"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-gray-900 dark:text-white rounded-lg transition-colors flex items-center justify-center gap-1"
                     >
                       {inviteLoading ? (
                         <>
@@ -551,7 +551,7 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                   
                   {/* User Suggestions Dropdown */}
                   {showSuggestions && userSuggestions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 rounded-lg border border-gray-600 shadow-lg z-10 max-h-48 overflow-y-auto">
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-gray-300 dark:bg-gray-700 rounded-lg border border-gray-600 shadow-lg z-10 max-h-48 overflow-y-auto">
                       {userSuggestions.map((suggestion) => (
                         <button
                           key={suggestion.id}
@@ -561,7 +561,7 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                           <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-sm">
                             {suggestion.displayName.charAt(0)}
                           </div>
-                          <span className="text-white text-sm">{suggestion.displayName}</span>
+                          <span className="text-gray-900 dark:text-white text-sm">{suggestion.displayName}</span>
                         </button>
                       ))}
                     </div>
@@ -571,24 +571,24 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
 
               <div className="space-y-2">
                 {loading ? (
-                  <div className="text-center py-4 text-gray-400">
+                  <div className="text-center py-4 text-gray-600 dark:text-gray-400">
                     Loading members...
                   </div>
                 ) : (
                   members.map((member) => (
-                    <div key={member.id} className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                    <div key={member.id} className="flex items-center justify-between p-3 bg-gray-200 dark:bg-gray-800 rounded-lg">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center mr-3">
+                        <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center mr-3">
                           {member.displayName.charAt(0)}
                         </div>
                         <div>
                           <div className="flex items-center">
-                            <span className="text-white font-medium">{member.displayName}</span>
+                            <span className="text-gray-900 dark:text-white font-medium">{member.displayName}</span>
                             {member.isAdmin && (
                               <FaCrown className="ml-2 text-yellow-400 text-sm" />
                             )}
                           </div>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-gray-600 dark:text-gray-400">
                             {member.isAdmin ? 'Admin' : 'Member'}
                           </span>
                         </div>
@@ -599,7 +599,7 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                           {!member.isAdmin && (
                             <button 
                               onClick={() => handleMemberAction(member.id, 'makeAdmin')}
-                              className="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-xs transition-colors"
+                              className="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 text-gray-900 dark:text-white rounded text-xs transition-colors"
                             >
                               Make Admin
                             </button>
@@ -610,14 +610,14 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                                 setTransferUserId(member.id);
                                 setShowTransferConfirm(true);
                               }}
-                              className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs transition-colors"
+                              className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-gray-900 dark:text-white rounded text-xs transition-colors"
                             >
                               Transfer
                             </button>
                           )}
                           <button 
                             onClick={() => handleMemberAction(member.id, 'remove')}
-                            className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs transition-colors"
+                            className="px-2 py-1 bg-red-600 hover:bg-red-700 text-gray-900 dark:text-white rounded text-xs transition-colors"
                           >
                             <FaTrash />
                           </button>
@@ -633,28 +633,28 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
           {/* Requests Tab */}
           {activeTab === 'requests' && (
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-white">Pending Requests</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Pending Requests</h3>
               
               {pendingRequests.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
+                <div className="text-center py-8 text-gray-600 dark:text-gray-400">
                   No pending requests
                 </div>
               ) : (
                 <div className="space-y-2">
                   {pendingRequests.map((request) => (
-                    <div key={request.id} className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                    <div key={request.id} className="flex items-center justify-between p-3 bg-gray-200 dark:bg-gray-800 rounded-lg">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center mr-3">
+                        <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center mr-3">
                           {request.displayName.charAt(0)}
                         </div>
-                        <span className="text-white font-medium">{request.displayName}</span>
+                        <span className="text-gray-900 dark:text-white font-medium">{request.displayName}</span>
                       </div>
                       
                       <div className="flex gap-2">
                         <button 
                           onClick={() => handleMemberAction(request.id, 'approve')}
                           disabled={processingRequestId === request.id}
-                          className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded text-sm transition-colors flex items-center gap-1"
+                          className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-gray-900 dark:text-white rounded text-sm transition-colors flex items-center gap-1"
                         >
                           {processingRequestId === request.id ? (
                             <>
@@ -671,7 +671,7 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                         <button 
                           onClick={() => handleMemberAction(request.id, 'reject')}
                           disabled={processingRequestId === request.id}
-                          className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded text-sm transition-colors flex items-center gap-1"
+                          className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-gray-900 dark:text-white rounded text-sm transition-colors flex items-center gap-1"
                         >
                           <FaReject />
                           Reject
@@ -687,14 +687,14 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
           {/* Settings Tab */}
           {activeTab === 'settings' && (
             <div className="space-y-6">
-              <h3 className="text-lg font-medium text-white">League Settings</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">League Settings</h3>
               
               {/* League Icon */}
-              <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+              <div className="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 border border-gray-300 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-white font-medium">League Icon</div>
-                    <div className="text-sm text-gray-400">Upload a custom icon for your league (max 2MB)</div>
+                    <div className="text-gray-900 dark:text-white font-medium">League Icon</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Upload a custom icon for your league (max 2MB)</div>
                     {league.icon && (
                       <img 
                         src={league.icon.startsWith('http') ? league.icon : `https://firebasestorage.googleapis.com/v0/b/${league.icon}`} 
@@ -706,7 +706,7 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                       />
                     )}
                   </div>
-                  <label className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 cursor-pointer">
+                  <label className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-gray-900 dark:text-white rounded-lg transition-colors flex items-center gap-2 cursor-pointer">
                     <FaImage />
                     {uploadingIcon ? 'Uploading...' : 'Upload Icon'}
                     <input
@@ -723,8 +723,8 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-white font-medium">Public League</div>
-                    <div className="text-sm text-gray-400">Anyone can find and join</div>
+                    <div className="text-gray-900 dark:text-white font-medium">Public League</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Anyone can find and join</div>
                   </div>
                   <button
                     onClick={() => handleSettingsUpdate({ ...leagueSettings, isPublic: !leagueSettings.isPublic })}
@@ -736,8 +736,8 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-white font-medium">Require Approval</div>
-                    <div className="text-sm text-gray-400">Admin must approve join requests</div>
+                    <div className="text-gray-900 dark:text-white font-medium">Require Approval</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Admin must approve join requests</div>
                   </div>
                   <button
                     onClick={() => handleSettingsUpdate({ ...leagueSettings, requiresApproval: !leagueSettings.requiresApproval })}
@@ -749,8 +749,8 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-white font-medium">Searchable</div>
-                    <div className="text-sm text-gray-400">Appears in public search</div>
+                    <div className="text-gray-900 dark:text-white font-medium">Searchable</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Appears in public search</div>
                   </div>
                   <button
                     onClick={() => handleSettingsUpdate({ ...leagueSettings, isSearchable: !leagueSettings.isSearchable })}
@@ -761,11 +761,11 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                 </div>
               </div>
 
-              <div className="border-t border-gray-700 pt-4">
+              <div className="border-t border-gray-300 dark:border-gray-700 pt-4">
                 <button 
                   onClick={() => setShowDeleteConfirm(true)}
                   disabled={deleteLoading}
-                  className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                  className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-gray-900 dark:text-white rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
                   {deleteLoading ? (
                     <>
@@ -800,19 +800,19 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
       {/* Transfer Admin Confirmation */}
       {showTransferConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-gray-900 rounded-xl max-w-md w-full p-6 border border-gray-700">
-            <h3 className="text-xl font-bold text-white mb-4">Transfer Admin Rights</h3>
-            <p className="text-gray-300 mb-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl max-w-md w-full p-6 border border-gray-300 dark:border-gray-700">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Transfer Admin Rights</h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
               Transfer admin rights to this user? You will remain an admin unless you choose to remove yourself.
             </p>
             
             <div className="mb-6">
-              <label className="flex items-center gap-2 text-white cursor-pointer">
+              <label className="flex items-center gap-2 text-gray-900 dark:text-white cursor-pointer">
                 <input
                   type="checkbox"
                   checked={removeOldAdmin}
                   onChange={(e) => setRemoveOldAdmin(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded border-gray-600 bg-gray-300 dark:bg-gray-700 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm">Remove myself as admin</span>
               </label>
@@ -826,14 +826,14 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                   setRemoveOldAdmin(false);
                 }}
                 disabled={transferLoading}
-                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded-lg transition-colors"
+                className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 disabled:opacity-50 text-gray-900 dark:text-white rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleTransferAdmin}
                 disabled={transferLoading}
-                className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-gray-900 dark:text-white rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 {transferLoading ? (
                   <>

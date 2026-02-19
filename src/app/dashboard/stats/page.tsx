@@ -3,7 +3,7 @@
 import { db } from "@/src/lib/firebaseClient";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { useEffect, useMemo,  useState } from "react";
-import { MatchupTable } from "@/src/components/Dashboard/datatable";
+import { MatchupTable } from "../../../components/Dashboard/datatable";
 import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
 import { motion } from "framer-motion";
 import { Player } from "../pick-em/page";
@@ -174,7 +174,7 @@ export default function Statistics() {
       <article
         onClick={onClick}
         className={`relative flex flex-col cursor-pointer  md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${
-          isSelected ? "border-4 rounded-xl border-white" : ""
+          isSelected ? "border-4 rounded-xl border-blue-500 dark:border-white" : ""
         }`}
       >
         <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg  logographics">
@@ -182,7 +182,7 @@ export default function Statistics() {
           {event_logo ? (
             <>
               {/* White background for PNG logos */}
-              <div className="absolute inset-0 bg-black rounded-lg"></div>
+              <div className="absolute inset-0 bg-white dark:bg-black rounded-lg"></div>
               <img
                 src={event_logo}
                 alt={`${name} logo`}
@@ -436,7 +436,7 @@ export default function Statistics() {
 
   console.log("Rendered Statistics with selectedEvent:", selectedEvent);
   return (
-    <div className="relative left-0 flex flex-col w-auto scroll-smooth overflow-y-scroll font-inter pb-20">
+    <div className="relative left-0 flex flex-col w-auto scroll-smooth overflow-y-scroll font-inter pb-20 bg-white dark:bg-stone-950">
       <div>
         <section>
           <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
@@ -456,7 +456,7 @@ export default function Statistics() {
             />
             <div className="absolute inset-0 bg-black/45 pointer-events-none"></div>
 
-            <h1 className="relative font-azonix max-w-full m-auto md:text-7xl text-4xl">
+            <h1 className="relative font-azonix max-w-full m-auto md:text-7xl text-4xl text-white">
               Statistics Center
             </h1>
           </header>
@@ -473,8 +473,8 @@ export default function Statistics() {
                   }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium ${
                     selectedYear === year
-                      ? "bg-white text-black"
-                      : "bg-gray-800 text-white"
+                      ? "bg-gray-900 dark:bg-white text-white dark:text-black"
+                      : "bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
                   }`}
                 >
                   {year}
@@ -488,8 +488,8 @@ export default function Statistics() {
             {/* Right Side - Events Carousel */}
               <div className="w-full">
               {/* Events Carousel */}
-              <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl p-4">
-                <h3 className="text-lg font-bold text-white font-azonix mb-4">Select Event</h3>
+              <div className="bg-gray-100/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl p-4">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white font-azonix mb-4">Select Event</h3>
                 <div className="flex flex-row overflow-x-auto gap-4 items-center">
                   {/* Season Card - Show only for specific years, not "All" */}
                   {selectedYear !== "All" && (
@@ -531,12 +531,12 @@ export default function Statistics() {
 
         {/* Individual Event Table or Season Table */}
         <motion.section className="px-4 mt-6">
-          <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl p-6">
+          <div className="bg-gray-100/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl p-6">
             {showSeasonTable ? (
               // Season Table
               <>
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
-                  <h3 className="text-lg md:text-xl font-bold text-white font-azonix">
+                  <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white font-azonix">
                     Season {selectedYear === "All" ? selectedSeasonYear || "2025" : selectedYear} - Player Rankings
                   </h3>
                   <span className="bg-blue-500 text-white px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm whitespace-nowrap">
@@ -557,7 +557,7 @@ export default function Statistics() {
               // Individual Event Table
               <>
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
-                  <h3 className="text-lg md:text-xl font-bold text-white font-azonix">
+                  <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white font-azonix">
                     {selectedEvent?.name || 'Select Event'} - Player Stats
                   </h3>
                   {selectedEvent?.status === 'live' && (

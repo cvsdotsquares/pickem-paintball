@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "../contexts/authProvider";
 import { SubscriptionProvider } from "../contexts/SubscriptionContext";
+import { ThemeProvider } from "../contexts/ThemeContext";
 import SubscriptionModalManager from "../components/Subscription/SubscriptionModalManager";
 import NextTopLoader from "nextjs-toploader";
 import { Inter } from "next/font/google";
@@ -62,25 +63,27 @@ export default function RootLayout({
     >
       <body className={` bg-gray-100`} suppressHydrationWarning>
         <ErrorBoundary>
-          <AuthProvider>
-            <SubscriptionProvider>
-              <NextTopLoader
-                color="#BFD641"
-                initialPosition={0.3}
-                crawlSpeed={800}
-                height={6}
-                crawl={true}
-                showSpinner={true}
-                easing="ease"
-                speed={400}
-                zIndex={5000}
-                showAtBottom={false}
-              />
+          <ThemeProvider>
+            <AuthProvider>
+              <SubscriptionProvider>
+                <NextTopLoader
+                  color="#BFD641"
+                  initialPosition={0.3}
+                  crawlSpeed={800}
+                  height={6}
+                  crawl={true}
+                  showSpinner={true}
+                  easing="ease"
+                  speed={400}
+                  zIndex={5000}
+                  showAtBottom={false}
+                />
 
-              {children}
-              <SubscriptionModalManager />
-            </SubscriptionProvider>
-          </AuthProvider>
+                {children}
+                <SubscriptionModalManager />
+              </SubscriptionProvider>
+            </AuthProvider>
+          </ThemeProvider>
         </ErrorBoundary>
       </body>
     </html>

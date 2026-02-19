@@ -328,7 +328,7 @@ export const PickWidget = () => {
         } mb-2 rounded-3xl border-2 border-blue-600/80 bg-gray-700`}
       >
         {/* Top Section */}
-        <div className="rounded-t-3xl p-2 ring-1 bg-gray-800 ring-blue-600/80">
+        <div className="rounded-t-3xl p-2 ring-1 bg-gray-800 dark:bg-gray-800 ring-blue-600/80">
           <div className="relative overflow-hidden pb-3 rounded-t-2xl">
             <div className="overflow-hidden">
               <div
@@ -373,7 +373,7 @@ export const PickWidget = () => {
           </div>
 
           {/* Player Name */}
-          <div className="pt-1 pb-1 text-center text-white md:px-2 pointer-events-none">
+          <div className="pt-1 pb-1 text-center text-white dark:text-white md:px-2 pointer-events-none">
             <h2
               className={`${
                 isSlot ? "text-[8px] md:text-[8px]" : "text-[8px]"
@@ -395,7 +395,7 @@ export const PickWidget = () => {
 
         {/* Cost Section */}
         {player?.Cost && (
-          <div className="mx-auto flex w-full justify-center border-t-2 border-blue-500/80 items-center py-2 text-white bg-gray-800 rounded-b-3xl pointer-events-none">
+          <div className="mx-auto flex w-full justify-center border-t-2 border-blue-500/80 items-center py-2 text-white dark:text-white bg-gray-800 dark:bg-gray-800 rounded-b-3xl pointer-events-none">
             <div
               className={`${
                 isSlot ? "text-[8px] md:text-[8px]" : "text-[8px]"
@@ -413,7 +413,7 @@ export const PickWidget = () => {
     <>
       <section className="flex flex-col justify-center m-auto w-full h-full ">
         <div className="flex justify-between items-center self-center ">
-          <h3 className="self-stretch capitalize my-auto text-2xl font-bold leading-tight text-center text-white mt-2">
+          <h3 className="self-stretch capitalize my-auto text-2xl font-bold leading-tight text-center text-white dark:text-white mt-2">
             {liveEvent.id?.replace(/_/g, " ")} <br />
             Event is live
           </h3>
@@ -429,10 +429,10 @@ export const PickWidget = () => {
                   <PlayerCard player={slot.player} isSlot={true} />
                 ) : (
                   <button
-                    className={`relative flex flex-col gap-0 justify-center items-center rounded-2xl border border-white bg-white bg-opacity-10 border-opacity-20 md:h-[14vh] w-full h-[100px] `}
+                    className={`relative flex flex-col gap-0 justify-center items-center rounded-2xl border border-white dark:border-white bg-white/10 dark:bg-white/10 border-opacity-20 md:h-[14vh] w-full h-[100px] `}
                   >
-                    <GiCardPickup size={60} className="text-white/60 ml-2 " />
-                    <span className="text-xl uppercase text-white/60 font-azonix">
+                    <GiCardPickup size={60} className="text-white/60 dark:text-white/60 ml-2 " />
+                    <span className="text-xl uppercase text-white/60 dark:text-white/60 font-azonix">
                       {slot.position}
                     </span>
                   </button>

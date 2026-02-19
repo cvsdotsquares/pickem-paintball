@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/src/lib/firebaseClient';
+import { db } from '../../../../lib/firebaseClient';
 import { doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 
 export async function GET(

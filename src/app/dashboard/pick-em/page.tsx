@@ -16,8 +16,8 @@ import { IoMdClose, IoMdCloseCircle } from "react-icons/io";
 import { RiLock2Line, RiTeamLine } from "react-icons/ri";
 import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
 import { TiTick } from "react-icons/ti";
-import { FilterUI } from "@/src/components/ui/Filter-ui";
-import PlayerCard1 from "@/src/components/temp-card";
+import { FilterUI } from "../../../components/ui/Filter-ui";
+import PlayerCard1 from "../../../components/temp-card";
 import { PiPlusBold } from "react-icons/pi";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -858,21 +858,21 @@ export default function Pickems() {
         }
         className={`relative flex flex-col ${
           isSlot ? "mx-0" : "mx-1"
-        } mb-2 rounded-3xl border-2 border-blue-600/80 bg-gray-700 cursor-pointer hover:shadow-lg hover:shadow-blue-600/50 transition-shadow duration-200`}
+        } mb-2 rounded-3xl border-2 border-blue-600/80 bg-gray-300 dark:bg-gray-700 cursor-pointer hover:shadow-lg hover:shadow-blue-600/50 transition-shadow duration-200`}
         onClick={(e) => {
           e.stopPropagation();
           if (onClick) onClick();
         }}
       >
         {/* Top Section */}
-        <div className="rounded-t-3xl p-2 ring-1 bg-gray-800 ring-blue-600/80">
+        <div className="rounded-t-3xl p-2 ring-1 bg-gray-200 dark:bg-gray-800 ring-blue-600/80">
           <div className="relative overflow-hidden pb-3 rounded-t-2xl">
             {/* Left and Right Logos */}
-            {/* <div className="absolute start-0 top-0 aspect-square w-[76px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-600/80 bg-gray-800 z-10 pointer-events-none" />
+            {/* <div className="absolute start-0 top-0 aspect-square w-[76px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-600/80 bg-gray-200 dark:bg-gray-800 z-10 pointer-events-none" />
 
             // {/* Team Logo - Right Corner */}
             {/* <div
-              className="absolute end-0 top-0 aspect-square w-[40px] translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-600/80 bg-gray-800 z-10 pointer-events-none overflow-hidden"
+              className="absolute end-0 top-0 aspect-square w-[40px] translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-600/80 bg-gray-200 dark:bg-gray-800 z-10 pointer-events-none overflow-hidden"
               style={{
                 backgroundImage: `url(${teamLogo || "/team-placeholder.svg"})`,
                 backgroundSize: "cover",
@@ -892,7 +892,7 @@ export default function Pickems() {
                   </div>
                 ) : (
                   <>
-                    <div className="pointer-events-none absolute -translate-x-1/4 left-0 top-5 -z-10 text-center text-2xl md:text-4xl font-extrabold tracking-tighter text-white uppercase italic opacity-40 mix-blend-overlay">
+                    <div className="pointer-events-none absolute -translate-x-1/4 left-0 top-5 -z-10 text-center text-2xl md:text-4xl font-extrabold tracking-tighter text-gray-900 dark:text-white uppercase italic opacity-40 mix-blend-overlay">
                       <div className="whitespace-break-spaces ">
                         {player?.Player || "PLAYER"}
                       </div>
@@ -913,11 +913,11 @@ export default function Pickems() {
             </div>
 
             {/* Action Button */}
-            <div className="absolute start-1/2 bottom-0 flex md:h-8 md:w-8 h-6 w-6 -translate-x-1/2 items-center justify-center rounded-2xl bg-gradient-to-b from-orange-500 to-yellow-500 text-2xl/none font-extrabold tracking-tighter text-white">
+            <div className="absolute start-1/2 bottom-0 flex md:h-8 md:w-8 h-6 w-6 -translate-x-1/2 items-center justify-center rounded-2xl bg-gradient-to-b from-orange-500 to-yellow-500 text-2xl/none font-extrabold tracking-tighter text-gray-900 dark:text-white">
               {isSlot ? (
-                <IoMdClose className="text-white" />
+                <IoMdClose className="text-gray-900 dark:text-white" />
               ) : isSelected ? (
-                <TiTick className="text-white" />
+                <TiTick className="text-gray-900 dark:text-white" />
               ) : (
                 <PiPlusBold />
               )}
@@ -925,7 +925,7 @@ export default function Pickems() {
           </div>
 
           {/* Player Name */}
-          <div className="pt-1 pb-1 text-center text-white md:px-2 pointer-events-none">
+          <div className="pt-1 pb-1 text-center text-gray-900 dark:text-white md:px-2 pointer-events-none">
             <h2
               className={`${
                 isSlot ? "text-[10px] md:text-[14px]" : "text-[10px]"
@@ -947,7 +947,7 @@ export default function Pickems() {
 
         {/* Cost Section */}
         {player?.Cost && (
-          <div className="mx-auto flex w-full justify-center border-t-2 border-blue-500/80 items-center py-2 text-white bg-gray-800 rounded-b-3xl pointer-events-none">
+          <div className="mx-auto flex w-full justify-center border-t-2 border-blue-500/80 items-center py-2 text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-800 rounded-b-3xl pointer-events-none">
             <div
               className={`${
                 isSlot ? "text-[10px] md:text-[12px]" : "text-[10px]"
@@ -982,9 +982,9 @@ export default function Pickems() {
   return (
     <div className="relative flex flex-row w-auto h-[calc(100vh-48px)] overflow-hidden">
       {/* Left Section - Fixed Header with Conditional Scroll */}
-      <div className="relative flex flex-col w-full md:w-[60vw] z-10 border-white/30 border-r">
+      <div className="relative flex flex-col w-full md:w-[60vw] z-10 border-gray-200 dark:border-white/30 border-r">
         {/* Fixed Alert Container */}
-        <div className="w-full md:py-3 py-1 bg-gradient-to-b from-[#360e0edf] to-[#00000065] text-white flex items-center justify-between">
+        <div className="w-full md:py-3 py-1 bg-gradient-to-b from-[#360e0edf] to-[#00000065] text-gray-900 dark:text-white flex items-center justify-between">
           {/* Left Content */}
           <div className="flex flex-col gap-1 md:mx-3 lg:mx-5 mx-4 md:text-base text-[10px] my-2 font-azonix">
             <div>
@@ -996,7 +996,7 @@ export default function Pickems() {
 
           {/* Right Button */}
           <button
-            className="flex flex-row items-center gap-2 p-2 mx-4 backdrop-blur bg-white bg-opacity-10 text-white rounded-[36px] md:mr-3 lg:mr-5"
+            className="flex flex-row items-center gap-2 p-2 mx-4 backdrop-blur bg-white bg-opacity-10 text-gray-900 dark:text-white rounded-[36px] md:mr-3 lg:mr-5"
             onClick={confirmPicks}
           >
             <RiLock2Line size={20} />
@@ -1043,8 +1043,8 @@ export default function Pickems() {
                           : "border-white bg-gradient-to-b from-white/10 to-red-800/80"
                       } md:h-[24vh] w-full h-[100px]`}
                     >
-                      <GiCardPickup size={40} className="text-white/60" />
-                      <span className="text-xl uppercase text-white/60 font-azonix mt-2">
+                      <GiCardPickup size={40} className="text-gray-900 dark:text-white/60" />
+                      <span className="text-xl uppercase text-gray-900 dark:text-white/60 font-azonix mt-2">
                         {slot.position}
                       </span>
                     </button>
@@ -1058,7 +1058,7 @@ export default function Pickems() {
 
       {/* Right Section - Player Selection */}
       <div className="md:flex hidden md:block flex-col w-full pb-10 md:pb-4 md:w-[35vw] mt-6 md:h-full  overflow-hidden ">
-        <h1 className="text-xl font-azonix text-white text-center font-bold lg:mb-4">
+        <h1 className="text-xl font-azonix text-gray-900 dark:text-white text-center font-bold lg:mb-4">
           Select your Picks
         </h1>
         <div className="px-4 mb-2">
@@ -1128,11 +1128,11 @@ export default function Pickems() {
               className="flex justify-center mx-auto flex-col items-center py-8"
             >
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white mb-4"></div>
-              <div className="text-white/70">
+              <div className="text-gray-900 dark:text-white/70">
                 {rowData.length === 0 ? "Loading players..." : "Loading more players..."}
               </div>
               {rowData.length > 0 && (
-                <div className="text-white/50 text-sm mt-1">
+                <div className="text-gray-900 dark:text-white/50 text-sm mt-1">
                   Showing {visiblePlayers.length} of {filteredPlayers.length} players
                 </div>
               )}
@@ -1142,7 +1142,7 @@ export default function Pickems() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="text-center py-8 text-white/70"
+                className="text-center py-8 text-gray-900 dark:text-white/70"
               >
                 {rowData.length === 0 ? "No players available" : "No players match your filters"}
               </motion.div>
@@ -1164,10 +1164,10 @@ export default function Pickems() {
           >
             <div className="flex flex-col h-full">
               <div className="flex justify-between items-center p-4 flex-shrink-0">
-                <h1 className="text-base font-azonix text-white font-bold">
+                <h1 className="text-base font-azonix text-gray-900 dark:text-white font-bold">
                   Select your Picks
                 </h1>
-                <button onClick={closeDrawer} className="text-white">
+                <button onClick={closeDrawer} className="text-gray-900 dark:text-white">
                   <IoMdClose size={24} />
                 </button>
               </div>
@@ -1244,14 +1244,14 @@ export default function Pickems() {
                     className="flex justify-center mx-auto flex-col items-center py-8"
                   >
                     <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white mb-4"></div>
-                    <div className="text-white/70">Fetching players data</div>
+                    <div className="text-gray-900 dark:text-white/70">Fetching players data</div>
                   </motion.div>
                 ) : (
                   visiblePlayers.length === 0 && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="text-center py-8 text-white/70"
+                      className="text-center py-8 text-gray-900 dark:text-white/70"
                     >
                       No players match your filters
                     </motion.div>

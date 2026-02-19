@@ -34,9 +34,16 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --scrollbar-bg: #e5e5e5;
+  --scrollbar-thumb: #a0a0a0;
+  scroll-behavior: smooth;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
   --scrollbar-bg: #212121;
   --scrollbar-thumb: #5a5a5a;
-  scroll-behavior: smooth;
 }
 
 body {

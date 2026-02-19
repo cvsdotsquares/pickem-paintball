@@ -146,13 +146,13 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
         />
       ))}
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
-          <h2 className="text-xl font-bold text-white">Create League</h2>
+        <div className="flex items-center justify-between p-6 border-b border-gray-300 dark:border-gray-700">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Create League</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white transition-colors"
           >
             <FaTimes />
           </button>
@@ -162,15 +162,15 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* League Icon */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               League Icon (Optional)
             </label>
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center overflow-hidden">
+              <div className="w-16 h-16 rounded-lg bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 flex items-center justify-center overflow-hidden">
                 {iconPreview ? (
                   <img src={iconPreview} alt="Preview" className="w-full h-full object-cover" />
                 ) : (
-                  <FaUpload className="text-gray-500" />
+                  <FaUpload className="text-gray-600 dark:text-gray-500" />
                 )}
               </div>
               <input
@@ -183,7 +183,7 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                className="px-4 py-2 bg-gray-300 dark:bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors"
               >
                 Choose Image
               </button>
@@ -192,14 +192,14 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
 
           {/* League Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               League Name *
             </label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter league name"
               required
               maxLength={50}
@@ -208,13 +208,13 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Description
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Describe your league"
               rows={3}
               maxLength={200}
@@ -223,13 +223,13 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
 
           {/* Settings */}
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-300">League Settings</h3>
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">League Settings</h3>
             
             {/* Public/Private */}
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 {formData.isPublic ? <FaGlobe className="mr-2 text-green-400" /> : <FaLock className="mr-2 text-red-400" />}
-                <span className="text-sm text-white">
+                <span className="text-sm text-gray-900 dark:text-white">
                   {formData.isPublic ? 'Public League' : 'Private League'}
                 </span>
               </div>
@@ -252,8 +252,8 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
             {formData.isPublic && (
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  {formData.isSearchable ? <FaEye className="mr-2 text-blue-400" /> : <FaEyeSlash className="mr-2 text-gray-400" />}
-                  <span className="text-sm text-white">Searchable</span>
+                  {formData.isSearchable ? <FaEye className="mr-2 text-blue-400" /> : <FaEyeSlash className="mr-2 text-gray-600 dark:text-gray-400" />}
+                  <span className="text-sm text-gray-900 dark:text-white">Searchable</span>
                 </div>
                 <button
                   type="button"
@@ -273,7 +273,7 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
 
             {/* Requires Approval */}
             <div className="flex items-center justify-between">
-              <span className="text-sm text-white">Require Admin Approval</span>
+              <span className="text-sm text-gray-900 dark:text-white">Require Admin Approval</span>
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, requiresApproval: !formData.requiresApproval })}
@@ -295,14 +295,14 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || !formData.name.trim()}
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 dark:text-white rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

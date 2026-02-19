@@ -7,14 +7,14 @@ import {
   getFirestore,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { FaTrophy, FaUser } from "react-icons/fa";
+import { FaTrophy } from "react-icons/fa";
 
 const DivisionInfo = () => {
   interface User {
     id: string;
     name?: string;
     username?: string;
-    pickems?: Record<string, string[]>; // Map of event IDs to arrays of player IDs
+    pickems?: Record<string, string[]>;
   }
 
   const [liveEvent, setLiveEvent] = useState<{
@@ -33,7 +33,6 @@ const DivisionInfo = () => {
   const db = getFirestore();
   const { user } = useAuth();
 
-  // Helper to fetch documents from Firestore
   const fetchFromFirestore = async (path: string) => {
     try {
       const ref = collection(db, path);
@@ -47,7 +46,6 @@ const DivisionInfo = () => {
     }
   };
 
-  // Fetch live event details
   useEffect(() => {
     const fetchLiveEvent = async () => {
       try {
@@ -74,13 +72,11 @@ const DivisionInfo = () => {
     fetchLiveEvent();
   }, []);
 
-  // Fetch leaderboard data with optimized loading
   const fetchLeaderboard = async (eventId: string) => {
     try {
       const users: User[] = await fetchFromFirestore("users");
 
-      // First pass - get basic leaderboard data without player details
-      const initialLeaderboardData = users
+      const usersWithPickems = users
         .map((userDoc) => {
           const pickems = userDoc.pickems || {};
           const playerIds = pickems[eventId] || [];
@@ -88,18 +84,12 @@ const DivisionInfo = () => {
             id: userDoc.id,
             displayName: userDoc?.name || userDoc?.username || "Unknown",
             playerIds,
-            totalPoints: 0, // Temporary, will be updated
-            loadingPoints: playerIds.length > 0,
           };
         })
         .filter((user) => user.playerIds.length > 0);
 
-      // Set initial leaderboard with names while we load points
-      setLeaderboard(initialLeaderboardData);
-
-      // Second pass - load player details and calculate points
       const leaderboardWithPoints = await Promise.all(
-        initialLeaderboardData.map(async (user) => {
+        usersWithPickems.map(async (user) => {
           let totalPoints = 0;
           const playerLoadPromises = user.playerIds.map(async (playerId) => {
             if (!playerId) return 0;
@@ -120,17 +110,18 @@ const DivisionInfo = () => {
 
           const points = await Promise.all(playerLoadPromises);
           totalPoints = points.reduce((sum, point) => sum + point, 0);
-          return { ...user, totalPoints, loadingPoints: false };
+          return { ...user, totalPoints };
         })
       );
 
-      // Sort by points descending
-      const sortedLeaderboard = leaderboardWithPoints.sort(
-        (a, b) => b.totalPoints - a.totalPoints
-      );
+      const sortedLeaderboard = leaderboardWithPoints.sort((a, b) => {
+        if (b.totalPoints !== a.totalPoints) {
+          return b.totalPoints - a.totalPoints;
+        }
+        return a.displayName.localeCompare(b.displayName);
+      });
       setLeaderboard(sortedLeaderboard);
 
-      // Find current user's rank if logged in
       if (user?.uid) {
         const rank = sortedLeaderboard.findIndex((u) => u.id === user.uid) + 1;
         setCurrentUserRank(rank > 0 ? rank : null);
@@ -145,23 +136,22 @@ const DivisionInfo = () => {
     }
   };
 
-  // Get top 3 users
   const topUsers = leaderboard.slice(0, 3);
   const currentUserData = user?.uid
     ? leaderboard.find((u) => u.id === user.uid)
     : null;
 
   return (
-    <section className="w-full p-2 md:p-4 rounded-xl bg-white bg-opacity-10">
+    <section className="w-full p-2 md:p-4 rounded-xl bg-white/10 dark:bg-white/10">
       <div className="w-full">
         <div className="flex items-center mb-3">
-          <h2 className="text-md font-bold text-white capitalize truncate">
+          <h2 className="text-md font-bold text-white dark:text-white capitalize truncate">
             {liveEvent.name || "Event"} Leaderboard
           </h2>
         </div>
 
-        <div className="w-full text-sm text-white">
-          <div className="p-3 rounded-xl bg-[#101010] border border-white/20">
+        <div className="w-full text-sm text-white dark:text-white">
+          <div className="p-3 rounded-xl bg-[#101010] dark:bg-[#101010] border border-white/20 dark:border-white/20">
             {error ? (
               <div className="flex flex-col items-center justify-center py-4 space-y-2">
                 <p className="text-red-400 text-sm">{error}</p>
@@ -182,7 +172,6 @@ const DivisionInfo = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {/* Top 3 Users - Stack vertically on mobile */}
                 <div className="flex flex-col lg:flex-row gap-2">
                   {topUsers.map((user, index) => (
                     <div
@@ -207,26 +196,20 @@ const DivisionInfo = () => {
                           {user.displayName}
                         </div>
                         <div className="text-xs text-gray-300">
-                          {user.loadingPoints
-                            ? "Loading..."
-                            : `${user.totalPoints} pts`}
+                          {user.totalPoints} pts
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {/* Current User */}
                 {currentUserData && (
                   <div className="mt-3 pt-3 border-t border-gray-700">
                     <div className="text-xs text-gray-400 mb-1">
                       YOUR POSITION
                     </div>
-                    <div className="flex items-center justify-between p-2 bg-blue-900/30 rounded-lg">
+                    <div className="flex items-center justify-between p-2 bg-blue-900/30 dark:bg-blue-900/30 rounded-lg">
                       <div className="flex items-center gap-2">
-                        {/* <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center">
-                          <FaUser className="text-gray-300 text-xs" />
-                        </div> */}
                         <div>
                           <div className="text-xs font-medium">You</div>
                           <div className="text-xs text-gray-300">
@@ -237,17 +220,9 @@ const DivisionInfo = () => {
                         </div>
                       </div>
                       <div className="text-xs font-bold">
-                        {currentUserData.loadingPoints
-                          ? "..."
-                          : `${currentUserData.totalPoints} pts`}
+                        {currentUserData.totalPoints} pts
                       </div>
                     </div>
-                  </div>
-                )}
-
-                {!currentUserData && user?.uid && (
-                  <div className="mt-3 pt-3 border-t border-gray-700 text-xs text-center">
-                    You haven&apos;t entered this event yet
                   </div>
                 )}
               </div>

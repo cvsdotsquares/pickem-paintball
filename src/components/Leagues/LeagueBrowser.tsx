@@ -115,13 +115,13 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
       ))}
       {/* Remove global loader - only show button loader */}
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-700">
+      <div className="bg-white dark:bg-gray-900 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-300 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-white">Browse Leagues</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Browse Leagues</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white transition-colors"
             >
               <FaTimes className="text-xl" />
             </button>
@@ -132,7 +132,7 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
             <button
               onClick={() => setFilter('all')}
               className={`px-4 py-2 rounded-lg transition-colors ${
-                filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
+                filter === 'all' ? 'bg-blue-600 text-gray-900 dark:text-white' : 'bg-gray-300 dark:bg-gray-700 text-gray-300'
               }`}
             >
               All Leagues
@@ -140,7 +140,7 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
             <button
               onClick={() => setFilter('my-leagues')}
               className={`px-4 py-2 rounded-lg transition-colors ${
-                filter === 'my-leagues' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
+                filter === 'my-leagues' ? 'bg-blue-600 text-gray-900 dark:text-white' : 'bg-gray-300 dark:bg-gray-700 text-gray-300'
               }`}
             >
               My Leagues
@@ -149,24 +149,24 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
 
           {/* Search */}
           <div className="relative">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 dark:text-gray-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search leagues..."
-              className="w-full pl-10 pr-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+              className="w-full pl-10 pr-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
             />
           </div>
         </div>
 
         <div className="p-6">
           {loading ? (
-            <div className="text-center py-8 text-gray-400">Loading leagues...</div>
+            <div className="text-center py-8 text-gray-600 dark:text-gray-400">Loading leagues...</div>
           ) : (
             <div className="space-y-3">
               {filteredLeagues.map((league) => (
-                <div key={league.id} className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                <div key={league.id} className="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 border border-gray-300 dark:border-gray-700">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 flex-1">
                       {getLeagueIconUrl(league) ? (
@@ -176,21 +176,21 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
                           className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-lg bg-gray-700 flex items-center justify-center text-white font-bold">
+                        <div className="w-12 h-12 rounded-lg bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-gray-900 dark:text-white font-bold">
                           {league.name.charAt(0)}
                         </div>
                       )}
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-white font-medium">{league.name}</h3>
+                          <h3 className="text-gray-900 dark:text-white font-medium">{league.name}</h3>
                           {league.settings.isPublic ? (
                             <FaGlobe className="text-green-400 text-sm" />
                           ) : (
                             <FaLock className="text-yellow-400 text-sm" />
                           )}
                         </div>
-                        <p className="text-gray-400 text-sm mb-2">{league.description}</p>
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">{league.description}</p>
+                        <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-500">
                           <span className="flex items-center gap-1">
                             <FaUsers />
                             {league.memberCount} members
@@ -205,7 +205,7 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
                       <button
                         onClick={() => requestToJoin(league.id)}
                         disabled={requestingLeagueId === league.id}
-                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center gap-1"
+                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-gray-900 dark:text-white rounded-lg transition-colors flex items-center gap-1"
                       >
                         {requestingLeagueId === league.id ? (
                           <>
@@ -225,7 +225,7 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
               ))}
               
               {filteredLeagues.length === 0 && (
-                <div className="text-center py-8 text-gray-400">
+                <div className="text-center py-8 text-gray-600 dark:text-gray-400">
                   {filter === 'my-leagues' ? 'You are not in any leagues yet' : 'No leagues found'}
                 </div>
               )}
@@ -233,10 +233,10 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
           )}
         </div>
 
-        <div className="p-6 border-t border-gray-700">
+        <div className="p-6 border-t border-gray-300 dark:border-gray-700">
           <button
             onClick={onClose}
-            className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            className="w-full px-4 py-2 bg-gray-300 dark:bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors"
           >
             Close
           </button>

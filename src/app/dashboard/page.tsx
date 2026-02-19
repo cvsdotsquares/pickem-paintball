@@ -22,9 +22,9 @@ export interface Event {
 
 export default function Dashboard() {
   return (
-    <section className="relative flex md:flex-row flex-col-reverse font-azonix w-screen md:w-[calc(100vw-60px)] md:h-screen h-full overflow-hidden top-0">
+    <section className="relative flex md:flex-row flex-col-reverse font-azonix w-screen md:w-[calc(100vw-60px)] md:h-screen h-full overflow-hidden top-0 bg-white dark:bg-stone-950">
       {/* Left Column - Picks and Leaderboard */}
-      <div className="flex flex-col w-full md:w-1/2 pb-[75px] md:pb-[35px] pt-5 border-r border-white/30 md:h-full overflow-hidden md:overflow-y-auto">
+      <div className="flex flex-col w-full md:w-1/2 pb-[75px] md:pb-[35px] pt-5 border-r border-white/30 dark:border-white/30 border-gray-300 md:h-full overflow-hidden md:overflow-y-auto">
         {/* Picks Section with Scroll */}
         <div className="flex-1 pb-6 p-3 md:p-6 justify-center ">
           <div className="flex overflow-hidden relative flex-col rounded-2xl h-full">
