@@ -327,7 +327,12 @@ function LeaderboardNewContent() {
             Array.isArray(pickems[event.id]) && pickems[event.id].length > 0
           );
           
-          if (hasParticipated) {
+          // Apply league filter if selected
+          const isInLeague = selectedLeague 
+            ? (userDoc.get("leagues") || []).includes(selectedLeague.id)
+            : true;
+          
+          if (hasParticipated && isInLeague) {
             // Calculate total points across all 2025 events
             let totalPoints = 0;
             season2025Events.forEach(event => {
@@ -367,7 +372,7 @@ function LeaderboardNewContent() {
     }
 
     fetchSeasonUsers();
-  }, [isSeasonView, selectedSeason, allEvents, page, itemsPerPage]);
+  }, [isSeasonView, selectedSeason, allEvents, page, itemsPerPage, selectedLeague]);
 
   // Fetch users with Firestore sorting by currentRank
   useEffect(() => {
@@ -1228,7 +1233,7 @@ function LeaderboardNewContent() {
       )}
 
       {/* League Selector */}
-      {!eventLoading && (
+      {!eventLoading && (liveEvent || isSeasonView) && (
         <LeagueSelector 
           onCreateLeague={() => setShowCreateLeague(true)}
           onJoinLeague={() => setShowJoinLeague(true)}

@@ -32,7 +32,7 @@ const links = [
     icon: <FaTableList className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
   },
   {
-    label: "Statistics",
+    label: "Stats",
     href: "/dashboard/stats",
     icon: <ImStatsBars className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
   },
@@ -68,7 +68,7 @@ const cmslinks = [
 export const Logo = () => {
   return (
     <Link
-      href="/"
+      href="/dashboard"
       className="w-[80px] relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-black"
     >
       <motion.span

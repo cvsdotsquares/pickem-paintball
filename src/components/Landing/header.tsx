@@ -92,12 +92,18 @@ const Header: React.FC = () => {
                 </nav>
 
                 {/* Get a Quote Button */}
-                <div className="md:flex hidden text-center text-black">
+                <div className="md:flex hidden text-center text-black gap-2">
                     <Button
-                        onClick={handleGoToApp}
+                        onClick={() => router.push('/register')}
                         className="flex justify-center gap-2 items-center mx-auto shadow-xl text-lg hover:bg-white bg-gray-50 backdrop-blur-md lg:font-semibold isolation-auto border-black before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-full before:bg-black hover:text-white before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-4 pt-2 pb-1 overflow-hidden border-2 rounded-full group"
                     >
-                        Register/Login
+                        Sign Up
+                    </Button>
+                    <Button
+                        onClick={() => router.push('/login')}
+                        className="flex justify-center gap-2 items-center mx-auto shadow-xl text-lg hover:bg-white bg-gray-50 backdrop-blur-md lg:font-semibold isolation-auto border-black before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-full before:bg-black hover:text-white before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-4 pt-2 pb-1 overflow-hidden border-2 rounded-full group"
+                    >
+                        Login
                     </Button>
                 </div>
             </div>

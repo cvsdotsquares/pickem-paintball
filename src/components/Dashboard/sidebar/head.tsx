@@ -24,23 +24,35 @@ const UserHead: React.FC<UserHeadProps> = ({
   return (
     <header className="bg-white dark:bg-[#101010] z-20 border-b border-gray-200 dark:border-white/30">
       <nav className="flex justify-between items-center px-3 py-1 mx-auto my-0 w-full">
-        {/* User Profile Section */}
-        <Link href="/dashboard/profile" className="flex flex-row">
-          <div className="flex gap-2 items-center">
-            <div className="overflow-hidden w-9 h-9 rounded-2xl ">
-              <img
-                src={avatarUrl}
-                alt="User avatar"
-                className="object-cover size-full"
-              />
+        {/* Left Section: Logo (Desktop) + User Profile */}
+        <div className="flex items-center gap-4">
+          {/* Logo - Desktop Only */}
+          <Link href="/dashboard" className="hidden md:block">
+            <img
+              src="/logo.svg"
+              alt="Pickem Logo"
+              className="h-8 w-auto dark:invert-0 invert"
+            />
+          </Link>
+          
+          {/* User Profile */}
+          <Link href="/dashboard/profile" className="flex flex-row">
+            <div className="flex gap-2 items-center">
+              <div className="overflow-hidden w-9 h-9 rounded-2xl ">
+                <img
+                  src={avatarUrl}
+                  alt="User avatar"
+                  className="object-cover size-full"
+                />
+              </div>
+              <div className="flex flex-col gap-1 max-xs:max-w-[150px]">
+                <h2 className="text-md font-bold leading-2 text-white">
+                  {username}
+                </h2>
+              </div>
             </div>
-            <div className="flex flex-col gap-1 max-xs:max-w-[150px]">
-              <h2 className="text-md font-bold leading-2 text-white">
-                {username}
-              </h2>
-            </div>
-          </div>
-        </Link>
+          </Link>
+        </div>
 
         {/* Action Icons Section */}
         <div className="flex gap-2 items-center">

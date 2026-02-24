@@ -1010,6 +1010,19 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
             <tr
               className={`sticky top-0 z-40 shadow-[0_0_0_0.4px] shadow-white ${themeClasses.headerBg}`}
             >
+              {/* Rank Column - FIRST */}
+              <th
+                className={`px-2 py-2 text-center text-[12px] ${themeClasses.headerBg} font-medium font-azonix ${themeClasses.headerText} uppercase tracking-wider md:border-r z-20 w-16 md:w-20`}
+              >
+                <div
+                  className="flex items-center justify-center cursor-pointer"
+                  onClick={() => requestSort("Rank")}
+                >
+                  Rank
+                  {getSortIcon("Rank")}
+                </div>
+              </th>
+              
               {/* Player Column */}
               <th
                 className={`pl-4 pr-1 justify-center md:border-b/60 border-0 text-[12px] ${themeClasses.headerBg} font-medium font-azonix ${themeClasses.headerText} uppercase sticky left-0 tracking-widerz-40 min-w-[120px] md:min-w-0`}
@@ -1020,18 +1033,6 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                 >
                   Player
                   {getSortIcon("Player")}
-                </div>
-              </th>
-              {/* Rank Column */}
-              <th
-                className={`pr-2 py-2 text-left text-[12px] ${themeClasses.headerBg} font-medium font-azonix ${themeClasses.headerText} uppercase tracking-wider md:border-r z-20 w-20 md:w-24`}
-              >
-                <div
-                  className="flex items-center cursor-pointer"
-                  onClick={() => requestSort("Rank")}
-                >
-                  Rank
-                  {getSortIcon("Rank")}
                 </div>
               </th>
 
@@ -1051,18 +1052,18 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                       "team_id",
                       "picture",
                       "pictureLoading",
-                      "img_url", // Exclude img_url from table display
-                      "IMG_URL", // Handle uppercase variation
-                      "Img_Url", // Handle mixed case variation
-                    ].includes(key) && !key.toLowerCase().includes("img"), // Exclude any field containing 'img'
+                      "img_url",
+                      "IMG_URL",
+                      "Img_Url",
+                    ].includes(key) && !key.toLowerCase().includes("img"),
                 )
                 .map((key, index) => (
                   <th
                     key={index}
-                    className={`pl-2 p-1 text-left text-[12px] font-medium font-azonix ${themeClasses.headerText} uppercase w-20 md:w-24 min-w-[80px]`}
+                    className={`px-2 p-1 text-center text-[12px] font-medium font-azonix ${themeClasses.headerText} uppercase w-20 md:w-24 min-w-[80px]`}
                   >
                     <div
-                      className="flex items-center cursor-pointer"
+                      className="flex items-center justify-center cursor-pointer"
                       onClick={() => requestSort(key)}
                     >
                       {key.replace(/_/g, " ")}
@@ -1078,6 +1079,15 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                 key={rowIndex}
                 className={`${themeClasses.hover} ${themeClasses.bg} ${themeClasses.text} `}
               >
+                {/* Rank Column - FIRST */}
+                <td
+                  className={`px-2 py-2 whitespace-nowrap md:border-r ${themeClasses.border} z-0 ${themeClasses.bg} w-16 md:w-20`}
+                >
+                  <div className="text-center text-[12px] font-azonix font-medium">
+                    {row.Rank}
+                  </div>
+                </td>
+                
                 {/* Player Column */}
                 <td
                   className={`p-2 whitespace-nowrap sticky left-0 z-10 ${themeClasses.bg} shadow-[2px_0_5px_rgba(0,0,0,0.3)] min-w-[120px] md:min-w-0 md:shadow-none`}
@@ -1156,29 +1166,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                     </div>
                   </div>
                 </td>
-                {/* Rank Column */}
-                <td
-                  className={`p-2 whitespace-nowrap md:border-r ${themeClasses.border} px-1 z-0 ${themeClasses.bg} w-20 md:w-24`}
-                >
-                  <div className="text-center text-[12px] font-azonix font-medium">
-                    {row.Rank}
-                  </div>
-                </td>
 
-                {/* Score Columns */}
-                {/* <td className="px-3 md:py-3  whitespace-nowrap">
-                  <div className="flex flex-col gap-2 items-center">
-                    <DiamondScore score={row.} inverted />
-                    <div className="ml-1 w-16">
-                      <div
-                        className={`text-[12px] ${
-                          darkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
-                      ></div>
-                      <ProgressBar progress={row.score1} />
-                    </div>
-                  </div>
-                </td> */}
                 {/* Stats Columns */}
                 {Object.entries(row)
                   .filter(([key]) => {
@@ -1194,10 +1182,10 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                       "team_id",
                       "picture",
                       "pictureLoading",
-                      "img_url", // Exclude img_url from table display
-                      "IMG_URL", // Handle uppercase variation
-                      "Img_Url", // Handle mixed case variation
-                    ]; // Keys to exclude
+                      "img_url",
+                      "IMG_URL",
+                      "Img_Url",
+                    ];
                     const lowerKey = key.toLowerCase();
                     return (
                       !excludedKeys.includes(key) &&

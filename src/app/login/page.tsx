@@ -112,17 +112,17 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen items-center justify-center">
       <img
         src="/bg.webp"
         alt="Paintball players"
         className="object-cover fixed inset-0 brightness-[0.7] contrast-[110%] saturate-[120%] size-full"
         loading="lazy"
       />
-      <div className="flex items-center justify-center p-4 w-full  overflow-auto">
-      <Card className="w-full max-w-md bg-transparent backdrop-blur-md text-white m-auto">
+      <div className="flex items-center justify-center p-4 w-full max-w-md mx-auto">
+      <Card className="w-full bg-transparent backdrop-blur-md text-white">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center  uppercase">
+          <CardTitle className="text-2xl font-bold text-center uppercase">
             Come Join US!
           </CardTitle>
         </CardHeader>
@@ -144,28 +144,27 @@ const LoginPage: React.FC = () => {
                 required
               />
             </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
             <Button
               type="submit"
               className="w-full bg-black text-white hover:bg-gray-800"
             >
               Log in
             </Button>
-            <div className="flex flex-row-reverse items-center justify-between m-auto">
-              <div className="text-end text-sm text-white sm:w-3/5">
-                Don&apos;t have  an account?{" "}
-                <br className="flex md:hidden" />
+            <div className="flex flex-col items-center justify-center gap-2 text-center">
+              <div className="text-sm text-white">
+                Don&apos;t have an account?{" "}
                 <a href="/register" className="text-blue-300 underline">
                   Sign up
                 </a>
               </div>
 
               {/* Forgot Password Link */}
-              <div className="text-left text-white text-sm sm:w-2/5">
+              <div className="text-white text-sm">
                 <button
                   type="button"
                   onClick={() => setShowResetForm(!showResetForm)}
-                  className="text-blue-300 underline text-left"
+                  className="text-blue-300 underline"
                 >
                   Forgot Password?
                 </button>
