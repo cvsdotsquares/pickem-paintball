@@ -31,6 +31,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Already a member of this league' }, { status: 400 });
     }
 
+    // Check member limit (dynamic from DB)
+    const maxMembers = leagueData.maxMembers || 20;
+    if (leagueData.memberCount >= maxMembers) {
+      return NextResponse.json({ 
+        error: `League is full (${maxMembers} members max). Contact admin to increase limit.`,
+        isFull: true,
+        leagueName: leagueData.name,
+        maxMembers,
+        adminEmail: 'admin@pickempaintball.com'
+      }, { status: 400 });
+    }
+
     // Check if invite code is expired
     if (leagueData.inviteCodeExpiry && leagueData.inviteCodeExpiry.toDate() < new Date()) {
       return NextResponse.json({ error: 'Invite code has expired' }, { status: 400 });

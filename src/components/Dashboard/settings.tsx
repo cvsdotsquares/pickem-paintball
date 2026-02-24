@@ -438,26 +438,26 @@ function AccountSettings() {
           </div>
 
           {/* Profile Details Section */}
-          <div className="flex w-full items-center font-azonix text-white gap-4">
+          <div className="flex w-full items-center font-azonix text-gray-900 dark:text-white gap-4">
             <TextField
-              className="h-auto grow text-white"
+              className="h-auto grow text-gray-900 dark:text-white"
               label="First name"
               helpText=""
             >
               <TextField.Input
-                className="font-sans text-neutral-200"
+                className="font-sans text-gray-900 dark:text-neutral-200 bg-white dark:bg-gray-800"
                 placeholder={firstName || "Enter first name"}
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
               />
             </TextField>
             <TextField
-              className="h-auto grow text-white"
+              className="h-auto grow text-gray-900 dark:text-white"
               label="Last name"
               helpText=""
             >
               <TextField.Input
-                className="font-sans text-neutral-200"
+                className="font-sans text-gray-900 dark:text-neutral-200 bg-white dark:bg-gray-800"
                 placeholder={lastName || "Enter last name"}
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
@@ -466,12 +466,12 @@ function AccountSettings() {
           </div>
           <div className="flex w-full items-center font-azonix gap-4">
             <TextField
-              className="h-auto grow text-white"
+              className="h-auto grow text-gray-900 dark:text-white"
               label="Email"
               helpText=""
             >
               <TextField.Input
-                className="font-sans text-neutral-200"
+                className="font-sans text-gray-900 dark:text-neutral-200 bg-white dark:bg-gray-800"
                 placeholder={emailPlaceholder}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -481,42 +481,44 @@ function AccountSettings() {
           <Button variant="primary" onClick={handleProfileUpdate}>
             Update Profile
           </Button>
-          {/* <div className="flex w-full flex-none flex-col items-center gap-4 bg-neutral-950 border" /> */}
 
           {/* Password Change Section */}
           {isEmailPasswordAuth && (
             <div className="flex w-full flex-col items-start gap-4">
               <TextField
-                className="h-auto w-full text-white"
+                className="h-auto w-full text-gray-900 dark:text-white"
                 label="Current password"
                 helpText=""
               >
                 <TextField.Input
                   type="password"
+                  className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="Enter current password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                 />
               </TextField>
               <TextField
-                className="h-auto w-full text-white"
+                className="h-auto w-full text-gray-900 dark:text-white"
                 label="New password"
                 helpText="Your password must have at least 8 characters, include one uppercase letter, and one number."
               >
                 <TextField.Input
                   type="password"
+                  className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="Enter new password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
               </TextField>
               <TextField
-                className="h-auto w-full text-white"
+                className="h-auto w-full text-gray-900 dark:text-white"
                 label=""
                 helpText=""
               >
                 <TextField.Input
                   type="password"
+                  className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="Re-type new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -530,16 +532,16 @@ function AccountSettings() {
             </div>
           )}
 
-          <div className="flex h-px w-full flex-none flex-col items-center gap-4 border-neutral-300 border " />
+          <div className="flex h-px w-full flex-none flex-col items-center gap-4 border-gray-300 dark:border-neutral-300 border " />
 
           {/* Danger Zone Section */}
           <div className="flex w-full flex-col items-start gap-4">
-            <span className="text-heading-3 font-azonix font-heading-3 text-default-font">
+            <span className="text-heading-3 font-azonix font-heading-3 text-gray-900 dark:text-white">
               Danger zone
             </span>
             <Alert
               variant="error"
-              className="font-sans text-neutral-200"
+              className="font-sans text-gray-900 dark:text-neutral-200"
               icon={null}
               title="Delete account"
               description="Permanently remove your account. This action is not reversible."

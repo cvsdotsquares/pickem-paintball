@@ -8,9 +8,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { leagueId } = await params;
 
     const leagueRef = doc(db, 'leagues', leagueId);
-    const userRef = doc(db, 'users', userId);
     const leagueDoc = await getDoc(leagueRef);
-    const leagueName = leagueDoc.data()?.name || 'League';
+    const leagueData = leagueDoc.data();
+    const leagueName = leagueData?.name || 'League';
+    
+    const userRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userRef);
     const userName = userDoc.data()?.name || userDoc.data()?.username || 'User';
 
@@ -100,6 +102,36 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           leagueId,
           leagueName,
           message: `You have been granted admin access to "${leagueName}"`
+        })
+      });
+    } else if (action === 'removeAdmin') {
+      console.log('RemoveAdmin action - League admins:', leagueData?.admins);
+      console.log('Admin count:', leagueData?.admins?.length);
+      console.log('Trying to remove userId:', userId);
+      
+      // Check if this is the last admin
+      if (!leagueData?.admins || leagueData.admins.length <= 1) {
+        console.log('Cannot remove - last admin');
+        return NextResponse.json({ error: 'Cannot remove the last admin' }, { status: 400 });
+      }
+      
+      await updateDoc(leagueRef, {
+        admins: arrayRemove(userId)
+      });
+      await updateDoc(userRef, {
+        adminLeagues: arrayRemove(leagueId)
+      });
+      
+      // Notify user their admin rights were removed
+      await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/notifications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          type: 'league_admin_removed',
+          leagueId,
+          leagueName,
+          message: `Your admin access to "${leagueName}" has been removed`
         })
       });
     }

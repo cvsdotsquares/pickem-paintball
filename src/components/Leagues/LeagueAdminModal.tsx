@@ -48,6 +48,9 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
   const [transferUserId, setTransferUserId] = useState<string | null>(null);
   const [removeOldAdmin, setRemoveOldAdmin] = useState(false);
   const [transferLoading, setTransferLoading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editData, setEditData] = useState({ name: league.name, description: league.description });
+  const [editLoading, setEditLoading] = useState(false);
 
   const isUserAdmin = user && league.admins.includes(user.uid);
 
@@ -115,7 +118,8 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
 
     fetchLeagueData();
     setLeagueSettings(league.settings);
-  }, [isOpen, league.members, league.admins, league.pendingRequests, league.settings]);
+    setEditData({ name: league.name, description: league.description });
+  }, [isOpen, league.members, league.admins, league.pendingRequests, league.settings, league.name, league.description]);
 
   // Handle member actions
   const handleMemberAction = async (userId: string, action: string) => {
@@ -126,6 +130,8 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, userId })
       });
+      
+      const data = await response.json();
       
       if (response.ok) {
         if (action === 'approve') {
@@ -154,17 +160,53 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
           setMembers(prev => prev.map(m => 
             m.id === userId ? { ...m, isAdmin: true } : m
           ));
+        } else if (action === 'removeAdmin') {
+          showToast('Admin rights removed', 'success');
+          await refreshUserLeagues();
+          setMembers(prev => prev.map(m => 
+            m.id === userId ? { ...m, isAdmin: false } : m
+          ));
         }
         
         await refreshUserLeagues();
       } else {
-        showToast('Action failed. Please try again', 'error');
+        showToast(data.error || 'Action failed. Please try again', 'error');
       }
     } catch (error) {
       console.error('Error managing member:', error);
       showToast('Error performing action', 'error');
     } finally {
       setProcessingRequestId(null);
+    }
+  };
+
+  // Handle league edit
+  const handleEditLeague = async () => {
+    if (!editData.name.trim()) {
+      showToast('League name is required', 'error');
+      return;
+    }
+
+    setEditLoading(true);
+    try {
+      const response = await fetch(`/api/leagues/${league.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editData.name, description: editData.description })
+      });
+
+      if (response.ok) {
+        showToast('League updated successfully', 'success');
+        await refreshUserLeagues();
+        setEditMode(false);
+      } else {
+        showToast('Failed to update league', 'error');
+      }
+    } catch (error) {
+      console.error('Error updating league:', error);
+      showToast('Error updating league', 'error');
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -596,12 +638,22 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                       
                       {member.id !== user?.uid && (
                         <div className="flex gap-2">
-                          {!member.isAdmin && (
+                          {!member.isAdmin ? (
                             <button 
                               onClick={() => handleMemberAction(member.id, 'makeAdmin')}
-                              className="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 text-gray-900 dark:text-white rounded text-xs transition-colors"
+                              disabled={processingRequestId === member.id}
+                              className="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 text-gray-900 dark:text-white rounded text-xs transition-colors"
                             >
-                              Make Admin
+                              {processingRequestId === member.id ? 'Processing...' : 'Make Admin'}
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={() => handleMemberAction(member.id, 'removeAdmin')}
+                              disabled={processingRequestId === member.id || league.admins.length <= 1}
+                              className="px-2 py-1 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-gray-900 dark:text-white rounded text-xs transition-colors"
+                              title={league.admins.length <= 1 ? 'Cannot remove last admin' : 'Remove admin rights'}
+                            >
+                              {processingRequestId === member.id ? 'Processing...' : 'Remove Admin'}
                             </button>
                           )}
                           {member.isAdmin && league.admins.length > 1 && (
@@ -610,14 +662,16 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                                 setTransferUserId(member.id);
                                 setShowTransferConfirm(true);
                               }}
-                              className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-gray-900 dark:text-white rounded text-xs transition-colors"
+                              disabled={processingRequestId === member.id}
+                              className="px-2 py-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-gray-900 dark:text-white rounded text-xs transition-colors"
                             >
                               Transfer
                             </button>
                           )}
                           <button 
                             onClick={() => handleMemberAction(member.id, 'remove')}
-                            className="px-2 py-1 bg-red-600 hover:bg-red-700 text-gray-900 dark:text-white rounded text-xs transition-colors"
+                            disabled={processingRequestId === member.id}
+                            className="px-2 py-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-gray-900 dark:text-white rounded text-xs transition-colors"
                           >
                             <FaTrash />
                           </button>
@@ -688,6 +742,87 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
           {activeTab === 'settings' && (
             <div className="space-y-6">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">League Settings</h3>
+              
+              {/* Edit League Info */}
+              <div className="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 border border-gray-300 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-gray-900 dark:text-white font-medium">League Information</h4>
+                  {!editMode && (
+                    <button
+                      onClick={() => setEditMode(true)}
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors"
+                    >
+                      Edit
+                    </button>
+                  )}
+                </div>
+                
+                {editMode ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        League Name
+                      </label>
+                      <input
+                        type="text"
+                        value={editData.name}
+                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                        maxLength={50}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Description
+                      </label>
+                      <textarea
+                        value={editData.description}
+                        onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                        rows={3}
+                        maxLength={200}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setEditMode(false);
+                          setEditData({ name: league.name, description: league.description });
+                        }}
+                        disabled={editLoading}
+                        className="flex-1 px-3 py-2 bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white rounded-lg transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleEditLeague}
+                        disabled={editLoading || !editData.name.trim()}
+                        className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        {editLoading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            Saving...
+                          </>
+                        ) : (
+                          'Save'
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Name:</span>
+                      <p className="text-gray-900 dark:text-white">{league.name}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Description:</span>
+                      <p className="text-gray-900 dark:text-white">{league.description || 'No description'}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
               
               {/* League Icon */}
               <div className="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 border border-gray-300 dark:border-gray-700">

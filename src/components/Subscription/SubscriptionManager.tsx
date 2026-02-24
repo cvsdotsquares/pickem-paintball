@@ -107,10 +107,10 @@ export default function SubscriptionManager() {
 
   if (!isSubscribed) {
     return (
-      <div className="bg-gray-800 rounded-lg p-6 text-center">
-        <FaCrown className="text-gray-500 text-5xl mx-auto mb-4" />
-        <h3 className="text-xl font-bold text-white mb-2">No Active Subscription</h3>
-        <p className="text-gray-400 mb-4">Subscribe to unlock premium features</p>
+      <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 text-center">
+        <FaCrown className="text-gray-400 dark:text-gray-500 text-5xl mx-auto mb-4" />
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No Active Subscription</h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-4">Subscribe to unlock premium features</p>
       </div>
     );
   }
@@ -118,7 +118,7 @@ export default function SubscriptionManager() {
   return (
     <div className="space-y-6">
       {/* Current Plan */}
-      <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-lg p-6 border border-blue-500">
+      <div className="bg-gradient-to-br from-blue-900 to-blue-800 dark:from-blue-900 dark:to-blue-800 rounded-lg p-6 border border-blue-500">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <FaCrown className="text-yellow-400 text-2xl" />
@@ -157,8 +157,8 @@ export default function SubscriptionManager() {
       </div>
 
       {/* Features */}
-      <div className="bg-gray-800 rounded-lg p-6">
-        <h4 className="text-lg font-bold text-white mb-4">Your Benefits</h4>
+      <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
+        <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Your Benefits</h4>
         <ul className="space-y-3">
           {[
             'Create unlimited custom leagues',
@@ -167,8 +167,8 @@ export default function SubscriptionManager() {
             'Priority support',
             'Ad-free experience'
           ].map((feature, i) => (
-            <li key={i} className="flex items-center gap-3 text-gray-300">
-              <FaCheck className="text-green-400" />
+            <li key={i} className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+              <FaCheck className="text-green-500 dark:text-green-400" />
               {feature}
             </li>
           ))}
@@ -177,21 +177,21 @@ export default function SubscriptionManager() {
 
       {/* Billing History */}
       {billingHistory.length > 0 && (
-        <div className="bg-gray-800 rounded-lg p-6">
-          <h4 className="text-lg font-bold text-white mb-4">Billing History</h4>
+        <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
+          <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Billing History</h4>
           <div className="space-y-3">
             {billingHistory.map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+              <div key={item.id} className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <FaCreditCard className="text-gray-400" />
+                  <FaCreditCard className="text-gray-500 dark:text-gray-400" />
                   <div>
-                    <p className="text-white font-medium">${(item.amount / 100).toFixed(2)}</p>
-                    <p className="text-gray-400 text-sm">{new Date(item.date).toLocaleDateString()}</p>
+                    <p className="text-gray-900 dark:text-white font-medium">${(item.amount / 100).toFixed(2)}</p>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm">{new Date(item.date).toLocaleDateString()}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    item.status === 'paid' ? 'bg-green-500/20 text-green-400' : 'bg-gray-600 text-gray-300'
+                    item.status === 'paid' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
                   }`}>
                     {item.status}
                   </span>
@@ -200,7 +200,7 @@ export default function SubscriptionManager() {
                       href={item.invoiceUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-400 hover:text-blue-300 text-sm"
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm"
                     >
                       Invoice
                     </a>
@@ -215,20 +215,20 @@ export default function SubscriptionManager() {
       {/* Cancel Modal */}
       {showCancelModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 rounded-xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-xl max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-white">Cancel Subscription?</h3>
-              <button onClick={() => setShowCancelModal(false)} className="text-gray-400 hover:text-white">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Cancel Subscription?</h3>
+              <button onClick={() => setShowCancelModal(false)} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
                 <FaTimes />
               </button>
             </div>
-            <p className="text-gray-300 mb-6">
+            <p className="text-gray-700 dark:text-gray-300 mb-6">
               Are you sure you want to cancel? You'll lose access to premium features at the end of your billing period.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowCancelModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg"
               >
                 Keep Subscription
               </button>

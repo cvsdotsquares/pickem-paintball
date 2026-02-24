@@ -221,6 +221,19 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
             />
           </div>
 
+          {/* Member Limit Info */}
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-sm text-blue-800 dark:text-blue-300">
+              <span className="font-semibold">Member Limit:</span> Default 20 members per league. Need more? Email{' '}
+              <a 
+                href="mailto:greenjoc3397@gmail.com" 
+                className="font-semibold underline hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                James Green
+              </a>
+            </p>
+          </div>
+
           {/* Settings */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">League Settings</h3>

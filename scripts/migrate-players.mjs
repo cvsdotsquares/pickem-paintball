@@ -1,8 +1,25 @@
 // Migration Script: Copy player data from events to new players collection
-// Run this script to create new /players collection structure
+// Run: npm run migrate-players
 
-import { db } from './src/lib/firebaseClient.ts';
-import { collection, getDocs, doc, writeBatch } from 'firebase/firestore';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, getDocs, doc, writeBatch } from 'firebase/firestore';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '.env.local' });
+
+// Firebase config from environment
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 // Auto-detect all events from Firebase
 const getAllEventsFromFirebase = async () => {
@@ -16,7 +33,6 @@ const getAllEventsFromFirebase = async () => {
       const eventId = eventDoc.id;
       const eventData = eventDoc.data();
       
-      // Extract year from event ID or data
       const year = eventData.year || eventId.match(/(\d{4})/)?.[1] || '2025';
       const season = eventData.season || year;
       
@@ -38,13 +54,11 @@ const migratePlayersToNewCollection = async () => {
   console.log('🚀 Starting player data migration...');
   
   try {
-    // Auto-detect all events
     const eventSeasonMapping = await getAllEventsFromFirebase();
     
     for (const [eventId, eventInfo] of Object.entries(eventSeasonMapping)) {
       console.log(`📋 Processing event: ${eventId} (Season ${eventInfo.season})`);
       
-      // Fetch players from existing event structure
       const playersSnapshot = await getDocs(
         collection(db, `events/${eventId}/players`)
       );
@@ -54,7 +68,6 @@ const migratePlayersToNewCollection = async () => {
         continue;
       }
       
-      // Process players in batches (Firestore batch limit: 500)
       const players = playersSnapshot.docs;
       const batchSize = 500;
       
@@ -66,16 +79,12 @@ const migratePlayersToNewCollection = async () => {
           const playerId = playerDoc.id;
           const playerData = playerDoc.data();
           
-          // Calculate event rank based on confirmed kills
           const confirmedKills = playerData['Confirmed Kills'] || playerData.confirmedKills || 0;
           
-          // Create new player document structure
           const newPlayerData = {
             playerId: playerId,
             playerName: playerData.Player || playerData.playerName || 'Unknown Player',
             team: playerData.Team || playerData.team || 'Unknown Team',
-            
-            // Event stats
             confirmedKills: confirmedKills,
             gunfights: playerData.Gunfights || 0,
             breakshooting: playerData.Breakshooting || 0,
@@ -84,22 +93,15 @@ const migratePlayersToNewCollection = async () => {
             pressure: playerData.Pressure || 0,
             trades: playerData.Trades || 0,
             unclassified: playerData.Unclassified || 0,
-            
-            // Ranking (will be calculated separately)
             eventRank: parseInt(playerData.Rank) || 999,
-            
-            // Metadata
             eventId: eventId,
             season: eventInfo.season,
             year: eventInfo.year,
             eventStatus: 'completed',
             lastUpdated: new Date(),
-            
-            // Original data backup
             originalData: playerData
           };
           
-          // Set document in new collection structure
           const newPlayerRef = doc(
             db, 
             `players/season_${eventInfo.season}/${eventId}`, 
@@ -109,7 +111,6 @@ const migratePlayersToNewCollection = async () => {
           batch.set(newPlayerRef, newPlayerData);
         });
         
-        // Commit batch
         await batch.commit();
         console.log(`✅ Migrated batch ${Math.floor(i/batchSize) + 1} for ${eventId} (${batchPlayers.length} players)`);
       }
@@ -118,8 +119,6 @@ const migratePlayersToNewCollection = async () => {
     }
     
     console.log('🏆 Migration completed successfully!');
-    
-    // Calculate rankings after migration
     await calculateEventRankings(eventSeasonMapping);
     
   } catch (error) {
@@ -128,7 +127,7 @@ const migratePlayersToNewCollection = async () => {
   }
 };
 
-// Calculate event rankings for all events
+// Calculate event rankings
 const calculateEventRankings = async (eventSeasonMapping) => {
   console.log('🏆 Calculating event rankings...');
   
@@ -136,7 +135,6 @@ const calculateEventRankings = async (eventSeasonMapping) => {
     for (const [eventId, eventInfo] of Object.entries(eventSeasonMapping)) {
       console.log(`📊 Calculating rankings for: ${eventId}`);
       
-      // Get all players for this event, sorted by confirmed kills (descending)
       const playersSnapshot = await getDocs(
         collection(db, `players/season_${eventInfo.season}/${eventId}`)
       );
@@ -146,12 +144,10 @@ const calculateEventRankings = async (eventSeasonMapping) => {
         continue;
       }
       
-      // Sort players by confirmed kills (descending)
       const sortedPlayers = playersSnapshot.docs
         .map(doc => ({ id: doc.id, data: doc.data() }))
         .sort((a, b) => (b.data.confirmedKills || 0) - (a.data.confirmedKills || 0));
       
-      // Update rankings in batches
       const batchSize = 500;
       
       for (let i = 0; i < sortedPlayers.length; i += batchSize) {
@@ -188,55 +184,13 @@ const calculateEventRankings = async (eventSeasonMapping) => {
   }
 };
 
-// Verify migration function
-const verifyMigration = async () => {
-  console.log('🔍 Verifying migration...');
-  
-  try {
-    const eventSeasonMapping = await getAllEventsFromFirebase();
-    
-    for (const [eventId, eventInfo] of Object.entries(eventSeasonMapping)) {
-      // Count original players
-      const originalSnapshot = await getDocs(
-        collection(db, `events/${eventId}/players`)
-      );
-      
-      // Count migrated players
-      const migratedSnapshot = await getDocs(
-        collection(db, `players/season_${eventInfo.season}/${eventId}`)
-      );
-      
-      const originalCount = originalSnapshot.size;
-      const migratedCount = migratedSnapshot.size;
-      
-      console.log(`📊 ${eventId}: Original=${originalCount}, Migrated=${migratedCount}`);
-      
-      if (originalCount !== migratedCount) {
-        console.warn(`⚠️  Mismatch in ${eventId}: ${originalCount} vs ${migratedCount}`);
-      } else {
-        console.log(`✅ ${eventId}: Migration verified`);
-      }
-    }
-    
-    console.log('🎉 Migration verification completed!');
-    
-  } catch (error) {
-    console.error('❌ Verification failed:', error);
-  }
-};
-
-// Export functions
-export {
-  migratePlayersToNewCollection,
-  calculateEventRankings,
-  verifyMigration,
-  getAllEventsFromFirebase
-};
-
-// Run migration if called directly
-if (typeof window === 'undefined') {
-  // Node.js environment
-  migratePlayersToNewCollection()
-    .then(() => verifyMigration())
-    .catch(console.error);
-}
+// Run migration
+migratePlayersToNewCollection()
+  .then(() => {
+    console.log('✅ Script completed successfully!');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('❌ Script failed:', error);
+    process.exit(1);
+  });

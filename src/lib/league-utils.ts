@@ -69,6 +69,10 @@ export const joinLeagueByCode = async (inviteCode: string, userId: string): Prom
 
   if (!response.ok) {
     const error = await response.json();
+    // Pass full error object if league is full
+    if (error.isFull) {
+      throw error;
+    }
     throw new Error(error.error || 'Failed to join league');
   }
 

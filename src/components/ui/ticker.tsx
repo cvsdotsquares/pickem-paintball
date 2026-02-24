@@ -28,8 +28,8 @@ export const NewsTicker: React.FC = () => {
         offset: ["start end", "end start"],
     });
 
-    const xRaw = useTransform(scrollYProgress, [0, 1], [0, -1000]); // Adjusted to control horizontal movement
-    useSpring(xRaw, { mass: 1, stiffness: 150, damping: 25 }); // Smoothened spring physics
+    const xRaw = useTransform(scrollYProgress, [0, 1], [0, -1000]);
+    useSpring(xRaw, { mass: 1, stiffness: 150, damping: 25 });
 
     const tickerItems = [
         "Pick your squad",
@@ -45,16 +45,18 @@ export const NewsTicker: React.FC = () => {
         >
             <div className="relative flex items-center text-xl tracking-tight uppercase">
                 <motion.div
-                    animate={{ x: [0, -1000] }}
-                    transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
-                    className="flex whitespace-nowrap px-4 gap-8"
+                    animate={{ x: ["0%", "-50%"] }}
+                    transition={{ repeat: Infinity, duration: 30, ease: "linear", repeatType: "loop" }}
+                    className="flex whitespace-nowrap gap-8"
+                    style={{ width: "200%" }}
                 >
-                    {tickerItems.map((text, index) => (
-                        <TickerItem key={index} text={text} />
-                    ))}
-                    {/* Duplicate ticker items for seamless looping */}
-                    {tickerItems.map((text, index) => (
-                        <TickerItem key={`loop-${index}`} text={text} />
+                    {/* Render items twice for seamless infinite loop */}
+                    {[...Array(2)].map((_, setIndex) => (
+                        <React.Fragment key={setIndex}>
+                            {tickerItems.map((text, index) => (
+                                <TickerItem key={`${setIndex}-${index}`} text={text} />
+                            ))}
+                        </React.Fragment>
                     ))}
                 </motion.div>
             </div>

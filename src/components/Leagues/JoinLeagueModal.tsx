@@ -36,7 +36,29 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
       setInviteCode('');
       onClose();
     } catch (error: any) {
-      showToast(error.message || 'Failed to join league', 'error');
+      // Check if league is full
+      if (error.isFull) {
+        const subject = encodeURIComponent(`Increase Member Limit - ${error.leagueName}`);
+        const body = encodeURIComponent(
+          `Hi Admin,\n\nI would like to request an increase in the member limit for the league "${error.leagueName}".\n\nCurrent limit: 20 members\nRequested action: Please increase the member limit\n\nThank you!`
+        );
+        const mailtoLink = `mailto:${error.adminEmail}?subject=${subject}&body=${body}`;
+        
+        // Show error with mailto link
+        const errorDiv = document.createElement('div');
+        errorDiv.innerHTML = `
+          <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); max-width: 400px; width: 90%;">
+            <h3 style="color: #1f2937; font-size: 18px; font-weight: bold; margin-bottom: 12px;">League Full</h3>
+            <p style="color: #4b5563; margin-bottom: 16px;">${error.error}</p>
+            <a href="${mailtoLink}" style="display: inline-block; background: #3b82f6; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 500; margin-right: 8px;">Contact Admin</a>
+            <button onclick="this.parentElement.remove()" style="background: #6b7280; color: white; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 500;">Close</button>
+          </div>
+        `;
+        document.body.appendChild(errorDiv);
+        setTimeout(() => errorDiv.remove(), 10000);
+      } else {
+        showToast(error.message || 'Failed to join league', 'error');
+      }
     } finally {
       setLoading(false);
     }

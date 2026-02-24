@@ -17,6 +17,7 @@ export interface League {
   admins: string[];
   members: string[];
   memberCount: number;
+  maxMembers: number;
   
   pendingRequests: string[];
   inviteCode: string;
