@@ -59,10 +59,14 @@ interface PlayerPick {
   kills: number;
   cost: number;
   rank?: number | string;
+  isCaptain?: boolean;
+  points: number;
 }
 
 interface UserDetails {
   picks: PlayerPick[];
+  totalPoints: number;
+  captain: string | null;
 }
 
 // Simple in-memory cache for paginated participants
@@ -1201,22 +1205,24 @@ function LeaderboardNewContent() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
                       {currentUserDetails.picks
                         .slice()
-                        .sort((a, b) => {
-                          if (b.kills !== a.kills) return b.kills - a.kills;
-                          return a.name.localeCompare(b.name);
-                        })
+                        .sort((a, b) => b.points - a.points)
                         .map((pick) => (
                           <div
                             key={pick.id}
-                            className="bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors"
+                            className={`bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors ${
+                              pick.isCaptain ? "border-2 border-yellow-400" : ""
+                            }`}
                           >
                             <div className="grid grid-cols-2 gap-x-4 text-xs">
                               <div>
-                                <div className="text-gray-900 dark:text-white font-medium truncate mb-1">{pick.name}</div>
+                                <div className="text-gray-900 dark:text-white font-medium truncate mb-1 flex items-center gap-1">
+                                  {pick.name}
+                                  {pick.isCaptain && <span className="text-yellow-400 font-bold">C</span>}
+                                </div>
                                 <div className="text-gray-600 dark:text-gray-400">Rank: <span className="text-gray-900 dark:text-white">{pick.rank ?? 0}</span></div>
                               </div>
                               <div className="space-y-1">
-                                <div className="text-gray-600 dark:text-gray-400">Confirmed Kills: <span className="text-green-600 dark:text-green-400 font-medium">{pick.kills}</span></div>
+                                <div className="text-gray-600 dark:text-gray-400">Score: <span className="text-green-600 dark:text-green-400 font-medium">{pick.points}</span></div>
                                 <div className="text-gray-600 dark:text-gray-400">Cost: <span className="text-gray-900 dark:text-white">${pick.cost}</span></div>
                                 <div className="text-gray-600 dark:text-gray-400">ROI: <span className="text-yellow-600 dark:text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(2)}</span></div>
                               </div>
@@ -1503,22 +1509,24 @@ function LeaderboardNewContent() {
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
                                                   {eventDetails.picks
                                                     .slice()
-                                                    .sort((a, b) => {
-                                                      if (b.kills !== a.kills) return b.kills - a.kills;
-                                                      return a.name.localeCompare(b.name);
-                                                    })
+                                                    .sort((a, b) => b.points - a.points)
                                                     .map((pick) => (
                                                       <div
                                                         key={pick.id}
-                                                        className="bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors"
+                                                        className={`bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors ${
+                                                          pick.isCaptain ? "border-2 border-yellow-400" : ""
+                                                        }`}
                                                       >
                                                         <div className="grid grid-cols-2 gap-x-4 text-xs">
                                                           <div>
-                                                            <div className="text-gray-900 dark:text-white font-medium truncate mb-1">{pick.name}</div>
+                                                            <div className="text-gray-900 dark:text-white font-medium truncate mb-1 flex items-center gap-1">
+                                                              {pick.name}
+                                                              {pick.isCaptain && <span className="text-yellow-400 font-bold">C</span>}
+                                                            </div>
                                                             <div className="text-gray-600 dark:text-gray-400">Rank: <span className="text-gray-900 dark:text-white">{pick.rank ?? 0}</span></div>
                                                           </div>
                                                           <div className="space-y-1">
-                                                            <div className="text-gray-600 dark:text-gray-400">Confirmed Kills: <span className="text-green-600 dark:text-green-400 font-medium">{pick.kills}</span></div>
+                                                            <div className="text-gray-600 dark:text-gray-400">Score: <span className="text-green-600 dark:text-green-400 font-medium">{pick.points}</span></div>
                                                             <div className="text-gray-600 dark:text-gray-400">Cost: <span className="text-gray-900 dark:text-white">${pick.cost}</span></div>
                                                             <div className="text-gray-600 dark:text-gray-400">ROI: <span className="text-yellow-600 dark:text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(0)}</span></div>
                                                           </div>
@@ -1547,22 +1555,24 @@ function LeaderboardNewContent() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
                                   {userDetailsMap.get(liveEvent ? `${user.id}:${liveEvent.id}` : user.id)?.picks
                                     .slice()
-                                    .sort((a, b) => {
-                                      if (b.kills !== a.kills) return b.kills - a.kills;
-                                      return a.name.localeCompare(b.name);
-                                    })
+                                    .sort((a, b) => b.points - a.points)
                                     .map((pick) => (
                                       <div
                                         key={pick.id}
-                                        className="bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors"
+                                        className={`bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors ${
+                                          pick.isCaptain ? "border-2 border-yellow-400" : ""
+                                        }`}
                                       >
                                         <div className="grid grid-cols-2 gap-x-4 text-xs">
                                           <div>
-                                            <div className="text-gray-900 dark:text-white font-medium truncate mb-1">{pick.name}</div>
+                                            <div className="text-gray-900 dark:text-white font-medium truncate mb-1 flex items-center gap-1">
+                                              {pick.name}
+                                              {pick.isCaptain && <span className="text-yellow-400 font-bold">C</span>}
+                                            </div>
                                             <div className="text-gray-600 dark:text-gray-400">Rank: <span className="text-gray-900 dark:text-white">{pick.rank ?? 0}</span></div>
                                           </div>
                                           <div className="space-y-1">
-                                            <div className="text-gray-600 dark:text-gray-400">Confirmed Kills: <span className="text-green-600 dark:text-green-400 font-medium">{pick.kills}</span></div>
+                                            <div className="text-gray-600 dark:text-gray-400">Score: <span className="text-green-600 dark:text-green-400 font-medium">{pick.points}</span></div>
                                             <div className="text-gray-600 dark:text-gray-400">Cost: <span className="text-gray-900 dark:text-white">${pick.cost}</span></div>
                                             <div className="text-gray-600 dark:text-gray-400">ROI: <span className="text-yellow-600 dark:text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(0)}</span></div>
                                           </div>

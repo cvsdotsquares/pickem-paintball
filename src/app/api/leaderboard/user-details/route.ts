@@ -33,10 +33,14 @@ interface PlayerPick {
   kills: number;
   cost: number;
   rank?: number | string;
+  isCaptain?: boolean;
+  points: number;
 }
 
 interface UserDetails {
   picks: PlayerPick[];
+  totalPoints: number;
+  captain: string | null;
 }
 
 export async function GET(request: NextRequest) {
@@ -75,6 +79,7 @@ export async function GET(request: NextRequest) {
     const userData = userDoc.data();
     const pickems = userData.pickems || {};
     const playerIds = Array.isArray(pickems[eventId]) ? pickems[eventId] : [];
+    const captainId = pickems[`${eventId}_captain`] || null;
 
     const picks: PlayerPick[] = [];
 
@@ -92,6 +97,8 @@ export async function GET(request: NextRequest) {
             const playerName = playerDoc.get("Player") || "Unknown Player";
             const playerCost = playerDoc.get("Cost") || 0;
             const playerRank = playerDoc.get("Rank") ?? 0;
+            const isCaptain = playerId === captainId;
+            const points = isCaptain ? totalKills * 1.5 : totalKills;
 
             return {
               id: playerId,
@@ -99,6 +106,8 @@ export async function GET(request: NextRequest) {
               kills: totalKills,
               cost: playerCost,
               rank: playerRank === undefined || playerRank === null ? 0 : playerRank,
+              isCaptain,
+              points,
             };
           }
         } catch (error) {
@@ -116,8 +125,12 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    const totalPoints = picks.reduce((sum, pick) => sum + pick.points, 0);
+
     const userDetails: UserDetails = {
       picks,
+      totalPoints,
+      captain: captainId,
     };
 
     return NextResponse.json(userDetails, {

@@ -11,7 +11,7 @@ import {
 } from "firebase/firestore";
 import { AnimatePresence, motion } from "framer-motion";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { GiCardPickup } from "react-icons/gi";
+import { GiCardPickup, GiCrown } from "react-icons/gi";
 import { IoMdClose, IoMdCloseCircle } from "react-icons/io";
 import { RiLock2Line, RiTeamLine } from "react-icons/ri";
 import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
@@ -57,6 +57,7 @@ export default function Pickems() {
     }))
   );
   const [temporaryPicks, setTemporaryPicks] = useState<Player[]>([]);
+  const [captainId, setCaptainId] = useState<string | null>(null);
   const [liveEvent, setLiveEvent] = useState<{
     id: string | null;
     lockDate: Date | null;
@@ -64,7 +65,7 @@ export default function Pickems() {
   }>({ id: null, lockDate: null, timeLeft: "" });
   const [remainingBudget, setRemainingBudget] = useState(1000000); // $1,000,000 initial budget
   const [visiblePlayersCount, setVisiblePlayersCount] = useState(9);
-  const [isLoadingMore, setIsLoadingMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [costRange, setCostRange] = useState<[number, number]>([0, 1000000]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -288,25 +289,33 @@ export default function Pickems() {
   useEffect(() => {
     const fetchLiveEvent = async () => {
       try {
+        // First, fetch all events to see available IDs
         const events = await fetchFromFirestore("events");
-        const liveEvent = events.find((e: any) => e.status === "live");
+        console.log("All events:", events.map((e : any) => ({ id: e.id, name: e?.name })));
 
-        if (liveEvent) {
-          const eventRef = doc(db, "events", liveEvent.id);
+        // Try to find by name "World Cup"
+        const worldCupEvent = events.find((e: any) => 
+          e.name?.toLowerCase().includes("world cup")
+        );
+
+        if (worldCupEvent) {
+          const eventRef = doc(db, "events", worldCupEvent.id);
           const eventSnap = await getDoc(eventRef);
 
           if (eventSnap.exists()) {
             const eventData = eventSnap.data();
-            const lockDate = eventData.lockDate.toDate
-              ? eventData.lockDate.toDate()
-              : null;
+            const lockDate = eventData.lockDate?.toDate() || null;
+
+            console.log("Event found:", worldCupEvent.id, eventData);
 
             setLiveEvent({
-              id: liveEvent.id,
+              id: worldCupEvent.id,
               lockDate,
               timeLeft: "",
             });
           }
+        } else {
+          console.error("World Cup event not found in:", events);
         }
       } catch (error) {
         console.error("Error fetching live event:", error);
@@ -368,17 +377,21 @@ export default function Pickems() {
   useEffect(() => {
     let isMounted = true;
     const fetchPlayers = async () => {
-      if (!liveEvent.id) return;
+      if (!liveEvent.id) {
+        console.log("No event ID yet");
+        return;
+      }
 
       try {
-        setIsLoadingMore(true); // Set loading state when starting data fetch
+        console.log("Fetching players for event:", liveEvent.id);
+        setIsLoadingMore(true);
 
-        // Fetch raw players from Firestore
         const rawPlayers = await fetchFromFirestore(
           `events/${liveEvent.id}/players`
         );
 
-        // Map Firestore data to the Player type (if necessary)
+        console.log("Fetched players:", rawPlayers.length);
+
         const players: Player[] = rawPlayers.map((raw: any) => ({
           player_id: raw.player_id,
           league_id: raw.league_id,
@@ -387,12 +400,11 @@ export default function Pickems() {
           Rank: raw.Rank,
           team_id: raw.team_id,
           Cost: raw.Cost,
-          img_url: raw.img_url, // Include img_url if available
-          picture: raw.img_url && raw.img_url.trim() !== "" ? raw.img_url : undefined, // Set picture immediately if img_url available
-          pictureLoading: !(raw.img_url && raw.img_url.trim() !== ""), // Only loading if no img_url
+          img_url: raw.img_url,
+          picture: raw.img_url && raw.img_url.trim() !== "" ? raw.img_url : undefined,
+          pictureLoading: !(raw.img_url && raw.img_url.trim() !== ""),
         }));
-        // Get unique teams from the same data
-        // Extract unique teams safely
+
         const uniqueTeams = Array.from(
           new Set(
             rawPlayers
@@ -400,15 +412,16 @@ export default function Pickems() {
               .filter((team): team is string => Boolean(team))
           )
         );
+
         if (isMounted) {
           setRowData(players);
           setTeams(uniqueTeams);
-          setIsLoadingMore(false); // Clear loading state after data is loaded
+          setIsLoadingMore(false);
         }
       } catch (error) {
         if (isMounted) {
           console.error("Error fetching players:", error);
-          setIsLoadingMore(false); // Clear loading state on error
+          setIsLoadingMore(false);
         }
       }
     };
@@ -504,6 +517,10 @@ export default function Pickems() {
                 })
               );
 
+              // Load captain
+              const savedCaptain = userData.pickems?.[`${liveEvent.id}_captain`];
+              setCaptainId(savedCaptain || null);
+
               setTemporaryPicks(picksWithPictures);
               setPlayerSlots((prevSlots) =>
                 prevSlots.map((slot, index) => ({
@@ -543,7 +560,7 @@ export default function Pickems() {
 
   const handlePlayerAction = (player: Player) => {
     // Check if picks are locked
-    if (!isBeforeLockDate(liveEvent.lockDate)) {
+    if (isBeforeLockDate(liveEvent.lockDate)) {
       toast.error(
         <div>
           <div className="font-bold">Picks Locked!</div>
@@ -576,6 +593,11 @@ export default function Pickems() {
       );
       setTemporaryPicks(newPicks);
       setRemainingBudget((prev) => prev + player.Cost);
+
+      // Remove captain if this player was captain
+      if (captainId === player.player_id) {
+        setCaptainId(null);
+      }
 
       // Update slots
       setPlayerSlots((prevSlots) =>
@@ -693,6 +715,28 @@ export default function Pickems() {
   const closeDrawer = () => {
     setIsDrawerOpen(false);
   };
+
+  const handleCaptainSelection = (playerId: string) => {
+    if (isBeforeLockDate(liveEvent.lockDate)) {
+      toast.error("Picks are locked!");
+      return;
+    }
+
+    if (temporaryPicks.length < 10) {
+      toast.error("Select all 10 players first!");
+      return;
+    }
+
+    if (!temporaryPicks.find(p => p.player_id === playerId)) {
+      toast.error("Captain must be from your selected players!");
+      return;
+    }
+
+    setCaptainId(playerId);
+    const player = temporaryPicks.find(p => p.player_id === playerId);
+    toast.success(`${player?.Player} selected as captain! (1.25x points)`);
+  };
+
   const confirmPicks = async () => {
     if (!user) {
       toast.error("You must be logged in to confirm picks", {
@@ -707,7 +751,7 @@ export default function Pickems() {
       return;
     }
 
-    if (!isBeforeLockDate(liveEvent.lockDate)) {
+    if (isBeforeLockDate(liveEvent.lockDate)) {
       toast.error("Time to select picks has passed!", {
         position: "top-right",
         autoClose: 5000,
@@ -733,10 +777,24 @@ export default function Pickems() {
       return;
     }
 
+    if (!captainId) {
+      toast.warning("Please select a captain before confirming!", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+      return;
+    }
+
     try {
       const pickIds = temporaryPicks.map((p) => p.player_id);
       await updateDoc(doc(db, "users", user.uid), {
         [`pickems.${liveEvent.id}`]: pickIds,
+        [`pickems.${liveEvent.id}_captain`]: captainId,
       });
       toast.success("Picks confirmed successfully!", {
         position: "top-right",
@@ -840,13 +898,17 @@ export default function Pickems() {
     player,
     isSelected = false,
     isSlot = false,
+    isCaptain = false,
     onClick,
+    onCaptainClick,
     teamLogos, // Pass the logos as prop
   }: {
     player?: Player;
     isSelected?: boolean;
     isSlot?: boolean;
+    isCaptain?: boolean;
     onClick?: () => void;
+    onCaptainClick?: () => void;
     teamLogos: Record<string, string>;
   }) {
     const teamLogo = player?.team_id ? teamLogos[player.team_id] : null;
@@ -858,7 +920,9 @@ export default function Pickems() {
         }
         className={`relative flex flex-col ${
           isSlot ? "mx-0" : "mx-1"
-        } mb-2 rounded-3xl border-2 border-blue-600/80 bg-gray-300 dark:bg-gray-700 cursor-pointer hover:shadow-lg hover:shadow-blue-600/50 transition-shadow duration-200`}
+        } mb-2 rounded-3xl border-2 ${
+          isCaptain ? "border-yellow-400 ring-2 ring-yellow-400/50" : "border-blue-600/80"
+        } bg-gray-300 dark:bg-gray-700 cursor-pointer hover:shadow-lg hover:shadow-blue-600/50 transition-shadow duration-200`}
         onClick={(e) => {
           e.stopPropagation();
           if (onClick) onClick();
@@ -866,6 +930,52 @@ export default function Pickems() {
       >
         {/* Top Section */}
         <div className="rounded-t-3xl p-2 ring-1 bg-gray-200 dark:bg-gray-800 ring-blue-600/80">
+          {/* Captain Crown Badge */}
+          {isCaptain && (
+            <div 
+              className="absolute top-2 right-2 z-20 rounded-full shadow-lg flex items-center justify-center font-extrabold" 
+              style={{
+                backgroundColor: '#C99A0C',
+                width: '1.5em',
+                height: '1.5em',
+                fontSize: '0.75em',
+                color: '#111'
+              }}
+              title="Captain (1.25x Points)"
+            >
+              C
+            </div>
+          )}
+          
+          {/* Captain Selection Button for Slots */}
+          {isSlot && player && !isCaptain && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onCaptainClick) onCaptainClick();
+              }}
+              className="absolute top-2 right-2 z-20 rounded-full shadow-lg transition-colors flex items-center justify-center font-extrabold"
+              style={{
+                backgroundColor: '#6B7280',
+                width: '1.5em',
+                height: '1.5em',
+                fontSize: '0.75em',
+                color: '#fff'
+              }}
+              title="Make Captain"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#C99A0C';
+                e.currentTarget.style.color = '#111';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#6B7280';
+                e.currentTarget.style.color = '#fff';
+              }}
+            >
+              C
+            </button>
+          )}
+
           <div className="relative overflow-hidden pb-3 rounded-t-2xl">
             {/* Left and Right Logos */}
             {/* <div className="absolute start-0 top-0 aspect-square w-[76px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-600/80 bg-gray-200 dark:bg-gray-800 z-10 pointer-events-none" />
@@ -1021,17 +1131,51 @@ export default function Pickems() {
 
           {/* Cards Container */}
           <div className="relative h-full py-6 overflow-y-auto">
+            {/* Captain Slot */}
+            {temporaryPicks.length > 0 && captainId && (
+              <div className="mb-6 px-4">
+                <h2 className="text-center text-yellow-400 font-bold text-lg mb-3 flex items-center justify-center gap-2">
+                  <span className="inline-flex items-center justify-center rounded-full font-extrabold" style={{
+                    backgroundColor: '#C99A0C',
+                    color: '#111',
+                    width: '1.5em',
+                    height: '1.5em',
+                    fontSize: '1rem'
+                  }}>C</span> CAPTAIN (1.25x Points)
+                </h2>
+                <div className="max-w-[200px] mx-auto">
+                  {(() => {
+                    const captain = temporaryPicks.find(p => p.player_id === captainId);
+                    return captain ? (
+                      <PlayerCard
+                        player={captain}
+                        isSlot={true}
+                        isCaptain={true}
+                        onClick={() => handlePlayerAction(captain)}
+                        onCaptainClick={() => setCaptainId(null)}
+                        teamLogos={teamLogos}
+                      />
+                    ) : null;
+                  })()}
+                </div>
+              </div>
+            )}
+
             <AnimatedGroup
               preset="scale"
               className="relative grid sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 grid-cols-2 gap-3 md:gap-6  md:pb-2 pb-[50px] md:pb-8 items-center justify-center lg:justify-evenly m-auto px-4 w-6/6 md:w-5/6 lg:w-full"
             >
-              {playerSlots.map((slot) => (
+              {playerSlots.slice(0, 9).map((slot, index) => {
+                const isCaptainSlot = slot.player?.player_id === captainId;
+                return (
                 <div key={slot.id} className="relative">
                   {slot.player ? (
                     <PlayerCard
                       player={slot.player}
                       isSlot={true}
+                      isCaptain={isCaptainSlot}
                       onClick={() => handlePlayerAction(slot.player!)}
+                      onCaptainClick={() => handleCaptainSelection(slot.player!.player_id)}
                       teamLogos={teamLogos}
                     />
                   ) : (
@@ -1050,7 +1194,8 @@ export default function Pickems() {
                     </button>
                   )}
                 </div>
-              ))}
+              );
+              })}
             </AnimatedGroup>
           </div>
         </div>
