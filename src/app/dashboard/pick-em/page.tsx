@@ -1165,7 +1165,7 @@ export default function Pickems() {
               preset="scale"
               className="relative grid sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 grid-cols-2 gap-3 md:gap-6  md:pb-2 pb-[50px] md:pb-8 items-center justify-center lg:justify-evenly m-auto px-4 w-6/6 md:w-5/6 lg:w-full"
             >
-              {playerSlots.slice(0, 9).map((slot, index) => {
+              {playerSlots.map((slot, index) => {
                 const isCaptainSlot = slot.player?.player_id === captainId;
                 return (
                 <div key={slot.id} className="relative">
