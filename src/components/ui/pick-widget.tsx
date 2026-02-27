@@ -33,6 +33,7 @@ export const PickWidget = () => {
     }))
   );
   const [teamLogos, setTeamLogos] = useState<Record<string, string>>({});
+  const [captainId, setCaptainId] = useState<string | null>(null);
 
   const db = getFirestore();
   const { user } = useAuth();
@@ -266,6 +267,10 @@ export const PickWidget = () => {
                   };
                 });
 
+              // Load captain
+              const savedCaptain = userData.pickems?.[`${liveEvent.id}_captain`];
+              setCaptainId(savedCaptain || null);
+
               setPlayerSlots((prevSlots) =>
                 prevSlots.map((slot, index) => ({
                   ...slot,
@@ -314,9 +319,11 @@ export const PickWidget = () => {
   const PlayerCard = ({
     player,
     isSlot = false,
+    isCaptain = false,
   }: {
     player?: Player;
     isSlot?: boolean;
+    isCaptain?: boolean;
   }) => {
     return (
       <div
@@ -325,10 +332,28 @@ export const PickWidget = () => {
         }
         className={`relative flex flex-col ${
           isSlot ? "mx-0" : "mx-1"
-        } mb-2 rounded-3xl border-2 border-blue-600/80 bg-gray-700`}
+        } mb-2 rounded-3xl border-2 ${
+          isCaptain ? "border-yellow-400 ring-2 ring-yellow-400/50" : "border-blue-600/80"
+        } bg-gray-700`}
       >
         {/* Top Section */}
         <div className="rounded-t-3xl p-2 ring-1 bg-gray-800 dark:bg-gray-800 ring-blue-600/80">
+          {/* Captain Badge */}
+          {isCaptain && (
+            <div 
+              className="absolute top-2 right-2 z-20 rounded-full shadow-lg flex items-center justify-center font-extrabold" 
+              style={{
+                backgroundColor: '#C99A0C',
+                width: '2em',
+                height: '2em',
+                fontSize: '1em',
+                color: '#111'
+              }}
+              title="Captain (1.25x Points)"
+            >
+              C
+            </div>
+          )}
           <div className="relative overflow-hidden pb-3 rounded-t-2xl">
             <div className="overflow-hidden">
               <div
@@ -423,10 +448,12 @@ export const PickWidget = () => {
             preset="scale"
             className="relative md:mt-3 left-0 grid sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 grid-cols-3  gap-2 sm:gap-4 m-auto justify-center h-full py-2 px-4 lg:px-4 xl:px-8 w-full"
           >
-            {playerSlots.map((slot) => (
+            {playerSlots.map((slot) => {
+              const isCaptainSlot = slot.player?.player_id === captainId;
+              return (
               <div key={slot.id}>
                 {slot.player ? (
-                  <PlayerCard player={slot.player} isSlot={true} />
+                  <PlayerCard player={slot.player} isSlot={true} isCaptain={isCaptainSlot} />
                 ) : (
                   <button
                     className={`relative flex flex-col gap-0 justify-center items-center rounded-2xl border border-white dark:border-white bg-white/10 dark:bg-white/10 border-opacity-20 md:h-[14vh] w-full h-[100px] `}
@@ -438,7 +465,8 @@ export const PickWidget = () => {
                   </button>
                 )}
               </div>
-            ))}
+            );
+            })}
           </AnimatedGroup>
         </div>
         <ActionButtons />
