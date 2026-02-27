@@ -24,7 +24,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Notify all admins about the join request
     if (leagueData?.admins) {
       for (const adminId of leagueData.admins) {
-        await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/notifications`, {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                       (request.headers.get('host') ? `https://${request.headers.get('host')}` : 'http://localhost:3000');
+        
+        await fetch(`${baseUrl}/api/notifications`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
