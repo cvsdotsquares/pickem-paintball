@@ -135,6 +135,7 @@ function LeaderboardNewContent() {
   const { selectedLeague } = useLeague();
   const [liveEvent, setLiveEvent] = useState<LiveEvent | null>(null);
   const [allEvents, setAllEvents] = useState<LiveEvent[]>([]);
+  const [selectedYear, setSelectedYear] = useState<string>("All");
   const [isSeasonView, setIsSeasonView] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -261,7 +262,7 @@ function LeaderboardNewContent() {
             lockDate: doc.get("lockDate") || null,
             event_logo: doc.get("event_logo") || null,
           };
-        }).filter(event => event.year !== "2024"); // Filter out 2024 events
+        });
 
         // Sort events
         const eventsByYear = events.reduce((acc, event) => {
@@ -1037,6 +1038,34 @@ function LeaderboardNewContent() {
           Leaderboard
         </h1>
       </header>
+      
+      {/* Year Filter */}
+      <div className="flex justify-center px-4 mt-4">
+        <div className="flex flex-wrap gap-2 justify-center">
+          {useMemo(() => {
+            const uniqueYears = new Set(allEvents.map((event) => event.year).filter(year => year !== "2024"));
+            return [
+              "All",
+              ...Array.from(uniqueYears).sort(
+                (a, b) => parseInt(b || "0") - parseInt(a || "0")
+              ),
+            ];
+          }, [allEvents]).map((year) => (
+            <button
+              key={year}
+              onClick={() => setSelectedYear(year || "All")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                selectedYear === year
+                  ? "bg-gray-900 dark:bg-white text-white dark:text-black"
+                  : "bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
+              }`}
+            >
+              {year}
+            </button>
+          ))}
+        </div>
+      </div>
+      
       {/* Events Carousel */}
       <div className="px-4 mt-6">
         <div className="bg-gray-100/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl p-4">
@@ -1085,7 +1114,7 @@ function LeaderboardNewContent() {
               </div>
             </article>
             
-            {allEvents.map((event) => (
+            {allEvents.filter(event => selectedYear === "All" || event.year === selectedYear).map((event) => (
               <EventCard
                 key={event.id}
                 event={event}
