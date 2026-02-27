@@ -286,36 +286,28 @@ export default function Pickems() {
   };
 
   // Your existing live event fetch
-  useEffect(() => {
+ useEffect(() => {
     const fetchLiveEvent = async () => {
       try {
-        // First, fetch all events to see available IDs
         const events = await fetchFromFirestore("events");
-        console.log("All events:", events.map((e : any) => ({ id: e.id, name: e?.name })));
+        const liveEvent = events.find((e: any) => e.status === "live");
 
-        // Try to find by name "World Cup"
-        const worldCupEvent = events.find((e: any) => 
-          e.name?.toLowerCase().includes("world cup")
-        );
-
-        if (worldCupEvent) {
-          const eventRef = doc(db, "events", worldCupEvent.id);
+        if (liveEvent) {
+          const eventRef = doc(db, "events", liveEvent.id);
           const eventSnap = await getDoc(eventRef);
 
           if (eventSnap.exists()) {
             const eventData = eventSnap.data();
-            const lockDate = eventData.lockDate?.toDate() || null;
-
-            console.log("Event found:", worldCupEvent.id, eventData);
+            const lockDate = eventData.lockDate.toDate
+              ? eventData.lockDate.toDate()
+              : null;
 
             setLiveEvent({
-              id: worldCupEvent.id,
+              id: liveEvent.id,
               lockDate,
               timeLeft: "",
             });
           }
-        } else {
-          console.error("World Cup event not found in:", events);
         }
       } catch (error) {
         console.error("Error fetching live event:", error);
@@ -560,7 +552,7 @@ export default function Pickems() {
 
   const handlePlayerAction = (player: Player) => {
     // Check if picks are locked
-    if (isBeforeLockDate(liveEvent.lockDate)) {
+    if (!isBeforeLockDate(liveEvent.lockDate)) {
       toast.error(
         <div>
           <div className="font-bold">Picks Locked!</div>
@@ -717,7 +709,7 @@ export default function Pickems() {
   };
 
   const handleCaptainSelection = (playerId: string) => {
-    if (isBeforeLockDate(liveEvent.lockDate)) {
+    if (!isBeforeLockDate(liveEvent.lockDate)) {
       toast.error("Picks are locked!");
       return;
     }
@@ -751,7 +743,7 @@ export default function Pickems() {
       return;
     }
 
-    if (isBeforeLockDate(liveEvent.lockDate)) {
+    if (!isBeforeLockDate(liveEvent.lockDate)) {
       toast.error("Time to select picks has passed!", {
         position: "top-right",
         autoClose: 5000,
@@ -936,9 +928,9 @@ export default function Pickems() {
               className="absolute top-2 right-2 z-20 rounded-full shadow-lg flex items-center justify-center font-extrabold" 
               style={{
                 backgroundColor: '#C99A0C',
-                width: '1.5em',
-                height: '1.5em',
-                fontSize: '0.75em',
+                width: '2em',
+                height: '2em',
+                fontSize: '1em',
                 color: '#111'
               }}
               title="Captain (1.25x Points)"
@@ -957,9 +949,9 @@ export default function Pickems() {
               className="absolute top-2 right-2 z-20 rounded-full shadow-lg transition-colors flex items-center justify-center font-extrabold"
               style={{
                 backgroundColor: '#6B7280',
-                width: '1.5em',
-                height: '1.5em',
-                fontSize: '0.75em',
+                width: '2em',
+                height: '2em',
+                fontSize: '1em',
                 color: '#fff'
               }}
               title="Make Captain"
