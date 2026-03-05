@@ -1,94 +1,206 @@
-import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import { NextRequest, NextResponse } from 'next/server';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
-const PRICE_IDS = {
-  monthly: process.env.STRIPE_PRICE_MONTHLY!,
-  quarterly: process.env.STRIPE_PRICE_QUARTERLY!,
-  yearly: process.env.STRIPE_PRICE_YEARLY!
+const PLANS = {
+  US: {
+    currency: 'USD',
+    symbol: '$',
+    plans: [
+      {
+        id: 'monthly',
+        name: 'Monthly',
+        price: '$4.99',
+        period: '/month',
+        popular: true,
+        savings: null,
+        features: [
+          'Custom Leagues',
+          'Advanced Statistics',
+          'Priority Support',
+          'Early Access to Features'
+        ]
+      },
+      {
+        id: 'quarterly',
+        name: 'Quarterly',
+        price: '$12.99',
+        period: '/3 months',
+        popular: false,
+        savings: 'Save 13%',
+        features: [
+          'Custom Leagues',
+          'Advanced Statistics',
+          'Priority Support',
+          'Early Access to Features'
+        ]
+      },
+      {
+        id: 'yearly',
+        name: 'Yearly',
+        price: '$49.99',
+        period: '/year',
+        popular: false,
+        savings: 'Save 17%',
+        features: [
+          'Custom Leagues',
+          'Advanced Statistics',
+          'Priority Support',
+          'Early Access to Features'
+        ]
+      }
+    ]
+  },
+  UK: {
+    currency: 'GBP',
+    symbol: '£',
+    plans: [
+      {
+        id: 'monthly',
+        name: 'Monthly',
+        price: '£3.99',
+        period: '/month',
+        popular: true,
+        savings: null,
+        features: [
+          'Custom Leagues',
+          'Advanced Statistics',
+          'Priority Support',
+          'Early Access to Features'
+        ]
+      },
+      {
+        id: 'quarterly',
+        name: 'Quarterly',
+        price: '£10.99',
+        period: '/3 months',
+        popular: false,
+        savings: 'Save 8%',
+        features: [
+          'Custom Leagues',
+          'Advanced Statistics',
+          'Priority Support',
+          'Early Access to Features'
+        ]
+      },
+      {
+        id: 'yearly',
+        name: 'Yearly',
+        price: '£39.99',
+        period: '/year',
+        popular: false,
+        savings: 'Save 17%',
+        features: [
+          'Custom Leagues',
+          'Advanced Statistics',
+          'Priority Support',
+          'Early Access to Features'
+        ]
+      }
+    ]
+  },
+  EU: {
+    currency: 'EUR',
+    symbol: '€',
+    plans: [
+      {
+        id: 'monthly',
+        name: 'Monthly',
+        price: '€4.49',
+        period: '/month',
+        popular: true,
+        savings: null,
+        features: [
+          'Custom Leagues',
+          'Advanced Statistics',
+          'Priority Support',
+          'Early Access to Features'
+        ]
+      },
+      {
+        id: 'quarterly',
+        name: 'Quarterly',
+        price: '€11.99',
+        period: '/3 months',
+        popular: false,
+        savings: 'Save 11%',
+        features: [
+          'Custom Leagues',
+          'Advanced Statistics',
+          'Priority Support',
+          'Early Access to Features'
+        ]
+      },
+      {
+        id: 'yearly',
+        name: 'Yearly',
+        price: '€44.99',
+        period: '/year',
+        popular: false,
+        savings: 'Save 16%',
+        features: [
+          'Custom Leagues',
+          'Advanced Statistics',
+          'Priority Support',
+          'Early Access to Features'
+        ]
+      }
+    ]
+  }
 };
 
-export async function GET() {
-  try {
-    const plansMap: Record<string, any> = {};
+// EU countries that use EUR
+const EU_COUNTRIES = [
+  'AT', 'BE', 'CY', 'EE', 'FI', 'FR', 'DE', 'GR', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PT', 'SK', 'SI', 'ES'
+];
 
-    // Fetch each price from Stripe
-    for (const [key, priceId] of Object.entries(PRICE_IDS)) {
-      const price = await stripe.prices.retrieve(priceId, {
-        expand: ['product']
-      });
-
-      const product = price.product as Stripe.Product;
-      const amount = price.unit_amount ? (price.unit_amount / 100).toFixed(2) : '0.00';
-      
-      console.log(`\n=== ${key.toUpperCase()} Plan ===`);
-      console.log('Product Name:', product.name);
-      console.log('Product Metadata:', product.metadata);
-      console.log('Has features in metadata:', !!product.metadata?.features);
-      if (product.metadata?.features) {
-        console.log('Features:', product.metadata.features);
-      }
-      
-      let period = '';
-      let savings = '';
-      let popular = false;
-
-      if (price.recurring) {
-        if (price.recurring.interval === 'month') {
-          if (price.recurring.interval_count === 1) {
-            period = '/month';
-            popular = true; // Monthly is most popular
-            savings = 'Save 14%';
-          } else if (price.recurring.interval_count === 3) {
-            period = '/event';
-          }
-        } else if (price.recurring.interval === 'year') {
-          period = '/year';
-          savings = 'Save 19%';
-        }
-      }
-
-      plansMap[key] = {
-        id: key,
-        name: product.name || key.charAt(0).toUpperCase() + key.slice(1),
-        price: `$${amount}`,
-        period,
-        savings,
-        popular,
-        features: product.metadata?.features 
-          ? JSON.parse(product.metadata.features)
-          : getDefaultFeatures(key)
-      };
-    }
-
-    // Order: quarterly, monthly (center/most popular), yearly
-    const plans = [
-      plansMap.quarterly,
-      plansMap.monthly,
-      plansMap.yearly
-    ].filter(Boolean);
-
-    return NextResponse.json({ plans });
-  } catch (error) {
-    console.error('Error fetching plans:', error);
-    return NextResponse.json({ error: 'Failed to fetch plans' }, { status: 500 });
-  }
+function getRegionFromCountry(countryCode: string): 'US' | 'UK' | 'EU' {
+  if (countryCode === 'GB') return 'UK';
+  if (EU_COUNTRIES.includes(countryCode)) return 'EU';
+  return 'US'; // Default to US pricing
 }
 
-function getDefaultFeatures(planType: string): string[] {
-  const commonFeatures = [
-    'Premium features',
-    'Monthly giveaways'
-  ];
-  
-  if (planType === 'quarterly') {
-    return [
-      'Premium features',
-      'Pay only in event months',
-      'Monthly giveaways'
-    ];
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const testRegion = searchParams.get('region'); // For testing: ?region=UK or ?region=EU
+    
+    // Get country from headers (Vercel provides this)
+    let country = request.headers.get('x-vercel-ip-country') || 
+                  request.headers.get('cf-ipcountry') || 
+                  'US';
+    
+    // Override for testing
+    if (testRegion && ['US', 'UK', 'EU'].includes(testRegion)) {
+      country = testRegion === 'UK' ? 'GB' : testRegion === 'EU' ? 'DE' : 'US';
+    }
+    
+    console.log('Regional pricing debug:', {
+      country,
+      testRegion,
+      headers: {
+        'x-vercel-ip-country': request.headers.get('x-vercel-ip-country'),
+        'cf-ipcountry': request.headers.get('cf-ipcountry')
+      }
+    });
+    
+    const region = getRegionFromCountry(country);
+    const regionPlans = PLANS[region];
+
+    return NextResponse.json({
+      region,
+      country,
+      currency: regionPlans.currency,
+      symbol: regionPlans.symbol,
+      plans: regionPlans.plans
+    });
+  } catch (error) {
+    console.error('Error fetching plans:', error);
+    // Fallback to US pricing
+    return NextResponse.json({
+      region: 'US',
+      country: 'US',
+      currency: 'USD',
+      symbol: '$',
+      plans: PLANS.US.plans
+    });
   }
-  
-  return commonFeatures;
 }

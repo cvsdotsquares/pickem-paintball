@@ -226,10 +226,10 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
             <p className="text-sm text-blue-800 dark:text-blue-300">
               <span className="font-semibold">Member Limit:</span> Default 20 members per league. Need more? Email{' '}
               <a 
-                href="mailto:greenjoc3397@gmail.com" 
+                href="mailto:james@pickempaintball.com" 
                 className="font-semibold underline hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
-                James Green
+                james@pickempaintball.com
               </a>
             </p>
           </div>

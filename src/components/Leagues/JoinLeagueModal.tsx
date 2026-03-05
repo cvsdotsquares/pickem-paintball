@@ -28,6 +28,27 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
     e.preventDefault();
     if (!user || !inviteCode.trim()) return;
 
+    // Check subscription before joining
+    try {
+      const response = await fetch(`/api/users/${user.uid}/subscription`);
+      if (!response.ok) {
+        throw new Error(`Subscription check failed: ${response.status}`);
+      }
+      const { isSubscribed } = await response.json();
+      
+      if (!isSubscribed) {
+        onClose();
+        // Trigger subscription modal
+        window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate' } }));
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+      // Block joining on subscription check failure
+      showToast('Unable to verify subscription. Please try again.', 'error');
+      return;
+    }
+
     setLoading(true);
     try {
       await joinLeagueByCode(inviteCode.trim().toUpperCase(), user.uid);
@@ -84,6 +105,27 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
 
   const handleJoinLeague = async (league: League) => {
     if (!user) return;
+    
+    // Check subscription before joining
+    try {
+      const response = await fetch(`/api/users/${user.uid}/subscription`);
+      if (!response.ok) {
+        throw new Error(`Subscription check failed: ${response.status}`);
+      }
+      const { isSubscribed } = await response.json();
+      
+      if (!isSubscribed) {
+        onClose();
+        // Trigger subscription modal
+        window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate' } }));
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+      // Block joining on subscription check failure
+      showToast('Unable to verify subscription. Please try again.', 'error');
+      return;
+    }
     
     setLoading(true);
     try {

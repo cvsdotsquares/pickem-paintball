@@ -1,6 +1,6 @@
 "use client";
 
-import { FaExclamationTriangle, FaTimes } from 'react-icons/fa';
+import { FaTimes, FaExclamationTriangle } from 'react-icons/fa';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -8,9 +8,9 @@ interface ConfirmDialogProps {
   message: string;
   confirmText?: string;
   cancelText?: string;
+  type?: 'danger' | 'warning' | 'info';
   onConfirm: () => void;
   onCancel: () => void;
-  type?: 'danger' | 'warning' | 'info';
 }
 
 export default function ConfirmDialog({
@@ -19,43 +19,62 @@ export default function ConfirmDialog({
   message,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
+  type = 'info',
   onConfirm,
-  onCancel,
-  type = 'warning'
+  onCancel
 }: ConfirmDialogProps) {
   if (!isOpen) return null;
 
-  const colors = {
-    danger: 'bg-red-600 hover:bg-red-700',
-    warning: 'bg-yellow-600 hover:bg-yellow-700',
-    info: 'bg-blue-600 hover:bg-blue-700'
+  const getTypeStyles = () => {
+    switch (type) {
+      case 'danger':
+        return {
+          icon: 'text-red-500',
+          confirmButton: 'bg-red-600 hover:bg-red-700 text-white'
+        };
+      case 'warning':
+        return {
+          icon: 'text-yellow-500',
+          confirmButton: 'bg-yellow-600 hover:bg-yellow-700 text-white'
+        };
+      default:
+        return {
+          icon: 'text-blue-500',
+          confirmButton: 'bg-blue-600 hover:bg-blue-700 text-white'
+        };
+    }
   };
 
+  const styles = getTypeStyles();
+
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[200] p-4">
-      <div className="bg-gray-900 rounded-xl max-w-md w-full border border-gray-700 shadow-2xl">
-        <div className="p-6">
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0">
-              <FaExclamationTriangle className="text-yellow-400 text-2xl" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
-              <p className="text-gray-300 text-sm">{message}</p>
-            </div>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-xl max-w-md w-full p-6 border border-gray-300 dark:border-gray-700">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <FaExclamationTriangle className={`text-xl ${styles.icon}`} />
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h3>
           </div>
-        </div>
-        
-        <div className="flex gap-3 p-6 pt-0">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <FaTimes />
+          </button>
+        </div>
+        
+        <p className="text-gray-700 dark:text-gray-300 mb-6">{message}</p>
+        
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors"
           >
             {cancelText}
           </button>
           <button
             onClick={onConfirm}
-            className={`flex-1 px-4 py-2 ${colors[type]} text-white rounded-lg transition-colors`}
+            className={`flex-1 px-4 py-2 ${styles.confirmButton} rounded-lg transition-colors`}
           >
             {confirmText}
           </button>

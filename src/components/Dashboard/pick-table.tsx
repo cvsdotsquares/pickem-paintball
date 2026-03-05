@@ -268,6 +268,23 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
     setYourPicks(updatedYourPicks);
     setTotalCost(updatedTotalCost);
 
+    // Check subscription when confirming picks (8 players selected)
+    if (updatedYourPicks.length === 8 && user) {
+      try {
+        const response = await fetch(`/api/users/${user.uid}/subscription`);
+        if (response.ok) {
+          const { isSubscribed } = await response.json();
+          
+          if (!isSubscribed) {
+            // Trigger subscription modal
+            window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'soft-gate' } }));
+          }
+        }
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+      }
+    }
+
     // Immediately save the updated picks to Firebase
     if (user && liveEventId) {
       const picksIds = updatedYourPicks.map((player) => player.player_id);

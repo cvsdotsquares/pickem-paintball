@@ -72,11 +72,39 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
   useEffect(() => {
     async function fetchPlans() {
       try {
-        const response = await fetch('/api/subscription/plans');
+        // Try to get user's timezone to determine region as fallback
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        let regionParam = '';
+        
+        // Simple timezone-based region detection as fallback
+        if (timezone.includes('Europe/London')) {
+          regionParam = '?region=UK';
+        } else if (timezone.includes('Europe/')) {
+          regionParam = '?region=EU';
+        }
+        
+        const response = await fetch(`/api/subscription/plans${regionParam}`);
         const data = await response.json();
         setPlans(data.plans || []);
       } catch (error) {
         console.error('Error fetching plans:', error);
+        // Fallback to default US pricing
+        setPlans([
+          {
+            id: 'monthly',
+            name: 'Monthly',
+            price: '$4.99',
+            period: '/month',
+            popular: true,
+            savings: null,
+            features: [
+              'Custom Leagues',
+              'Advanced Statistics', 
+              'Priority Support',
+              'Early Access to Features'
+            ]
+          }
+        ]);
       }
     }
     if (isOpen) fetchPlans();
