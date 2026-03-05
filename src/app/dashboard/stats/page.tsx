@@ -75,8 +75,9 @@ export default function Statistics() {
           return acc;
         }, {} as Record<string, Event[]>);
 
-        // Sort and flatten with proper type safety
+        // Sort and flatten with proper type safety, excluding 2024 events
         const sortedEvents = Object.entries(eventsByYear)
+          .filter(([year]) => year !== "2024") // Filter out 2024 events completely
           .sort(([yearA], [yearB]) => {
             const numA = parseInt(yearA) || 0;
             const numB = parseInt(yearB) || 0;
@@ -151,7 +152,8 @@ export default function Statistics() {
 
   // Filter events by selected year, excluding 2024
   const filteredEvents = useMemo(() => {
-    const filtered = selectedYear === "All" ? eventsList : eventsList.filter((event) => event.year === selectedYear);
+    let filtered = selectedYear === "All" ? eventsList : eventsList.filter((event) => event.year === selectedYear);
+    // Always exclude 2024 events regardless of selection
     return filtered.filter((event) => event.year !== "2024");
   }, [eventsList, selectedYear]);
 
@@ -172,9 +174,11 @@ export default function Statistics() {
 
     return (
       <article
-        onClick={onClick}
-        className={`relative flex flex-col cursor-pointer  md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${
-          isSelected ? "border-4 rounded-xl border-blue-500 dark:border-white" : ""
+        onClick={isSelected ? undefined : onClick}
+        className={`relative flex flex-col md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] transition-all duration-200 ${
+          isSelected 
+            ? "border-4 rounded-xl border-blue-500 dark:border-white cursor-default opacity-80" 
+            : "cursor-pointer hover:scale-105"
         }`}
       >
         <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg  logographics">
@@ -275,7 +279,9 @@ export default function Statistics() {
             Pressure: data.pressure || 0,
             Trades: data.trades || 0,
             Unclassified: data.unclassified || 0,
-            picture: '/placeholder.svg'
+            img_url: data.img_url || null, // Keep img_url for MatchupTable
+            picture: data.img_url || '/placeholder.svg',
+            pictureLoading: false // Set to false since we have direct URL
           };
           
           // Add event-specific kills based on year
@@ -328,6 +334,14 @@ export default function Statistics() {
     }
     return rowData;
   }, [rowData, sortConfig]);
+
+  // Handle sort config changes to prevent data from disappearing
+  const handleSortChange = (newSortConfig: SortConfig | null) => {
+    // Don't allow clearing sort config, always maintain some sort
+    if (newSortConfig) {
+      setSortConfig(newSortConfig);
+    }
+  };
 
   // Fetch player data based on the selected event
   useEffect(() => {
@@ -417,6 +431,10 @@ export default function Statistics() {
 
   // Handle event selection from the dropdown
   const handleEventSelect = (event: Event) => {
+    // Don't allow selecting the same event again
+    if (selectedEvent?.id === event.id && !showSeasonTable) {
+      return;
+    }
     setSelectedEvent(event);
     setShowSeasonTable(false);
     setRowData([]); // Clear existing data when switching to event
@@ -424,6 +442,10 @@ export default function Statistics() {
 
   // Handle season card click
   const handleSeasonSelect = (year?: string) => {
+    // Don't allow selecting the same season again
+    if (showSeasonTable && selectedSeasonYear === year) {
+      return;
+    }
     setSelectedEvent(null);
     setShowSeasonTable(true);
     if (year) {
@@ -546,7 +568,7 @@ export default function Statistics() {
                 <MatchupTable
                   data={sortedRowData}
                   sortConfig={sortConfig}
-                  onSortChange={setSortConfig}
+                  onSortChange={handleSortChange}
                   myPicks={livePicks}
                   isSeasonView={true}
                 />
@@ -567,9 +589,9 @@ export default function Statistics() {
                   )}
                 </div>
                 <MatchupTable
-                  data={rowData}
+                  data={sortedRowData}
                   sortConfig={sortConfig}
-                  onSortChange={setSortConfig}
+                  onSortChange={handleSortChange}
                   myPicks={livePicks}
                 />
         

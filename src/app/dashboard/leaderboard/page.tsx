@@ -240,7 +240,7 @@ function LeaderboardNewContent() {
 
   const auth = getAuth();
   const currentUserId = auth.currentUser?.uid;
-  const currentUserDetails = currentUserId ? userDetailsMap.get(currentUserId) : undefined;
+  const currentUserDetails = currentUserId && liveEvent ? userDetailsMap.get(`${currentUserId}:${liveEvent.id}`) : undefined;
 
   // Fetch all events
   useEffect(() => {
@@ -299,13 +299,15 @@ function LeaderboardNewContent() {
         // Debug final events list
         console.log('Final events list:', events.length, events.map(e => e.id));
 
-        // Sort events
-        const eventsByYear = events.reduce((acc, event) => {
-          const year = event.year ?? "Unknown";
-          if (!acc[year]) acc[year] = [];
-          acc[year].push(event);
-          return acc;
-        }, {} as Record<string, LiveEvent[]>);
+        // Sort events, excluding 2024 events completely
+        const eventsByYear = events
+          .filter(event => event.year !== "2024") // Filter out 2024 events completely
+          .reduce((acc, event) => {
+            const year = event.year ?? "Unknown";
+            if (!acc[year]) acc[year] = [];
+            acc[year].push(event);
+            return acc;
+          }, {} as Record<string, LiveEvent[]>);
 
         const sortedEvents = Object.entries(eventsByYear)
           .sort(([yearA], [yearB]) => {
@@ -1086,7 +1088,7 @@ function LeaderboardNewContent() {
   // Show "No active event" only after loading is complete and no event found
   if (!eventLoading && !liveEvent && !isSeasonView) {
     return (
-      <div className="p-2 pt-0 sm:pt-0 pb-24 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-black text-white">
+      <div className="p-2 pt-0 sm:pt-0 pb-24 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
         <div className="flex items-center justify-center min-h-screen">
           <p className="text-center text-white text-lg">
             No active event currently running.
@@ -1097,7 +1099,7 @@ function LeaderboardNewContent() {
   }
 
   return (
-    <div className="p-2 pt-0 sm:pt-0 pb-24 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-white dark:bg-black text-gray-900 dark:text-white">
+    <div className="p-2 pt-0 sm:pt-0 pb-24 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
       {/* Event Header */}
       <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
         <div
@@ -1225,7 +1227,7 @@ function LeaderboardNewContent() {
 
       {/* Current User Card */}
       {currentUserLoading ? (
-        <div className="sticky top-0 z-10 bg-white dark:bg-black pt-4 pb-4 mb-4">
+        <div className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 pt-4 pb-4 mb-4">
           <div className="bg-gray-200/100 dark:bg-gray-800/100 rounded-lg shadow border border-gray-300 dark:border-gray-700 p-3">
             <div className="flex items-center">
               <div className="w-14 h-14 rounded-full bg-gray-700 animate-pulse mr-3"></div>
@@ -1236,8 +1238,8 @@ function LeaderboardNewContent() {
             </div>
           </div>
         </div>
-      ) : currentUserData && liveEvent && currentUserData[`${liveEvent.id}Rank`] && (
-        <div className="sticky top-0 z-10 bg-black pt-4 pb-4 mb-4">
+      ) : currentUserData && liveEvent && (
+        <div className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 pt-4 pb-4 mb-4">
           <div className="bg-gray-200/100 dark:bg-gray-800/100 rounded-lg shadow border border-gray-300 dark:border-gray-700">
             <div
               className="p-2 sm:p-3 cursor-pointer"
@@ -1320,18 +1322,22 @@ function LeaderboardNewContent() {
                       {currentUserDetails.picks
                         .slice()
                         .sort((a, b) => b.points - a.points)
-                        .map((pick) => (
+                        .map((pick, pickIndex) => (
                           <div
-                            key={pick.id}
+                            key={`current-user-${pick.id}-${pickIndex}`}
                             className={`bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors ${
-                              pick.isCaptain ? "border-2 border-yellow-400" : ""
+                              pick.isCaptain ? "border-2 border-yellow-600 dark:border-yellow-400" : ""
                             }`}
                           >
                             <div className="grid grid-cols-2 gap-x-4 text-xs">
                               <div>
                                 <div className="text-gray-900 dark:text-white font-medium truncate mb-1 flex items-center gap-1">
                                   {pick.name}
-                                  {pick.isCaptain && <span className="text-yellow-400 font-bold">C</span>}
+                                  {pick.isCaptain && (
+                                    <span className="w-4 h-4 rounded-full bg-yellow-600 dark:bg-yellow-400 text-white dark:text-black text-[10px] font-bold flex items-center justify-center shadow-lg">
+                                      C
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="text-gray-600 dark:text-gray-400">Rank: <span className="text-gray-900 dark:text-white">{pick.rank ?? 0}</span></div>
                               </div>
@@ -1477,10 +1483,10 @@ function LeaderboardNewContent() {
                 return (
                   <Fragment key={user.id}>
                     <tr
-                      className={`hover:bg-gray-300/50 dark:hover:bg-gray-700/50 transition-all duration-300 cursor-pointer ${
-                        currentUserId === user.id ? "bg-blue-200/30 dark:bg-blue-900/30" : "bg-gray-100/30 dark:bg-gray-800/30"
+                      className={`hover:bg-gray-400/60 dark:hover:bg-gray-600/60 transition-all duration-300 cursor-pointer ${
+                        currentUserId === user.id ? "bg-blue-200/40 dark:bg-blue-900/40" : "bg-gray-200/60 dark:bg-gray-800/60"
                       } ${
-                        updatingRows.has(user.id) ? "bg-blue-300/20 dark:bg-blue-500/20 scale-[1.02]" : ""
+                        updatingRows.has(user.id) ? "bg-blue-300/30 dark:bg-blue-500/30 scale-[1.02]" : ""
                       }`}
                       onClick={() => toggleExpand(user.id)}
                     >
@@ -1534,7 +1540,7 @@ function LeaderboardNewContent() {
                         )}
                       </td>
 
-                      <td className="px-2 py-2 whitespace-nowrap text-xs sm:text-sm text-gray-600 dark:text-gray-300 hidden sm:table-cell">
+                      <td className="px-2 py-2 whitespace-nowrap text-xs sm:text-sm text-gray-900 dark:text-gray-300 hidden sm:table-cell">
                         {isSeasonView ? (
                           "-"
                         ) : (
@@ -1594,36 +1600,44 @@ function LeaderboardNewContent() {
                                         mvpName = event.mvp;
                                       }
                                       
+                                      // Auto-fetch MVP event details for season view if not already loaded
+                                      if (isSeasonView && mvpName !== "None" && !eventDetails && !userDetailsLoading) {
+                                        fetchUserDetails(user.id, 0, false, event.id);
+                                      }
+                                      
                                       return (
                                         <div key={event.id} className="bg-gray-300/30 dark:bg-gray-700/30 rounded">
                                           <div
                                             className="flex items-center justify-between p-2 cursor-pointer hover:bg-gray-300/50 dark:hover:bg-gray-700/50"
                                             onClick={() => toggleEventExpand(user.id, event.id)}
                                           >
-                                            <div className="flex items-center gap-2">
-                                              <span className="text-gray-900 dark:text-white text-xs font-medium">{event.name}</span>
-                                              <span className={`text-xs px-2 py-0.5 rounded ${
-                                                event.status === "live" ? "bg-red-500/20 text-red-600 dark:text-red-400" : "bg-gray-400 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
-                                              }`}>
-                                                {event.status}
-                                              </span>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                              <div className="text-xs text-gray-600 dark:text-gray-400">
-                                                Points: <span className="text-green-600 dark:text-green-400 font-medium">{event.points}</span>
+                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0">
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-gray-900 dark:text-white text-xs font-medium">{event.name}</span>
+                                                {/* Only show Live status, hide Finished */}
+                                                {event.status === "live" && (
+                                                  <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-600 dark:text-red-400">
+                                                    {event.status}
+                                                  </span>
+                                                )}
                                               </div>
-                                              {eventDetails && (
+                                              <div className="flex items-center gap-3">
                                                 <div className="text-xs text-gray-600 dark:text-gray-400">
-                                                  MVP: <span className="text-yellow-600 dark:text-yellow-400">{mvpName}</span>
+                                                  <span className="text-green-600 dark:text-green-400 font-medium">{event.points} pts</span>
+                                                  {mvpName !== "None" && (
+                                                    <span className="ml-2 text-yellow-600 dark:text-yellow-400">
+                                                      • MVP: {mvpName}
+                                                    </span>
+                                                  )}
                                                 </div>
-                                              )}
-                                              {isEventLoading ? (
-                                                <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-blue-500"></div>
-                                              ) : isEventExpanded ? (
-                                                <FaChevronUp className="text-gray-500 dark:text-gray-400 text-xs" />
-                                              ) : (
-                                                <FaChevronDown className="text-gray-500 dark:text-gray-400 text-xs" />
-                                              )}
+                                                {isEventLoading ? (
+                                                  <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-blue-500"></div>
+                                                ) : isEventExpanded ? (
+                                                  <FaChevronUp className="text-gray-500 dark:text-gray-400 text-xs" />
+                                                ) : (
+                                                  <FaChevronDown className="text-gray-500 dark:text-gray-400 text-xs" />
+                                                )}
+                                              </div>
                                             </div>
                                           </div>
                                           <AnimatePresence>
@@ -1639,18 +1653,22 @@ function LeaderboardNewContent() {
                                                   {eventDetails.picks
                                                     .slice()
                                                     .sort((a, b) => b.points - a.points)
-                                                    .map((pick) => (
+                                                    .map((pick, pickIndex) => (
                                                       <div
-                                                        key={pick.id}
+                                                        key={`${event.id}-${pick.id}-${pickIndex}`}
                                                         className={`bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors ${
-                                                          pick.isCaptain ? "border-2 border-yellow-400" : ""
+                                                          pick.isCaptain ? "border-2 border-yellow-600 dark:border-yellow-400" : ""
                                                         }`}
                                                       >
                                                         <div className="grid grid-cols-2 gap-x-4 text-xs">
                                                           <div>
                                                             <div className="text-gray-900 dark:text-white font-medium truncate mb-1 flex items-center gap-1">
                                                               {pick.name}
-                                                              {pick.isCaptain && <span className="text-yellow-400 font-bold">C</span>}
+                                                              {pick.isCaptain && (
+                                                                <span className="w-4 h-4 rounded-full bg-yellow-600 dark:bg-yellow-400 text-white dark:text-black text-[10px] font-bold flex items-center justify-center shadow-lg">
+                                                                  C
+                                                                </span>
+                                                              )}
                                                             </div>
                                                             <div className="text-gray-600 dark:text-gray-400">Rank: <span className="text-gray-900 dark:text-white">{pick.rank ?? 0}</span></div>
                                                           </div>
@@ -1685,18 +1703,22 @@ function LeaderboardNewContent() {
                                   {userDetailsMap.get(liveEvent ? `${user.id}:${liveEvent.id}` : user.id)?.picks
                                     .slice()
                                     .sort((a, b) => b.points - a.points)
-                                    .map((pick) => (
+                                    .map((pick, pickIndex) => (
                                       <div
-                                        key={pick.id}
+                                        key={`${user.id}-${pick.id}-${pickIndex}`}
                                         className={`bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors ${
-                                          pick.isCaptain ? "border-2 border-yellow-400" : ""
+                                          pick.isCaptain ? "border-2 border-yellow-600 dark:border-yellow-400" : ""
                                         }`}
                                       >
                                         <div className="grid grid-cols-2 gap-x-4 text-xs">
                                           <div>
                                             <div className="text-gray-900 dark:text-white font-medium truncate mb-1 flex items-center gap-1">
                                               {pick.name}
-                                              {pick.isCaptain && <span className="text-yellow-400 font-bold">C</span>}
+                                              {pick.isCaptain && (
+                                                <span className="w-4 h-4 rounded-full bg-yellow-600 dark:bg-yellow-400 text-white dark:text-black text-[10px] font-bold flex items-center justify-center shadow-lg">
+                                                  C
+                                                </span>
+                                              )}
                                             </div>
                                             <div className="text-gray-600 dark:text-gray-400">Rank: <span className="text-gray-900 dark:text-white">{pick.rank ?? 0}</span></div>
                                           </div>

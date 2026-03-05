@@ -77,7 +77,12 @@ export default function SeasonTotals({
         
         const players: any[] = querySnapshot.docs.map((doc) => {
           const data = doc.data();
-
+          
+          console.log('Player data:', {
+            playerId: data.playerId || doc.id,
+            playerName: data.playerName,
+            img_url: data.img_url
+          });
           
           // Create base player object
           const player: any = {
@@ -94,10 +99,10 @@ export default function SeasonTotals({
             Pressure: data.pressure || 0,
             Trades: data.trades || 0,
             Unclassified: data.unclassified || 0,
-            picture: '/placeholder.svg'
+            picture: data.img_url || '/placeholder.svg'
           };
           
-  
+          console.log('Final player object:', player);
           return player;
         });
         
@@ -165,22 +170,31 @@ export default function SeasonTotals({
               <div key={player.playerId} className="bg-gray-800/50 rounded-lg p-4 flex items-center justify-between">
                 <div className="flex items-center">
                   <div className="flex items-center mr-4">
-                    {player.seasonRank <= 3 && (
+                    {player.Rank <= 3 && (
                       <span className="mr-2 text-xl">
-                        {player.seasonRank === 1 && "🥇"}
-                        {player.seasonRank === 2 && "🥈"}
-                        {player.seasonRank === 3 && "🥉"}
+                        {player.Rank === 1 && "🥇"}
+                        {player.Rank === 2 && "🥈"}
+                        {player.Rank === 3 && "🥉"}
                       </span>
                     )}
-                    <span className="font-bold text-lg text-white">#{player.seasonRank}</span>
+                    <span className="font-bold text-lg text-white">#{player.Rank}</span>
                   </div>
+                  <img 
+                    src={player.picture} 
+                    alt={player.Player}
+                    className="w-10 h-10 rounded-full object-cover mr-3 flex-shrink-0"
+                    onError={(e) => { 
+                      console.log('Image failed to load:', player.picture);
+                      e.currentTarget.src = '/placeholder.svg'; 
+                    }}
+                  />
                   <div>
-                    <h4 className="font-bold text-white">{player.playerName}</h4>
-                    <p className="text-sm text-gray-400">{player.team}</p>
+                    <h4 className="font-bold text-white">{player.Player}</h4>
+                    <p className="text-sm text-gray-400">{player.Team}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-bold text-lg text-green-400">{player.totalConfirmedKills}</div>
+                  <div className="font-bold text-lg text-green-400">{player["Confirmed Kills"]}</div>
                   <div className="text-xs text-gray-400">Total Kills</div>
                 </div>
               </div>

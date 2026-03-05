@@ -154,37 +154,37 @@ export default function NotificationPanel({ notifications, onClose, onMarkAsRead
       ))}
       <div className="fixed inset-0 z-40" onClick={onClose} />
       
-      <div className="absolute right-0 top-full mt-2 w-80 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-50 max-h-96 overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h3 className="text-white font-medium">Notifications</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+      <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-300 dark:border-gray-700 z-50 max-h-96 overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-gray-300 dark:border-gray-700">
+          <h3 className="text-gray-900 dark:text-white font-medium">Notifications</h3>
+          <button onClick={onClose} className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
             <FaTimes />
           </button>
         </div>
 
         {notifications.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">
+          <div className="p-8 text-center text-gray-600 dark:text-gray-400">
             No notifications
           </div>
         ) : (
-          <div className="divide-y divide-gray-700">
+          <div className="divide-y divide-gray-300 dark:divide-gray-700">
             {notifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`p-4 hover:bg-gray-700/50 transition-colors ${
-                  !notification.read ? 'bg-blue-900/20' : ''
+                className={`p-4 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors ${
+                  !notification.read ? 'bg-blue-100/50 dark:bg-blue-900/20' : ''
                 }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 cursor-pointer" onClick={() => handleNotificationClick(notification)}>
                     <div className="flex items-center gap-2 mb-1">
                       <FaUsers className="text-blue-400 text-sm" />
-                      <span className="text-white font-medium text-sm">
+                      <span className="text-gray-900 dark:text-white font-medium text-sm">
                         {notification.leagueName}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-300">{notification.message}</p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{notification.message}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                       {notification.createdAt?.toDate?.()?.toLocaleDateString() || 'Just now'}
                     </p>
                     
@@ -261,7 +261,7 @@ export default function NotificationPanel({ notifications, onClose, onMarkAsRead
                       e.stopPropagation();
                       onDelete(notification.id);
                     }}
-                    className="text-gray-400 hover:text-red-400 ml-2"
+                    className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 ml-2"
                   >
                     <FaTrash className="text-xs" />
                   </button>

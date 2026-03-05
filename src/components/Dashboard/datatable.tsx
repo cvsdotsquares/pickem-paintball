@@ -20,6 +20,8 @@ import {
 } from "react-icons/fa6";
 import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
 import { useScroll, useTransform, motion } from "framer-motion";
+import { useTheme } from "../../contexts/ThemeContext";
+import { getFirebaseStorageUrl } from "../../lib/storage";
 
 type ThemeClasses = {
   bg: string;
@@ -57,13 +59,13 @@ const headerButtons = [
 ];
 
 const lightThemeClasses: ThemeClasses = {
-  bg: "bg-gray-100",
-  text: "text-black",
+  bg: "bg-white", // Changed from bg-gray-100 to bg-white
+  text: "text-gray-900", // Darker text for better readability
   border: "border-gray-300",
-  hover: "hover:bg-gray-200",
+  hover: "hover:bg-gray-100", // Light hover effect
   headerBg: "bg-gray-200",
-  headerText: "text-gray-800",
-  button: "bg-gray-300 text-gray-800 hover:bg-gray-400",
+  headerText: "text-gray-900", // Darker header text
+  button: "bg-gray-300 text-gray-900 hover:bg-gray-400", // Darker button text
   activeButton: "bg-blue-500 text-white",
   card: "bg-gray-50 border-gray-200",
   progressBg: "bg-gray-300",
@@ -221,12 +223,8 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   const sortConfig =
     propSortConfig !== undefined ? propSortConfig : internalSortConfig;
   const setSortConfig = onSortChange || setInternalSortConfig;
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return document.documentElement.classList.contains('dark');
-    }
-    return false;
-  });
+  const { theme, toggleTheme } = useTheme();
+  const darkMode = theme === 'dark';
   const themeClasses = darkMode ? darkThemeClasses : lightThemeClasses;
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedTeam, setSelectedTeam] = useState<string>("All");
@@ -343,6 +341,13 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       fetchPlayersWithPictures(newPaginatedData);
     }
   }, [currentPage, rowsPerPage, filteredData, isDataLoading]);
+
+  // Sync VisibleData with paginatedData when no pictures are being loaded
+  useEffect(() => {
+    if (paginatedData.length > 0 && VisibleData.length === 0) {
+      setVisibleData(paginatedData);
+    }
+  }, [paginatedData]);
   // Add these utility functions at the top of your file
   const normalizeHeaderKey = (key: string): string => {
     const headerMap: Record<string, string> = {
@@ -436,26 +441,33 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   };
 
   const loadPlayerImages = async (players: Player[]) => {
-    const updatedPlayers = [...players];
+    const updatedPlayers = [...VisibleData]; // Use current visible data
 
     await Promise.allSettled(
-      updatedPlayers.map(async (player) => {
+      players.map(async (player) => {
         try {
+          // Find the player in updatedPlayers array
+          const playerIndex = updatedPlayers.findIndex(p => p.player_id === player.player_id);
+          if (playerIndex === -1) return;
+          
           // Check if img_url is available first
           if (player.img_url && player.img_url.trim() !== "") {
-            player.picture = player.img_url;
-            player.pictureLoading = false;
+            updatedPlayers[playerIndex].picture = player.img_url;
+            updatedPlayers[playerIndex].pictureLoading = false;
           } else {
             // Fallback to Firebase Storage lookup
             const picture = await fetchPlayerPicture(
               player.league_id ? player.league_id : "",
             );
-            player.picture = picture;
-            player.pictureLoading = false;
+            updatedPlayers[playerIndex].picture = picture;
+            updatedPlayers[playerIndex].pictureLoading = false;
           }
         } catch (error) {
-          player.picture = "/placeholder.svg";
-          player.pictureLoading = false;
+          const playerIndex = updatedPlayers.findIndex(p => p.player_id === player.player_id);
+          if (playerIndex !== -1) {
+            updatedPlayers[playerIndex].picture = "/placeholder.svg";
+            updatedPlayers[playerIndex].pictureLoading = false;
+          }
         }
       }),
     );
@@ -499,14 +511,22 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       picture:
         player.img_url && player.img_url.trim() !== ""
           ? player.img_url
+          : player.profilePicture
+          ? getFirebaseStorageUrl(player.profilePicture)
           : "/placeholder.svg",
-      pictureLoading:
-        player.img_url && player.img_url.trim() !== "" ? false : true,
+      pictureLoading: false, // Don't show loading for direct URLs
     }));
     setVisibleData(playersWithPlaceholders);
 
-    // Load actual images in background only for players without img_url
-    loadPlayerImages(players);
+    // Only load images from Firebase Storage for players without img_url or profilePicture
+    const playersNeedingFirebaseImages = players.filter(
+      (player) => (!player.img_url || player.img_url.trim() === "") && !player.profilePicture
+    );
+    
+    if (playersNeedingFirebaseImages.length > 0) {
+      loadPlayerImages(playersNeedingFirebaseImages);
+    }
+    
     return playersWithPlaceholders;
   };
   const getSortIcon = (key: string) => {
@@ -723,14 +743,14 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       >
         <div className="flex flex-col md:justify-between justify-center items-center m-auto md:flex-row gap-3 lg:gap-40">
           <div className="flex flex-row gap-5 items-center justify-between md:justify-start m-auto">
-            {/* Theme Toggle */}
-            <button
+            {/* Theme Toggle - Hidden as requested */}
+            {/* <button
               onClick={() => setDarkMode(!darkMode)}
               className={`p-1.5 rounded-md ${themeClasses.button} hidden md:flex items-center justify-center`}
               aria-label="Toggle theme"
             >
               {darkMode ? <FaSun size={12} /> : <FaMoon size={12} />}
-            </button>
+            </button> */}
             {/* Search Input */}
             <div className="flex flex-row gap-4 w-full">
               <div className={`relative flex-1 min-w-[100px] max-w-[200px]`}>
@@ -753,7 +773,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                 selectedTeam={selectedTeam}
                 onTeamChange={setSelectedTeam}
                 darkMode={darkMode}
-                toggleDarkMode={() => setDarkMode(!darkMode)}
+                toggleDarkMode={toggleTheme}
                 showOnlyMyPicks={showOnlyMyPicks}
                 toggleMyPicks={() => setShowOnlyMyPicks(!showOnlyMyPicks)}
                 myPicksAvailable={!!myPicks && myPicks.size > 0}
@@ -789,17 +809,24 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
             <div className="hidden md:flex items-center gap-1 flex-row text-[10px] ">
               {!isSeasonView && (
                 <button
-                  onClick={() => setShowOnlyMyPicks(!showOnlyMyPicks)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('My Picks clicked, current state:', showOnlyMyPicks);
+                    setShowOnlyMyPicks(!showOnlyMyPicks);
+                  }}
                   disabled={!myPicks || myPicks.size === 0}
                   className={`
-    px-2 py-1.5 rounded-md text-[10px] flex items-center text-nowrap gap-1
-    ${themeClasses.bg} ${themeClasses.border} border
+    px-2 py-1.5 rounded-md text-[10px] flex items-center text-nowrap gap-1 cursor-pointer transition-all duration-200
+    border
     ${
       showOnlyMyPicks
-        ? `${themeClasses.activeButton} bg-opacity-100`
-        : `${themeClasses.button} hover:bg-opacity-80`
+        ? "bg-blue-600 text-white border-blue-600 shadow-md" // Active state with shadow
+        : darkMode 
+          ? "bg-gray-700 text-gray-100 hover:bg-gray-600 border-gray-600" 
+          : "bg-gray-200 text-gray-900 hover:bg-gray-300 border-gray-400" // Better contrast for light mode
     }
-    ${!myPicks || myPicks.size === 0 ? "opacity-50 cursor-not-allowed" : ""}
+    ${!myPicks || myPicks.size === 0 ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:opacity-90"}
   `}
                   title={
                     !myPicks || myPicks.size === 0
@@ -1005,38 +1032,46 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       <div
         className={`flex items-start overflow-scroll h-[70vh] md:h-[80vh] rounded-lg ${themeClasses.bg}`}
       >
-        <table className="w-full relative">
+        <table className="w-full relative min-w-[800px] md:min-w-0">
           <thead>
             <tr
               className={`sticky top-0 z-40 shadow-[0_0_0_0.4px] shadow-white ${themeClasses.headerBg}`}
             >
-              {/* Rank Column - FIRST */}
+              {/* Rank Column - Smaller on mobile */}
               <th
-                className={`px-2 py-2 text-center text-[12px] ${themeClasses.headerBg} font-medium font-azonix ${themeClasses.headerText} uppercase tracking-wider md:border-r z-20 w-16 md:w-20`}
+                className={`px-1 md:px-2 py-2 text-center text-[10px] md:text-[12px] font-medium font-azonix uppercase tracking-wider md:border-r z-20 w-12 md:w-20 transition-colors ${
+                  sortConfig?.key === 'Rank' 
+                    ? 'bg-blue-900/50 text-blue-200 cursor-default' 
+                    : `${themeClasses.headerBg} ${themeClasses.headerText} cursor-pointer hover:bg-gray-700/50`
+                }`}
               >
                 <div
-                  className="flex items-center justify-center cursor-pointer"
-                  onClick={() => requestSort("Rank")}
+                  className="flex items-center justify-center"
+                  onClick={() => sortConfig?.key !== 'Rank' && requestSort("Rank")}
                 >
-                  Rank
+                  #
                   {getSortIcon("Rank")}
                 </div>
               </th>
               
-              {/* Player Column */}
+              {/* Player Column - Optimized for mobile */}
               <th
-                className={`pl-4 pr-1 justify-center md:border-b/60 border-0 text-[12px] ${themeClasses.headerBg} font-medium font-azonix ${themeClasses.headerText} uppercase sticky left-0 tracking-widerz-40 min-w-[120px] md:min-w-0`}
+                className={`pl-2 md:pl-4 pr-1 justify-center md:border-b/60 border-0 text-[10px] md:text-[12px] font-medium font-azonix uppercase sticky left-0 tracking-wider z-40 min-w-[100px] md:min-w-0 transition-colors ${
+                  sortConfig?.key === 'Player' 
+                    ? 'bg-blue-900/50 text-blue-200 cursor-default' 
+                    : `${themeClasses.headerBg} ${themeClasses.headerText} cursor-pointer hover:bg-gray-700/50`
+                }`}
               >
                 <div
-                  className="flex items-center cursor-pointer"
-                  onClick={() => requestSort("Player")}
+                  className="flex items-center"
+                  onClick={() => sortConfig?.key !== 'Player' && requestSort("Player")}
                 >
                   Player
                   {getSortIcon("Player")}
                 </div>
               </th>
 
-              {/* Dynamic Stats Columns */}
+              {/* Dynamic Stats Columns - Smaller on mobile */}
               {Object.keys(data[0] || {})
                 .filter(
                   (key) =>
@@ -1060,13 +1095,22 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                 .map((key, index) => (
                   <th
                     key={index}
-                    className={`px-2 p-1 text-center text-[12px] font-medium font-azonix ${themeClasses.headerText} uppercase w-20 md:w-24 min-w-[80px]`}
+                    className={`px-1 md:px-2 p-1 text-center text-[9px] md:text-[12px] font-medium font-azonix uppercase w-16 md:w-24 min-w-[60px] md:min-w-[80px] transition-colors ${
+                      sortConfig?.key === key 
+                        ? 'bg-blue-900/50 text-blue-200 cursor-default' 
+                        : `${themeClasses.headerText} cursor-pointer hover:bg-gray-700/50`
+                    }`}
                   >
                     <div
-                      className="flex items-center justify-center cursor-pointer"
-                      onClick={() => requestSort(key)}
+                      className="flex items-center justify-center"
+                      onClick={() => sortConfig?.key !== key && requestSort(key)}
                     >
-                      {key.replace(/_/g, " ")}
+                      <span className="truncate">
+                        {key.replace(/_/g, " ").length > 8 
+                          ? key.replace(/_/g, " ").substring(0, 6) + "..."
+                          : key.replace(/_/g, " ")
+                        }
+                      </span>
                       {getSortIcon(key)}
                     </div>
                   </th>
@@ -1074,31 +1118,31 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
             </tr>
           </thead>
           <tbody className={` divide-y ${themeClasses.border}`}>
-            {paginatedData.map((row, rowIndex) => (
+            {(VisibleData.length > 0 ? VisibleData : paginatedData).map((row, rowIndex) => (
               <tr
                 key={rowIndex}
                 className={`${themeClasses.hover} ${themeClasses.bg} ${themeClasses.text} `}
               >
-                {/* Rank Column - FIRST */}
+                {/* Rank Column - Smaller on mobile */}
                 <td
-                  className={`px-2 py-2 whitespace-nowrap md:border-r ${themeClasses.border} z-0 ${themeClasses.bg} w-16 md:w-20`}
+                  className={`px-1 md:px-2 py-2 whitespace-nowrap md:border-r ${themeClasses.border} z-0 ${themeClasses.bg} w-12 md:w-20`}
                 >
-                  <div className="text-center text-[12px] font-azonix font-medium">
+                  <div className="text-center text-[10px] md:text-[12px] font-azonix font-medium">
                     {row.Rank}
                   </div>
                 </td>
                 
-                {/* Player Column */}
+                {/* Player Column - Compact mobile layout */}
                 <td
-                  className={`p-2 whitespace-nowrap sticky left-0 z-10 ${themeClasses.bg} shadow-[2px_0_5px_rgba(0,0,0,0.3)] min-w-[120px] md:min-w-0 md:shadow-none`}
+                  className={`p-1 md:p-2 whitespace-nowrap sticky left-0 z-10 ${themeClasses.bg} shadow-[2px_0_5px_rgba(0,0,0,0.3)] min-w-[100px] md:min-w-0 md:shadow-none`}
                 >
                   <div className="flex items-center">
-                    <div className="flex-shrink-0  h-10 w-10 flex items-center justify-center rounded-full overflow-hidden bg-gray-600 md:mr-4 mr-1 relative">
+                    <div className="flex-shrink-0 h-8 w-8 md:h-10 md:w-10 flex items-center justify-center rounded-full overflow-hidden bg-gray-600 mr-1 md:mr-4 relative">
                       {/* Loading state */}
                       {row.pictureLoading && (
                         <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse">
                           <svg
-                            className="h-5 w-5 text-gray-400 animate-spin"
+                            className="h-4 w-4 md:h-5 md:w-5 text-gray-400 animate-spin"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
                             viewBox="0 0 24 24"
@@ -1136,38 +1180,37 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                           target.src = "/placeholder.svg";
                           target.classList.remove("opacity-0");
                           target.classList.add("opacity-100");
-                          // You might want to update the state here if needed
                         }}
                       />
 
                       {/* Fallback icon if no picture */}
                       {!row.picture && !row.pictureLoading && (
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <FaUser className="text-gray-900 text-3xl" />
+                          <FaUser className="text-gray-900 text-lg md:text-3xl" />
                         </div>
                       )}
                     </div>
 
-                    <div className="md:max-w-[35vw] max-w-[100px] whitespace-normal">
+                    <div className="max-w-[80px] md:max-w-[35vw] whitespace-normal">
                       <div
-                        className={`md:text-[12px] text-[10px] font-azonix font-medium ${
-                          darkMode ? "text-white" : "text-black"
+                        className={`text-[9px] md:text-[12px] font-azonix font-medium ${
+                          darkMode ? "text-white" : "text-gray-900"
                         } whitespace-normal break-words leading-tight`}
                       >
-                        {row.Player}
+                        {row.Player.length > 12 ? `${row.Player.substring(0, 10)}...` : row.Player}
                       </div>
                       <div
-                        className={`md:text-[12px] text-[8px] font-azonix ${
-                          darkMode ? "text-gray-400" : "text-gray-500"
+                        className={`text-[8px] md:text-[12px] font-azonix ${
+                          darkMode ? "text-gray-400" : "text-gray-700"
                         } whitespace-normal break-words leading-tight`}
                       >
-                        {row.Team}
+                        {row.Team.length > 10 ? `${row.Team.substring(0, 8)}...` : row.Team}
                       </div>
                     </div>
                   </div>
                 </td>
 
-                {/* Stats Columns */}
+                {/* Stats Columns - Smaller on mobile */}
                 {Object.entries(row)
                   .filter(([key]) => {
                     const excludedKeys = [
@@ -1196,11 +1239,11 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                   .map(([key, value]) => (
                     <td
                       key={key}
-                      className={`px-2 py-3 whitespace-nowrap text-[10px] md:text-[12px] font-bold ${
+                      className={`px-1 md:px-2 py-2 md:py-3 whitespace-nowrap text-[9px] md:text-[12px] font-bold ${
                         themeClasses.border
                       } text-center ${
-                        darkMode ? "text-gray-300" : "text-gray-500"
-                      } w-20 md:w-24 min-w-[80px]`}
+                        darkMode ? "text-gray-300" : "text-gray-900"
+                      } w-16 md:w-24 min-w-[60px] md:min-w-[80px]`}
                     >
                       {value as React.ReactNode}
                     </td>

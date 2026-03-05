@@ -132,6 +132,8 @@ export default function SeasonTotalsPage() {
 
   // Handle sorting
   const handleSort = useCallback((field: string) => {
+    // If clicking on the same field that's already sorted, just toggle direction
+    // Don't reset to default state
     const newDirection = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
     setSortField(field);
     setSortDirection(newDirection);
@@ -139,8 +141,16 @@ export default function SeasonTotalsPage() {
     
     const dataToSort = [...filteredPlayers];
     const sorted = dataToSort.sort((a: any, b: any) => {
-      const aValue = a[field];
-      const bValue = b[field];
+      let aValue, bValue;
+      
+      // Handle event-specific fields
+      if (field.includes('_2025')) {
+        aValue = a[field]?.confirmedKills || 0;
+        bValue = b[field]?.confirmedKills || 0;
+      } else {
+        aValue = a[field];
+        bValue = b[field];
+      }
       
       if (typeof aValue === 'number' && typeof bValue === 'number') {
         return newDirection === 'asc' ? aValue - bValue : bValue - aValue;
@@ -299,8 +309,12 @@ export default function SeasonTotalsPage() {
               <thead>
                 <tr className="border-b-2 border-gray-700">
                   <th 
-                    className="text-left py-4 px-3 font-bold text-lg cursor-pointer hover:bg-gray-700/50 transition-colors"
-                    onClick={() => handleSort('seasonRank')}
+                    className={`text-left py-4 px-3 font-bold text-lg transition-colors ${
+                      sortField === 'seasonRank' 
+                        ? 'bg-blue-900/50 text-blue-200 cursor-default' 
+                        : 'cursor-pointer hover:bg-gray-700/50'
+                    }`}
+                    onClick={() => sortField !== 'seasonRank' && handleSort('seasonRank')}
                   >
                     <div className="flex items-center">
                       Rank
@@ -310,8 +324,12 @@ export default function SeasonTotalsPage() {
                     </div>
                   </th>
                   <th 
-                    className="text-left py-4 px-3 font-bold text-lg cursor-pointer hover:bg-gray-700/50 transition-colors"
-                    onClick={() => handleSort('playerName')}
+                    className={`text-left py-4 px-3 font-bold text-lg transition-colors ${
+                      sortField === 'playerName' 
+                        ? 'bg-blue-900/50 text-blue-200 cursor-default' 
+                        : 'cursor-pointer hover:bg-gray-700/50'
+                    }`}
+                    onClick={() => sortField !== 'playerName' && handleSort('playerName')}
                   >
                     <div className="flex items-center">
                       Player
@@ -321,8 +339,12 @@ export default function SeasonTotalsPage() {
                     </div>
                   </th>
                   <th 
-                    className="text-left py-4 px-3 font-bold text-lg cursor-pointer hover:bg-gray-700/50 transition-colors"
-                    onClick={() => handleSort('team')}
+                    className={`text-left py-4 px-3 font-bold text-lg transition-colors ${
+                      sortField === 'team' 
+                        ? 'bg-blue-900/50 text-blue-200 cursor-default' 
+                        : 'cursor-pointer hover:bg-gray-700/50'
+                    }`}
+                    onClick={() => sortField !== 'team' && handleSort('team')}
                   >
                     <div className="flex items-center">
                       Team
@@ -332,8 +354,12 @@ export default function SeasonTotalsPage() {
                     </div>
                   </th>
                   <th 
-                    className="text-center py-4 px-3 font-bold text-lg cursor-pointer hover:bg-gray-700/50 transition-colors"
-                    onClick={() => handleSort('totalConfirmedKills')}
+                    className={`text-center py-4 px-3 font-bold text-lg transition-colors ${
+                      sortField === 'totalConfirmedKills' 
+                        ? 'bg-blue-900/50 text-blue-200 cursor-default' 
+                        : 'cursor-pointer hover:bg-gray-700/50'
+                    }`}
+                    onClick={() => sortField !== 'totalConfirmedKills' && handleSort('totalConfirmedKills')}
                   >
                     <div className="flex items-center justify-center">
                       Total Kills
@@ -346,22 +372,162 @@ export default function SeasonTotalsPage() {
                   {/* Event Columns */}
                   {selectedYear === "2025" && (
                     <>
-                      <th className="text-center py-4 px-3 font-bold">World Cup</th>
-                      <th className="text-center py-4 px-3 font-bold">Lone Star</th>
-                      <th className="text-center py-4 px-3 font-bold">Mid West</th>
-                      <th className="text-center py-4 px-3 font-bold">Atlantic City</th>
-                      <th className="text-center py-4 px-3 font-bold">Tampa Bay</th>
+                      <th 
+                        className={`text-center py-4 px-3 font-bold transition-colors ${
+                          sortField === 'world_cup_2025' 
+                            ? 'bg-blue-900/50 text-blue-200 cursor-default' 
+                            : 'cursor-pointer hover:bg-gray-700/50'
+                        }`}
+                        onClick={() => sortField !== 'world_cup_2025' && handleSort('world_cup_2025')}
+                      >
+                        <div className="flex items-center justify-center">
+                          World Cup
+                          {sortField === 'world_cup_2025' && (
+                            sortDirection === 'asc' ? <FaChevronUp className="ml-2" /> : <FaChevronDown className="ml-2" />
+                          )}
+                        </div>
+                      </th>
+                      <th 
+                        className={`text-center py-4 px-3 font-bold transition-colors ${
+                          sortField === 'lonestar_open_2025' 
+                            ? 'bg-blue-900/50 text-blue-200 cursor-default' 
+                            : 'cursor-pointer hover:bg-gray-700/50'
+                        }`}
+                        onClick={() => sortField !== 'lonestar_open_2025' && handleSort('lonestar_open_2025')}
+                      >
+                        <div className="flex items-center justify-center">
+                          Lone Star
+                          {sortField === 'lonestar_open_2025' && (
+                            sortDirection === 'asc' ? <FaChevronUp className="ml-2" /> : <FaChevronDown className="ml-2" />
+                          )}
+                        </div>
+                      </th>
+                      <th 
+                        className={`text-center py-4 px-3 font-bold transition-colors ${
+                          sortField === 'midwest_open_2025' 
+                            ? 'bg-blue-900/50 text-blue-200 cursor-default' 
+                            : 'cursor-pointer hover:bg-gray-700/50'
+                        }`}
+                        onClick={() => sortField !== 'midwest_open_2025' && handleSort('midwest_open_2025')}
+                      >
+                        <div className="flex items-center justify-center">
+                          Mid West
+                          {sortField === 'midwest_open_2025' && (
+                            sortDirection === 'asc' ? <FaChevronUp className="ml-2" /> : <FaChevronDown className="ml-2" />
+                          )}
+                        </div>
+                      </th>
+                      <th 
+                        className={`text-center py-4 px-3 font-bold transition-colors ${
+                          sortField === 'atlantic_city_2025' 
+                            ? 'bg-blue-900/50 text-blue-200 cursor-default' 
+                            : 'cursor-pointer hover:bg-gray-700/50'
+                        }`}
+                        onClick={() => sortField !== 'atlantic_city_2025' && handleSort('atlantic_city_2025')}
+                      >
+                        <div className="flex items-center justify-center">
+                          Atlantic City
+                          {sortField === 'atlantic_city_2025' && (
+                            sortDirection === 'asc' ? <FaChevronUp className="ml-2" /> : <FaChevronDown className="ml-2" />
+                          )}
+                        </div>
+                      </th>
+                      <th 
+                        className={`text-center py-4 px-3 font-bold transition-colors ${
+                          sortField === 'tampa_bay_2025' 
+                            ? 'bg-blue-900/50 text-blue-200 cursor-default' 
+                            : 'cursor-pointer hover:bg-gray-700/50'
+                        }`}
+                        onClick={() => sortField !== 'tampa_bay_2025' && handleSort('tampa_bay_2025')}
+                      >
+                        <div className="flex items-center justify-center">
+                          Tampa Bay
+                          {sortField === 'tampa_bay_2025' && (
+                            sortDirection === 'asc' ? <FaChevronUp className="ml-2" /> : <FaChevronDown className="ml-2" />
+                          )}
+                        </div>
+                      </th>
                     </>
                   )}
                   
                   {/* Category Totals */}
-                  <th className="text-center py-4 px-3 font-bold">Gunfights</th>
-                  <th className="text-center py-4 px-3 font-bold">Breakshooting</th>
-                  <th className="text-center py-4 px-3 font-bold">Movement</th>
-                  <th className="text-center py-4 px-3 font-bold">Zone Coverage</th>
-                  <th className="text-center py-4 px-3 font-bold">Pressure</th>
-                  <th className="text-center py-4 px-3 font-bold">Trades</th>
-                  <th className="text-center py-4 px-3 font-bold">Unclassified</th>
+                  <th 
+                    className="text-center py-4 px-3 font-bold cursor-pointer hover:bg-gray-700/50 transition-colors"
+                    onClick={() => handleSort('gunfights')}
+                  >
+                    <div className="flex items-center justify-center">
+                      Gunfights
+                      {sortField === 'gunfights' && (
+                        sortDirection === 'asc' ? <FaChevronUp className="ml-2" /> : <FaChevronDown className="ml-2" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="text-center py-4 px-3 font-bold cursor-pointer hover:bg-gray-700/50 transition-colors"
+                    onClick={() => handleSort('breakshooting')}
+                  >
+                    <div className="flex items-center justify-center">
+                      Breakshooting
+                      {sortField === 'breakshooting' && (
+                        sortDirection === 'asc' ? <FaChevronUp className="ml-2" /> : <FaChevronDown className="ml-2" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="text-center py-4 px-3 font-bold cursor-pointer hover:bg-gray-700/50 transition-colors"
+                    onClick={() => handleSort('movement')}
+                  >
+                    <div className="flex items-center justify-center">
+                      Movement
+                      {sortField === 'movement' && (
+                        sortDirection === 'asc' ? <FaChevronUp className="ml-2" /> : <FaChevronDown className="ml-2" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="text-center py-4 px-3 font-bold cursor-pointer hover:bg-gray-700/50 transition-colors"
+                    onClick={() => handleSort('zoneCoverage')}
+                  >
+                    <div className="flex items-center justify-center">
+                      Zone Coverage
+                      {sortField === 'zoneCoverage' && (
+                        sortDirection === 'asc' ? <FaChevronUp className="ml-2" /> : <FaChevronDown className="ml-2" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="text-center py-4 px-3 font-bold cursor-pointer hover:bg-gray-700/50 transition-colors"
+                    onClick={() => handleSort('pressure')}
+                  >
+                    <div className="flex items-center justify-center">
+                      Pressure
+                      {sortField === 'pressure' && (
+                        sortDirection === 'asc' ? <FaChevronUp className="ml-2" /> : <FaChevronDown className="ml-2" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="text-center py-4 px-3 font-bold cursor-pointer hover:bg-gray-700/50 transition-colors"
+                    onClick={() => handleSort('trades')}
+                  >
+                    <div className="flex items-center justify-center">
+                      Trades
+                      {sortField === 'trades' && (
+                        sortDirection === 'asc' ? <FaChevronUp className="ml-2" /> : <FaChevronDown className="ml-2" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="text-center py-4 px-3 font-bold cursor-pointer hover:bg-gray-700/50 transition-colors"
+                    onClick={() => handleSort('unclassified')}
+                  >
+                    <div className="flex items-center justify-center">
+                      Unclassified
+                      {sortField === 'unclassified' && (
+                        sortDirection === 'asc' ? <FaChevronUp className="ml-2" /> : <FaChevronDown className="ml-2" />
+                      )}
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>

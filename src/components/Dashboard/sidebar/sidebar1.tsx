@@ -126,22 +126,22 @@ export const MobileSidebar = ({
     {
       label: "Dashboard",
       href: "/dashboard",
-      icon: <FaTableList className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
+      icon: <FaTableList className="h-5 w-5 shrink-0 text-gray-800 dark:text-neutral-200" />,
     },
     {
       label: "Statistics",
       href: "/dashboard/stats",
-      icon: <ImStatsBars className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
+      icon: <ImStatsBars className="h-5 w-5 shrink-0 text-gray-800 dark:text-neutral-200" />,
     },
     {
       label: "Live PickEm",
       href: "/dashboard/pick-em",
-      icon: <GiCardRandom className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
+      icon: <GiCardRandom className="h-5 w-5 shrink-0 text-gray-800 dark:text-neutral-200" />,
     },
     {
       label: "Leaderboards",
       href: "/dashboard/leaderboard",
-      icon: <PiRankingThin className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
+      icon: <PiRankingThin className="h-5 w-5 shrink-0 text-gray-800 dark:text-neutral-200" />,
     },
   ];
 
@@ -158,7 +158,7 @@ export const MobileSidebar = ({
           <button
             key={index}
             onClick={handleLogout}
-            className="flex flex-col items-center justify-center text-xs hover:text-gray-900 dark:hover:text-stone-300"
+            className="flex flex-col items-center justify-center text-xs hover:text-gray-700 dark:hover:text-stone-300"
           >
             {link.icon}
             <span className="text-[10px] mt-1">{link.label}</span>
@@ -167,7 +167,7 @@ export const MobileSidebar = ({
           <Link
             key={index}
             href={link.href}
-            className="flex flex-col items-center justify-center text-xs hover:text-gray-900 dark:hover:text-stone-300"
+            className="flex flex-col items-center justify-center text-xs hover:text-gray-700 dark:hover:text-stone-300"
           >
             {link.icon}
             <span className="text-[10px] mt-1">{link.label}</span>
@@ -204,7 +204,7 @@ export const SidebarLink = ({
           display: animate ? (open ? "inline-block" : "none") : "inline-block",
           opacity: animate ? (open ? 1 : 0) : 1,
         }}
-        className="text-gray-700 dark:text-gray-700 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
+        className="text-gray-900 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
       >
         {link.label}
       </motion.span>
@@ -236,7 +236,7 @@ export const Logoutbtn = ({
           display: animate ? (open ? "inline-block" : "none") : "inline-block",
           opacity: animate ? (open ? 1 : 0) : 1,
         }}
-        className="text-gray-700 dark:text-gray-700 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
+        className="text-gray-900 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
       >
         {text}
       </motion.span>

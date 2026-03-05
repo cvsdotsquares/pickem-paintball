@@ -21,7 +21,7 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [requestingLeagueId, setRequestingLeagueId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'my-leagues'>('all');
+  const [filter, setFilter] = useState<'all' | 'public' | 'my-leagues'>('all');
 
   const getLeagueIconUrl = (league: League): string | null => {
     if (!league.icon) return null;
@@ -44,10 +44,14 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
       const response = await fetch(endpoint);
       const data = await response.json();
   
-      data.leagues?.forEach((league: League) => {
-   
-      });
-      setLeagues(data.leagues || []);
+      let filteredLeagues = data.leagues || [];
+      
+      // Filter for public leagues only if public filter is selected
+      if (filter === 'public') {
+        filteredLeagues = filteredLeagues.filter((league: League) => league.settings.isPublic);
+      }
+      
+      setLeagues(filteredLeagues);
     } catch (error) {
       console.error('Error fetching leagues:', error);
       showToast('Failed to load leagues', 'error');
@@ -132,15 +136,23 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
             <button
               onClick={() => setFilter('all')}
               className={`px-4 py-2 rounded-lg transition-colors ${
-                filter === 'all' ? 'bg-blue-600 text-gray-900 dark:text-white' : 'bg-gray-300 dark:bg-gray-700 text-gray-300'
+                filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
               }`}
             >
               All Leagues
             </button>
             <button
+              onClick={() => setFilter('public')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                filter === 'public' ? 'bg-blue-600 text-white' : 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              Public Leagues
+            </button>
+            <button
               onClick={() => setFilter('my-leagues')}
               className={`px-4 py-2 rounded-lg transition-colors ${
-                filter === 'my-leagues' ? 'bg-blue-600 text-gray-900 dark:text-white' : 'bg-gray-300 dark:bg-gray-700 text-gray-300'
+                filter === 'my-leagues' ? 'bg-blue-600 text-white' : 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
               }`}
             >
               My Leagues

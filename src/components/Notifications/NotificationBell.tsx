@@ -54,7 +54,7 @@ export default function NotificationBell() {
     <div className="relative">
       <button
         onClick={() => setShowPanel(!showPanel)}
-        className="relative p-2 text-gray-300 hover:text-white transition-colors"
+        className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
       >
         <FaBell className="text-xl" />
         {unreadCount > 0 && (
