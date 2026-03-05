@@ -140,6 +140,14 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="relative p-6 border-b border-gray-700">
+          {/* Brand Logo */}
+          <div className="flex justify-center mb-4">
+            <img 
+              src="/logo.svg" 
+              alt="Pick'Em Paintball Logo" 
+              className="h-12 w-auto"
+            />
+          </div>
           <h2 className="text-2xl font-bold text-white text-center">{content.title}</h2>
           <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white">
             <FaTimes className="text-xl" />
@@ -147,7 +155,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
         </div>
 
         <div className="p-6">
-          <div className="text-gray-300 mb-8 leading-relaxed">{content.description}</div>
+          <div className="text-gray-300 mb-8 leading-relaxed text-center">{content.description}</div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {plans.map((plan) => (
