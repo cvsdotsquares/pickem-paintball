@@ -61,6 +61,28 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
   };
 
   const requestToJoin = async (leagueId: string) => {
+    // Check subscription before joining
+    try {
+      const response = await fetch(`/api/users/${user?.uid}/subscription`);
+      if (!response.ok) {
+        throw new Error(`Subscription check failed: ${response.status}`);
+      }
+      const subscriptionData = await response.json();
+      console.log('League browser subscription check:', subscriptionData);
+      
+      if (!subscriptionData.isSubscribed) {
+        console.log('Non-subscriber trying to join league from browser, showing modal');
+        onClose();
+        // Trigger subscription modal
+        window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate' } }));
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+      showToast('Unable to verify subscription. Please try again.', 'error');
+      return;
+    }
+
     setRequestingLeagueId(leagueId);
     try {
       const response = await fetch(`/api/leagues/${leagueId}/request`, {

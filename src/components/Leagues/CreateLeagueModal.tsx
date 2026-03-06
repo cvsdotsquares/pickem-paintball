@@ -64,10 +64,14 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
       }
 
       // Check subscription - show hard-gate modal
-      const userDoc = await fetch(`/api/users/${user.uid}/subscription`);
-      const { isSubscribed } = await userDoc.json();
+      const response = await fetch(`/api/users/${user.uid}/subscription`);
+      if (!response.ok) {
+        throw new Error(`Subscription check failed: ${response.status}`);
+      }
+      const subscriptionData = await response.json();
+      console.log('Subscription check for league creation:', subscriptionData);
       
-      if (!isSubscribed) {
+      if (!subscriptionData.isSubscribed) {
         setLoading(false);
         onClose();
         // Trigger hard-gate modal from parent

@@ -18,7 +18,7 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
   const { user } = useAuth();
   const { refreshUserLeagues } = useLeague();
   const { toasts, showToast, hideToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'code' | 'search'>('code');
+  const [activeTab, setActiveTab] = useState<'search'>('search');
   const [inviteCode, setInviteCode] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<League[]>([]);
@@ -34,9 +34,11 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
       if (!response.ok) {
         throw new Error(`Subscription check failed: ${response.status}`);
       }
-      const { isSubscribed } = await response.json();
+      const subscriptionData = await response.json();
+      console.log('Join by code subscription check:', subscriptionData);
       
-      if (!isSubscribed) {
+      if (!subscriptionData.isSubscribed) {
+        console.log('Non-subscriber trying to join by code, showing modal');
         onClose();
         // Trigger subscription modal
         window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate' } }));
@@ -112,9 +114,11 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
       if (!response.ok) {
         throw new Error(`Subscription check failed: ${response.status}`);
       }
-      const { isSubscribed } = await response.json();
+      const subscriptionData = await response.json();
+      console.log('Join league subscription check:', subscriptionData);
       
-      if (!isSubscribed) {
+      if (!subscriptionData.isSubscribed) {
+        console.log('Non-subscriber trying to join league, showing modal');
         onClose();
         // Trigger subscription modal
         window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate' } }));
@@ -185,16 +189,6 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
         {/* Tabs */}
         <div className="flex border-b border-gray-300 dark:border-gray-700">
           <button
-            onClick={() => setActiveTab('code')}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-              activeTab === 'code'
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white'
-            }`}
-          >
-            Invite Code
-          </button>
-          <button
             onClick={() => setActiveTab('search')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'search'
@@ -202,67 +196,29 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white'
             }`}
           >
-            Search Leagues
+            Public Leagues
           </button>
         </div>
 
         <div className="p-6">
-          {/* Join by Code Tab */}
-          {activeTab === 'code' && (
-            <form onSubmit={handleJoinByCode} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Enter Invite Code
-                </label>
-                <input
-                  type="text"
-                  value={inviteCode}
-                  onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                  className="w-full px-3 py-2 bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg tracking-wider"
-                  placeholder="ABC123"
-                  maxLength={6}
-                />
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  Ask your league admin for the 6-character invite code
-                </p>
-              </div>
-
+          {/* Search Leagues Tab */}
+          <div className="space-y-4">
+            <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="flex gap-2">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Search public leagues..."
+              />
               <button
                 type="submit"
-                disabled={loading || !inviteCode.trim()}
-                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 dark:text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                disabled={loading}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-gray-900 dark:text-white rounded-lg transition-colors"
               >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Joining...
-                  </>
-                ) : (
-                  'Join League'
-                )}
+                <FaSearch />
               </button>
             </form>
-          )}
-
-          {/* Search Leagues Tab */}
-          {activeTab === 'search' && (
-            <div className="space-y-4">
-              <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="flex gap-2">
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Search public leagues..."
-                />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-gray-900 dark:text-white rounded-lg transition-colors"
-                >
-                  <FaSearch />
-                </button>
-              </form>
 
               {/* Search Results */}
               <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -317,9 +273,8 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
                 )}
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
       </div>
     </>
   );

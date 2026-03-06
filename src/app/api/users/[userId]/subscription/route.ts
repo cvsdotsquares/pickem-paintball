@@ -21,12 +21,17 @@ export async function GET(
 
     const userData = userDoc.data();
     const isSubscribed = userData.isSubscribed || false;
+    const subscriptionStatus = userData.subscriptionStatus || null;
     const subscriptionTier = userData.subscriptionTier || null;
     const currentPeriodEnd = userData.subscriptionCurrentPeriodEnd || null;
 
     // Check if subscription is still valid
     let validSubscription = isSubscribed;
-    if (currentPeriodEnd) {
+    
+    // If subscription status is 'active', consider it valid regardless of period end
+    if (subscriptionStatus === 'active') {
+      validSubscription = true;
+    } else if (currentPeriodEnd) {
       const periodEnd = new Date(currentPeriodEnd);
       validSubscription = isSubscribed && new Date() < periodEnd;
     }
@@ -34,7 +39,8 @@ export async function GET(
     return NextResponse.json({
       isSubscribed: validSubscription,
       subscriptionTier,
-      currentPeriodEnd
+      currentPeriodEnd,
+      subscriptionStatus
     });
   } catch (error) {
     console.error('Error checking subscription:', error);
