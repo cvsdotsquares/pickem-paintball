@@ -1,65 +1,43 @@
 "use client";
 
-import React, { useRef } from "react";
+import React from "react";
 import { GiGooeyMolecule } from "react-icons/gi";
-import { motion, useScroll, useSpring, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 
-interface TickerItemProps {
-    text: string;
-}
+const baseItems = [
+  "Pick your squad",
+  "Follow the action live",
+  "Collect kills",
+  "Climb the leaderboard",
+];
 
-const TickerItem: React.FC<TickerItemProps> = ({ text }) => {
-    return (
-        <div className="flex gap-6 items-center p-2 whitespace-nowrap">
-            <GiGooeyMolecule
-                color="black"
-                className=" h-[32px] w-[50px] max-sm:h-[20px] max-sm:w-[20px]"
-            />
-            <span className="text-black font-bold">{text}</span>
-        </div>
-    );
-};
+const TickerItem = ({ text }: { text: string }) => (
+  <div className="flex items-center gap-3 px-10 whitespace-nowrap">
+    <GiGooeyMolecule className="w-5 h-5" />
+    <span className="font-bold text-sm sm:text-base">{text}</span>
+  </div>
+);
 
-export const NewsTicker: React.FC = () => {
-    const targetRef = useRef<HTMLElement>(null);
+export const NewsTicker = () => {
 
-    const { scrollYProgress } = useScroll({
-        target: targetRef,
-        offset: ["start end", "end start"],
-    });
+  // repeat items many times so width always bigger than screen
+  const items = Array(10).fill(baseItems).flat();
 
-    const xRaw = useTransform(scrollYProgress, [0, 1], [0, -1000]);
-    useSpring(xRaw, { mass: 1, stiffness: 150, damping: 25 });
-
-    const tickerItems = [
-        "Pick your squad",
-        "follow the action live",
-        "collect kills",
-        "climb the leaderboard",
-    ];
-
-    return (
-        <section
-            ref={targetRef}
-            className="overflow-hidden px-0 py-4 w-full bg-neutral-200"
-        >
-            <div className="relative flex items-center text-xl tracking-tight uppercase">
-                <motion.div
-                    animate={{ x: ["0%", "-50%"] }}
-                    transition={{ repeat: Infinity, duration: 30, ease: "linear", repeatType: "loop" }}
-                    className="flex whitespace-nowrap gap-8"
-                    style={{ width: "200%" }}
-                >
-                    {/* Render items twice for seamless infinite loop */}
-                    {[...Array(2)].map((_, setIndex) => (
-                        <React.Fragment key={setIndex}>
-                            {tickerItems.map((text, index) => (
-                                <TickerItem key={`${setIndex}-${index}`} text={text} />
-                            ))}
-                        </React.Fragment>
-                    ))}
-                </motion.div>
-            </div>
-        </section>
-    );
+  return (
+    <div className="w-full overflow-hidden bg-neutral-200 py-2">
+      <motion.div
+        className="flex w-max"
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{
+          duration: 50,
+          ease: "linear",
+          repeat: Infinity,
+        }}
+      >
+        {items.map((text, i) => (
+          <TickerItem key={i} text={text} />
+        ))}
+      </motion.div>
+    </div>
+  );
 };
