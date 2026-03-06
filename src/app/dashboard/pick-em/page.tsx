@@ -1,6 +1,7 @@
 "use client";
 import { AnimatedGroup } from "@/src/components/ui/animations/grp";
 import { useAuth } from "@/src/contexts/authProvider";
+import { useSubscription } from "@/src/contexts/SubscriptionContext";
 import {
   collection,
   doc,
@@ -265,6 +266,7 @@ export default function Pickems() {
 
   const db = getFirestore();
   const { user } = useAuth();
+  const { isSubscribed, showModal } = useSubscription();
 
   // Helper to fetch documents from Firestore
   const fetchFromFirestore = async (path: string) => {
@@ -779,6 +781,12 @@ export default function Pickems() {
         draggable: true,
         progress: undefined,
       });
+      return;
+    }
+
+    // Check subscription status before confirming picks
+    if (!isSubscribed) {
+      showModal('soft-gate');
       return;
     }
 
