@@ -59,13 +59,10 @@ export default function Pickems() {
   );
   const [temporaryPicks, setTemporaryPicks] = useState<Player[]>([]);
   const [captainId, setCaptainId] = useState<string | null>(null);
-  const [liveEvent, setLiveEvent] = useState<{
-    id: string | null;
-    lockDate: Date | null;
-    timeLeft: string;
-  }>({ id: null, lockDate: null, timeLeft: "" });
-  const [remainingBudget, setRemainingBudget] = useState(1000000); // $1,000,000 initial budget
-  const [visiblePlayersCount, setVisiblePlayersCount] = useState(9);
+  const [liveEvent, setLiveEvent] = useState<any>({ id: null, lockDate: null, timeLeft: "" });
+  const TOTAL_BUDGET = 1000000;
+  const [remainingBudget, setRemainingBudget] = useState(TOTAL_BUDGET);
+  const [visiblePlayersCount, setVisiblePlayersCount] = useState(20);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [costRange, setCostRange] = useState<[number, number]>([0, 1000000]);
@@ -73,1335 +70,820 @@ export default function Pickems() {
   const [teams, setTeams] = useState<string[]>([]);
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const [isMobile, setIsMobile] = useState(false);
-
-  const [sortOption, setSortOption] = useState<{
-    field: string;
-    direction: "asc" | "desc";
-  }>({
-    field: "name",
-    direction: "asc",
-  });
-  function useThrottledState<T>(
-    initialState: T,
-    delay = 300
-  ): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [state, setState] = useState(initialState);
-    const lastUpdate = useRef(Date.now());
-
-    const throttledSetState = useCallback(
-      (newState: React.SetStateAction<T>) => {
-        if (Date.now() - lastUpdate.current >= delay) {
-          setState(newState);
-          lastUpdate.current = Date.now();
-        }
-      },
-      [delay]
-    );
-
-    return [state, throttledSetState];
-  }
-
-  // Then replace your rowData state:
-  const [rowData, setRowData] = useThrottledState<any[]>([]);
-  // Add this handler function
-  const handleSort = ({
-    field,
-    direction,
-  }: {
-    field: string;
-    direction: "asc" | "desc";
-  }) => {
-    setSortOption({ field, direction });
-    setVisiblePlayersCount(9); // Reset visible count when sorting changes
-    setIsLoadingMore(false); // Reset loading state when sorting changes
-  };
-
-  // In your component
-  const desktopScrollRef = useRef<HTMLDivElement>(null);
-  const mobileScrollRef = useRef<HTMLDivElement>(null);
-
-  // Memoized filtered players with improved search
-  const filteredPlayers = useMemo(() => {
-    if (rowData.length === 0) return [];
-    let result = [...rowData];
-
-    // Apply search filter if term exists
-    if (searchTerm.trim()) {
-      const cleanSearch = searchTerm.toLowerCase().replace(/\s+/g, "");
-
-      result = result.filter((player) => {
-        // Create normalized versions once per player
-        const normalizedPlayer = player.Player.toLowerCase().replace(
-          /\s+/g,
-          ""
-        );
-        const normalizedTeam = player.Team.toLowerCase().replace(/\s+/g, "");
-
-        // Check full normalized strings first (fastest check)
-        if (normalizedPlayer.includes(cleanSearch)) return true;
-        if (normalizedTeam.includes(cleanSearch)) return true;
-
-        // Only split into words if needed (for partial matching)
-        const playerWords = player.Player.toLowerCase().split(/\s+/);
-        const teamWords = player.Team.toLowerCase().split(/\s+/);
-
-        // Check word matches
-        return (
-          playerWords.some((word: string) => word.includes(cleanSearch)) ||
-          teamWords.some((word: string) => word.includes(cleanSearch)) ||
-          (cleanSearch.length > 3 && // Only do partial matches for longer queries
-            (playerWords.some((word: string) => word.startsWith(cleanSearch)) ||
-              teamWords.some((word: string) => word.startsWith(cleanSearch))))
-        );
-      });
-    }
-
-    // Apply cost filter
-    result = result.filter(
-      (player) => player.Cost >= costRange[0] && player.Cost <= costRange[1]
-    );
-
-    // Apply team filter if any teams are selected
-    if (selectedTeams.length > 0) {
-      result = result.filter((player) => selectedTeams.includes(player.Team));
-    }
-
-    // Apply sorting
-    result.sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortOption.field) {
-        case "name":
-          comparison = a.Player.localeCompare(b.Player);
-          break;
-        case "team":
-          comparison = a.Team.localeCompare(b.Team);
-          break;
-        case "cost":
-          comparison = a.Cost - b.Cost;
-          break;
-        default:
-          comparison = a.Player.localeCompare(b.Player);
-      }
-
-      return sortOption.direction === "asc" ? comparison : -comparison;
-    });
-
-    return result;
-  }, [rowData, searchTerm, costRange, selectedTeams, sortOption]);
-  // Group players into selected and available
-  const { selectedPlayers, availablePlayers } = useMemo(() => {
-    const selected = filteredPlayers.filter((player) =>
-      temporaryPicks.some((p) => p.player_id === player.player_id)
-    );
-    const available = filteredPlayers.filter(
-      (player) => !temporaryPicks.some((p) => p.player_id === player.player_id)
-    );
-    return { selectedPlayers: selected, availablePlayers: available };
-  }, [filteredPlayers, temporaryPicks]);
-
-  // Get visible players (selected first, then available)
-
-  const visiblePlayers = useMemo(() => {
-    const allSelected = selectedPlayers;
-    const available = availablePlayers.slice(
-      0,
-      Math.max(0, visiblePlayersCount - allSelected.length)
-    );
-    return [...allSelected, ...available];
-  }, [selectedPlayers, availablePlayers, visiblePlayersCount]);
-
-  const handleScroll = useCallback(() => {
-    // Check if we should load more
-    if (isLoadingMore || visiblePlayers.length >= filteredPlayers.length)
-      return;
-
-    const container = isMobile
-      ? mobileScrollRef.current
-      : desktopScrollRef.current;
-    if (!container) return;
-
-    const { scrollTop, scrollHeight, clientHeight } = container;
-
-    // Improved threshold calculation - use fixed pixel values for better reliability
-    const threshold = isMobile ? 200 : 300; // 200px for mobile, 300px for desktop
-    const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
-
-    if (distanceFromBottom < threshold) {
-      setIsLoadingMore(true);
-
-      // Use requestAnimationFrame for better performance
-      requestAnimationFrame(() => {
-        setTimeout(
-          () => {
-            setVisiblePlayersCount((prev) => {
-              const newCount = Math.min(prev + (isMobile ? 6 : 9), filteredPlayers.length);
-              return newCount;
-            });
-            setIsLoadingMore(false);
-          },
-          isMobile ? 200 : 300
-        );
-      });
-    }
-  }, [isLoadingMore, visiblePlayers.length, filteredPlayers.length, isMobile]);
-
   useEffect(() => {
-    const container = isMobile
-      ? mobileScrollRef.current
-      : desktopScrollRef.current;
-    if (container) {
-
-      // Attach scroll event listener
-      container.addEventListener("scroll", handleScroll, { passive: true });
-
-      // Trigger initial check after a delay to ensure DOM is ready
-      setTimeout(handleScroll, 600);
-
-      return () => {
-        container.removeEventListener("scroll", handleScroll);
-      };
-    }
-  }, [visiblePlayers, handleScroll, isMobile]);
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [sortOption, setSortOption] = useState<{ field: string; direction: "asc" | "desc" }>({ field: "name", direction: "asc" });
+  const [teamLogos, setTeamLogos] = useState<Record<string, string>>({});
 
   const db = getFirestore();
   const { user } = useAuth();
   const { isSubscribed, showModal } = useSubscription();
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
-  // Helper to fetch documents from Firestore
+  function useThrottledState<T>(initialState: T, delay = 300): [T, React.Dispatch<React.SetStateAction<T>>] {
+    const [state, setState] = useState(initialState);
+    const lastUpdate = useRef(Date.now());
+    const throttledSetState = useCallback((newState: React.SetStateAction<T>) => {
+      if (Date.now() - lastUpdate.current >= delay) { setState(newState); lastUpdate.current = Date.now(); }
+    }, [delay]);
+    return [state, throttledSetState];
+  }
+
+  const [rowData, setRowData] = useThrottledState<any[]>([]);
+  const desktopScrollRef = useRef<HTMLDivElement>(null);
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
+
+  const filteredPlayers = useMemo(() => {
+    if (rowData.length === 0) return [];
+    let result = [...rowData];
+    if (searchTerm.trim()) {
+      const cleanSearch = searchTerm.toLowerCase().replace(/\s+/g, "");
+      result = result.filter((player) => {
+        const np = player.Player.toLowerCase().replace(/\s+/g, "");
+        const nt = player.Team.toLowerCase().replace(/\s+/g, "");
+        return np.includes(cleanSearch) || nt.includes(cleanSearch);
+      });
+    }
+    result = result.filter((p) => p.Cost >= costRange[0] && p.Cost <= costRange[1]);
+    if (selectedTeams.length > 0) result = result.filter((p) => selectedTeams.includes(p.Team));
+    result.sort((a, b) => {
+      let cmp = 0;
+      if (sortOption.field === "name") cmp = a.Player.localeCompare(b.Player);
+      else if (sortOption.field === "team") cmp = a.Team.localeCompare(b.Team);
+      else if (sortOption.field === "cost") cmp = a.Cost - b.Cost;
+      else if (sortOption.field === "elim") cmp = (a.totalElims ?? 0) - (b.totalElims ?? 0);
+      else if (sortOption.field === "lonestar") cmp = (a.lonestarElims ?? 0) - (b.lonestarElims ?? 0);
+      else if (sortOption.field === "midwest") cmp = (a.midwestElims ?? 0) - (b.midwestElims ?? 0);
+      return sortOption.direction === "asc" ? cmp : -cmp;
+    });
+    return result;
+  }, [rowData, searchTerm, costRange, selectedTeams, sortOption]);
+
+  const { selectedPlayers, availablePlayers } = useMemo(() => ({
+    selected: filteredPlayers.filter((p) => temporaryPicks.some((tp) => tp.player_id === p.player_id)),
+    available: filteredPlayers.filter((p) => !temporaryPicks.some((tp) => tp.player_id === p.player_id)),
+  } as any), [filteredPlayers, temporaryPicks]);
+
+  const visiblePlayers = useMemo(() => {
+    const sel = filteredPlayers.filter((p) => temporaryPicks.some((tp) => tp.player_id === p.player_id));
+    const avail = filteredPlayers.filter((p) => !temporaryPicks.some((tp) => tp.player_id === p.player_id));
+    return [...sel, ...avail.slice(0, Math.max(0, visiblePlayersCount - sel.length))];
+  }, [filteredPlayers, temporaryPicks, visiblePlayersCount]);
+
+  const handleScroll = useCallback(() => {
+    if (isLoadingMore || visiblePlayers.length >= filteredPlayers.length) return;
+    const container = isMobile ? mobileScrollRef.current : desktopScrollRef.current;
+    if (!container) return;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    if (scrollHeight - (scrollTop + clientHeight) < 300) {
+      setIsLoadingMore(true);
+      setTimeout(() => { setVisiblePlayersCount((p) => Math.min(p + 20, filteredPlayers.length)); setIsLoadingMore(false); }, 300);
+    }
+  }, [isLoadingMore, visiblePlayers.length, filteredPlayers.length, isMobile]);
+
+  useEffect(() => {
+    const container = isMobile ? mobileScrollRef.current : desktopScrollRef.current;
+    if (container) {
+      container.addEventListener("scroll", handleScroll, { passive: true });
+      return () => container.removeEventListener("scroll", handleScroll);
+    }
+  }, [visiblePlayers, handleScroll, isMobile]);
+
   const fetchFromFirestore = async (path: string) => {
-    const ref = collection(db, path);
-    const snapshot = await getDocs(ref);
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const snap = await getDocs(collection(db, path));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   };
 
-  const handleFilter = ({
-    searchTerm: newSearchTerm,
-    costRange: newCostRange,
-    selectedTeams: newSelectedTeams,
-  }: any) => {
-    setSearchTerm(newSearchTerm);
-    setCostRange(newCostRange);
-    setSelectedTeams(newSelectedTeams);
-    setVisiblePlayersCount(9); // Reset visible count when filters change
-    setIsLoadingMore(false); // Reset loading state when filters change
+  const fetchPlayerPicture = async (leagueId: string): Promise<string> => {
+    try {
+      const fileList = await listAll(ref(getStorage(), `players/`));
+      const match = fileList.items.find((item) => item.name.startsWith(`${leagueId}_`));
+      return match ? await getDownloadURL(match) : "/placeholder.svg";
+    } catch { return "/placeholder.svg"; }
   };
 
-  // Your existing live event fetch
- useEffect(() => {
+  useEffect(() => {
     const fetchLiveEvent = async () => {
       try {
         const events = await fetchFromFirestore("events");
-        const liveEvent = events.find((e: any) => e.status === "live");
-
-        if (liveEvent) {
-          const eventRef = doc(db, "events", liveEvent.id);
-          const eventSnap = await getDoc(eventRef);
-
-          if (eventSnap.exists()) {
-            const eventData = eventSnap.data();
-            const lockDate = eventData.lockDate.toDate
-              ? eventData.lockDate.toDate()
-              : null;
-
-            setLiveEvent({
-              id: liveEvent.id,
-              lockDate,
-              timeLeft: "",
-            });
-          }
+        const live = events.find((e: any) => e.status === "live");
+        if (live) {
+          const logoUrl = live.event_logo || live.logoUrl || null;
+          console.log("[PickEm] live event:", live.id, "logo:", logoUrl);
+          setLiveEvent({
+            id: live.id,
+            lockDate: live.lockDate?.toDate ? live.lockDate.toDate() : null,
+            timeLeft: "",
+            name: live.name || "TAMPA BAY OPEN",
+            venue: live.venue || "RAYMOND JAMES STADIUM",
+            city: live.city || "TAMPA, FLORIDA",
+            startDate: live.startDate || "MAR 19",
+            endDate: live.endDate || "22",
+            eventNumber: live.eventNumber || "1",
+            logoUrl,
+            brandColor: live.brand_color || null,
+          });
         }
-      } catch (error) {
-        console.error("Error fetching live event:", error);
-      }
+      } catch (e) { console.error(e); }
     };
-
     fetchLiveEvent();
   }, []);
 
   useEffect(() => {
-    const { lockDate } = liveEvent;
-    if (!lockDate) return;
-
-    const updateTimeLeft = () => {
-      const now = new Date();
-      // Convert both to milliseconds for comparison
-      const diff = new Date(lockDate).getTime() - now.getTime();
-
-      if (diff <= 0) {
-        setLiveEvent((prev) => ({ ...prev, timeLeft: "Picks locked!" }));
-        return;
-      }
-
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-      setLiveEvent((prev) => ({
-        ...prev,
-        timeLeft: `${hours}h ${minutes}m ${Math.floor(seconds)}s`,
+    if (!liveEvent.lockDate) return;
+    const tick = () => {
+      const diff = new Date(liveEvent.lockDate).getTime() - Date.now();
+      if (diff <= 0) { setLiveEvent((p: any) => ({ ...p, _days: 0, _hours: 0, _minutes: 0, _seconds: 0 })); return; }
+      setLiveEvent((p: any) => ({
+        ...p,
+        _days: Math.floor(diff / 86400000),
+        _hours: Math.floor((diff % 86400000) / 3600000),
+        _minutes: Math.floor((diff % 3600000) / 60000),
+        _seconds: Math.floor((diff % 60000) / 1000),
       }));
     };
-
-    const interval = setInterval(updateTimeLeft, 1000);
-    updateTimeLeft();
+    const interval = setInterval(tick, 1000);
+    tick();
     return () => clearInterval(interval);
   }, [liveEvent.lockDate]);
 
-  const fetchPlayerPicture = async (leagueId: string): Promise<string> => {
-    const storage = getStorage();
-    const folderPath = `players/`; // Path to the folder containing player pictures
-    const storageRef = ref(storage, folderPath);
-
-    try {
-      const fileList = await listAll(storageRef);
-      const matchingFile = fileList.items.find((item) =>
-        item.name.startsWith(`${leagueId}_`)
-      );
-
-      return matchingFile
-        ? await getDownloadURL(matchingFile)
-        : "/placeholder.svg"; // Return placeholder if no match
-    } catch (error) {
-      console.error(`Error fetching picture for leagueId: ${leagueId}`, error);
-      return "/placeholder.svg"; // Fallback to placeholder
-    }
-  };
+  const [seasonElims, setSeasonElims] = useState<Record<string, number>>({});
+  const seasonElimsRef = useRef<Record<string, number>>({});
+  const lonestarElimsRef = useRef<Record<string, number>>({});
+  const midwestElimsRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
-    let isMounted = true;
-    const fetchPlayers = async () => {
-      if (!liveEvent.id) {
-        console.log("No event ID yet");
-        return;
-      }
-
+    const fetchSeasonElims = async () => {
       try {
-        console.log("Fetching players for event:", liveEvent.id);
-        setIsLoadingMore(true);
-
-        const rawPlayers = await fetchFromFirestore(
-          `events/${liveEvent.id}/players`
-        );
-
-        console.log("Fetched players:", rawPlayers.length);
-
-        const players: Player[] = rawPlayers.map((raw: any) => ({
-          player_id: raw.player_id,
-          league_id: raw.league_id,
-          Player: raw.Player,
-          Team: raw.Team,
-          Rank: raw.Rank,
-          team_id: raw.team_id,
-          Cost: raw.Cost,
-          img_url: raw.img_url,
-          picture: raw.img_url && raw.img_url.trim() !== "" ? raw.img_url : undefined,
-          pictureLoading: !(raw.img_url && raw.img_url.trim() !== ""),
-        }));
-
-        const uniqueTeams = Array.from(
-          new Set(
-            rawPlayers
-              .map((p: any) => p.Team)
-              .filter((team): team is string => Boolean(team))
-          )
-        );
-
-        if (isMounted) {
-          setRowData(players);
-          setTeams(uniqueTeams);
-          setIsLoadingMore(false);
-        }
-      } catch (error) {
-        if (isMounted) {
-          console.error("Error fetching players:", error);
-          setIsLoadingMore(false);
-        }
-      }
+        const snap = await getDocs(collection(db, "events/world_cup_2025/players"));
+        const map: Record<string, number> = {};
+        snap.docs.forEach((d) => {
+          const data = d.data();
+          map[d.id] = data["Confirmed Kills"] ?? undefined;
+        });
+        console.log("[SeasonElims] sample keys:", Object.keys(map).slice(0, 5));
+        console.log("[SeasonElims] sample values:", Object.entries(map).slice(0, 5));
+        setSeasonElims(map);
+        seasonElimsRef.current = map;
+      } catch (e) { console.error("Failed to fetch season elims:", e); }
     };
+    fetchSeasonElims();
 
-    fetchPlayers();
-    return () => {
-      isMounted = false;
+    const fetchEventElims = async (eventId: string, ref: React.MutableRefObject<Record<string, number>>) => {
+      try {
+        const snap = await getDocs(collection(db, `events/${eventId}/players`));
+        const map: Record<string, number> = {};
+        snap.docs.forEach((d) => { map[d.id] = d.data()["Confirmed Kills"] ?? undefined; });
+        ref.current = map;
+      } catch (e) { console.error(`Failed to fetch elims for ${eventId}:`, e); }
     };
-  }, [liveEvent.id, setRowData]);
+    fetchEventElims("lonestar_open_2025", lonestarElimsRef);
+    fetchEventElims("midwest_open_2025", midwestElimsRef);
+  }, []);
 
   useEffect(() => {
-    const fetchPicturesForVisiblePlayers = async () => {
-      if (!visiblePlayers.length) return;
-
-      // Batch all updates together
-      const updates = await Promise.all(
-        visiblePlayers.map(async (player) => {
-          if (player.picture) return null; // Skip if already loaded
-
-          try {
-            // Check if img_url is available first
-            if (player.img_url && player.img_url.trim() !== "") {
-              return { player_id: player.player_id, picture: player.img_url };
-            } else {
-              // Fallback to Firebase Storage lookup
-              const picture = await fetchPlayerPicture(player.league_id);
-              return { player_id: player.player_id, picture };
-            }
-          } catch (error) {
-            return {
-              player_id: player.player_id,
-              picture: "/placeholder.svg",
-            };
-          }
-        })
-      );
-
-      // Single state update
-      setRowData((prev) =>
-        prev.map((p) => {
-          const update = updates.find((u) => u?.player_id === p.player_id);
-          return update
-            ? { ...p, picture: update.picture, pictureLoading: false }
-            : p;
-        })
-      );
+    let mounted = true;
+    const fetchPlayers = async () => {
+      if (!liveEvent.id) return;
+      setIsLoadingMore(true);
+      try {
+        const raw = await fetchFromFirestore(`events/${liveEvent.id}/players`);
+        const players: Player[] = raw.map((r: any) => ({
+          player_id: r.player_id, league_id: r.league_id, Player: r.Player, Team: r.Team,
+          Rank: r.Rank, team_id: r.team_id, Cost: r.Cost, img_url: r.img_url,
+          picture: r.img_url?.trim() ? r.img_url : undefined,
+          pictureLoading: !r.img_url?.trim(),
+          totalElims: seasonElimsRef.current[String(r.player_id)] ?? undefined,
+          lonestarElims: lonestarElimsRef.current[String(r.player_id)] ?? undefined,
+          midwestElims: midwestElimsRef.current[String(r.player_id)] ?? undefined,
+        }));
+        const uniqueTeams = [...new Set(raw.map((p: any) => p.Team).filter(Boolean))] as string[];
+        if (mounted) { setRowData(players); setTeams(uniqueTeams); setIsLoadingMore(false); }
+      } catch (e) { if (mounted) { console.error(e); setIsLoadingMore(false); } }
     };
+    fetchPlayers();
+    return () => { mounted = false; };
+  }, [liveEvent.id]);
 
-    const debounceFetch = setTimeout(fetchPicturesForVisiblePlayers, 200);
-    return () => clearTimeout(debounceFetch);
+  // Merge season elims into player rows whenever either dataset updates
+  useEffect(() => {
+    if (!Object.keys(seasonElims).length || !rowData.length) return;
+    console.log("[Merge] first player:", { player_id: rowData[0]?.player_id, typeof_pid: typeof rowData[0]?.player_id });
+    console.log("[Merge] first seasonElims key:", Object.keys(seasonElims)[0], "typeof:", typeof Object.keys(seasonElims)[0]);
+    console.log("[Merge] direct lookup test:", seasonElims[String(rowData[0]?.player_id)]);
+    setRowData((prev) => prev.map((p) => ({
+      ...p,
+      totalElims: seasonElimsRef.current[String(p.player_id)] ?? p.totalElims,
+      lonestarElims: lonestarElimsRef.current[String(p.player_id)] ?? p.lonestarElims,
+      midwestElims: midwestElimsRef.current[String(p.player_id)] ?? p.midwestElims,
+    })));
+  }, [seasonElims]);
+
+  useEffect(() => {
+    const fetchPics = async () => {
+      if (!visiblePlayers.length) return;
+      const updates = await Promise.all(visiblePlayers.map(async (p) => {
+        if (p.picture) return null;
+        const picture = p.img_url?.trim() ? p.img_url : await fetchPlayerPicture(p.league_id).catch(() => "/placeholder.svg");
+        return { player_id: p.player_id, picture };
+      }));
+      setRowData((prev) => prev.map((p) => {
+        const u = updates.find((u) => u?.player_id === p.player_id);
+        return u ? { ...p, picture: u.picture, pictureLoading: false } : p;
+      }));
+    };
+    const t = setTimeout(fetchPics, 200);
+    return () => clearTimeout(t);
   }, [visiblePlayers]);
 
-  // Fetch user picks from the firestore if exist already
   useEffect(() => {
-    if (user && liveEvent.id) {
-      const fetchPicks = async () => {
-        try {
-          const userRef = doc(db, "users", user.uid);
-          const userSnap = await getDoc(userRef);
-
-          if (userSnap.exists()) {
-            const userData = userSnap.data();
-
-            if (
-              userData.pickems &&
-              liveEvent.id &&
-              Array.isArray(userData.pickems[liveEvent.id])
-            ) {
-              const savedPicksIds = userData.pickems[liveEvent.id];
-
-              const playerRefs = savedPicksIds.map((id: string) =>
-                doc(db, `events/${liveEvent.id}/players`, id.toString())
-              );
-
-              const playerDocs = await Promise.all(
-                playerRefs.map((playerRef: any) => getDoc(playerRef))
-              );
-
-              const savedPicks = playerDocs
-                .filter((doc) => doc.exists())
-                .map((doc) => ({ ...doc.data(), player_id: doc.id }));
-
-              const picksWithPictures = await Promise.all(
-                savedPicks.map(async (player) => {
-                  // Check if img_url is available first
-                  if (player.img_url && player.img_url.trim() !== "") {
-                    return { ...player, picture: player.img_url };
-                  } else {
-                    // Fallback to Firebase Storage lookup
-                    const picture = await fetchPlayerPicture(player.league_id);
-                    return { ...player, picture };
-                  }
-                })
-              );
-
-              // Load captain
-              const savedCaptain = userData.pickems?.[`${liveEvent.id}_captain`];
-              setCaptainId(savedCaptain || null);
-
-              setTemporaryPicks(picksWithPictures);
-              setPlayerSlots((prevSlots) =>
-                prevSlots.map((slot, index) => ({
-                  ...slot,
-                  player: picksWithPictures[index] || null,
-                }))
-              );
-            } else {
-              console.warn("No saved picks found for this event.");
-            }
-          } else {
-            console.warn("User document does not exist in Firestore.");
-          }
-        } catch (error) {
-          console.error("Error fetching saved picks:", error);
-        }
-      };
-
-      fetchPicks();
-    }
-  }, [user, liveEvent.id, db]);
+    if (!user || !liveEvent.id) return;
+    const fetchPicks = async () => {
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (!snap.exists()) return;
+        const data = snap.data();
+        const ids = data.pickems?.[liveEvent.id];
+        if (!Array.isArray(ids)) return;
+        const docs = await Promise.all(ids.map((id: string) => getDoc(doc(db, `events/${liveEvent.id}/players`, id.toString()))));
+        const picks = await Promise.all(docs.filter((d) => d.exists()).map(async (d) => {
+          const pd = { ...d.data(), player_id: d.id } as any;
+          return { ...pd, picture: pd.img_url?.trim() ? pd.img_url : await fetchPlayerPicture(pd.league_id) };
+        }));
+        setCaptainId(data.pickems?.[`${liveEvent.id}_captain`] || null);
+        setTemporaryPicks(picks);
+        setPlayerSlots((prev) => prev.map((slot, i) => ({ ...slot, player: picks[i] || null })));
+      } catch (e) { console.error(e); }
+    };
+    fetchPicks();
+  }, [user, liveEvent.id]);
 
   useEffect(() => {
-    const totalCost = temporaryPicks.reduce(
-      (sum, player) => sum + Math.round(player.Cost),
-      0
-    );
-    setRemainingBudget(1000000 - totalCost);
+    setRemainingBudget(TOTAL_BUDGET - temporaryPicks.reduce((s, p) => s + Math.round(p.Cost), 0));
   }, [temporaryPicks]);
 
-  const isBeforeLockDate = (lockDate: string | Date | null): boolean => {
-    if (!lockDate) return false;
-    const now = new Date();
-    const lockDateObject = new Date(lockDate); // Safeguard for string input
-    return now.getTime() < lockDateObject.getTime();
-  };
+  useEffect(() => {
+    const fetchLogos = async () => {
+      try {
+        const fileList = await listAll(ref(getStorage(), "t-logo/"));
+        const logos = await Promise.all(fileList.items.map(async (item) => ({ teamId: item.name.split("_")[0], url: await getDownloadURL(item) })));
+        setTeamLogos(logos.reduce((acc, { teamId, url }) => { acc[teamId] = url; return acc; }, {} as Record<string, string>));
+      } catch (e) { console.error(e); }
+    };
+    fetchLogos();
+  }, []);
+
+  const isBeforeLockDate = (lockDate: any) => lockDate && Date.now() < new Date(lockDate).getTime();
 
   const handlePlayerAction = (player: Player) => {
-    // Check if picks are locked
     if (!isBeforeLockDate(liveEvent.lockDate)) {
-      toast.error(
-        <div>
-          <div className="font-bold">Picks Locked!</div>
-          <div className="text-sm">
-            The selection period ended on{" "}
-            {formatLocalDateTime(liveEvent.lockDate)}
-          </div>
-        </div>,
-        {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-        }
-      );
-      return;
+      toast.error("Picks are locked!"); return;
     }
-
-    const isSelected = temporaryPicks.some(
-      (p) => p.player_id === player.player_id
-    );
-
+    const isSelected = temporaryPicks.some((p) => p.player_id === player.player_id);
     if (isSelected) {
-      // Remove player
-      const newPicks = temporaryPicks.filter(
-        (p) => p.player_id !== player.player_id
-      );
-      setTemporaryPicks(newPicks);
-      setRemainingBudget((prev) => prev + player.Cost);
-
-      // Remove captain if this player was captain
-      if (captainId === player.player_id) {
-        setCaptainId(null);
-      }
-
-      // Update slots
-      setPlayerSlots((prevSlots) =>
-        prevSlots.map((slot) =>
-          slot.player?.player_id === player.player_id
-            ? { ...slot, player: null }
-            : slot
-        )
-      );
-
-      toast.success(
-        <div>
-          <div className="font-bold">Player Removed</div>
-          <div className="text-sm">{player.Player} removed from your picks</div>
-        </div>,
-        {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-        }
-      );
+      setTemporaryPicks(temporaryPicks.filter((p) => p.player_id !== player.player_id));
+      if (captainId === player.player_id) setCaptainId(null);
+      setPlayerSlots((prev) => prev.map((s) => s.player?.player_id === player.player_id ? { ...s, player: null } : s));
+      toast.success(`${player.Player} removed`);
     } else {
-      // Add player
-      if (remainingBudget - player.Cost < 0) {
-        toast.error(
-          <div>
-            <div className="font-bold">Budget Exceeded!</div>
-            <div className="text-sm">
-              You need ${(player.Cost - remainingBudget).toLocaleString()} more
-              to add {player.Player}
-            </div>
-          </div>,
-          {
-            position: "top-right",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-          }
-        );
-        return;
-      }
-
-      if (temporaryPicks.length >= 10) {
-        toast.error(
-          <div>
-            <div className="font-bold">Maximum Players Reached</div>
-            <div className="text-sm">
-              You can only pick up to 10 players. Remove one to add another.
-            </div>
-          </div>,
-          {
-            position: "top-right",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-          }
-        );
-        return;
-      }
-
+      if (remainingBudget - player.Cost < 0) { toast.error("Budget exceeded!"); return; }
+      if (temporaryPicks.length >= 10) { toast.error("Team is full — remove a player first."); return; }
       const newPicks = [...temporaryPicks, player];
       setTemporaryPicks(newPicks);
-      setRemainingBudget((prev) => prev - player.Cost);
-
-      // Find first empty slot
-      const emptySlotIndex = playerSlots.findIndex((slot) => !slot.player);
-      if (emptySlotIndex !== -1) {
-        setPlayerSlots((prevSlots) =>
-          prevSlots.map((slot, index) =>
-            index === emptySlotIndex
-              ? { ...slot, player, isSelected: false }
-              : slot
-          )
-        );
-      }
-
-      toast.success(
-        <div>
-          <div className="font-bold">Player Added</div>
-          <div className="text-sm">{player.Player} added to your picks</div>
-        </div>,
-        {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-        }
-      );
+      const emptyIdx = playerSlots.findIndex((s) => !s.player);
+      if (emptyIdx !== -1) setPlayerSlots((prev) => prev.map((s, i) => i === emptyIdx ? { ...s, player, isSelected: false } : s));
+      // Auto-set as captain if no captain selected yet
+      if (!captainId) setCaptainId(player.player_id);
+      toast.success(`${player.Player} added`);
     }
-  };
-  const handleSlotSelection = (slotId: number) => {
-    setPlayerSlots((prevSlots) =>
-      prevSlots.map((slot) => ({
-        ...slot,
-        isSelected: slot.id === slotId, // Ensure only one slot is selected
-      }))
-    );
-    setIsDrawerOpen(true);
-  };
-
-  // Add a function to close the drawer
-  const closeDrawer = () => {
-    setIsDrawerOpen(false);
   };
 
   const handleCaptainSelection = (playerId: string) => {
-    if (!isBeforeLockDate(liveEvent.lockDate)) {
-      toast.error("Picks are locked!");
-      return;
-    }
-
-    if (temporaryPicks.length < 10) {
-      toast.error("Select all 10 players first!");
-      return;
-    }
-
-    if (!temporaryPicks.find(p => p.player_id === playerId)) {
-      toast.error("Captain must be from your selected players!");
-      return;
-    }
-
+    if (!isBeforeLockDate(liveEvent.lockDate)) { toast.error("Picks are locked!"); return; }
+    if (!temporaryPicks.find((p) => p.player_id === playerId)) { toast.error("Captain must be one of your picks!"); return; }
     setCaptainId(playerId);
-    const player = temporaryPicks.find(p => p.player_id === playerId);
-    toast.success(`${player?.Player} selected as captain! (1.25x points)`);
+    toast.success(`${temporaryPicks.find((p) => p.player_id === playerId)?.Player} is now captain (1.25× pts)`);
   };
 
   const confirmPicks = async () => {
-    if (!user) {
-      toast.error("You must be logged in to confirm picks", {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-      return;
-    }
-
-    if (!isBeforeLockDate(liveEvent.lockDate)) {
-      toast.error("Time to select picks has passed!", {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-      return;
-    }
-
-    if (temporaryPicks.length < 10) {
-      toast.warning("You need to select all 10 players before confirming!", {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-      return;
-    }
-
-    if (!captainId) {
-      toast.warning("Please select a captain before confirming!", {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-      return;
-    }
-
-    // Check subscription status before confirming picks
-    if (!isSubscribed) {
-      showModal('soft-gate');
-      return;
-    }
-
+    if (!user) { toast.error("Must be logged in"); return; }
+    if (!isBeforeLockDate(liveEvent.lockDate)) { toast.error("Picks locked!"); return; }
+    if (temporaryPicks.length < 10) { toast.warning("Select all 10 players first!"); return; }
+    if (!captainId) { toast.warning("Select a captain first!"); return; }
     try {
-      const pickIds = temporaryPicks.map((p) => p.player_id);
       await updateDoc(doc(db, "users", user.uid), {
-        [`pickems.${liveEvent.id}`]: pickIds,
+        [`pickems.${liveEvent.id}`]: temporaryPicks.map((p) => p.player_id),
         [`pickems.${liveEvent.id}_captain`]: captainId,
       });
-      toast.success("Picks confirmed successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-    } catch (error) {
-      console.error("Error saving picks:", error);
-      toast.error("Failed to confirm picks. Please try again.", {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
+      setSaveStatus("saved");
+      toast.success("Picks saved!");
+      maybeShowSupportModal();
+    } catch { toast.error("Failed to save picks."); }
+  };
+
+  const lastModalShown = useRef<number>(0);
+  const MODAL_COOLDOWN_MS = 5 * 60 * 1000;
+  const maybeShowSupportModal = () => {
+    const now = Date.now();
+    if (!isSubscribed && now - lastModalShown.current > MODAL_COOLDOWN_MS) {
+      lastModalShown.current = now;
+      showModal('soft-gate');
     }
   };
-  const formatCost = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-  const fetchTeamLogo = async (teamId: string): Promise<string> => {
-    const storage = getStorage();
-    const folderPath = `t-logo/`; // Path to the folder containing team logos
-    const storageRef = ref(storage, folderPath)
 
-    try {
-      const fileList = await listAll(storageRef);
-  
-
-      const matchingFile = fileList.items.find((item) => {
-        const matches = item.name.startsWith(`${teamId}_`);
-     
-        return matches;
-      });
-
-      if (matchingFile) {
-     
-        const url = await getDownloadURL(matchingFile);
-  
-        return url;
-      } else {
-        console.warn(
-          `[fetchTeamLogo] No matching file found for teamId: ${teamId}`
-        ); // Debug log
-        return "/team-placeholder.svg";
-      }
-    } catch (error) {
-      console.error(
-        `[fetchTeamLogo] Error fetching logo for teamId: ${teamId}`,
-        error
-      ); // Debug log
-      return "/team-placeholder.svg";
-    }
-  };
-  const [teamLogos, setTeamLogos] = useState<Record<string, string>>({});
-  const [logosLoading, setLogosLoading] = useState(true);
-
-  // Fetch all team logos when component mounts
+  // Auto-save with 2s debounce when team is complete
   useEffect(() => {
-    const fetchAllTeamLogos = async () => {
-      const storage = getStorage();
-      const folderPath = "t-logo/";
-      const storageRef = ref(storage, folderPath);
-
+    if (temporaryPicks.length < 10 || !captainId || !user) return;
+    if (!isBeforeLockDate(liveEvent?.lockDate)) return;
+    setSaveStatus("saving");
+    const timer = setTimeout(async () => {
       try {
-        const fileList = await listAll(storageRef);
-        const logoPromises = fileList.items.map(async (item) => {
-          const teamId = item.name.split("_")[0];
-          const url = await getDownloadURL(item);
-          return { teamId, url };
+        await updateDoc(doc(db, "users", user.uid), {
+          [`pickems.${liveEvent.id}`]: temporaryPicks.map((p) => p.player_id),
+          [`pickems.${liveEvent.id}_captain`]: captainId,
         });
-
-        const fetchedLogos = await Promise.all(logoPromises);
-        const logoMap = fetchedLogos.reduce((acc, { teamId, url }) => {
-          acc[teamId] = url;
-          return acc;
-        }, {} as Record<string, string>);
-
-        setTeamLogos(logoMap);
-      } catch (error) {
-        console.error("Error fetching team logos:", error);
-      } finally {
-        setLogosLoading(false);
+        setSaveStatus("saved");
+        maybeShowSupportModal();
+      } catch {
+        setSaveStatus("error");
+        toast.error("Failed to save picks.");
       }
-    };
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [temporaryPicks, captainId]);
 
-    fetchAllTeamLogos();
-  }, []);
-  const PlayerCard = memo(function PlayerCard({
-    player,
-    isSelected = false,
-    isSlot = false,
-    isCaptain = false,
-    onClick,
-    onCaptainClick,
-    teamLogos, // Pass the logos as prop
-  }: {
-    player?: Player;
-    isSelected?: boolean;
-    isSlot?: boolean;
-    isCaptain?: boolean;
-    onClick?: () => void;
-    onCaptainClick?: () => void;
-    teamLogos: Record<string, string>;
-  }) {
-    const teamLogo = player?.team_id ? teamLogos[player.team_id] : null;
+  const formatCost = (v: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
+  const pad = (n: number) => String(n ?? 0).padStart(2, "0");
+  const budgetPct = Math.min(100, ((TOTAL_BUDGET - remainingBudget) / TOTAL_BUDGET) * 100);
 
-    return (
-      <div
-        key={
-          player ? `${player.Player}-${player.Team || "unknown"}` : "empty-slot"
-        }
-        className={`relative flex flex-col ${
-          isSlot ? "mx-0" : "mx-1"
-        } mb-2 rounded-3xl border-2 ${
-          isCaptain ? "border-yellow-400 ring-2 ring-yellow-400/50" : "border-blue-600/80"
-        } bg-gray-300 dark:bg-gray-700 cursor-pointer hover:shadow-lg hover:shadow-blue-600/50 transition-shadow duration-200`}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (onClick) onClick();
-        }}
-      >
-        {/* Top Section */}
-        <div className="rounded-t-3xl p-2 ring-1 bg-gray-200 dark:bg-gray-800 ring-blue-600/80">
-          {/* Captain Crown Badge */}
-          {isCaptain && (
-            <div 
-              className="absolute top-2 right-2 z-20 rounded-full shadow-lg flex items-center justify-center font-extrabold" 
-              style={{
-                backgroundColor: '#C99A0C',
-                width: '2em',
-                height: '2em',
-                fontSize: '1em',
-                color: '#111'
-              }}
-              title="Captain (1.25x Points)"
-            >
-              C
-            </div>
-          )}
-          
-          {/* Captain Selection Button for Slots */}
-          {isSlot && player && !isCaptain && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onCaptainClick) onCaptainClick();
-              }}
-              className="absolute top-2 right-2 z-20 rounded-full shadow-lg transition-colors flex items-center justify-center font-extrabold"
-              style={{
-                backgroundColor: '#6B7280',
-                width: '2em',
-                height: '2em',
-                fontSize: '1em',
-                color: '#fff'
-              }}
-              title="Make Captain"
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#C99A0C';
-                e.currentTarget.style.color = '#111';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#6B7280';
-                e.currentTarget.style.color = '#fff';
-              }}
-            >
-              C
-            </button>
-          )}
-
-          <div className="relative overflow-hidden pb-3 rounded-t-2xl">
-            {/* Left and Right Logos */}
-            {/* <div className="absolute start-0 top-0 aspect-square w-[76px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-600/80 bg-gray-200 dark:bg-gray-800 z-10 pointer-events-none" />
-
-            // {/* Team Logo - Right Corner */}
-            {/* <div
-              className="absolute end-0 top-0 aspect-square w-[40px] translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-600/80 bg-gray-200 dark:bg-gray-800 z-10 pointer-events-none overflow-hidden"
-              style={{
-                backgroundImage: `url(${teamLogo || "/team-placeholder.svg"})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            /> */}
-
-            <div className="overflow-hidden">
-              <div
-                className={`relative ${
-                  isSlot ? "h-[90px] md:h-[110px]" : "h-[90px]"
-                } border-2 bg-gradient-to-b rounded-t-2xl from-orange-500 to-yellow-500 [clip-path:polygon(0_0,_100%_0,_100%_87%,_50%_100%,_0_87%)] border-blue-600/80`}
-              >
-                {player?.pictureLoading ? (
-                  <div className="absolute top-0 bottom-0 left-0 right-0 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="pointer-events-none absolute -translate-x-1/4 left-0 top-5 -z-10 text-center text-2xl md:text-4xl font-extrabold tracking-tighter text-gray-900 dark:text-white uppercase italic opacity-40 mix-blend-overlay">
-                      <div className="whitespace-break-spaces ">
-                        {player?.Player || "PLAYER"}
-                      </div>
-                    </div>
-                    <div
-                      className="absolute top-0 bottom-0 left-0 right-0 flex flex-col pointer-events-none"
-                      style={{
-                        backgroundImage: `url(${
-                          player?.picture || "/placeholder.svg"
-                        })`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "40 center",
-                      }}
-                    />
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Action Button */}
-            <div className="absolute start-1/2 bottom-0 flex md:h-8 md:w-8 h-6 w-6 -translate-x-1/2 items-center justify-center rounded-2xl bg-gradient-to-b from-orange-500 to-yellow-500 text-2xl/none font-extrabold tracking-tighter text-gray-900 dark:text-white">
-              {isSlot ? (
-                <IoMdClose className="text-gray-900 dark:text-white" />
-              ) : isSelected ? (
-                <TiTick className="text-gray-900 dark:text-white" />
-              ) : (
-                <PiPlusBold />
-              )}
-            </div>
-          </div>
-
-          {/* Player Name */}
-          <div className="pt-1 pb-1 text-center text-gray-900 dark:text-white md:px-2 pointer-events-none">
-            <h2
-              className={`${
-                isSlot ? "text-[10px] md:text-[14px]" : "text-[10px]"
-              } font-bold tracking-tight whitespace-nowrap overflow-hidden text-ellipsis`}
-            >
-              {player?.Player || "Empty Slot"}
-            </h2>
-            {player?.Team && (
-              <div
-                className={`${
-                  isSlot ? "text-[10px] md:text-[12px]" : "text-[10px]"
-                } mt-1`}
-              >
-                {player.Team}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Cost Section */}
-        {player?.Cost && (
-          <div className="mx-auto flex w-full justify-center border-t-2 border-blue-500/80 items-center py-2 text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-800 rounded-b-3xl pointer-events-none">
-            <div
-              className={`${
-                isSlot ? "text-[10px] md:text-[12px]" : "text-[10px]"
-              } font-bold`}
-            >
-              {formatCost(player.Cost)}
-            </div>
-          </div>
-        )}
+  // ── SLOT CARD ────────────────────────────────────────────────────────────────
+  const SlotCard = memo(({ player, isCaptain, onRemove, onSetCaptain }: {
+    player: Player; isCaptain: boolean; onRemove: () => void; onSetCaptain: () => void;
+  }) => (
+    <div className={`relative rounded-lg overflow-hidden group cursor-pointer h-full w-full ${isCaptain ? "ring-2 ring-yellow-400" : "ring-1 ring-black/10 dark:ring-white/10"}`}>
+      <div className="absolute inset-0 bg-cover bg-top bg-[#1a1a1a]" style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }} />
+      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 to-transparent" />
+      {/* Remove button top-right */}
+      <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="absolute top-1 right-1 z-10 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <IoMdClose className="text-white text-[8px]" />
+      </button>
+      {/* Player info bottom-left */}
+      <div className="absolute bottom-0 inset-x-0 p-1">
+        <div className="text-white font-bold text-[8px] truncate">{player.Player}</div>
+        <div className="text-white/40 text-[7px] truncate">{player.Team}</div>
+        <div className="text-white/60 text-[8px] font-bold">{formatCost(player.Cost)}</div>
       </div>
-    );
-  });
+      {/* CPT button bottom-right — always visible, yellow when active */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onSetCaptain(); }}
+        className={`absolute bottom-1 right-1 z-10 text-[6px] font-black uppercase tracking-widest px-1 py-0.5 rounded transition-all
+          ${isCaptain ? "bg-yellow-400 text-black" : "bg-black/50 text-white/30 border border-white/20"}`}>
+        {isCaptain ? "★ CPT" : "CPT"}
+      </button>
+    </div>
+  ));
 
-  const formatLocalDateTime = (utcDate: Date | null): string => {
-    if (!utcDate) return "No lock date available";
+  // ── EMPTY SLOT ───────────────────────────────────────────────────────────────
+  const EmptySlot = ({ slot }: { slot: PlayerSlot }) => (
+    <button onClick={() => { setPlayerSlots((p) => p.map((s) => ({ ...s, isSelected: s.id === slot.id }))); setIsDrawerOpen(true); }}
+      className="flex flex-col gap-1 justify-center items-center rounded-lg border border-dashed border-black/15 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02] hover:border-black/30 dark:hover:border-white/30 transition-all w-full h-full min-h-[80px]">
+      <span className="text-black/20 dark:text-white/20 text-base">+</span>
+      <span className="text-[7px] uppercase text-black/20 dark:text-white/20 font-bold tracking-widest text-center px-1 leading-tight">Add Player</span>
+    </button>
+  );
 
-    try {
-      return new Date(utcDate).toLocaleString(navigator.language, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        //timeZoneName: "short",
-      });
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return "Invalid date";
-    }
-  };
+  const formatCostShort = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v);
+  const MOBILE_GRID_COLS = "32px minmax(80px,1fr) 40px 26px 26px 26px 28px";
+
+  const MobilePlayerRow = memo(({ player, isSelected }: { player: Player; isSelected: boolean }) => (
+    <div onClick={() => handlePlayerAction(player)}
+      className={`border-b border-black/5 dark:border-white/5 cursor-pointer transition-colors ${isSelected ? "bg-black/5 dark:bg-white/10" : ""}`}
+      style={{ display: "grid", gridTemplateColumns: MOBILE_GRID_COLS, alignItems: "center", gap: "8px", padding: "8px 12px" }}>
+      <div className="relative w-8 h-8 rounded overflow-hidden bg-[#1a1a1a]">
+        <div className="absolute inset-0 bg-cover bg-top" style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }} />
+      </div>
+      <div className="min-w-0">
+        <div className="text-gray-900 dark:text-white font-bold text-[11px] truncate">{player.Player}</div>
+        <div className="text-gray-400 dark:text-white/40 text-[9px] truncate">{player.Team}</div>
+      </div>
+      <div className="text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">{formatCostShort(player.Cost)}</div>
+      <div className="text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">
+        {player.totalElims != null ? player.totalElims : <span className="text-gray-300 dark:text-white/25">—</span>}
+      </div>
+      <div className="text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">
+        {player.lonestarElims != null ? player.lonestarElims : <span className="text-gray-300 dark:text-white/25">—</span>}
+      </div>
+      <div className="text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">
+        {player.midwestElims != null ? player.midwestElims : <span className="text-gray-300 dark:text-white/25">—</span>}
+      </div>
+      <div className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors justify-self-center
+        ${isSelected ? "bg-gray-900 dark:bg-white border-gray-900 dark:border-white" : "border-gray-300 dark:border-white/20 bg-transparent"}`}>
+        {isSelected ? <IoMdClose className="text-white dark:text-black text-[10px]" /> : <PiPlusBold className="text-gray-500 dark:text-white/60 text-[10px]" />}
+      </div>
+    </div>
+  ));
+  const GRID_COLS = "36px minmax(120px,1fr) 64px 60px 60px 60px 28px";
+
+  const PlayerRow = memo(({ player, isSelected }: { player: Player; isSelected: boolean }) => (
+    <div onClick={() => handlePlayerAction(player)}
+      className={`border-b border-black/5 dark:border-white/5 cursor-pointer transition-colors ${isSelected ? "bg-black/5 dark:bg-white/10" : "hover:bg-black/3 dark:hover:bg-white/5"}`}
+      style={{ display: "grid", gridTemplateColumns: GRID_COLS, alignItems: "center", gap: "12px", padding: "8px 12px" }}>
+      <div className="relative w-9 h-9 rounded overflow-hidden bg-[#1a1a1a] flex-shrink-0">
+        <div className="absolute inset-0 bg-cover bg-top" style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }} />
+      </div>
+      <div className="min-w-0">
+        <div className="text-gray-900 dark:text-white font-bold text-[11px] truncate">{player.Player}</div>
+        <div className="text-gray-400 dark:text-white/40 text-[10px] truncate">{player.Team}</div>
+      </div>
+      <div className="text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">{formatCost(player.Cost)}</div>
+      <div className="text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">
+        {player.totalElims != null ? player.totalElims : <span className="text-gray-300 dark:text-white/25">—</span>}
+      </div>
+      <div className="text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">
+        {player.lonestarElims != null ? player.lonestarElims : <span className="text-gray-300 dark:text-white/25">—</span>}
+      </div>
+      <div className="text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">
+        {player.midwestElims != null ? player.midwestElims : <span className="text-gray-300 dark:text-white/25">—</span>}
+      </div>
+      <div className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors justify-self-center
+        ${isSelected
+          ? "bg-gray-900 dark:bg-white border-gray-900 dark:border-white"
+          : "border-gray-300 dark:border-white/20 hover:border-gray-500 dark:hover:border-white/50 bg-transparent"
+        }`}>
+        {isSelected
+          ? <IoMdClose className="text-white dark:text-black text-[10px]" />
+          : <PiPlusBold className="text-gray-500 dark:text-white/60 text-[10px]" />
+        }
+      </div>
+    </div>
+  ));
 
   return (
-    <div className="relative flex flex-row w-auto h-[calc(100vh-48px)] overflow-hidden">
-      {/* Left Section - Fixed Header with Conditional Scroll */}
-      <div className="relative flex flex-col w-full md:w-[60vw] z-10 border-gray-200 dark:border-white/30 border-r">
-        {/* Fixed Alert Container */}
-        <div className="w-full md:py-3 py-1 bg-gradient-to-b from-[#360e0edf] to-[#00000065] text-gray-900 dark:text-white flex items-center justify-between">
-          {/* Left Content */}
-          <div className="flex flex-col gap-1 md:mx-3 lg:mx-5 mx-4 md:text-base text-[10px] my-2 font-azonix">
-            <div>
-              Pick’Em closes on {""} <br className="md:hidden" />
-              {formatLocalDateTime(liveEvent.lockDate)}
+    <div className="flex flex-col w-full h-[calc(100vh-48px)] overflow-hidden bg-[#f0f0f0] dark:bg-[#111]">
+
+      {/* ── EVENT BANNER ──────────────────────────────────────────────────────── */}
+
+      {/* MOBILE banner */}
+      <div className="md:hidden flex-shrink-0 rounded-b-2xl overflow-hidden mx-0" style={{ backgroundColor: liveEvent.brandColor || "#b91c1c" }}>
+        {/* Top strip — countdown */}
+        <div className="flex items-center gap-2 px-3 py-1.5" style={{ backgroundColor: "rgba(0,0,0,0.35)" }}>
+          <span className="text-white text-[9px] font-black uppercase tracking-widest whitespace-nowrap">Team Lock Deadline:</span>
+          <div className="flex items-center gap-1 ml-1">
+            {[{ v: pad(liveEvent._days), l: "DAYS" }, { v: pad(liveEvent._hours), l: "HOURS" }, { v: pad(liveEvent._minutes), l: "MINUTES" }].map(({ v, l }, i) => (
+              <div key={l} className="flex items-center gap-1">
+                <div className="bg-black/70 border border-white/20 text-white font-black text-xs w-6 h-6 flex items-center justify-center rounded font-mono">{v}</div>
+                <span className="text-white/80 text-[8px] font-bold uppercase">{l}</span>
+                {i < 2 && <span className="text-white/40 font-black text-sm mx-0.5">:</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Bottom section — event name left, cost cap right */}
+        <div className="flex items-center justify-between px-3 py-1.5">
+          <div>
+            <div className="text-white/70 text-[8px] uppercase tracking-widest font-bold">Event {liveEvent.eventNumber || "1"}</div>
+            <div className="text-white font-black text-sm uppercase leading-tight" style={{ fontWeight: 900 }}>NXL {liveEvent.name || "TAMPA BAY OPEN"}</div>
+            <div className="text-white/70 text-[9px] font-bold">{liveEvent.startDate || "MAR 19"} — {liveEvent.endDate || "22"}</div>
+          </div>
+          <div className="text-right flex-shrink-0 ml-4">
+            <div className="text-white/70 text-[8px] uppercase tracking-widest font-bold">Cost Cap</div>
+            <div className="text-white font-black text-sm" style={{ fontWeight: 900 }}>{formatCost(remainingBudget)}</div>
+            <div className="w-24 h-1.5 bg-black/30 rounded-full overflow-hidden mt-0.5">
+              <div className={`h-full rounded-full transition-all duration-500 ${budgetPct > 85 ? "bg-red-300" : "bg-green-400"}`} style={{ width: `${100 - budgetPct}%` }} />
             </div>
-            <div>Budget: ${remainingBudget.toLocaleString()}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* DESKTOP banner */}
+      <div className="hidden md:flex flex-shrink-0 bg-black py-3 px-4 items-center justify-center">
+        <div className="flex items-stretch rounded-xl w-full max-w-4xl bg-white" style={{ height: 110, boxShadow: "0 0 0 1px rgba(0,0,0,0.08)" }}>
+
+          {/* Logo panel */}
+          <div style={{ width: 180, borderRadius: "0.75rem 0 0 0.75rem", backgroundColor: liveEvent.brandColor || "#b91c1c", flexShrink: 0, overflow: "hidden", position: "relative" }}>
+            {liveEvent.logoUrl && (
+              <img
+                src={liveEvent.logoUrl}
+                alt="Event Logo"
+                style={{ position: "absolute", inset: 0, width: "90%", height: "90%", top: "5%", left: "5%", objectFit: "contain" }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            )}
+            {!liveEvent.logoUrl && (
+              <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0.75rem", color: "white", fontWeight: 900, fontSize: "0.875rem", textTransform: "uppercase", textAlign: "center", lineHeight: 1.2 }}>{liveEvent.name || "NXL EVENT"}</span>
+            )}
           </div>
 
-          {/* Right Button */}
-          <button
-            className="flex flex-row items-center gap-2 p-2 mx-4 backdrop-blur bg-white bg-opacity-10 text-gray-900 dark:text-white rounded-[36px] md:mr-3 lg:mr-5"
-            onClick={confirmPicks}
-          >
-            <RiLock2Line size={20} />
-            <span className="md:text-base text-[12px] whitespace-nowrap">
-              Save Picks
-            </span>
-          </button>
+          {/* Event details */}
+          <div className="flex-1 px-5 flex flex-col justify-center border-l border-gray-100">
+            <div className="text-gray-400 text-[8px] uppercase tracking-widest font-bold">Event #{liveEvent.eventNumber || "1"}</div>
+            <div className="text-gray-900 font-black text-base uppercase leading-tight mt-0.5" style={{ fontWeight: 900, letterSpacing: "-0.02em" }}>NXL<br />{liveEvent.name || "TAMPA BAY OPEN"}</div>
+            <div className="text-gray-500 text-[9px] mt-1 uppercase leading-snug">{liveEvent.venue || "RAYMOND JAMES STADIUM"}<br />{liveEvent.city || "TAMPA , FLORIDA"}</div>
+            <div className="text-gray-700 text-[10px] font-bold mt-0.5">{liveEvent.startDate || "MAR 19"} — {liveEvent.endDate || "22"}</div>
+          </div>
+
+          {/* Countdown + CTA */}
+          <div className="flex-shrink-0 flex flex-col justify-center items-start px-5 border-l border-gray-100 gap-1.5 min-w-[240px]">
+            <div className="text-gray-500 text-[8px] uppercase tracking-widest font-bold">Team Lock Deadline:</div>
+            <div className="flex gap-1 items-end">
+              {[
+                { v: pad(liveEvent._days), l: "DAYS" },
+                { v: pad(liveEvent._hours), l: "HOURS" },
+                { v: pad(liveEvent._minutes), l: "MINS" },
+                { v: pad(liveEvent._seconds), l: "SECS" },
+              ].map(({ v, l }, i) => (
+                <div key={l} className="flex items-end gap-1">
+                  <div className="flex flex-col items-center">
+                    <div className="bg-gray-900 text-white font-black text-base w-9 h-9 flex items-center justify-center rounded font-mono">{v}</div>
+                    <span className="text-gray-400 text-[6px] uppercase tracking-widest mt-0.5">{l}</span>
+                  </div>
+                  {i < 3 && <span className="text-gray-300 font-black text-base mb-4 leading-none">:</span>}
+                </div>
+              ))}
+            </div>
+            <button onClick={confirmPicks} className="text-white text-[8px] font-black uppercase tracking-widest py-1.5 px-4 rounded transition-colors w-full text-center"
+              style={{ backgroundColor: liveEvent.brandColor || "#dc2626" }}>
+              Pick Your Team →
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      {/* ── MAIN SPLIT ────────────────────────────────────────────────────────── */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* LEFT: Unified Grid */}
+        <div className="flex flex-col w-full md:w-[45%] border-r border-gray-200 dark:border-white/10 overflow-hidden bg-[#f0f0f0] dark:bg-[#111]">
+
+          {/* Scroll container with fade indicator */}
+          <div className="relative flex-1 overflow-hidden">
+            <div className="h-full overflow-y-auto px-2 pt-3 pb-2" style={{ paddingBottom: isMobile ? "80px" : "8px" }}>
+              <div className="grid grid-cols-3 gap-1.5" style={{
+                gridTemplateRows: isMobile
+                  ? "minmax(120px, 120px) minmax(100px, 100px) minmax(100px, 100px) minmax(100px, 100px)"
+                  : "minmax(130px, 1fr) minmax(110px, 1fr) minmax(110px, 1fr) minmax(110px, 1fr)"
+              }}>
+
+                {/* ── ROW 1: My Team + Cost Cap (2 cols) + Captain slot (1 col) ── */}
+                <div className="col-span-2 bg-black rounded-lg p-2 flex flex-col justify-between">
+                  <div className="flex items-start gap-2">
+                    {/* Avatar + badges */}
+                    <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                      <div className="w-11 h-11 rounded-full bg-white/10 border-2 border-white/20 overflow-hidden flex items-center justify-center">
+                        {user?.photoURL
+                          ? <img src={user.photoURL} alt="" className="w-full h-full object-cover" />
+                          : <span className="text-white/50 font-black text-lg">{user?.displayName?.[0] || "?"}</span>}
+                      </div>
+                      <div className="flex gap-0.5">{[0, 1, 2].map((i) => <div key={i} className="w-3.5 h-3.5 rounded-full bg-white/10 border border-white/15" />)}</div>
+                    </div>
+                    {/* Player name + stats */}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white/40 text-[8px] uppercase tracking-widest font-bold leading-none">Player</div>
+                      <div className="text-white font-black text-sm uppercase leading-tight truncate mb-1">{user?.email?.split("@")[0]?.toUpperCase() || "PLAYER"}</div>
+                      <div className="grid grid-cols-2 gap-x-2 gap-y-0">
+                        {[
+                          { label: "Event Rank:", val: "#3" },
+                          { label: "Season Rank:", val: "#3" },
+                          { label: "Event Elims:", val: "21" },
+                          { label: "Season Elims:", val: "21" },
+                        ].map(({ label, val }) => (
+                          <div key={label}>
+                            <div className="text-white/30 text-[8px] uppercase tracking-widest font-bold leading-none">{label}</div>
+                            <div className="text-white font-black text-lg leading-tight">{val}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 flex-shrink-0">
+                      <button
+                        onClick={confirmPicks}
+                        disabled={temporaryPicks.length < 10 || !captainId}
+                        className={`text-[7px] font-black uppercase tracking-widest border rounded px-1.5 py-0.5 transition-colors whitespace-nowrap
+                      ${temporaryPicks.length < 10 || !captainId
+                            ? "border-white/10 text-white/20 cursor-not-allowed"
+                            : "border-green-500 text-green-400 hover:bg-green-500 hover:text-white"
+                          }`}>
+                        {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "✓ Saved" : "Save Picks"}
+                      </button>
+                      <button onClick={() => { setTemporaryPicks([]); setCaptainId(null); setSaveStatus("idle"); setPlayerSlots((p) => p.map((s) => ({ ...s, player: null }))); }}
+                        className="text-white/30 hover:text-white/60 text-[7px] font-black uppercase tracking-widest border border-white/15 hover:border-white/30 rounded px-1.5 py-0.5 transition-colors">
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+                  <div className="hidden md:block">
+                    <div className="flex items-baseline justify-between mb-0.5">
+                      <div className="text-white/40 text-[8px] uppercase tracking-widest font-bold">Cost Cap</div>
+                      <div className="text-white font-black text-sm leading-none">{formatCost(remainingBudget)}</div>
+                    </div>
+                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all duration-500 ${budgetPct > 85 ? "bg-red-500" : "bg-green-400"}`} style={{ width: `${100 - budgetPct}%` }} />
+                    </div>
+                  </div>
+                  {/* Picks saved confirmation */}
+                  {saveStatus === "saved" && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-[8px] font-black">✓</span>
+                      </div>
+                      <span className="text-green-400 text-[9px] font-black uppercase tracking-widest">Picks Saved</span>
+                    </div>
+                  )}
+                  {saveStatus === "saving" && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
+                      <span className="text-yellow-400 text-[9px] font-black uppercase tracking-widest">Saving...</span>
+                    </div>
+                  )}
+                  {saveStatus === "error" && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-[8px] font-black">✕</span>
+                      </div>
+                      <span className="text-red-400 text-[9px] font-black uppercase tracking-widest">Save Failed</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Captain slot */}
+                <div>
+                  {(() => {
+                    const cap = captainId ? temporaryPicks.find((p) => p.player_id === captainId) : null;
+                    return cap
+                      ? <SlotCard player={cap} isCaptain={true} onRemove={() => handlePlayerAction(cap)} onSetCaptain={() => setCaptainId(null)} />
+                      : <div onClick={() => setIsDrawerOpen(true)} className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-yellow-400/40 bg-yellow-400/5 h-full gap-1 min-h-[120px] cursor-pointer hover:border-yellow-400/60 transition-colors">
+                        <span className="bg-yellow-400 text-black text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest">CPT</span>
+                        <span className="text-yellow-500/60 text-[7px] uppercase font-bold tracking-widest text-center px-1 leading-tight">Set a captain</span>
+                      </div>;
+                  })()}
+                </div>
+
+                {/* ── ROWS 2–4: 9 player slots (captain excluded, shown separately above) ── */}
+                {playerSlots.filter((slot) => !slot.player || slot.player.player_id !== captainId).slice(0, 9).map((slot) => (
+                  <div key={slot.id}>
+                    {slot.player
+                      ? <SlotCard player={slot.player} isCaptain={captainId === slot.player.player_id} onRemove={() => handlePlayerAction(slot.player!)} onSetCaptain={() => handleCaptainSelection(slot.player!.player_id)} />
+                      : <EmptySlot slot={slot} />}
+                  </div>
+                ))}
+
+              </div>
+            </div>
+            {/* Scroll fade indicator */}
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#f0f0f0] dark:from-[#111] to-transparent" />
+          </div>
         </div>
 
-        {/* Content Area - Scroll only on mobile */}
-        <div className="overflow-hidden overflow-y-auto flex-1 relative">
-          {/* Background Image */}
-          <div
-            className="absolute inset-0 -z-10"
-            style={{
-              backgroundImage: "url(/pick-em.webp)",
-              backgroundSize: "cover",
-              backgroundRepeat: "no-repeat",
-              backgroundPosition: "center",
-            }}
-          />
+        {/* RIGHT: Player Table */}
+        <div className="hidden md:flex flex-col flex-1 overflow-hidden bg-white dark:bg-[#0d0d0d]">
+          {/* Search */}
+          <div className="flex-shrink-0 px-3 py-3 border-b border-gray-100 dark:border-white/5">
+            <div className="flex gap-2">
+              <input type="text" placeholder="Search Players" value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setVisiblePlayersCount(20); }}
+                className="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full px-4 py-2 text-xs text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 outline-none focus:border-gray-400 dark:focus:border-white/30" />
+              <button
+                onClick={() => setIsFilterOpen((v) => !v)}
+                className={`px-4 py-2 border rounded-full text-xs font-bold transition-colors ${isFilterOpen ? "border-gray-800 dark:border-white/60 text-gray-900 dark:text-white bg-gray-100 dark:bg-white/10" : "border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/50 hover:border-gray-400"}`}>
+                Filter {(selectedTeams.length > 0) && <span className="ml-1 bg-black dark:bg-white text-white dark:text-black rounded-full px-1.5 py-0.5 text-[8px]">{selectedTeams.length}</span>}
+              </button>
+            </div>
 
-          {/* Cards Container */}
-          <div className="relative h-full py-6 overflow-y-auto">
-            {/* Captain Slot */}
-            {temporaryPicks.length > 0 && captainId && (
-              <div className="mb-6 px-4">
-                <h2 className="text-center text-yellow-400 font-bold text-lg mb-3 flex items-center justify-center gap-2">
-                  <span className="inline-flex items-center justify-center rounded-full font-extrabold" style={{
-                    backgroundColor: '#C99A0C',
-                    color: '#111',
-                    width: '1.5em',
-                    height: '1.5em',
-                    fontSize: '1rem'
-                  }}>C</span> CAPTAIN (1.25x Points)
-                </h2>
-                <div className="max-w-[200px] mx-auto">
-                  {(() => {
-                    const captain = temporaryPicks.find(p => p.player_id === captainId);
-                    return captain ? (
-                      <PlayerCard
-                        player={captain}
-                        isSlot={true}
-                        isCaptain={true}
-                        onClick={() => handlePlayerAction(captain)}
-                        onCaptainClick={() => setCaptainId(null)}
-                        teamLogos={teamLogos}
-                      />
-                    ) : null;
-                  })()}
+            {/* Filter panel */}
+            {isFilterOpen && (
+              <div className="mt-2 p-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[8px] uppercase tracking-widest font-black text-gray-500 dark:text-white/40">Filter by Team</span>
+                  {selectedTeams.length > 0 && (
+                    <button onClick={() => setSelectedTeams([])} className="text-[8px] uppercase tracking-widest font-black text-gray-400 dark:text-white/30 hover:text-gray-700 dark:hover:text-white transition-colors">Clear</button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto">
+                  {teams.sort().map((team) => (
+                    <button key={team} onClick={() => setSelectedTeams((prev) => prev.includes(team) ? prev.filter((t) => t !== team) : [...prev, team])}
+                      className={`text-[8px] font-bold px-2 py-0.5 rounded-full border transition-colors ${selectedTeams.includes(team) ? "bg-gray-900 dark:bg-white text-white dark:text-black border-transparent" : "border-gray-200 dark:border-white/15 text-gray-600 dark:text-white/50 hover:border-gray-400"}`}>
+                      {team}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
+          </div>
 
-            <AnimatedGroup
-              preset="scale"
-              className="relative grid sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 grid-cols-2 gap-3 md:gap-6  md:pb-2 pb-[50px] md:pb-8 items-center justify-center lg:justify-evenly m-auto px-4 w-6/6 md:w-5/6 lg:w-full"
-            >
-              {playerSlots.map((slot, index) => {
-                const isCaptainSlot = slot.player?.player_id === captainId;
-                return (
-                <div key={slot.id} className="relative">
-                  {slot.player ? (
-                    <PlayerCard
-                      player={slot.player}
-                      isSlot={true}
-                      isCaptain={isCaptainSlot}
-                      onClick={() => handlePlayerAction(slot.player!)}
-                      onCaptainClick={() => handleCaptainSelection(slot.player!.player_id)}
-                      teamLogos={teamLogos}
-                    />
-                  ) : (
-                    <button
-                      onClick={() => handleSlotSelection(slot.id)}
-                      className={`relative flex flex-col gap-0 justify-center m-auto items-center rounded-2xl border-2 ${
-                        slot.isSelected
-                          ? "border-black ring-2 ring-black bg-gradient-to-b from-white/10 to-red-800/80"
-                          : "border-white bg-gradient-to-b from-white/10 to-red-800/80"
-                      } md:h-[24vh] w-full h-[100px]`}
-                    >
-                      <GiCardPickup size={40} className="text-gray-900 dark:text-white/60" />
-                      <span className="text-xl uppercase text-gray-900 dark:text-white/60 font-azonix mt-2">
-                        {slot.position}
-                      </span>
-                    </button>
-                  )}
+          {/* Table header — outside search container, same level as rows */}
+          <div className="flex-shrink-0 border-b border-gray-100 dark:border-white/5"
+            style={{ display: "grid", gridTemplateColumns: GRID_COLS, alignItems: "center", gap: "12px", padding: "6px 12px" }}>
+            <div />
+            <div />
+            {[
+              { label: "Cost", sub: null, field: "cost" },
+              { label: "ELIMS", sub: "Worldcup 25", field: "elim" },
+              { label: "ELIMS", sub: "Lonestar 25", field: "lonestar" },
+              { label: "ELIMS", sub: "Midwest 25", field: "midwest" },
+            ].map(({ label, sub, field }) => (
+              <div key={field} className="text-center cursor-pointer select-none"
+                onClick={() => setSortOption((prev) => ({ field, direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc" }))}>
+                <div className={`text-[8px] uppercase tracking-widest font-bold ${sortOption.field === field ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/60"}`}>
+                  {label}{sortOption.field === field && <span className="ml-0.5 text-[6px]">{sortOption.direction === "asc" ? "↑" : "↓"}</span>}
                 </div>
-              );
-              })}
-            </AnimatedGroup>
+                {sub && <div className={`text-[8px] font-bold opacity-70 ${sortOption.field === field ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-white/30"}`}>{sub}</div>}
+              </div>
+            ))}
+            <div />
+          </div>
+          {/* Rows */}
+          <div className="flex-1 overflow-y-auto" ref={desktopScrollRef} style={{ scrollbarGutter: "stable" }}>
+            {isLoadingMore && rowData.length === 0
+              ? <div className="flex flex-col items-center justify-center py-12"><div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-gray-300 dark:border-white/30 mb-2" /><span className="text-gray-400 dark:text-white/30 text-[10px] uppercase tracking-widest">Loading players...</span></div>
+              : visiblePlayers.length === 0
+                ? <div className="text-center py-12 text-gray-400 dark:text-white/30 text-[10px] uppercase tracking-widest">No players match</div>
+                : <>
+                  {visiblePlayers.map((player) => (
+                    <PlayerRow key={player.player_id} player={player} isSelected={temporaryPicks.some((p) => String(p.player_id) === String(player.player_id))} />
+                  ))}
+                  {isLoadingMore && <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-300 dark:border-white/30" /></div>}
+                </>
+            }
           </div>
         </div>
       </div>
 
-      {/* Right Section - Player Selection */}
-      <div className="md:flex hidden md:block flex-col w-full pb-10 md:pb-4 md:w-[35vw] mt-6 md:h-full  overflow-hidden ">
-        <h1 className="text-xl font-azonix text-gray-900 dark:text-white text-center font-bold lg:mb-4">
-          Select your Picks
-        </h1>
-        <div className="px-4 mb-2">
-          <FilterUI
-            onFilter={({
-              searchTerm: newSearchTerm,
-              costRange: newCostRange,
-              selectedTeams: newSelectedTeams,
-            }) => {
-              setSearchTerm(newSearchTerm);
-              setCostRange(newCostRange);
-              setSelectedTeams(newSelectedTeams);
-              setVisiblePlayersCount(9);
-            }}
-            onSort={handleSort}
-            teams={teams}
-          />
-        </div>
-
-        <div
-          className="flex flex-col h-[450px] md:h-auto overflow-y-scroll px-2"
-          ref={desktopScrollRef}
-        >
-          <motion.div
-            className="py-4 grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 text-center"
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: { opacity: 0, y: 20 },
-              visible: {
-                opacity: 1,
-                y: 0,
-                transition: { staggerChildren: 0.1 },
-              },
-            }}
-          >
-            <AnimatePresence>
-              {visiblePlayers.map((player) => {
-                const isSelected = temporaryPicks.some(
-                  (p) => String(p.player_id) === String(player.player_id)
-                );
-                return (
-                  <motion.div
-                    key={`desktop-${player.player_id}`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <PlayerCard
-                      player={player}
-                      isSelected={isSelected}
-                      onClick={() => handlePlayerAction(player)}
-                      teamLogos={teamLogos}
-                    />
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </motion.div>
-
-          {/* Loading and empty states */}
-          {isLoadingMore ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex justify-center mx-auto flex-col items-center py-8"
-            >
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white mb-4"></div>
-              <div className="text-gray-900 dark:text-white/70">
-                {rowData.length === 0 ? "Loading players..." : "Loading more players..."}
-              </div>
-              {rowData.length > 0 && (
-                <div className="text-gray-900 dark:text-white/50 text-sm mt-1">
-                  Showing {visiblePlayers.length} of {filteredPlayers.length} players
-                </div>
-              )}
-            </motion.div>
-          ) : (
-            visiblePlayers.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-8 text-gray-900 dark:text-white/70"
-              >
-                {rowData.length === 0 ? "No players available" : "No players match your filters"}
-              </motion.div>
-            )
-          )}
-        </div>
-      </div>
-
-      {/* Mobile Drawer */}
+      {/* ── MOBILE DRAWER ─────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {isDrawerOpen && (
-          <motion.div
-            className="fixed md:hidden top-28 -mt-3 border-t-2 border-white/20 left-0 right-0 z-30 bg-[#0a0a0a] shadow-xl"
-            style={{ height: "80vh" }}
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 400 }}
-          >
+          <motion.div className="fixed md:hidden top-28 left-0 right-0 z-30 bg-white dark:bg-[#0d0d0d] shadow-xl border-t border-gray-200 dark:border-white/10"
+            style={{ height: "80vh" }} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 30, stiffness: 400 }}>
             <div className="flex flex-col h-full">
-              <div className="flex justify-between items-center p-4 flex-shrink-0">
-                <h1 className="text-base font-azonix text-gray-900 dark:text-white font-bold">
-                  Select your Picks
-                </h1>
-                <button onClick={closeDrawer} className="text-gray-900 dark:text-white">
-                  <IoMdClose size={24} />
-                </button>
+              <div className="flex justify-between items-center p-4 border-b border-gray-100 dark:border-white/10">
+                <span className="text-xs font-black uppercase tracking-widest text-gray-900 dark:text-white">Select Players</span>
+                <button onClick={() => setIsDrawerOpen(false)} className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"><IoMdClose size={18} /></button>
               </div>
-
-              <div className="px-4 mb-3">
-                <FilterUI
-                  onFilter={({
-                    searchTerm: newSearchTerm,
-                    costRange: newCostRange,
-                    selectedTeams: newSelectedTeams,
-                  }) => {
-                    setSearchTerm(newSearchTerm);
-                    setCostRange(newCostRange);
-                    setSelectedTeams(newSelectedTeams);
-                    setVisiblePlayersCount(9);
-                  }}
-                  onSort={handleSort}
-                  teams={teams}
-                />
-              </div>
-
-              <div
-                className="flex-1 overflow-y-auto px-3 touch-pan-y" // Added touch-pan-y
-                ref={mobileScrollRef}
-                style={{
-                  overflowY: "auto",
-                  WebkitOverflowScrolling: "touch",
-                  overscrollBehavior: "contain",
-                }}
-              >
-                <motion.div
-                  className="py-4 grid grid-cols-2 gap-3 text-center"
-                  initial="hidden"
-                  animate="visible"
-                  variants={{
-                    hidden: { opacity: 0, y: 20 },
-                    visible: {
-                      opacity: 1,
-                      y: 0,
-                      transition: { staggerChildren: 0.1 },
-                    },
-                  }}
-                >
-                  <AnimatePresence>
-                    {visiblePlayers.map((player) => {
-                      const isSelected = temporaryPicks.some(
-                        (p) => String(p.player_id) === String(player.player_id)
-                      );
-                      return (
-                        <motion.div
-                          key={`mobile-${player.player_id}`}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <PlayerCard
-                            player={player}
-                            isSelected={isSelected}
-                            onClick={() => handlePlayerAction(player)}
-                            teamLogos={teamLogos}
-                          />
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
-                </motion.div>
-
-                {/* Loading and empty states */}
-                {isLoadingMore ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex justify-center mx-auto flex-col items-center py-8"
-                  >
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white mb-4"></div>
-                    <div className="text-gray-900 dark:text-white/70">Fetching players data</div>
-                  </motion.div>
-                ) : (
-                  visiblePlayers.length === 0 && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-center py-8 text-gray-900 dark:text-white/70"
-                    >
-                      No players match your filters
-                    </motion.div>
-                  )
+              <div className="flex flex-col gap-2 px-3 py-2 border-b border-gray-100 dark:border-white/5">
+                <div className="flex gap-2">
+                  <input type="text" placeholder="Search Players" value={searchTerm}
+                    onChange={(e) => { setSearchTerm(e.target.value); setVisiblePlayersCount(20); }}
+                    className="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full px-4 py-2 text-xs text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 outline-none" />
+                  <button onClick={() => setIsFilterOpen((p) => !p)}
+                    className={`flex-shrink-0 px-4 py-2 rounded-full border text-[10px] font-black uppercase tracking-widest transition-colors relative
+                      ${isFilterOpen ? "bg-gray-900 dark:bg-white text-white dark:text-black border-transparent" : "border-gray-200 dark:border-white/15 text-gray-600 dark:text-white/60"}`}>
+                    Filter
+                    {selectedTeams.length > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-gray-900 dark:bg-white text-white dark:text-black text-[8px] font-black rounded-full w-4 h-4 flex items-center justify-center">{selectedTeams.length}</span>
+                    )}
+                  </button>
+                </div>
+                {isFilterOpen && (
+                  <div className="pt-1 pb-2">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[8px] uppercase tracking-widest font-black text-gray-500 dark:text-white/40">Filter by Team</span>
+                      {selectedTeams.length > 0 && (
+                        <button onClick={() => setSelectedTeams([])} className="text-[8px] uppercase tracking-widest font-black text-gray-400 dark:text-white/30 hover:text-gray-700 dark:hover:text-white transition-colors">Clear</button>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto">
+                      {teams.sort().map((team) => (
+                        <button key={team} onClick={() => setSelectedTeams((prev) => prev.includes(team) ? prev.filter((t) => t !== team) : [...prev, team])}
+                          className={`text-[8px] font-bold px-2 py-0.5 rounded-full border transition-colors ${selectedTeams.includes(team) ? "bg-gray-900 dark:bg-white text-white dark:text-black border-transparent" : "border-gray-200 dark:border-white/15 text-gray-600 dark:text-white/50 hover:border-gray-400"}`}>
+                          {team}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
+              </div>
+
+              {/* Mobile table header — outside padded container, same level as rows */}
+              <div className="flex-shrink-0 border-b border-gray-100 dark:border-white/5"
+                style={{ display: "grid", gridTemplateColumns: MOBILE_GRID_COLS, alignItems: "center", gap: "8px", padding: "6px 12px" }}>
+                <div />
+                <div />
+                {[
+                  { label: "Cost", sub: null, field: "cost" },
+                  { label: "Elims", sub: "WC", field: "elim" },
+                  { label: "Elims", sub: "LS", field: "lonestar" },
+                  { label: "Elims", sub: "MW", field: "midwest" },
+                ].map(({ label, sub, field }) => (
+                  <div key={field} className="text-center cursor-pointer select-none"
+                    onClick={() => setSortOption((prev) => ({ field, direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc" }))}>
+                    <div className={`text-[7px] uppercase tracking-widest font-bold leading-none ${sortOption.field === field ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-white/30"}`}>
+                      {label}{sortOption.field === field && <span className="ml-0.5 text-[6px]">{sortOption.direction === "asc" ? "↑" : "↓"}</span>}
+                    </div>
+                    {sub && <div className={`text-[7px] font-bold opacity-70 ${sortOption.field === field ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-white/30"}`}>{sub}</div>}
+                  </div>
+                ))}
+                <div />
+              </div>
+              <div className="flex-1 overflow-y-auto touch-pan-y" ref={mobileScrollRef} style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", scrollbarGutter: "stable" }}>
+                {visiblePlayers.map((player) => (
+                  <MobilePlayerRow key={`m-${player.player_id}`} player={player} isSelected={temporaryPicks.some((p) => String(p.player_id) === String(player.player_id))} />
+                ))}
+                {isLoadingMore && <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white/30" /></div>}
               </div>
             </div>
           </motion.div>
