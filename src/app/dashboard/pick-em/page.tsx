@@ -262,7 +262,7 @@ export default function Pickems() {
           lonestarElims: lonestarElimsRef.current[String(r.player_id)] ?? undefined,
           midwestElims: midwestElimsRef.current[String(r.player_id)] ?? undefined,
         }));
-        const uniqueTeams = [...new Set(raw.map((p: any) => p.Team).filter(Boolean))] as string[];
+        const uniqueTeams = Array.from(new Set(raw.map((p: any) => p.Team).filter(Boolean))) as string[];
         if (mounted) { setRowData(players); setTeams(uniqueTeams); setIsLoadingMore(false); }
       } catch (e) { if (mounted) { console.error(e); setIsLoadingMore(false); } }
     };
