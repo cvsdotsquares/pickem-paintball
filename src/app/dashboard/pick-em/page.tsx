@@ -34,6 +34,9 @@ export interface Player {
   picture?: string; // Optional picture URL
   pictureLoading?: boolean; // check loaded
   img_url?: string; // New field for direct image URL
+  totalElims?: number;
+  lonestarElims?: number;
+  midwestElims?: number;
 }
 
 export interface Event {
