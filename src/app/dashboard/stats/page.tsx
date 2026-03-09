@@ -176,8 +176,8 @@ export default function Statistics() {
       <article
         onClick={isSelected ? undefined : onClick}
         className={`relative flex flex-col md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] transition-all duration-200 ${isSelected
-            ? "border-4 rounded-xl border-blue-500 dark:border-white cursor-default opacity-80"
-            : "cursor-pointer hover:scale-105"
+          ? "border-4 rounded-xl border-blue-500 dark:border-white cursor-default opacity-80"
+          : "cursor-pointer hover:scale-105"
           }`}
       >
         <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg  logographics">
@@ -218,7 +218,7 @@ export default function Statistics() {
                 {status && (
                   <div
                     className={`text-center font-azonix ${status === "live" ? "text-red-500" :
-                        status === "season" ? "text-blue-400" : "text-gray-300"
+                      status === "season" ? "text-blue-400" : "text-gray-300"
                       }`}
                     style={{
                       fontSize: "clamp(0.5rem, 1.5vw, 1rem)", // Scales based on viewport
@@ -492,8 +492,8 @@ export default function Statistics() {
                     // Don't clear selected event when changing year filter
                   }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium ${selectedYear === year
-                      ? "bg-gray-900 dark:bg-white text-white dark:text-black"
-                      : "bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
+                    ? "bg-gray-900 dark:bg-white text-white dark:text-black"
+                    : "bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
                     }`}
                 >
                   {year}
@@ -567,6 +567,7 @@ export default function Statistics() {
                   sortConfig={sortConfig}
                   onSortChange={handleSortChange}
                   myPicks={livePicks}
+                  currentEventId={selectedEvent?.id}
                   isSeasonView={true}
                 />
 
@@ -590,6 +591,7 @@ export default function Statistics() {
                   sortConfig={sortConfig}
                   onSortChange={handleSortChange}
                   myPicks={livePicks}
+                  currentEventId={selectedEvent?.id}
                 />
 
               </>

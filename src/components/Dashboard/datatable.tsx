@@ -161,9 +161,8 @@ const DiamondScore: React.FC<{
         />
       </svg>
       <span
-        className={`relative z-10 font-bold ${
-          inverted ? "text-white" : "text-black"
-        }`}
+        className={`relative z-10 font-bold ${inverted ? "text-white" : "text-black"
+          }`}
       >
         {score}
       </span>
@@ -216,7 +215,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   myPicks,
   currentEventId,
   isSeasonView = false,
-}) => { 
+}) => {
   const typedData = data as TablePlayer[];
   const [internalSortConfig, setInternalSortConfig] =
     useState<SortConfig | null>(null);
@@ -245,6 +244,11 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   useEffect(() => {
     setCurrentPageInput(currentPage.toString());
   }, [currentPage]);
+
+  // Reset "My Picks" toggle when switching events
+  useEffect(() => {
+    setShowOnlyMyPicks(false);
+  }, [currentEventId]);
 
   // Get unique teams for filter
   const teams = useMemo(() => {
@@ -391,19 +395,6 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     setSortConfig({ key: actualKey, direction });
   };
 
-  // Calculate paginated data
-  useEffect(() => {
-    // Update paginated data when currentPage changes
-    const startIndex = (currentPage - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    const newPaginatedData = data.slice(startIndex, endIndex);
-
-    setPaginatedData(newPaginatedData);
-
-    // Fetch pictures for new paginated data
-    fetchPlayersWithPictures(newPaginatedData);
-  }, [currentPage, data]);
-
   // Pagination handlers
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -449,7 +440,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
           // Find the player in updatedPlayers array
           const playerIndex = updatedPlayers.findIndex(p => p.player_id === player.player_id);
           if (playerIndex === -1) return;
-          
+
           // Check if img_url is available first
           if (player.img_url && player.img_url.trim() !== "") {
             updatedPlayers[playerIndex].picture = player.img_url;
@@ -512,8 +503,8 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
         player.img_url && player.img_url.trim() !== ""
           ? player.img_url
           : player.profilePicture
-          ? getFirebaseStorageUrl(player.profilePicture)
-          : "/placeholder.svg",
+            ? getFirebaseStorageUrl(player.profilePicture)
+            : "/placeholder.svg",
       pictureLoading: false, // Don't show loading for direct URLs
     }));
     setVisibleData(playersWithPlaceholders);
@@ -522,11 +513,11 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     const playersNeedingFirebaseImages = players.filter(
       (player) => (!player.img_url || player.img_url.trim() === "") && !player.profilePicture
     );
-    
+
     if (playersNeedingFirebaseImages.length > 0) {
       loadPlayerImages(playersNeedingFirebaseImages);
     }
-    
+
     return playersWithPlaceholders;
   };
   const getSortIcon = (key: string) => {
@@ -691,14 +682,12 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                 <button
                   onClick={toggleMyPicks}
                   disabled={!myPicksAvailable}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                    showOnlyMyPicks ? "bg-blue-600" : "bg-gray-600"
-                  } ${!myPicksAvailable ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${showOnlyMyPicks ? "bg-blue-600" : "bg-gray-600"
+                    } ${!myPicksAvailable ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      showOnlyMyPicks ? "translate-x-6" : "translate-x-1"
-                    }`}
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showOnlyMyPicks ? "translate-x-6" : "translate-x-1"
+                      }`}
                   />
                 </button>
               </div>
@@ -716,14 +705,12 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               </label>
               <button
                 onClick={toggleDarkMode}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                  darkMode ? "bg-gray-600" : "bg-gray-400"
-                }`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${darkMode ? "bg-gray-600" : "bg-gray-400"
+                  }`}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    darkMode ? "translate-x-1" : "translate-x-6"
-                  }`}
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${darkMode ? "translate-x-1" : "translate-x-6"
+                    }`}
                 />
               </button>
             </div>
@@ -819,13 +806,12 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                   className={`
     px-2 py-1.5 rounded-md text-[10px] flex items-center text-nowrap gap-1 cursor-pointer transition-all duration-200
     border
-    ${
-      showOnlyMyPicks
-        ? "bg-blue-600 text-white border-blue-600 shadow-md" // Active state with shadow
-        : darkMode 
-          ? "bg-gray-700 text-gray-100 hover:bg-gray-600 border-gray-600" 
-          : "bg-gray-200 text-gray-900 hover:bg-gray-300 border-gray-400" // Better contrast for light mode
-    }
+    ${showOnlyMyPicks
+                      ? "bg-blue-600 text-white border-blue-600 shadow-md" // Active state with shadow
+                      : darkMode
+                        ? "bg-gray-700 text-gray-100 hover:bg-gray-600 border-gray-600"
+                        : "bg-gray-200 text-gray-900 hover:bg-gray-300 border-gray-400" // Better contrast for light mode
+                    }
     ${!myPicks || myPicks.size === 0 ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:opacity-90"}
   `}
                   title={
@@ -869,9 +855,8 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
             {/* Pagination Controls */}
             <div className="flex items-center gap-1 text-[12px]">
               <div
-                className={`flex justify-center items-stretch gap-2 ${
-                  darkMode ? "text-[rgba(255,255,255,0.66)]" : "text-gray-700"
-                }`}
+                className={`flex justify-center items-stretch gap-2 ${darkMode ? "text-[rgba(255,255,255,0.66)]" : "text-gray-700"
+                  }`}
               >
                 {/* First Page Button */}
                 <button
@@ -880,11 +865,10 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                   onClick={() => goToPage(1)}
                   className={`
         flex items-center justify-center p-1 rounded
-        ${
-          darkMode
-            ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
-            : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
-        }
+        ${darkMode
+                      ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
+                      : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
+                    }
         disabled:opacity-50 disabled:cursor-not-allowed
         focus:outline-none focus:ring-1
         transition-colors duration-200
@@ -892,9 +876,8 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       `}
                 >
                   <FaAngleDoubleLeft
-                    className={`${
-                      darkMode ? "text-current" : "text-gray-700"
-                    } w-3 h-3`}
+                    className={`${darkMode ? "text-current" : "text-gray-700"
+                      } w-3 h-3`}
                   />
                 </button>
 
@@ -905,11 +888,10 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                   onClick={() => goToPage(currentPage - 1)}
                   className={`
         flex items-center justify-center p-1 rounded
-        ${
-          darkMode
-            ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
-            : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
-        }
+        ${darkMode
+                      ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
+                      : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
+                    }
         disabled:opacity-50 disabled:cursor-not-allowed
         focus:outline-none focus:ring-1
         transition-colors duration-200
@@ -917,9 +899,8 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       `}
                 >
                   <FaAngleLeft
-                    className={`${
-                      darkMode ? "text-current" : "text-gray-700"
-                    } w-2.5 h-3`}
+                    className={`${darkMode ? "text-current" : "text-gray-700"
+                      } w-2.5 h-3`}
                   />
                 </button>
 
@@ -952,22 +933,20 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                     }}
                     className={`
           w-12 h-6 px-1 py-0.5 text-center rounded text-[12px]
-          ${
-            darkMode
-              ? "bg-[rgba(255,255,255,0.07)] text-white border-[rgba(255,255,255,0.17)] focus:ring-[rgba(255,255,255,0.17)]"
-              : "bg-gray-100 text-gray-800 border-gray-300 focus:ring-gray-400"
-          }
+          ${darkMode
+                        ? "bg-[rgba(255,255,255,0.07)] text-white border-[rgba(255,255,255,0.17)] focus:ring-[rgba(255,255,255,0.17)]"
+                        : "bg-gray-100 text-gray-800 border-gray-300 focus:ring-gray-400"
+                      }
           border focus:outline-none focus:ring-1
           [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
           [&::-webkit-inner-spin-button]:appearance-none
         `}
                   />
                   <span
-                    className={`${
-                      darkMode
-                        ? "text-[rgba(255,255,255,0.66)]"
-                        : "text-gray-600"
-                    } text-[12px]`}
+                    className={`${darkMode
+                      ? "text-[rgba(255,255,255,0.66)]"
+                      : "text-gray-600"
+                      } text-[12px]`}
                   >
                     of {totalPages}
                   </span>
@@ -980,11 +959,10 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                   onClick={() => goToPage(currentPage + 1)}
                   className={`
         flex items-center justify-center p-1 rounded
-        ${
-          darkMode
-            ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
-            : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
-        }
+        ${darkMode
+                      ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
+                      : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
+                    }
         disabled:opacity-50 disabled:cursor-not-allowed
         focus:outline-none focus:ring-1
         transition-colors duration-200
@@ -992,9 +970,8 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       `}
                 >
                   <FaAngleRight
-                    className={`${
-                      darkMode ? "text-current" : "text-gray-700"
-                    } w-2.5 h-3`}
+                    className={`${darkMode ? "text-current" : "text-gray-700"
+                      } w-2.5 h-3`}
                   />
                 </button>
 
@@ -1005,11 +982,10 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                   onClick={() => goToPage(totalPages)}
                   className={`
         flex items-center justify-center p-1 rounded
-        ${
-          darkMode
-            ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
-            : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
-        }
+        ${darkMode
+                      ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
+                      : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
+                    }
         disabled:opacity-50 disabled:cursor-not-allowed
         focus:outline-none focus:ring-1
         transition-colors duration-200
@@ -1017,9 +993,8 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       `}
                 >
                   <FaAngleDoubleRight
-                    className={`${
-                      darkMode ? "text-current" : "text-gray-700"
-                    } w-3 h-3`}
+                    className={`${darkMode ? "text-current" : "text-gray-700"
+                      } w-3 h-3`}
                   />
                 </button>
               </div>
@@ -1039,11 +1014,10 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
             >
               {/* Rank Column - Smaller on mobile */}
               <th
-                className={`px-1 md:px-2 py-2 text-center text-[10px] md:text-[12px] font-medium font-azonix uppercase tracking-wider md:border-r z-20 w-12 md:w-20 transition-colors ${
-                  sortConfig?.key === 'Rank' 
-                    ? 'bg-blue-900/50 text-blue-200 cursor-default' 
-                    : `${themeClasses.headerBg} ${themeClasses.headerText} cursor-pointer hover:bg-gray-700/50`
-                }`}
+                className={`px-1 md:px-2 py-2 text-center text-[10px] md:text-[12px] font-medium font-azonix uppercase tracking-wider md:border-r z-20 w-12 md:w-20 transition-colors ${sortConfig?.key === 'Rank'
+                  ? 'bg-blue-900/50 text-blue-200 cursor-default'
+                  : `${themeClasses.headerBg} ${themeClasses.headerText} cursor-pointer hover:bg-gray-700/50`
+                  }`}
               >
                 <div
                   className="flex items-center justify-center"
@@ -1053,14 +1027,13 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                   {getSortIcon("Rank")}
                 </div>
               </th>
-              
+
               {/* Player Column - Optimized for mobile */}
               <th
-                className={`pl-2 md:pl-4 pr-1 justify-center md:border-b/60 border-0 text-[10px] md:text-[12px] font-medium font-azonix uppercase sticky left-0 tracking-wider z-40 min-w-[100px] md:min-w-0 transition-colors ${
-                  sortConfig?.key === 'Player' 
-                    ? 'bg-blue-900/50 text-blue-200 cursor-default' 
-                    : `${themeClasses.headerBg} ${themeClasses.headerText} cursor-pointer hover:bg-gray-700/50`
-                }`}
+                className={`pl-2 md:pl-4 pr-1 justify-center md:border-b/60 border-0 text-[10px] md:text-[12px] font-medium font-azonix uppercase sticky left-0 tracking-wider z-40 min-w-[100px] md:min-w-0 transition-colors ${sortConfig?.key === 'Player'
+                  ? 'bg-blue-900/50 text-blue-200 cursor-default'
+                  : `${themeClasses.headerBg} ${themeClasses.headerText} cursor-pointer hover:bg-gray-700/50`
+                  }`}
               >
                 <div
                   className="flex items-center"
@@ -1095,18 +1068,17 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                 .map((key, index) => (
                   <th
                     key={index}
-                    className={`px-1 md:px-2 p-1 text-center text-[9px] md:text-[12px] font-medium font-azonix uppercase w-16 md:w-24 min-w-[60px] md:min-w-[80px] transition-colors ${
-                      sortConfig?.key === key 
-                        ? 'bg-blue-900/50 text-blue-200 cursor-default' 
-                        : `${themeClasses.headerText} cursor-pointer hover:bg-gray-700/50`
-                    }`}
+                    className={`px-1 md:px-2 p-1 text-center text-[9px] md:text-[12px] font-medium font-azonix uppercase w-16 md:w-24 min-w-[60px] md:min-w-[80px] transition-colors ${sortConfig?.key === key
+                      ? 'bg-blue-900/50 text-blue-200 cursor-default'
+                      : `${themeClasses.headerText} cursor-pointer hover:bg-gray-700/50`
+                      }`}
                   >
                     <div
                       className="flex items-center justify-center"
                       onClick={() => sortConfig?.key !== key && requestSort(key)}
                     >
                       <span className="truncate">
-                        {key.replace(/_/g, " ").length > 8 
+                        {key.replace(/_/g, " ").length > 8
                           ? key.replace(/_/g, " ").substring(0, 6) + "..."
                           : key.replace(/_/g, " ")
                         }
@@ -1131,7 +1103,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                     {row.Rank}
                   </div>
                 </td>
-                
+
                 {/* Player Column - Compact mobile layout */}
                 <td
                   className={`p-1 md:p-2 whitespace-nowrap sticky left-0 z-10 ${themeClasses.bg} shadow-[2px_0_5px_rgba(0,0,0,0.3)] min-w-[100px] md:min-w-0 md:shadow-none`}
@@ -1169,9 +1141,8 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                         src={row.picture || "/placeholder.svg"}
                         alt={row.Player}
                         loading="lazy"
-                        className={`w-full h-full object-cover transition-opacity duration-200 ${
-                          row.pictureLoading ? "opacity-0" : "opacity-100"
-                        }`}
+                        className={`w-full h-full object-cover transition-opacity duration-200 ${row.pictureLoading ? "opacity-0" : "opacity-100"
+                          }`}
                         onLoad={() => {
                           // This will be handled by the parent component's state management
                         }}
@@ -1193,16 +1164,14 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
 
                     <div className="max-w-[80px] md:max-w-[35vw] whitespace-normal">
                       <div
-                        className={`text-[9px] md:text-[12px] font-azonix font-medium ${
-                          darkMode ? "text-white" : "text-gray-900"
-                        } whitespace-normal break-words leading-tight`}
+                        className={`text-[9px] md:text-[12px] font-azonix font-medium ${darkMode ? "text-white" : "text-gray-900"
+                          } whitespace-normal break-words leading-tight`}
                       >
                         {row.Player.length > 12 ? `${row.Player.substring(0, 10)}...` : row.Player}
                       </div>
                       <div
-                        className={`text-[8px] md:text-[12px] font-azonix ${
-                          darkMode ? "text-gray-400" : "text-gray-700"
-                        } whitespace-normal break-words leading-tight`}
+                        className={`text-[8px] md:text-[12px] font-azonix ${darkMode ? "text-gray-400" : "text-gray-700"
+                          } whitespace-normal break-words leading-tight`}
                       >
                         {row.Team.length > 10 ? `${row.Team.substring(0, 8)}...` : row.Team}
                       </div>
@@ -1239,11 +1208,9 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                   .map(([key, value]) => (
                     <td
                       key={key}
-                      className={`px-1 md:px-2 py-2 md:py-3 whitespace-nowrap text-[9px] md:text-[12px] font-bold ${
-                        themeClasses.border
-                      } text-center ${
-                        darkMode ? "text-gray-300" : "text-gray-900"
-                      } w-16 md:w-24 min-w-[60px] md:min-w-[80px]`}
+                      className={`px-1 md:px-2 py-2 md:py-3 whitespace-nowrap text-[9px] md:text-[12px] font-bold ${themeClasses.border
+                        } text-center ${darkMode ? "text-gray-300" : "text-gray-900"
+                        } w-16 md:w-24 min-w-[60px] md:min-w-[80px]`}
                     >
                       {value as React.ReactNode}
                     </td>
