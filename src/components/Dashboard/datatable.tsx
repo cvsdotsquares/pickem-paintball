@@ -271,7 +271,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
 
   // Replace your existing filteredData useMemo with this:
   const filteredData = useMemo(() => {
-    if (isDataLoading) return typedData; // Return current data while loading
+    if (isDataLoading) return []; // Return empty while loading to prevent unfiltered data flash
 
     let filtered = [...typedData];
 
@@ -432,38 +432,34 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   };
 
   const loadPlayerImages = async (players: Player[]) => {
-    const updatedPlayers = [...VisibleData]; // Use current visible data
-
-    await Promise.allSettled(
+    // Fetch all images first
+    const imageResults = await Promise.allSettled(
       players.map(async (player) => {
         try {
-          // Find the player in updatedPlayers array
-          const playerIndex = updatedPlayers.findIndex(p => p.player_id === player.player_id);
-          if (playerIndex === -1) return;
-
-          // Check if img_url is available first
           if (player.img_url && player.img_url.trim() !== "") {
-            updatedPlayers[playerIndex].picture = player.img_url;
-            updatedPlayers[playerIndex].pictureLoading = false;
+            return { player_id: player.player_id, picture: player.img_url };
           } else {
-            // Fallback to Firebase Storage lookup
             const picture = await fetchPlayerPicture(
               player.league_id ? player.league_id : "",
             );
-            updatedPlayers[playerIndex].picture = picture;
-            updatedPlayers[playerIndex].pictureLoading = false;
+            return { player_id: player.player_id, picture };
           }
         } catch (error) {
-          const playerIndex = updatedPlayers.findIndex(p => p.player_id === player.player_id);
-          if (playerIndex !== -1) {
-            updatedPlayers[playerIndex].picture = "/placeholder.svg";
-            updatedPlayers[playerIndex].pictureLoading = false;
-          }
+          return { player_id: player.player_id, picture: "/placeholder.svg" };
         }
       }),
     );
 
-    setVisibleData(updatedPlayers);
+    // Use functional update to always work on current state (not a stale snapshot)
+    setVisibleData((prev) => prev.map((p) => {
+      const result = imageResults.find(
+        (r) => r.status === "fulfilled" && r.value.player_id === p.player_id
+      );
+      if (result && result.status === "fulfilled") {
+        return { ...p, picture: result.value.picture, pictureLoading: false };
+      }
+      return p;
+    }));
   };
   const getCellValue = (player: TablePlayer, key: string): React.ReactNode => {
     switch (key) {
