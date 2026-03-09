@@ -2,7 +2,7 @@
 
 import { db } from "@/src/lib/firebaseClient";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
-import { useEffect, useMemo,  useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MatchupTable } from "../../../components/Dashboard/datatable";
 import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
 import { motion } from "framer-motion";
@@ -42,7 +42,7 @@ export default function Statistics() {
 
 
   const { user } = useAuth();
-// Fetch events and set initial state
+  // Fetch events and set initial state
   useEffect(() => {
     async function fetchEvents() {
       try {
@@ -116,7 +116,7 @@ export default function Statistics() {
   }, []);
   useEffect(() => {
     const fetchLivePicks = async () => {
-      if (!user || !liveEvent) {
+      if (!user || !selectedEvent) {
         setLivePicks(new Set());
         return;
       }
@@ -125,8 +125,8 @@ export default function Statistics() {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
 
-        if (userSnap.exists() && userSnap.data().pickems?.[liveEvent?.id]) {
-          setLivePicks(new Set(userSnap.data().pickems[liveEvent.id]));
+        if (userSnap.exists() && userSnap.data().pickems?.[selectedEvent.id]) {
+          setLivePicks(new Set(userSnap.data().pickems[selectedEvent.id]));
         } else {
           setLivePicks(new Set());
         }
@@ -175,11 +175,10 @@ export default function Statistics() {
     return (
       <article
         onClick={isSelected ? undefined : onClick}
-        className={`relative flex flex-col md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] transition-all duration-200 ${
-          isSelected 
-            ? "border-4 rounded-xl border-blue-500 dark:border-white cursor-default opacity-80" 
+        className={`relative flex flex-col md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] transition-all duration-200 ${isSelected
+            ? "border-4 rounded-xl border-blue-500 dark:border-white cursor-default opacity-80"
             : "cursor-pointer hover:scale-105"
-        }`}
+          }`}
       >
         <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg  logographics">
           {/* Use event_logo if available, otherwise fallback to background image */}
@@ -218,10 +217,9 @@ export default function Statistics() {
                 )}
                 {status && (
                   <div
-                    className={`text-center font-azonix ${
-                      status === "live" ? "text-red-500" : 
-                      status === "season" ? "text-blue-400" : "text-gray-300"
-                    }`}
+                    className={`text-center font-azonix ${status === "live" ? "text-red-500" :
+                        status === "season" ? "text-blue-400" : "text-gray-300"
+                      }`}
                     style={{
                       fontSize: "clamp(0.5rem, 1.5vw, 1rem)", // Scales based on viewport
                       lineHeight: "1.2",
@@ -241,27 +239,27 @@ export default function Statistics() {
   // Fetch season data when season table is shown
   useEffect(() => {
     async function fetchSeasonData() {
-    
+
       if (!showSeasonTable) {
         return; // Don't clear data if not showing season table
       }
-      
+
       const yearToFetch = selectedYear === "All" ? selectedSeasonYear || "2025" : selectedYear;
-      
+
       try {
         setRowData([]);
-        
+
         const seasonPlayersQuery = collection(db, `players/season_${yearToFetch}/players`);
         const seasonSnapshot = await getDocs(seasonPlayersQuery);
-        
+
         if (seasonSnapshot.empty) {
           setRowData([]);
           return;
         }
-        
+
         const seasonPlayers = seasonSnapshot.docs.map((doc) => {
           const data = doc.data();
-          
+
           // Base data structure matching MatchupTable expectations
           const playerData: any = {
             player_id: data.playerId || doc.id,
@@ -270,7 +268,7 @@ export default function Statistics() {
             Team: data.team || 'Unknown Team',
             "Total Kills": data.totalConfirmedKills || 0,
             Number: data.playerNumber || '',
-            
+
             // Aggregated stats
             Gunfights: data.gunfights || 0,
             Breakshooting: data.breakshooting || 0,
@@ -283,7 +281,7 @@ export default function Statistics() {
             picture: data.img_url || '/placeholder.svg',
             pictureLoading: false // Set to false since we have direct URL
           };
-          
+
           // Add event-specific kills based on year
           if (yearToFetch === "2025") {
             playerData["World Cup"] = data.world_cup_2025?.confirmedKills || 0;
@@ -298,19 +296,19 @@ export default function Statistics() {
             playerData["Atlantic City"] = data.atlantic_city_2024?.confirmedKills || 0;
             playerData["Tampa Bay"] = data.tampa_bay_2024?.confirmedKills || 0;
           }
-          
+
           return playerData;
         });
 
         setRowData(seasonPlayers);
         setCurrentPage(1);
-        
+
       } catch (error) {
         console.error("Error fetching season data:", error);
         setRowData([]);
       }
     }
-    
+
     fetchSeasonData();
   }, [showSeasonTable, selectedSeasonYear, selectedYear]);
 
@@ -349,11 +347,11 @@ export default function Statistics() {
       if (!selectedEvent || showSeasonTable) {
         return; // Don't clear data, let other useEffect handle it
       }
-      
+
       try {
         // Clear existing data first
         setRowData([]);
-        
+
         const playersCollection = collection(
           db,
           `events/${selectedEvent.id}/players`
@@ -493,11 +491,10 @@ export default function Statistics() {
                     setSelectedYear(year ? year : "");
                     // Don't clear selected event when changing year filter
                   }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                    selectedYear === year
+                  className={`px-4 py-2 rounded-lg text-sm font-medium ${selectedYear === year
                       ? "bg-gray-900 dark:bg-white text-white dark:text-black"
                       : "bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
-                  }`}
+                    }`}
                 >
                   {year}
                 </button>
@@ -508,7 +505,7 @@ export default function Statistics() {
           {/* Main Content Area */}
           <div className="flex flex-col xl:flex-row gap-6 px-4 mt-6">
             {/* Right Side - Events Carousel */}
-              <div className="w-full">
+            <div className="w-full">
               {/* Events Carousel */}
               <div className="bg-gray-100/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl p-4">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white font-azonix mb-4">Select Event</h3>
@@ -572,8 +569,8 @@ export default function Statistics() {
                   myPicks={livePicks}
                   isSeasonView={true}
                 />
-                
-              
+
+
               </>
             ) : (
               // Individual Event Table
@@ -594,7 +591,7 @@ export default function Statistics() {
                   onSortChange={handleSortChange}
                   myPicks={livePicks}
                 />
-        
+
               </>
             )}
           </div>
