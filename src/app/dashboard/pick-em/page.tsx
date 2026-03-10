@@ -163,7 +163,7 @@ export default function Pickems() {
     const fetchLiveEvent = async () => {
       try {
         const events = await fetchFromFirestore("events");
-        const live = events.find((e: any) => e.status === "live");
+        const live = events.find((e: any) => e.status === "live") as any;
         if (live) {
           const logoUrl = live.event_logo || live.logoUrl || null;
           console.log("[PickEm] live event:", live.id, "logo:", logoUrl);
