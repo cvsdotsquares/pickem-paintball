@@ -11,14 +11,34 @@ const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
 function resolveCurrency(req: NextRequest): string {
   const region = req.nextUrl.searchParams.get('region');
-  const countryHeader = req.headers.get('x-vercel-ip-country');
+
+  // Vercel and Cloudflare headers
+  const countryHeader = req.headers.get('x-vercel-ip-country') || req.headers.get('cf-ipcountry');
+
+  console.log('--- CURRENCY DETECTION ---');
+  console.log('URL Region Param:', region);
+  console.log('x-vercel-ip-country Header:', req.headers.get('x-vercel-ip-country'));
+  console.log('cf-ipcountry Header:', req.headers.get('cf-ipcountry'));
+
+  // Log all headers for debugging (optional, can be noisy but helpful for Vercel)
+  const allHeaders: Record<string, string> = {};
+  req.headers.forEach((value, key) => { allHeaders[key] = value });
+  console.log('All Headers:', JSON.stringify(allHeaders, null, 2));
 
   const targetRegion = region || countryHeader || '';
+  console.log('Final Target Region:', targetRegion);
 
-  if (targetRegion === 'UK' || targetRegion === 'GB') return 'gbp';
-  if (targetRegion === 'EU' || ['FR', 'DE', 'IT', 'ES', 'NL', 'BE', 'AT', 'PT', 'IE', 'FI', 'GR', 'CY', 'MT', 'EE', 'LT', 'LV', 'SI', 'SK', 'LU'].includes(targetRegion)) return 'eur';
+  let currency = 'usd';
+  if (targetRegion === 'UK' || targetRegion === 'GB') {
+    currency = 'gbp';
+  } else if (targetRegion === 'EU' || ['FR', 'DE', 'IT', 'ES', 'NL', 'BE', 'AT', 'PT', 'IE', 'FI', 'GR', 'CY', 'MT', 'EE', 'LT', 'LV', 'SI', 'SK', 'LU'].includes(targetRegion)) {
+    currency = 'eur';
+  }
 
-  return 'usd';
+  console.log('Resolved Currency:', currency);
+  console.log('--------------------------');
+
+  return currency;
 }
 
 function getPriceIdsForCurrency(currency: string): Record<string, string> {
@@ -85,15 +105,18 @@ const PLAN_META: Record<string, { order: number; popular: boolean; savings: stri
 };
 
 export async function GET(request: NextRequest) {
+  console.log('>>> Incoming request to /api/subscription/plans');
   try {
     const currency = resolveCurrency(request);
     const cacheEntry = cachedPlansByCurrency[currency];
 
     // Return cached plans instantly if available
     if (cacheEntry && Date.now() - cacheEntry.timestamp < CACHE_TTL) {
+      console.log('Returning CACHED plans for currency:', currency);
       return NextResponse.json({ plans: cacheEntry.plans, currency });
     }
 
+    console.log('Fetching FRESH plans from Stripe for currency:', currency);
     // Single Stripe API call with a timeout to prevent hanging
     const currentPriceIds = getPriceIdsForCurrency(currency);
     const priceIds = Object.values(currentPriceIds);

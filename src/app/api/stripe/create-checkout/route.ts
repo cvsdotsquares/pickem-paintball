@@ -22,8 +22,12 @@ function getPriceId(plan: string, currency: string = 'usd'): string | undefined 
 export async function POST(request: NextRequest) {
   try {
     const { plan, userId, currency = 'usd' } = await request.json();
+    console.log('--- CHECKOUT INITIATED ---');
+    console.log('Payload:', { plan, userId, currency });
 
     const priceId = getPriceId(plan as string, currency);
+    console.log('Resolved Price ID:', priceId);
+
     if (!plan || !priceId) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
     }
