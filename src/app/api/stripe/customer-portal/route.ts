@@ -4,7 +4,7 @@ import { db } from '@/src/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-01-28.clover'
+  apiVersion: '2026-02-25.clover'
 });
 
 export async function POST(request: NextRequest) {
@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
     console.error('Error creating portal session:', error);
-    return NextResponse.json({ 
-      error: error.message || 'Failed to create portal session' 
+    return NextResponse.json({
+      error: error.message || 'Failed to create portal session'
     }, { status: 500 });
   }
 }

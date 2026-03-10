@@ -4,7 +4,7 @@ import { db } from '@/src/lib/firebaseClient';
 import { doc, updateDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-01-28.clover'
+  apiVersion: '2026-02-25.clover'
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -87,9 +87,9 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const usersRef = collection(db, 'users');
   const q = query(usersRef, where('stripeCustomerId', '==', customerId), limit(1));
   const userQuery = await getDocs(q);
-  
+
   if (userQuery.empty) return;
-  
+
   const userId = userQuery.docs[0].id;
   const plan = getPlanFromPriceId(subscription.items.data[0].price.id);
   const periodEnd = (subscription as any).current_period_end || 0;
@@ -109,9 +109,9 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const usersRef = collection(db, 'users');
   const q = query(usersRef, where('stripeCustomerId', '==', customerId), limit(1));
   const userQuery = await getDocs(q);
-  
+
   if (userQuery.empty) return;
-  
+
   const userId = userQuery.docs[0].id;
 
   await updateDoc(doc(db, 'users', userId), {
@@ -128,9 +128,9 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
   const usersRef = collection(db, 'users');
   const q = query(usersRef, where('stripeCustomerId', '==', customerId), limit(1));
   const userQuery = await getDocs(q);
-  
+
   if (userQuery.empty) return;
-  
+
   const userId = userQuery.docs[0].id;
 
   await updateDoc(doc(db, 'users', userId), {
@@ -145,9 +145,9 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
   const usersRef = collection(db, 'users');
   const q = query(usersRef, where('stripeCustomerId', '==', customerId), limit(1));
   const userQuery = await getDocs(q);
-  
+
   if (userQuery.empty) return;
-  
+
   const userId = userQuery.docs[0].id;
 
   await updateDoc(doc(db, 'users', userId), {

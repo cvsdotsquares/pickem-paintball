@@ -4,7 +4,7 @@ import { db } from '@/src/lib/firebaseClient';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-01-28.clover'
+  apiVersion: '2026-02-25.clover'
 });
 
 export async function POST(request: NextRequest) {
@@ -38,14 +38,14 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString()
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      cancelAt: subscription.cancel_at 
+    return NextResponse.json({
+      success: true,
+      cancelAt: subscription.cancel_at
     });
   } catch (error: any) {
     console.error('Error cancelling subscription:', error);
-    return NextResponse.json({ 
-      error: error.message || 'Failed to cancel subscription' 
+    return NextResponse.json({
+      error: error.message || 'Failed to cancel subscription'
     }, { status: 500 });
   }
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-01-28.clover'
+  apiVersion: '2026-02-25.clover'
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -34,12 +34,12 @@ export async function POST(request: NextRequest) {
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as any;
         const userId = invoice.subscription_metadata?.userId;
-        
+
         if (userId) {
           await updateUserSubscription(userId, {
             isSubscribed: { booleanValue: true },
-            subscriptionCurrentPeriodEnd: { 
-              stringValue: new Date((invoice.lines.data[0].period.end) * 1000).toISOString() 
+            subscriptionCurrentPeriodEnd: {
+              stringValue: new Date((invoice.lines.data[0].period.end) * 1000).toISOString()
             }
           });
         }
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       case 'invoice.payment_failed': {
         const invoice = event.data.object as any;
         const userId = invoice.subscription_metadata?.userId;
-        
+
         if (userId) {
           await updateUserSubscription(userId, {
             isSubscribed: { booleanValue: false }
@@ -61,12 +61,12 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.updated': {
         const subscription = event.data.object as any;
         const userId = subscription.metadata?.userId;
-        
+
         if (userId) {
           await updateUserSubscription(userId, {
             isSubscribed: { booleanValue: subscription.status === 'active' },
-            subscriptionCurrentPeriodEnd: { 
-              stringValue: new Date(subscription.current_period_end * 1000).toISOString() 
+            subscriptionCurrentPeriodEnd: {
+              stringValue: new Date(subscription.current_period_end * 1000).toISOString()
             },
             subscriptionCancelAtPeriodEnd: { booleanValue: subscription.cancel_at_period_end }
           });
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as any;
         const userId = subscription.metadata?.userId;
-        
+
         if (userId) {
           await updateUserSubscription(userId, {
             isSubscribed: { booleanValue: false },

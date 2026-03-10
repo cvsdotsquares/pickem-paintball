@@ -4,7 +4,7 @@ import Stripe from 'stripe';
 import { shouldPauseSubscription, shouldResumeSubscription } from '../../../../utils/eventMonths';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-01-28.clover'
+  apiVersion: '2026-02-25.clover'
 });
 
 export async function GET(request: NextRequest) {
@@ -51,9 +51,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      pausedCount, 
+    return NextResponse.json({
+      success: true,
+      pausedCount,
       resumedCount,
       timestamp: now.toISOString()
     });

@@ -4,7 +4,7 @@ import { db } from '@/src/lib/firebaseClient';
 import { doc, updateDoc } from 'firebase/firestore';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-01-28.clover'
+  apiVersion: '2026-02-25.clover'
 });
 
 export async function POST(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     const priceId = subscription.items.data[0].price.id;
     let plan: 'monthly' | 'quarterly' | 'yearly' = 'monthly';
-    
+
     if (priceId === process.env.STRIPE_MONTHLY_PRICE_ID) plan = 'monthly';
     else if (priceId === process.env.STRIPE_QUARTERLY_PRICE_ID) plan = 'quarterly';
     else if (priceId === process.env.STRIPE_YEARLY_PRICE_ID) plan = 'yearly';
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString()
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       data: {
         plan,
@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error syncing subscription:', error);
-    return NextResponse.json({ 
-      error: error.message || 'Failed to sync subscription' 
+    return NextResponse.json({
+      error: error.message || 'Failed to sync subscription'
     }, { status: 500 });
   }
 }
