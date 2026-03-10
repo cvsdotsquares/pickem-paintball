@@ -5,11 +5,35 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-02-25.clover'
 });
 
-const PRICE_IDS: Record<string, string> = {
-  monthly: process.env.STRIPE_PRICE_MONTHLY!,
-  quarterly: process.env.STRIPE_PRICE_QUARTERLY!,
-  yearly: process.env.STRIPE_PRICE_YEARLY!,
-};
+// Server-side cache keyed by currency to avoid hitting Stripe on every request
+let cachedPlansByCurrency: Record<string, { plans: any[], timestamp: number }> = {};
+const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+function resolveCurrency(req: NextRequest): string {
+  const region = req.nextUrl.searchParams.get('region');
+  const countryHeader = req.headers.get('x-vercel-ip-country');
+
+  const targetRegion = region || countryHeader || '';
+
+  if (targetRegion === 'UK' || targetRegion === 'GB') return 'gbp';
+  if (targetRegion === 'EU' || ['FR', 'DE', 'IT', 'ES', 'NL', 'BE', 'AT', 'PT', 'IE', 'FI', 'GR', 'CY', 'MT', 'EE', 'LT', 'LV', 'SI', 'SK', 'LU'].includes(targetRegion)) return 'eur';
+
+  return 'usd';
+}
+
+function getPriceIdsForCurrency(currency: string): Record<string, string> {
+  const plans = ['monthly', 'quarterly', 'yearly'];
+  const ids: Record<string, string> = {};
+
+  for (const plan of plans) {
+    const upperPlan = plan.toUpperCase();
+    const upperCurr = currency.toUpperCase();
+    const specificId = process.env[`STRIPE_PRICE_${upperPlan}_${upperCurr}`];
+    ids[plan] = specificId || process.env[`STRIPE_PRICE_${upperPlan}`]!;
+  }
+
+  return ids;
+}
 
 // Fallback plans if Stripe API fails
 const FALLBACK_PLANS = [
@@ -60,20 +84,19 @@ const PLAN_META: Record<string, { order: number; popular: boolean; savings: stri
   yearly: { order: 2, popular: false, savings: null },
 };
 
-// Server-side cache to avoid hitting Stripe on every request
-let cachedPlans: any[] | null = null;
-let cacheTimestamp = 0;
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour
-
 export async function GET(request: NextRequest) {
   try {
+    const currency = resolveCurrency(request);
+    const cacheEntry = cachedPlansByCurrency[currency];
+
     // Return cached plans instantly if available
-    if (cachedPlans && Date.now() - cacheTimestamp < CACHE_TTL) {
-      return NextResponse.json({ plans: cachedPlans });
+    if (cacheEntry && Date.now() - cacheEntry.timestamp < CACHE_TTL) {
+      return NextResponse.json({ plans: cacheEntry.plans, currency });
     }
 
     // Single Stripe API call with a timeout to prevent hanging
-    const priceIds = Object.values(PRICE_IDS);
+    const currentPriceIds = getPriceIdsForCurrency(currency);
+    const priceIds = Object.values(currentPriceIds);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
@@ -91,7 +114,7 @@ export async function GET(request: NextRequest) {
 
     // Build a lookup: priceId -> planKey
     const priceIdToPlanKey: Record<string, string> = {};
-    Object.entries(PRICE_IDS).forEach(([planKey, priceId]) => {
+    Object.entries(currentPriceIds).forEach(([planKey, priceId]) => {
       priceIdToPlanKey[priceId] = planKey;
     });
 
@@ -160,20 +183,27 @@ export async function GET(request: NextRequest) {
     const cleanPlans = plans.map(({ _order, ...rest }) => rest);
 
     // Cache the result
-    cachedPlans = cleanPlans;
-    cacheTimestamp = Date.now();
+    cachedPlansByCurrency[currency] = {
+      plans: cleanPlans,
+      timestamp: Date.now()
+    };
 
     return NextResponse.json({
-      plans: cleanPlans
+      plans: cleanPlans,
+      currency
     });
   } catch (error) {
     console.error('Error fetching plans from Stripe:', error);
+    const currency = resolveCurrency(request);
+    const cacheEntry = cachedPlansByCurrency[currency];
+
     // Return cached plans if available (even if stale), otherwise fallback
-    if (cachedPlans) {
-      return NextResponse.json({ plans: cachedPlans });
+    if (cacheEntry) {
+      return NextResponse.json({ plans: cacheEntry.plans, currency });
     }
     return NextResponse.json({
-      plans: FALLBACK_PLANS
+      plans: FALLBACK_PLANS,
+      currency
     });
   }
 }

@@ -67,6 +67,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
   const [selectedPlan, setSelectedPlan] = useState('monthly'); // Default to monthly (most popular)
   const [loading, setLoading] = useState(false);
   const [plans, setPlans] = useState<any[]>([]);
+  const [currency, setCurrency] = useState('usd');
   const content = MODAL_CONTENT[type];
 
   useEffect(() => {
@@ -86,6 +87,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
         const response = await fetch(`/api/subscription/plans${regionParam}`);
         const data = await response.json();
         setPlans(data.plans || []);
+        if (data.currency) setCurrency(data.currency);
       } catch (error) {
         console.error('Error fetching plans:', error);
         // Fallback to default US pricing
@@ -121,7 +123,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
       const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: selectedPlan, userId: user.uid })
+        body: JSON.stringify({ plan: selectedPlan, userId: user.uid, currency })
       });
 
       const { url } = await response.json();

@@ -6,17 +6,25 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-02-25.clover'
 });
 
-const PRICE_IDS = {
-  monthly: process.env.STRIPE_PRICE_MONTHLY!,
-  quarterly: process.env.STRIPE_PRICE_QUARTERLY!,
-  yearly: process.env.STRIPE_PRICE_YEARLY!
-};
+function getPriceId(plan: string, currency: string = 'usd'): string | undefined {
+  const upperPlan = plan.toUpperCase();
+  const upperCurr = currency.toUpperCase();
+
+  // Only monthly, quarterly, yearly are valid plans
+  if (!['MONTHLY', 'QUARTERLY', 'YEARLY'].includes(upperPlan)) {
+    return undefined;
+  }
+
+  const specificId = process.env[`STRIPE_PRICE_${upperPlan}_${upperCurr}`];
+  return specificId || process.env[`STRIPE_PRICE_${upperPlan}`];
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { plan, userId } = await request.json();
+    const { plan, userId, currency = 'usd' } = await request.json();
 
-    if (!plan || !PRICE_IDS[plan as keyof typeof PRICE_IDS]) {
+    const priceId = getPriceId(plan as string, currency);
+    if (!plan || !priceId) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
     }
 
@@ -33,7 +41,7 @@ export async function POST(request: NextRequest) {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{
-        price: PRICE_IDS[plan as keyof typeof PRICE_IDS],
+        price: priceId,
         quantity: 1,
       }],
       success_url: `${baseUrl}/dashboard?subscription=success`,
