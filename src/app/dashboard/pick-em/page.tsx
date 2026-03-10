@@ -1,5 +1,4 @@
 "use client";
-import { AnimatedGroup } from "@/src/components/ui/animations/grp";
 import { useAuth } from "@/src/contexts/authProvider";
 import { useSubscription } from "@/src/contexts/SubscriptionContext";
 import {
@@ -12,17 +11,11 @@ import {
 } from "firebase/firestore";
 import { AnimatePresence, motion } from "framer-motion";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { GiCardPickup, GiCrown } from "react-icons/gi";
-import { IoMdClose, IoMdCloseCircle } from "react-icons/io";
-import { RiLock2Line, RiTeamLine } from "react-icons/ri";
+import { IoMdClose } from "react-icons/io";
 import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
-import { TiTick } from "react-icons/ti";
-import { FilterUI } from "../../../components/ui/Filter-ui";
-import PlayerCard1 from "../../../components/temp-card";
 import { PiPlusBold } from "react-icons/pi";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { getFirebaseStorageUrl } from "@/src/lib/storage";
 
 export interface Player {
   player_id: string;
@@ -31,20 +24,15 @@ export interface Player {
   Rank: string;
   team_id: string;
   Cost: number;
-  league_id: string; // Added league_id
-  picture?: string; // Optional picture URL
-  pictureLoading?: boolean; // check loaded
-  img_url?: string; // New field for direct image URL
+  league_id: string;
+  picture?: string;
+  pictureLoading?: boolean;
+  img_url?: string;
   totalElims?: number;
   lonestarElims?: number;
   midwestElims?: number;
 }
 
-export interface Event {
-  id: string;
-  name: string;
-  status: string;
-}
 interface PlayerSlot {
   id: number;
   position: string;
@@ -87,26 +75,7 @@ export default function Pickems() {
   const db = getFirestore();
   const { user } = useAuth();
   const { isSubscribed, showModal } = useSubscription();
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "savedx" | "error">("idle");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-
-  // Fetch profile picture from Firestore (same as sidebar/topbar)
-  useEffect(() => {
-    if (!user) return;
-    const fetchAvatar = async () => {
-      try {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists() && userDoc.data().profilePicture) {
-          setAvatarUrl(getFirebaseStorageUrl(userDoc.data().profilePicture));
-        } else {
-          setAvatarUrl(user.photoURL || null);
-        }
-      } catch {
-        setAvatarUrl(user.photoURL || null);
-      }
-    };
-    fetchAvatar();
-  }, [user?.uid]);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   function useThrottledState<T>(initialState: T, delay = 300): [T, React.Dispatch<React.SetStateAction<T>>] {
     const [state, setState] = useState(initialState);
@@ -194,10 +163,10 @@ export default function Pickems() {
     const fetchLiveEvent = async () => {
       try {
         const events = await fetchFromFirestore("events");
-        const live: any = events.find((e: any) => e.status === "live");
+        const live = events.find((e: any) => e.status === "live");
         if (live) {
           const logoUrl = live.event_logo || live.logoUrl || null;
-          console.log("[PickEm] live events:", live.id, "logo:", logoUrl);
+          console.log("[PickEm] live event:", live.id, "logo:", logoUrl);
           setLiveEvent({
             id: live.id,
             lockDate: live.lockDate?.toDate ? live.lockDate.toDate() : null,
@@ -285,7 +254,7 @@ export default function Pickems() {
           lonestarElims: lonestarElimsRef.current[String(r.player_id)] ?? undefined,
           midwestElims: midwestElimsRef.current[String(r.player_id)] ?? undefined,
         }));
-        const uniqueTeams = Array.from(new Set(raw.map((p: any) => p.Team).filter(Boolean))) as string[];
+        const uniqueTeams = [...new Set(raw.map((p: any) => p.Team).filter(Boolean))] as string[];
         if (mounted) { setRowData(players); setTeams(uniqueTeams); setIsLoadingMore(false); }
       } catch (e) { if (mounted) { console.error(e); setIsLoadingMore(false); } }
     };
@@ -318,8 +287,7 @@ export default function Pickems() {
       setRowData((prev) => prev.map((p) => {
         const u = updates.find((u) => u?.player_id === p.player_id);
         return u ? { ...p, picture: u.picture, pictureLoading: false } : p;
-      }));
-    };
+      }));    };
     const t = setTimeout(fetchPics, 200);
     return () => clearTimeout(t);
   }, [visiblePlayers]);
@@ -410,11 +378,10 @@ export default function Pickems() {
   };
 
   const lastModalShown = useRef<number>(0);
-  const MODAL_COOLDOWN_MS = 0;
+  const MODAL_COOLDOWN_MS = 5 * 60 * 1000;
   const maybeShowSupportModal = () => {
     const now = Date.now();
-    /** if (!isSubscribed && now - lastModalShown.current > MODAL_COOLDOWN_MS) { */
-    if (!isSubscribed) {
+    if (!isSubscribed && now - lastModalShown.current > MODAL_COOLDOWN_MS) {
       lastModalShown.current = now;
       showModal('soft-gate');
     }
@@ -555,28 +522,22 @@ export default function Pickems() {
       {/* MOBILE banner */}
       <div className="md:hidden flex-shrink-0 rounded-b-2xl overflow-hidden mx-0" style={{ backgroundColor: liveEvent.brandColor || "#b91c1c" }}>
         {/* Top strip — countdown */}
-        <div className="flex items-center gap-2 px-3 py-1.5" style={{ backgroundColor: "rgba(0,0,0,0.35)" }}>
-          <span className="text-white text-[9px] font-black uppercase tracking-widest whitespace-nowrap">Team Lock Deadline:</span>
-          <div className="flex items-center gap-1 ml-1">
-            {[{ v: pad(liveEvent._days), l: "DAYS" }, { v: pad(liveEvent._hours), l: "HOURS" }, { v: pad(liveEvent._minutes), l: "MINUTES" }].map(({ v, l }, i) => (
-              <div key={l} className="flex items-center gap-1">
-                <div className="bg-black/70 border border-white/20 text-white font-black text-xs w-6 h-6 flex items-center justify-center rounded font-mono">{v}</div>
-                <span className="text-white/80 text-[8px] font-bold uppercase">{l}</span>
-                {i < 2 && <span className="text-white/40 font-black text-sm mx-0.5">:</span>}
-              </div>
-            ))}
-          </div>
+        <div className="flex items-center gap-2 px-3 py-2" style={{ backgroundColor: "rgba(0,0,0,0.35)" }}>
+          <span className="text-white text-[11px] font-black uppercase tracking-widest whitespace-nowrap">Team Lock Deadline:</span>
+          <span className="text-white font-black text-[11px]">
+            {pad(liveEvent._days)}d : {pad(liveEvent._hours)}h : {pad(liveEvent._minutes)}m : {pad(liveEvent._seconds)}s
+          </span>
         </div>
-        {/* Bottom section — event name left, cost cap right */}
-        <div className="flex items-center justify-between px-3 py-1.5">
+        {/* Bottom strip — event name + cost cap */}
+        <div className="flex items-center justify-between px-3 py-2.5">
           <div>
-            <div className="text-white/70 text-[8px] uppercase tracking-widest font-bold">Event {liveEvent.eventNumber || "1"}</div>
-            <div className="text-white font-black text-sm uppercase leading-tight" style={{ fontWeight: 900 }}>NXL {liveEvent.name || "TAMPA BAY OPEN"}</div>
-            <div className="text-white/70 text-[9px] font-bold">{liveEvent.startDate || "MAR 19"} — {liveEvent.endDate || "22"}</div>
+            <div className="text-white/70 text-[10px] uppercase tracking-widest font-bold">Event {liveEvent.eventNumber || "1"}</div>
+            <div className="text-white font-black text-lg uppercase leading-tight">NXL {liveEvent.name || "TAMPA BAY OPEN"}</div>
+            <div className="text-white/70 text-[11px] font-bold">{liveEvent.startDate || "MAR 19"} — {liveEvent.endDate || "22"}</div>
           </div>
           <div className="text-right flex-shrink-0 ml-4">
-            <div className="text-white/70 text-[8px] uppercase tracking-widest font-bold">Cost Cap</div>
-            <div className="text-white font-black text-sm" style={{ fontWeight: 900 }}>{formatCost(remainingBudget)}</div>
+            <div className="text-white/70 text-[10px] uppercase tracking-widest font-bold">Cost Cap</div>
+            <div className="text-white font-black text-sm">{formatCost(remainingBudget)}</div>
             <div className="w-24 h-1.5 bg-black/30 rounded-full overflow-hidden mt-0.5">
               <div className={`h-full rounded-full transition-all duration-500 ${budgetPct > 85 ? "bg-red-300" : "bg-green-400"}`} style={{ width: `${100 - budgetPct}%` }} />
             </div>
@@ -616,10 +577,10 @@ export default function Pickems() {
             <div className="text-gray-500 text-[8px] uppercase tracking-widest font-bold">Team Lock Deadline:</div>
             <div className="flex gap-1 items-end">
               {[
-                { v: pad(liveEvent._days), l: "DAYS" },
-                { v: pad(liveEvent._hours), l: "HOURS" },
-                { v: pad(liveEvent._minutes), l: "MINS" },
-                { v: pad(liveEvent._seconds), l: "SECS" },
+                { v: pad(liveEvent._days),    l: "DAYS"  },
+                { v: pad(liveEvent._hours),   l: "HOURS" },
+                { v: pad(liveEvent._minutes), l: "MINS"  },
+                { v: pad(liveEvent._seconds), l: "SECS"  },
               ].map(({ v, l }, i) => (
                 <div key={l} className="flex items-end gap-1">
                   <div className="flex flex-col items-center">
@@ -654,110 +615,110 @@ export default function Pickems() {
                   : "minmax(130px, 1fr) minmax(110px, 1fr) minmax(110px, 1fr) minmax(110px, 1fr)"
               }}>
 
-                {/* ── ROW 1: My Team + Cost Cap (2 cols) + Captain slot (1 col) ── */}
-                <div className="col-span-2 bg-black rounded-lg p-2 flex flex-col justify-between">
-                  <div className="flex items-start gap-2">
-                    {/* Avatar + badges */}
-                    <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                      <div className="w-11 h-11 rounded-full bg-white/10 border-2 border-white/20 overflow-hidden flex items-center justify-center">
-                        {avatarUrl
-                          ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-                          : <span className="text-white/50 font-black text-lg">{user?.displayName?.[0] || "?"}</span>}
+            {/* ── ROW 1: My Team + Cost Cap (2 cols) + Captain slot (1 col) ── */}
+            <div className="col-span-2 bg-black rounded-lg p-2 flex flex-col justify-between">
+              <div className="flex items-start gap-2">
+                {/* Avatar + badges */}
+                <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                  <div className="w-11 h-11 rounded-full bg-white/10 border-2 border-white/20 overflow-hidden flex items-center justify-center">
+                    {user?.photoURL
+                      ? <img src={user.photoURL} alt="" className="w-full h-full object-cover" />
+                      : <span className="text-white/50 font-black text-lg">{user?.displayName?.[0] || "?"}</span>}
+                  </div>
+                  <div className="flex gap-0.5">{[0,1,2].map((i) => <div key={i} className="w-3.5 h-3.5 rounded-full bg-white/10 border border-white/15" />)}</div>
+                </div>
+                {/* Player name + stats */}
+                <div className="flex-1 min-w-0">
+                  <div className="text-white/40 text-[8px] uppercase tracking-widest font-bold leading-none">Player</div>
+                  <div className="text-white font-black text-sm uppercase leading-tight truncate mb-1">{user?.email?.split("@")[0]?.toUpperCase() || "PLAYER"}</div>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-0">
+                    {[
+                      { label: "Event Rank:", val: "#3" },
+                      { label: "Season Rank:", val: "#3" },
+                      { label: "Event Elims:", val: "21" },
+                      { label: "Season Elims:", val: "21" },
+                    ].map(({ label, val }) => (
+                      <div key={label}>
+                        <div className="text-white/30 text-[8px] uppercase tracking-widest font-bold leading-none">{label}</div>
+                        <div className="text-white font-black text-lg leading-tight">{val}</div>
                       </div>
-                      <div className="flex gap-0.5">{[0, 1, 2].map((i) => <div key={i} className="w-3.5 h-3.5 rounded-full bg-white/10 border border-white/15" />)}</div>
-                    </div>
-                    {/* Player name + stats */}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-white/40 text-[8px] uppercase tracking-widest font-bold leading-none">Player</div>
-                      <div className="text-white font-black text-sm uppercase leading-tight truncate mb-1">{user?.email?.split("@")[0]?.toUpperCase() || "PLAYER"}</div>
-                      <div className="grid grid-cols-2 gap-x-2 gap-y-0">
-                        {[
-                          { label: "Event Rank:", val: "#3" },
-                          { label: "Season Rank:", val: "#3" },
-                          { label: "Event Elims:", val: "21" },
-                          { label: "Season Elims:", val: "21" },
-                        ].map(({ label, val }) => (
-                          <div key={label}>
-                            <div className="text-white/30 text-[8px] uppercase tracking-widest font-bold leading-none">{label}</div>
-                            <div className="text-white font-black text-lg leading-tight">{val}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-1 flex-shrink-0">
-                      <button
-                        onClick={confirmPicks}
-                        disabled={temporaryPicks.length < 10 || !captainId}
-                        className={`text-[7px] font-black uppercase tracking-widest border rounded px-1.5 py-0.5 transition-colors whitespace-nowrap
+                    ))}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1 flex-shrink-0">
+                  <button
+                    onClick={confirmPicks}
+                    disabled={temporaryPicks.length < 10 || !captainId}
+                    className={`text-[7px] font-black uppercase tracking-widest border rounded px-1.5 py-0.5 transition-colors whitespace-nowrap
                       ${temporaryPicks.length < 10 || !captainId
-                            ? "border-white/10 text-white/20 cursor-not-allowed"
-                            : "border-green-500 text-green-400 hover:bg-green-500 hover:text-white"
-                          }`}>
-                        {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "✓ Saved" : "Save Picks"}
-                      </button>
-                      <button onClick={() => { setTemporaryPicks([]); setCaptainId(null); setSaveStatus("idle"); setPlayerSlots((p) => p.map((s) => ({ ...s, player: null }))); }}
-                        className="text-white/30 hover:text-white/60 text-[7px] font-black uppercase tracking-widest border border-white/15 hover:border-white/30 rounded px-1.5 py-0.5 transition-colors">
-                        Reset
-                      </button>
-                    </div>
-                  </div>
-                  <div className="hidden md:block">
-                    <div className="flex items-baseline justify-between mb-0.5">
-                      <div className="text-white/40 text-[8px] uppercase tracking-widest font-bold">Cost Cap</div>
-                      <div className="text-white font-black text-sm leading-none">{formatCost(remainingBudget)}</div>
-                    </div>
-                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all duration-500 ${budgetPct > 85 ? "bg-red-500" : "bg-green-400"}`} style={{ width: `${100 - budgetPct}%` }} />
-                    </div>
-                  </div>
-                  {/* Picks saved confirmation */}
-                  {saveStatus === "savedx" && (
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                        <span className="text-white text-[8px] font-black">✓</span>
-                      </div>
-                      <span className="text-green-400 text-[9px] font-black uppercase tracking-widest">Picks Saved</span>
-                    </div>
-                  )}
-                  {saveStatus === "saving" && (
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
-                      <span className="text-yellow-400 text-[9px] font-black uppercase tracking-widest">Saving...</span>
-                    </div>
-                  )}
-                  {saveStatus === "error" && (
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
-                        <span className="text-white text-[8px] font-black">✕</span>
-                      </div>
-                      <span className="text-red-400 text-[9px] font-black uppercase tracking-widest">Save Failed</span>
-                    </div>
-                  )}
+                        ? "border-white/10 text-white/20 cursor-not-allowed"
+                        : "border-green-500 text-green-400 hover:bg-green-500 hover:text-white"
+                      }`}>
+                    {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "✓ Saved" : "Save Picks"}
+                  </button>
+                  <button onClick={() => { setTemporaryPicks([]); setCaptainId(null); setSaveStatus("idle"); setPlayerSlots((p) => p.map((s) => ({ ...s, player: null }))); }}
+                    className="text-white/30 hover:text-white/60 text-[7px] font-black uppercase tracking-widest border border-white/15 hover:border-white/30 rounded px-1.5 py-0.5 transition-colors">
+                    Reset
+                  </button>
                 </div>
-
-                {/* Captain slot */}
-                <div>
-                  {(() => {
-                    const cap = captainId ? temporaryPicks.find((p) => p.player_id === captainId) : null;
-                    return cap
-                      ? <SlotCard player={cap} isCaptain={true} onRemove={() => handlePlayerAction(cap)} onSetCaptain={() => setCaptainId(null)} />
-                      : <div onClick={() => setIsDrawerOpen(true)} className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-yellow-400/40 bg-yellow-400/5 h-full gap-1 min-h-[120px] cursor-pointer hover:border-yellow-400/60 transition-colors">
-                        <span className="bg-yellow-400 text-black text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest">CPT</span>
-                        <span className="text-yellow-500/60 text-[7px] uppercase font-bold tracking-widest text-center px-1 leading-tight">Set a captain</span>
-                      </div>;
-                  })()}
-                </div>
-
-                {/* ── ROWS 2–4: 9 player slots (captain excluded, shown separately above) ── */}
-                {playerSlots.filter((slot) => !slot.player || slot.player.player_id !== captainId).slice(0, 9).map((slot) => (
-                  <div key={slot.id}>
-                    {slot.player
-                      ? <SlotCard player={slot.player} isCaptain={captainId === slot.player.player_id} onRemove={() => handlePlayerAction(slot.player!)} onSetCaptain={() => handleCaptainSelection(slot.player!.player_id)} />
-                      : <EmptySlot slot={slot} />}
-                  </div>
-                ))}
-
               </div>
+              <div className="hidden md:block">
+                <div className="flex items-baseline justify-between mb-0.5">
+                  <div className="text-white/40 text-[8px] uppercase tracking-widest font-bold">Cost Cap</div>
+                  <div className="text-white font-black text-sm leading-none">{formatCost(remainingBudget)}</div>
+                </div>
+                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full transition-all duration-500 ${budgetPct > 85 ? "bg-red-500" : "bg-green-400"}`} style={{ width: `${100 - budgetPct}%` }} />
+                </div>
+              </div>
+              {/* Picks saved confirmation */}
+              {saveStatus === "saved" && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-[8px] font-black">✓</span>
+                  </div>
+                  <span className="text-green-400 text-[9px] font-black uppercase tracking-widest">Picks Saved</span>
+                </div>
+              )}
+              {saveStatus === "saving" && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
+                  <span className="text-yellow-400 text-[9px] font-black uppercase tracking-widest">Saving...</span>
+                </div>
+              )}
+              {saveStatus === "error" && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-[8px] font-black">✕</span>
+                  </div>
+                  <span className="text-red-400 text-[9px] font-black uppercase tracking-widest">Save Failed</span>
+                </div>
+              )}
+            </div>
+
+            {/* Captain slot */}
+            <div>
+              {(() => {
+                const cap = captainId ? temporaryPicks.find((p) => p.player_id === captainId) : null;
+                return cap
+                  ? <SlotCard player={cap} isCaptain={true} onRemove={() => handlePlayerAction(cap)} onSetCaptain={() => setCaptainId(null)} />
+                  : <div onClick={() => setIsDrawerOpen(true)} className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-yellow-400/40 bg-yellow-400/5 h-full gap-1 min-h-[120px] cursor-pointer hover:border-yellow-400/60 transition-colors">
+                      <span className="bg-yellow-400 text-black text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest">CPT</span>
+                      <span className="text-yellow-500/60 text-[7px] uppercase font-bold tracking-widest text-center px-1 leading-tight">Set a captain</span>
+                    </div>;
+              })()}
+            </div>
+
+            {/* ── ROWS 2–4: 9 player slots (captain excluded, shown separately above) ── */}
+            {playerSlots.filter((slot) => !slot.player || slot.player.player_id !== captainId).slice(0, 9).map((slot) => (
+              <div key={slot.id}>
+                {slot.player
+                  ? <SlotCard player={slot.player} isCaptain={captainId === slot.player.player_id} onRemove={() => handlePlayerAction(slot.player!)} onSetCaptain={() => handleCaptainSelection(slot.player!.player_id)} />
+                  : <EmptySlot slot={slot} />}
+              </div>
+            ))}
+
+            </div>
             </div>
             {/* Scroll fade indicator */}
             <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#f0f0f0] dark:from-[#111] to-transparent" />
@@ -826,8 +787,8 @@ export default function Pickems() {
             {isLoadingMore && rowData.length === 0
               ? <div className="flex flex-col items-center justify-center py-12"><div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-gray-300 dark:border-white/30 mb-2" /><span className="text-gray-400 dark:text-white/30 text-[10px] uppercase tracking-widest">Loading players...</span></div>
               : visiblePlayers.length === 0
-                ? <div className="text-center py-12 text-gray-400 dark:text-white/30 text-[10px] uppercase tracking-widest">No players match</div>
-                : <>
+              ? <div className="text-center py-12 text-gray-400 dark:text-white/30 text-[10px] uppercase tracking-widest">No players match</div>
+              : <>
                   {visiblePlayers.map((player) => (
                     <PlayerRow key={player.player_id} player={player} isSelected={temporaryPicks.some((p) => String(p.player_id) === String(player.player_id))} />
                   ))}
