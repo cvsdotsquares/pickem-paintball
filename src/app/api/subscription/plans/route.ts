@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-02-25.clover'
@@ -213,10 +214,15 @@ export async function GET(request: NextRequest) {
       timestamp: Date.now()
     };
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       plans: cleanPlans,
       currency
     });
+
+    // Completely disable Vercel CDN cache
+    response.headers.set('Cache-Control', 'no-store, max-age=0');
+    return response;
+
   } catch (error) {
     console.error('Error fetching plans from Stripe:', error);
     const currency = resolveCurrency(request);
