@@ -101,7 +101,8 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                 id: userId,
                 displayName: userData.name || userData.username || 'Unknown User',
                 profilePicture: userData.profilePicture,
-                isAdmin: false
+                isAdmin: false,
+                isOwner: false
               };
             }
             return null;
@@ -292,7 +293,8 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
               id: doc.id,
               displayName: name || username || 'Unknown User',
               profilePicture: userData.profilePicture,
-              isAdmin: false
+              isAdmin: false,
+              isOwner: false
             });
           }
         }
