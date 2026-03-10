@@ -66,12 +66,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
     // After sign-in, ensure displayName is populated from Firestore firstname/lastname
     //const user = result.user;
-    console.log("Google Sign-In User:", user); // Debugging line
+   
     try {
       if (user && (!user.displayName || user.displayName.trim() === "")) {
         const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
-        console.log("email Sign-In User Document:", userDoc); // Debugging line
+       
         if (userDoc.exists()) {
           const raw = userDoc.data();
           const fn = typeof raw?.firstName === "string" ? raw.firstName.trim() : "";
@@ -103,12 +103,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // After sign-in, ensure displayName is populated from Firestore firstname/lastname
     const user = result.user;
-    console.log("Google Sign-In User:", user); // Debugging line
+
     try {
       if (user && (!user.displayName || user.displayName.trim() === "")) {
         const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
-        console.log("Sign-In User Document:", userDoc); // Debugging line
+       
         if (userDoc.exists()) {
           const raw = userDoc.data();
           const fn = typeof raw?.firstName === "string" ? raw.firstName.trim() : "";

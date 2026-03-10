@@ -2,12 +2,13 @@
 
 import { db } from "@/src/lib/firebaseClient";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
-import { useEffect, useMemo,  useState } from "react";
-import { MatchupTable } from "@/src/components/Dashboard/datatable";
+import { useEffect, useMemo, useState } from "react";
+import { MatchupTable } from "../../../components/Dashboard/datatable";
 import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
 import { motion } from "framer-motion";
 import { Player } from "../pick-em/page";
 import { useAuth } from "@/src/contexts/authProvider";
+import SeasonTotals from "@/src/components/Dashboard/SeasonTotals";
 
 export interface Event {
   id: string;
@@ -30,14 +31,18 @@ export default function Statistics() {
   const [selectedYear, setSelectedYear] = useState<string>("All");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [liveEvent, setLiveEvent] = useState<Event | null>(null);
+  const [showSeasonTable, setShowSeasonTable] = useState<boolean>(false);
+  const [selectedSeasonYear, setSelectedSeasonYear] = useState<string | null>(null);
 
   //const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
   const [sortConfig, setSortConfig] = useState<SortConfig | null>({ key: "Rank", direction: "ascending" });
   const [livePicks, setLivePicks] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(25);
 
 
   const { user } = useAuth();
-// Fetch events and set initial state
+  // Fetch events and set initial state
   useEffect(() => {
     async function fetchEvents() {
       try {
@@ -70,8 +75,9 @@ export default function Statistics() {
           return acc;
         }, {} as Record<string, Event[]>);
 
-        // Sort and flatten with proper type safety
+        // Sort and flatten with proper type safety, excluding 2024 events
         const sortedEvents = Object.entries(eventsByYear)
+          .filter(([year]) => year !== "2024") // Filter out 2024 events completely
           .sort(([yearA], [yearB]) => {
             const numA = parseInt(yearA) || 0;
             const numB = parseInt(yearB) || 0;
@@ -110,7 +116,7 @@ export default function Statistics() {
   }, []);
   useEffect(() => {
     const fetchLivePicks = async () => {
-      if (!user || !liveEvent) {
+      if (!user || !selectedEvent) {
         setLivePicks(new Set());
         return;
       }
@@ -119,8 +125,8 @@ export default function Statistics() {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
 
-        if (userSnap.exists() && userSnap.data().pickems?.[liveEvent?.id]) {
-          setLivePicks(new Set(userSnap.data().pickems[liveEvent.id]));
+        if (userSnap.exists() && userSnap.data().pickems?.[selectedEvent.id]) {
+          setLivePicks(new Set(userSnap.data().pickems[selectedEvent.id]));
         } else {
           setLivePicks(new Set());
         }
@@ -133,9 +139,9 @@ export default function Statistics() {
     fetchLivePicks();
   }, [user, selectedEvent]);
 
-  // Get unique years for filter
+  // Get unique years for filter, excluding 2024
   const years = useMemo(() => {
-    const uniqueYears = new Set(eventsList.map((event) => event.year));
+    const uniqueYears = new Set(eventsList.map((event) => event.year).filter(year => year !== "2024"));
     return [
       "All",
       ...Array.from(uniqueYears).sort(
@@ -144,10 +150,11 @@ export default function Statistics() {
     ];
   }, [eventsList]);
 
-  // Filter events by selected year
+  // Filter events by selected year, excluding 2024
   const filteredEvents = useMemo(() => {
-    if (selectedYear === "All") return eventsList;
-    return eventsList.filter((event) => event.year === selectedYear);
+    let filtered = selectedYear === "All" ? eventsList : eventsList.filter((event) => event.year === selectedYear);
+    // Always exclude 2024 events regardless of selection
+    return filtered.filter((event) => event.year !== "2024");
   }, [eventsList, selectedYear]);
 
   interface LogoCardProps {
@@ -167,17 +174,18 @@ export default function Statistics() {
 
     return (
       <article
-        onClick={onClick}
-        className={`relative flex flex-col cursor-pointer  md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${
-          isSelected ? "border-4 rounded-xl border-white" : ""
-        }`}
+        onClick={isSelected ? undefined : onClick}
+        className={`relative flex flex-col md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] transition-all duration-200 ${isSelected
+          ? "border-4 rounded-xl border-blue-500 dark:border-white cursor-default opacity-80"
+          : "cursor-pointer hover:scale-105"
+          }`}
       >
         <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg  logographics">
           {/* Use event_logo if available, otherwise fallback to background image */}
           {event_logo ? (
             <>
               {/* White background for PNG logos */}
-              <div className="absolute inset-0 bg-black rounded-lg"></div>
+              <div className="absolute inset-0 bg-white dark:bg-black rounded-lg"></div>
               <img
                 src={event_logo}
                 alt={`${name} logo`}
@@ -209,15 +217,15 @@ export default function Statistics() {
                 )}
                 {status && (
                   <div
-                    className={`text-center font-azonix ${
-                      status === "live" ? "text-red-500" : "text-gray-300"
-                    }`}
+                    className={`text-center font-azonix ${status === "live" ? "text-red-500" :
+                      status === "season" ? "text-blue-400" : "text-gray-300"
+                      }`}
                     style={{
                       fontSize: "clamp(0.5rem, 1.5vw, 1rem)", // Scales based on viewport
                       lineHeight: "1.2",
                     }}
                   >
-                    {status}
+                    {status === "season" ? "SEASON" : status}
                   </div>
                 )}
               </div>
@@ -228,11 +236,122 @@ export default function Statistics() {
     );
   }
 
+  // Fetch season data when season table is shown
+  useEffect(() => {
+    async function fetchSeasonData() {
+
+      if (!showSeasonTable) {
+        return; // Don't clear data if not showing season table
+      }
+
+      const yearToFetch = selectedYear === "All" ? selectedSeasonYear || "2025" : selectedYear;
+
+      try {
+        setRowData([]);
+
+        const seasonPlayersQuery = collection(db, `players/season_${yearToFetch}/players`);
+        const seasonSnapshot = await getDocs(seasonPlayersQuery);
+
+        if (seasonSnapshot.empty) {
+          setRowData([]);
+          return;
+        }
+
+        const seasonPlayers = seasonSnapshot.docs.map((doc) => {
+          const data = doc.data();
+
+          // Base data structure matching MatchupTable expectations
+          const playerData: any = {
+            player_id: data.playerId || doc.id,
+            Rank: data.seasonRank || 999,
+            Player: data.playerName || 'Unknown Player',
+            Team: data.team || 'Unknown Team',
+            "Total Kills": data.totalConfirmedKills || 0,
+            Number: data.playerNumber || '',
+
+            // Aggregated stats
+            Gunfights: data.gunfights || 0,
+            Breakshooting: data.breakshooting || 0,
+            Movement: data.movement || 0,
+            "Zone Coverage": data.zoneCoverage || 0,
+            Pressure: data.pressure || 0,
+            Trades: data.trades || 0,
+            Unclassified: data.unclassified || 0,
+            img_url: data.img_url || null, // Keep img_url for MatchupTable
+            picture: data.img_url || '/placeholder.svg',
+            pictureLoading: false // Set to false since we have direct URL
+          };
+
+          // Add event-specific kills based on year
+          if (yearToFetch === "2025") {
+            playerData["World Cup"] = data.world_cup_2025?.confirmedKills || 0;
+            playerData["Lone Star"] = data.lonestar_open_2025?.confirmedKills || 0;
+            playerData["Mid West"] = data.midwest_open_2025?.confirmedKills || 0;
+            playerData["Atlantic City"] = data.atlantic_city_2025?.confirmedKills || 0;
+            playerData["Tampa Bay"] = data.tampa_bay_2025?.confirmedKills || 0;
+          } else if (yearToFetch === "2024") {
+            playerData["World Cup"] = data.world_cup_2024?.confirmedKills || 0;
+            playerData["Lone Star"] = data.lonestar_open_2024?.confirmedKills || 0;
+            playerData["Mid West"] = data.midwest_open_2024?.confirmedKills || 0;
+            playerData["Atlantic City"] = data.atlantic_city_2024?.confirmedKills || 0;
+            playerData["Tampa Bay"] = data.tampa_bay_2024?.confirmedKills || 0;
+          }
+
+          return playerData;
+        });
+
+        setRowData(seasonPlayers);
+        setCurrentPage(1);
+
+      } catch (error) {
+        console.error("Error fetching season data:", error);
+        setRowData([]);
+      }
+    }
+
+    fetchSeasonData();
+  }, [showSeasonTable, selectedSeasonYear, selectedYear]);
+
+  // Handle sorting separately to avoid infinite re-renders
+  const sortedRowData = useMemo(() => {
+    if (rowData.length > 0 && sortConfig) {
+      return [...rowData].sort((a, b) => {
+        const aValue = (a as any)[sortConfig.key];
+        const bValue = (b as any)[sortConfig.key];
+
+        if (typeof aValue === "number" && typeof bValue === "number") {
+          return sortConfig.direction === "ascending"
+            ? aValue - bValue
+            : bValue - aValue;
+        }
+
+        return sortConfig.direction === "ascending"
+          ? String(aValue).localeCompare(String(bValue))
+          : String(bValue).localeCompare(String(aValue));
+      });
+    }
+    return rowData;
+  }, [rowData, sortConfig]);
+
+  // Handle sort config changes to prevent data from disappearing
+  const handleSortChange = (newSortConfig: SortConfig | null) => {
+    // Don't allow clearing sort config, always maintain some sort
+    if (newSortConfig) {
+      setSortConfig(newSortConfig);
+    }
+  };
+
   // Fetch player data based on the selected event
   useEffect(() => {
     async function fetchPlayers() {
-      if (!selectedEvent) return;
+      if (!selectedEvent || showSeasonTable) {
+        return; // Don't clear data, let other useEffect handle it
+      }
+
       try {
+        // Clear existing data first
+        setRowData([]);
+
         const playersCollection = collection(
           db,
           `events/${selectedEvent.id}/players`
@@ -285,8 +404,8 @@ export default function Statistics() {
         // Apply sorting if sortConfig exists
         if (sortConfig) {
           players = [...players].sort((a, b) => {
-            const aValue = a[sortConfig.key];
-            const bValue = b[sortConfig.key];
+            const aValue = (a as any)[sortConfig.key];
+            const bValue = (b as any)[sortConfig.key];
 
             if (typeof aValue === "number" && typeof bValue === "number") {
               return sortConfig.direction === "ascending"
@@ -300,20 +419,44 @@ export default function Statistics() {
           });
         }
         setRowData(players);
+        setCurrentPage(1);
       } catch (error: any) {
         console.error("Error fetching player data:", error.message);
       }
     }
     fetchPlayers();
-  }, [selectedEvent]);
+  }, [selectedEvent, showSeasonTable]);
 
   // Handle event selection from the dropdown
   const handleEventSelect = (event: Event) => {
+    // Don't allow selecting the same event again
+    if (selectedEvent?.id === event.id && !showSeasonTable) {
+      return;
+    }
     setSelectedEvent(event);
+    setShowSeasonTable(false);
+    setRowData([]); // Clear existing data when switching to event
   };
 
+  // Handle season card click
+  const handleSeasonSelect = (year?: string) => {
+    // Don't allow selecting the same season again
+    if (showSeasonTable && selectedSeasonYear === year) {
+      return;
+    }
+    setSelectedEvent(null);
+    setShowSeasonTable(true);
+    if (year) {
+      setSelectedSeasonYear(year);
+    } else {
+      setSelectedSeasonYear(null);
+    }
+  };
+
+
+  console.log("Rendered Statistics with selectedEvent:", selectedEvent);
   return (
-    <div className="relative left-0 flex flex-col w-auto scroll-smooth overflow-y-scroll font-inter pb-20">
+    <div className="relative left-0 flex flex-col w-auto scroll-smooth overflow-y-scroll font-inter pb-20 bg-white dark:bg-stone-950">
       <div>
         <section>
           <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
@@ -333,7 +476,7 @@ export default function Statistics() {
             />
             <div className="absolute inset-0 bg-black/45 pointer-events-none"></div>
 
-            <h1 className="relative font-azonix max-w-full m-auto md:text-7xl text-4xl">
+            <h1 className="relative font-azonix max-w-full m-auto md:text-7xl text-4xl text-white">
               Statistics Center
             </h1>
           </header>
@@ -344,12 +487,14 @@ export default function Statistics() {
               {years.map((year) => (
                 <button
                   key={year}
-                  onClick={() => setSelectedYear(year ? year : "")}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                    selectedYear === year
-                      ? "bg-white text-black"
-                      : "bg-gray-800 text-white"
-                  }`}
+                  onClick={() => {
+                    setSelectedYear(year ? year : "");
+                    // Don't clear selected event when changing year filter
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium ${selectedYear === year
+                    ? "bg-gray-900 dark:bg-white text-white dark:text-black"
+                    : "bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
+                    }`}
                 >
                   {year}
                 </button>
@@ -357,29 +502,101 @@ export default function Statistics() {
             </div>
           </div>
 
-          {/* Events Carousel */}
-          <div className="flex flex-row overflow-x-auto gap-4 items-center p-4 w-full">
-            {filteredEvents.map((event, index) => (
-              <EventCard
-                key={index}
-                name={event.name}
-                status={event.status}
-                onClick={() => setSelectedEvent(event)}
-                isSelected={selectedEvent?.id === event.id}
-                event_logo={event.event_logo} // Pass event logo
-              />
-            ))}
+          {/* Main Content Area */}
+          <div className="flex flex-col xl:flex-row gap-6 px-4 mt-6">
+            {/* Right Side - Events Carousel */}
+            <div className="w-full">
+              {/* Events Carousel */}
+              <div className="bg-gray-100/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl p-4">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white font-azonix mb-4">Select Event</h3>
+                <div className="flex flex-row overflow-x-auto gap-4 items-center">
+                  {/* Season Card - Show only for specific years, not "All" */}
+                  {selectedYear !== "All" && (
+                    <EventCard
+                      key="season"
+                      name={`Season ${selectedYear}`}
+                      status="season"
+                      onClick={() => handleSeasonSelect(selectedYear)}
+                      isSelected={showSeasonTable}
+                      event_logo={undefined}
+                    />
+                  )}
+                  {/* Show season cards for all available years when "All" is selected */}
+                  {selectedYear === "All" && years.filter(year => year !== "All").map((year) => (
+                    <EventCard
+                      key={`season-${year}`}
+                      name={`Season ${year}`}
+                      status="season"
+                      onClick={() => handleSeasonSelect(year)}
+                      isSelected={showSeasonTable && selectedSeasonYear === year}
+                      event_logo={undefined}
+                    />
+                  ))}
+                  {filteredEvents.map((event, index) => (
+                    <EventCard
+                      key={index}
+                      name={event.name}
+                      status={event.status}
+                      onClick={() => handleEventSelect(event)}
+                      isSelected={selectedEvent?.id === event.id && !showSeasonTable}
+                      event_logo={event.event_logo}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* The table with animated sticky behavior */}
-        <motion.section className="  flex flex-col items-center md:overflow-y-hidden justify-center ">
-          <MatchupTable
-            data={rowData}
-            sortConfig={sortConfig}
-            onSortChange={setSortConfig}
-            myPicks={livePicks}
-          />
+        {/* Individual Event Table or Season Table */}
+        <motion.section className="px-4 mt-6">
+          <div className="bg-gray-100/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl p-6">
+            {showSeasonTable ? (
+              // Season Table
+              <>
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
+                  <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white font-azonix">
+                    Season {selectedYear === "All" ? selectedSeasonYear || "2025" : selectedYear} - Player Rankings
+                  </h3>
+                  <span className="bg-blue-500 text-white px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm whitespace-nowrap">
+                    SEASON TOTALS
+                  </span>
+                </div>
+                <MatchupTable
+                  data={sortedRowData}
+                  sortConfig={sortConfig}
+                  onSortChange={handleSortChange}
+                  myPicks={livePicks}
+                  currentEventId={selectedEvent?.id}
+                  isSeasonView={true}
+                />
+
+
+              </>
+            ) : (
+              // Individual Event Table
+              <>
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
+                  <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white font-azonix">
+                    {selectedEvent?.name || 'Select Event'} - Player Stats
+                  </h3>
+                  {selectedEvent?.status === 'live' && (
+                    <span className="bg-red-500 text-white px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm animate-pulse whitespace-nowrap">
+                      🔴 LIVE
+                    </span>
+                  )}
+                </div>
+                <MatchupTable
+                  data={sortedRowData}
+                  sortConfig={sortConfig}
+                  onSortChange={handleSortChange}
+                  myPicks={livePicks}
+                  currentEventId={selectedEvent?.id}
+                />
+
+              </>
+            )}
+          </div>
         </motion.section>
       </div>
     </div>

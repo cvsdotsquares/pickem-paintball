@@ -20,12 +20,30 @@
   }
 }
 
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --scrollbar-bg: #e5e5e5;
+  --scrollbar-thumb: #a0a0a0;
+  scroll-behavior: smooth;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
   --scrollbar-bg: #212121;
   --scrollbar-thumb: #5a5a5a;
-  scroll-behavior: smooth;
 }
 
 body {
@@ -62,6 +80,9 @@ body {
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  .animate-slide-in {
+    animation: slide-in 0.3s ease-out;
   }
 }
 

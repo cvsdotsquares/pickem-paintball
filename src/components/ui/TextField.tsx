@@ -17,7 +17,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input(
 ) {
   return (
     <input
-      className={`h-full w-full border-none bg-transparent text-body font-body text-gray-800 outline-none placeholder:text-gray-400 ${className}`}
+      className={`h-full w-full border-none bg-transparent text-body font-body text-gray-900 dark:text-gray-200 outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500 ${className}`}
       placeholder={placeholder as string}
       ref={ref}
       {...otherProps}
@@ -62,31 +62,31 @@ const TextFieldRoot = React.forwardRef<HTMLLabelElement, TextFieldRootProps>(
         {...otherProps}
       >
         {label && (
-          <span className="text-caption-bold font-caption-bold text-white">
+          <span className="text-caption-bold font-caption-bold text-gray-900 dark:text-white">
             {label}
           </span>
         )}
         <div
-          className={`flex h-8 w-full items-center gap-1 rounded-md border px-2 ${variant === "filled"
-            ? "bg-gray-100 border-gray-800 group-hover:border-gray-400"
-            : "border-gray-300"
-            } ${disabled ? "border-gray-200 bg-gray-200" : ""} ${error ? "border-red-600" : "group-focus-within:border-blue-500"
+          className={`flex h-8 w-full items-center gap-1 rounded-md border px-2 bg-white dark:bg-gray-800 ${variant === "filled"
+            ? "bg-gray-100 dark:bg-gray-700 border-gray-800 dark:border-gray-600 group-hover:border-gray-400"
+            : "border-gray-300 dark:border-gray-600"
+            } ${disabled ? "border-gray-200 bg-gray-200 dark:border-gray-700 dark:bg-gray-800" : ""} ${error ? "border-red-600" : "group-focus-within:border-blue-500"
             }`}
         >
           {/* Left Icon */}
-          {icon && <span className="text-white">{icon}</span>}
+          {icon && <span className="text-gray-900 dark:text-white">{icon}</span>}
           {children && <div className="flex-grow px-1">{children}</div>}
           {/* Right Icon */}
           {iconRight && (
             <span
-              className={`text-white ${error ? "text-red-600" : ""}`}
+              className={`text-gray-900 dark:text-white ${error ? "text-red-600" : ""}`}
             >
               {iconRight}
             </span>
           )}
         </div>
         {helpText && (
-          <span className={`text-caption text-white ${error ? "text-red-700" : ""}`}>
+          <span className={`text-caption text-gray-700 dark:text-gray-300 ${error ? "text-red-700 dark:text-red-400" : ""}`}>
             {helpText}
           </span>
         )}

@@ -63,7 +63,6 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
             setLockDate(null);
           }
         } else {
-          console.log("No live event found");
           setLockDate(null);
         }
       } catch (error) {
@@ -106,47 +105,38 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
     if (user && liveEventId) {
       const fetchPicks = async () => {
         try {
-          console.log(
-            "Fetching picks for user:",
-            user.uid,
-            "and event:",
-            liveEventId
-          );
+      
 
           const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
 
           if (userSnap.exists()) {
             const userData = userSnap.data();
-            console.log("User data fetched:", userData);
+        
 
             if (
               userData.pickems &&
               Array.isArray(userData.pickems[liveEventId])
             ) {
               const savedPicksIds = userData.pickems[liveEventId];
-              console.log(
-                "Saved picks IDs for event:",
-                liveEventId,
-                savedPicksIds
-              );
+   
 
               const savedPicks = data.filter((player) =>
                 savedPicksIds.includes(player.player_id)
               );
-              console.log("Resolved saved picks:", savedPicks);
+              
 
               setYourPicks(savedPicks);
               setSelectedPlayers(savedPicks);
 
               const total = savedPicks.reduce((sum, player) => {
                 const cost = Number(player.Cost);
-                console.log("Adding player cost:", player, cost);
+            
                 return sum + (isNaN(cost) ? 0 : cost);
               }, 0);
 
               setTotalCost(total);
-              console.log("Total cost calculated:", total);
+
             } else {
               console.warn(
                 `No picks found for event ${liveEventId} in user's pickems map.`
@@ -278,6 +268,23 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
     setYourPicks(updatedYourPicks);
     setTotalCost(updatedTotalCost);
 
+    // Check subscription when confirming picks (8 players selected)
+    if (updatedYourPicks.length === 8 && user) {
+      try {
+        const response = await fetch(`/api/users/${user.uid}/subscription`);
+        if (response.ok) {
+          const { isSubscribed } = await response.json();
+          
+          if (!isSubscribed) {
+            // Trigger subscription modal
+            window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'soft-gate' } }));
+          }
+        }
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+      }
+    }
+
     // Immediately save the updated picks to Firebase
     if (user && liveEventId) {
       const picksIds = updatedYourPicks.map((player) => player.player_id);
@@ -285,7 +292,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
         await updateDoc(doc(db, "users", user.uid), {
           [`pickems.${liveEventId}`]: picksIds,
         });
-        console.log("Saved picks:", picksIds);
+
       } catch (error) {
         console.error("Error saving picks:", error);
       }

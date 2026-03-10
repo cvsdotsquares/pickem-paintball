@@ -5,6 +5,7 @@ import { doc, getDoc } from "firebase/firestore";
 import AccountSettings from "@/src/components/Dashboard/settings";
 import Badge from "@/src/components/ui/Badge";
 import { Tabs } from "@/src/components/ui/Tabs";
+import SubscriptionManager from "@/src/components/Subscription/SubscriptionManager";
 import Link from "next/link";
 import { BiMapPin, BiPlusCircle } from "react-icons/bi";
 import { FaPersonRunning } from "react-icons/fa6";
@@ -54,17 +55,17 @@ function ProfilePage() {
         }
 
         const currentUserId: any = user.uid;
-        console.log("Current user ID:", currentUserId);
+      
 
         // Construct the Firestore document reference
         const userDocRef = doc(db, "users", currentUserId);
-        console.log("Fetching document from path: users/", currentUserId);
+       
 
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists()) {
           const rawData = userDoc.data();
-          console.log("Raw user data:", rawData);
+       
 
           // Get profile picture from user data or use default
           let profilePicture = defaultUserData.profilePicture;
@@ -107,10 +108,10 @@ function ProfilePage() {
                 : defaultUserData.player,
           };
 
-          console.log("Validated user data:", validatedUserData);
+         
           setUserData(validatedUserData);
         } else {
-          console.log("User document not found, using default data.");
+          
           setUserData(defaultUserData);
         }
       } catch (error) {
@@ -125,19 +126,19 @@ function ProfilePage() {
   }, [user]);
 
   return (
-    <div className="flex flex-col font-inter font-medium items-start h-auto overflow-auto">
+    <div className="flex flex-col font-inter font-medium items-start h-auto overflow-auto bg-white dark:bg-black">
       {loading ? (
-        <div className="w-full flex justify-center items-center min-h-screen">
+        <div className="w-full flex justify-center items-center min-h-screen text-gray-900 dark:text-white">
           <p>Loading your profile...</p>
         </div>
       ) : (
         <div className="flex w-full flex-col items-center gap-4">
-          <div className="flex w-full flex-wrap md:flex-nowrap items-start text-white gap-8">
+          <div className="flex w-full flex-wrap md:flex-nowrap items-start text-gray-900 dark:text-white gap-8">
             {/* Sidebar with user details */}
-            <div className="flex relative left-0 top-0 bottom-0 min-w-[240px] md:max-w-[300px] grow shrink-0 basis-0 flex-col md:h-[calc(100vh-48px)] items-center gap-6 px-5 md:px-8 pb-8 pt-5">
+            <div className="flex relative left-0 top-0 bottom-0 min-w-[240px] md:max-w-[300px] grow shrink-0 basis-0 flex-col md:h-[calc(100vh-48px)] items-center gap-6 px-5 md:px-8 pb-8 pt-5 bg-gray-50 dark:bg-gray-900">
               <div className="flex w-full flex-col items-center gap-6">
                 <div className="flex flex-col items-center gap-6 relative">
-                  <div className="flex h-36 w-36 flex-none flex-col items-center border border-b-4 border-r-4 border-slate-500 justify-center gap-2 overflow-hidden rounded-full relative">
+                  <div className="flex h-36 w-36 flex-none flex-col items-center border border-b-4 border-r-4 border-gray-300 dark:border-slate-500 justify-center gap-2 overflow-hidden rounded-full relative">
                     <img
                       className="h-36 w-36 flex-none object-cover absolute "
                       src={
@@ -157,13 +158,12 @@ function ProfilePage() {
                 </div>
               </div>
               <div className="flex w-full flex-col items-center gap-10">
-                <span className="w-full font-azonix text-lg text-center">
+                <span className="w-full font-azonix text-lg text-center text-gray-900 dark:text-white">
                   {userData?.name || defaultUserData.name}
                 </span>
-                {/* <div className="h-[2px] w-full flex-grow bg-black p-0 m-0" /> */}
                 {/* Display badges */}
                 <div className="flex w-full flex-col font-inter items-start gap-4">
-                  <span className="w-full font-azonix">Badges</span>
+                  <span className="w-full font-azonix text-gray-900 dark:text-white">Badges</span>
                   <div className="flex w-full flex-wrap items-start gap-2">
                     {(userData?.badges || defaultUserData.badges).map(
                       (badge, index) => (
@@ -176,9 +176,9 @@ function ProfilePage() {
                 </div>
                 {/* Support Information */}
                 <div className="flex w-full flex-col items-start gap-4">
-                  <span className="w-full font-azonix">Support</span>
+                  <span className="w-full font-azonix text-gray-900 dark:text-white">Support</span>
                   <div className="flex w-full flex-wrap items-start gap-2">
-                    <div className="flex flex-col items-start gap-4">
+                    <div className="flex flex-col items-start gap-4 text-gray-700 dark:text-gray-300">
                       <div className="flex w-full items-center gap-2">
                         <BiMapPin />
                         <span className="grow shrink-0 basis-0">Country:</span>
@@ -210,8 +210,13 @@ function ProfilePage() {
 
             {/* Main content area with tabs */}
             <div className="relative w-full md:w-auto flex flex-col px-5 md:px-3 gap-6 pt-1 md:pt-5 md:pb-5 pb-10 font-sans">
-              <h1 className="text-3xl font-azonix">Change account settings!</h1>
+              <h1 className="text-3xl font-azonix text-gray-900 dark:text-white">Change account settings!</h1>
               <AccountSettings />
+              
+              <div className="mt-8">
+                <h2 className="text-2xl font-azonix text-gray-900 dark:text-white mb-4">Subscription</h2>
+                <SubscriptionManager />
+              </div>
             </div>
           </div>
         </div>

@@ -33,10 +33,14 @@ interface PlayerPick {
   kills: number;
   cost: number;
   rank?: number | string;
+  isCaptain?: boolean;
+  points: number;
 }
 
 interface UserDetails {
   picks: PlayerPick[];
+  totalPoints: number;
+  captain: string | null;
 }
 
 export async function GET(request: NextRequest) {
@@ -75,6 +79,7 @@ export async function GET(request: NextRequest) {
     const userData = userDoc.data();
     const pickems = userData.pickems || {};
     const playerIds = Array.isArray(pickems[eventId]) ? pickems[eventId] : [];
+    const captainId = pickems[`${eventId}_captain`] || null;
 
     const picks: PlayerPick[] = [];
 
@@ -92,6 +97,8 @@ export async function GET(request: NextRequest) {
             const playerName = playerDoc.get("Player") || "Unknown Player";
             const playerCost = playerDoc.get("Cost") || 0;
             const playerRank = playerDoc.get("Rank") ?? 0;
+            const isCaptain = playerId === captainId;
+            const points = isCaptain ? totalKills * 1.5 : totalKills;
 
             return {
               id: playerId,
@@ -99,7 +106,62 @@ export async function GET(request: NextRequest) {
               kills: totalKills,
               cost: playerCost,
               rank: playerRank === undefined || playerRank === null ? 0 : playerRank,
+              isCaptain,
+              points,
             };
+          } else if (eventId === 'tampa_bay_2025') {
+            // Try alternative player paths for Tampa Bay
+            const altPaths = [
+              `events/${eventId}/players/100${playerId}`, // Try with 100 prefix
+              `events/tampa_bay_2025/players/${playerId}`, // Original path
+              `players/season_2025/players/${playerId}` // Try season path
+            ];
+            
+            let foundPlayer = null;
+            for (const altPath of altPaths) {
+              try {
+                const altRef = doc(db, altPath);
+                const altDoc = await fetchWithRetry(() => getDoc(altRef));
+                if (altDoc.exists()) {
+                  console.log(`Found Tampa player at: ${altPath}`);
+                  foundPlayer = altDoc;
+                  break;
+                }
+              } catch (e) {
+                // Continue to next path
+              }
+            }
+            
+            if (foundPlayer) {
+              const totalKills = foundPlayer.get("Confirmed Kills") || foundPlayer.get("totalConfirmedKills") || 0;
+              const playerName = foundPlayer.get("Player") || foundPlayer.get("playerName") || `Player ${playerId}`;
+              const playerCost = foundPlayer.get("Cost") || 50000;
+              const playerRank = foundPlayer.get("Rank") || foundPlayer.get("seasonRank") || 0;
+              const isCaptain = playerId === captainId;
+              const points = isCaptain ? totalKills * 1.5 : totalKills;
+
+              return {
+                id: playerId,
+                name: playerName,
+                kills: totalKills,
+                cost: playerCost,
+                rank: playerRank,
+                isCaptain,
+                points,
+              };
+            } else {
+              // Fallback placeholder
+              const isCaptain = playerId === captainId;
+              return {
+                id: playerId,
+                name: `Player ${playerId}`,
+                kills: 0,
+                cost: 50000,
+                rank: 0,
+                isCaptain,
+                points: 0,
+              };
+            }
           }
         } catch (error) {
           console.error(`Error fetching player data for ID: ${playerId}`, error);
@@ -116,8 +178,12 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    const totalPoints = picks.reduce((sum, pick) => sum + pick.points, 0);
+
     const userDetails: UserDetails = {
       picks,
+      totalPoints,
+      captain: captainId,
     };
 
     return NextResponse.json(userDetails, {

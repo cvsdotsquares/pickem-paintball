@@ -27,11 +27,11 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
     ref
   ) {
     const variantClasses = {
-      neutral: "border-gray-300 bg-gray-50 text-gray-800",
-      warning: "border-yellow-300 bg-yellow-50 text-yellow-800",
-      success: "border-green-300 bg-green-50 text-green-800",
-      error: "border-red-300 bg-red-50 text-red-800",
-      brand: "border-blue-300 bg-blue-50 text-blue-800",
+      neutral: "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200",
+      warning: "border-yellow-300 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200",
+      success: "border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200",
+      error: "border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200",
+      brand: "border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200",
     };
 
     return (
@@ -53,7 +53,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
               <span className="w-full text-base font-semibold">{title}</span>
             )}
             {description && (
-              <span className="w-full text-sm text-gray-600">
+              <span className="w-full text-sm text-gray-600 dark:text-gray-400">
                 {description}
               </span>
             )}

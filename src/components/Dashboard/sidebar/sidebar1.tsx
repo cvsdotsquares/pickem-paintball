@@ -102,7 +102,7 @@ export const DesktopSidebar = ({
     <>
       <motion.div
         className={cn(
-          "h-full px-4 py-4 md:flex hidden flex-col bg-stone-950 w-[20vw] shrink-0",
+          "h-full px-4 py-4 md:flex hidden flex-col bg-gray-100 dark:bg-stone-950 w-[20vw] shrink-0 border-r border-gray-200 dark:border-white/30",
           className
         )}
         animate={{
@@ -126,29 +126,29 @@ export const MobileSidebar = ({
     {
       label: "Dashboard",
       href: "/dashboard",
-      icon: <FaTableList className="h-5 w-5 shrink-0 text-neutral-200" />,
+      icon: <FaTableList className="h-5 w-5 shrink-0 text-gray-800 dark:text-neutral-200" />,
     },
     {
       label: "Statistics",
       href: "/dashboard/stats",
-      icon: <ImStatsBars className="h-5 w-5 shrink-0 text-neutral-200" />,
+      icon: <ImStatsBars className="h-5 w-5 shrink-0 text-gray-800 dark:text-neutral-200" />,
     },
     {
       label: "Live PickEm",
       href: "/dashboard/pick-em",
-      icon: <GiCardRandom className="h-5 w-5 shrink-0 text-neutral-200" />,
+      icon: <GiCardRandom className="h-5 w-5 shrink-0 text-gray-800 dark:text-neutral-200" />,
     },
     {
       label: "Leaderboards",
       href: "/dashboard/leaderboard",
-      icon: <PiRankingThin className="h-5 w-5 shrink-0 text-neutral-200" />,
+      icon: <PiRankingThin className="h-5 w-5 shrink-0 text-gray-800 dark:text-neutral-200" />,
     },
   ];
 
   return (
     <div
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 flex justify-around bg-stone-950 text-white p-2 md:hidden",
+        "fixed bottom-0 left-0 right-0 z-50 flex justify-around bg-stone-950 text-gray-900 dark:text-white p-2 md:hidden border-t border-gray-200 dark:border-gray-700",
         className
       )}
       {...props}
@@ -158,7 +158,7 @@ export const MobileSidebar = ({
           <button
             key={index}
             onClick={handleLogout}
-            className="flex flex-col items-center justify-center text-xs hover:text-stone-300"
+            className="flex flex-col items-center justify-center text-xs hover:text-gray-700 dark:hover:text-stone-300"
           >
             {link.icon}
             <span className="text-[10px] mt-1">{link.label}</span>
@@ -167,7 +167,7 @@ export const MobileSidebar = ({
           <Link
             key={index}
             href={link.href}
-            className="flex flex-col items-center justify-center text-xs hover:text-stone-300"
+            className="flex flex-col items-center justify-center text-xs hover:text-gray-700 dark:hover:text-stone-300"
           >
             {link.icon}
             <span className="text-[10px] mt-1">{link.label}</span>
@@ -204,7 +204,7 @@ export const SidebarLink = ({
           display: animate ? (open ? "inline-block" : "none") : "inline-block",
           opacity: animate ? (open ? 1 : 0) : 1,
         }}
-        className="text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
+        className="text-gray-900 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
       >
         {link.label}
       </motion.span>
@@ -236,7 +236,7 @@ export const Logoutbtn = ({
           display: animate ? (open ? "inline-block" : "none") : "inline-block",
           opacity: animate ? (open ? 1 : 0) : 1,
         }}
-        className="text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
+        className="text-gray-900 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
       >
         {text}
       </motion.span>

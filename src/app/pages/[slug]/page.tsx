@@ -44,16 +44,10 @@ export default function CMSPage() {
     fetchPage();
   }, [slug]);
 
-  if (!page) return <div>Loading...</div>;
+  if (!page) return <div className="flex items-center justify-center min-h-screen bg-white dark:bg-slate-900 text-gray-900 dark:text-white">Loading...</div>;
 
   return (
-    <div className=" bg-slate-900 text-white">
-      {/* <img
-        src="/bg.webp"
-        alt="Paintball players"
-        className="object-cover fixed inset-0 brightness-[0.7] contrast-[110%] saturate-[120%] size-full"
-        loading="lazy"
-      /> */}
+    <div className="bg-white dark:bg-slate-900 text-gray-900 dark:text-white min-h-screen">
       <Head>
         <title>{page.metaTitle || page.title}</title>
         <meta name="description" content={page.metaDescription || ""} />
@@ -68,14 +62,14 @@ export default function CMSPage() {
                   router.push('/dashboard');
                 }
               }}
-              className="rounded border border-orange-600/40 text-orange-400 hover:bg-orange-600/10 px-3 py-1 text-sm transition"
+              className="rounded border border-orange-600/40 text-orange-600 dark:text-orange-400 hover:bg-orange-600/10 px-3 py-1 text-sm transition"
               aria-label="Go back"
             >
               ← Back
             </button>
             <h1 className="text-3xl font-bold text-orange-600 mb-0">{page.title}</h1>
           </div>
-          <div dangerouslySetInnerHTML={{ __html: page.body }} />
+          <div className="prose dark:prose-invert max-w-none px-4 py-6" dangerouslySetInnerHTML={{ __html: page.body }} />
 
     </div>
   );

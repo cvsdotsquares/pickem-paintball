@@ -127,8 +127,8 @@ export function FilterUI({
   return (
     <div className="flex flex-col lg:flex-row justify-between gap-2 lg:gap-4 p-2 items-center w-full border-white/30 border-b z-30">
       {/* Search Bar */}
-      <div className="flex items-center relative max-w-[500px] h-7 rounded-2xl bg-gray-700 px-3">
-        <FaSearch className="text-white w-4 h-4 mr-2" />
+      <div className="flex items-center relative max-w-[500px] h-7 rounded-2xl bg-gray-300 dark:bg-gray-700 px-3">
+        <FaSearch className="text-gray-900 dark:text-white w-4 h-4 mr-2" />
         <input
           type="text"
           placeholder="Search by Player or Team"
@@ -141,7 +141,7 @@ export function FilterUI({
               selectedTeams,
             });
           }}
-          className="w-full h-full border-none outline-none text-base font-inter text-white bg-transparent"
+          className="w-full h-full border-none outline-none text-base font-inter text-gray-900 dark:text-white bg-transparent placeholder:text-gray-900/60 dark:placeholder:text-white/60"
         />
         {searchTerm && (
           <button
@@ -153,7 +153,7 @@ export function FilterUI({
                 selectedTeams,
               });
             }}
-            className="text-white/70 hover:text-white ml-2"
+            className="text-gray-900/70 dark:text-white/70 hover:text-gray-900 dark:hover:text-white ml-2"
           >
             <FaTimes className="w-3 h-3" />
           </button>
@@ -168,7 +168,7 @@ export function FilterUI({
             aria-haspopup="dialog"
             aria-expanded={isSortOpen}
             onClick={() => setIsSortOpen(!isSortOpen)}
-            className="flex items-center justify-center h-7 px-4 rounded-lg gap-2 text-white bg-gray-600 text-sm font-medium border-none"
+            className="flex items-center justify-center h-7 px-4 rounded-lg gap-2 text-gray-900 dark:text-white bg-gray-300 dark:bg-gray-600 text-sm font-medium border-none"
           >
             <FaSortAlphaDown className="w-4 h-4" />
             {"  "} Sort
@@ -217,7 +217,7 @@ export function FilterUI({
             aria-haspopup="dialog"
             aria-expanded={isFilterOpen}
             onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="flex items-center justify-center h-7 px-4 rounded-lg gap-2 text-white bg-gray-600  text-sm font-medium border-none"
+            className="flex items-center justify-center h-7 px-4 rounded-lg gap-2 text-gray-900 dark:text-white bg-gray-300 dark:bg-gray-600  text-sm font-medium border-none"
           >
             <FaFilter className="w-4 h-4 " />
             {"  "} Filter

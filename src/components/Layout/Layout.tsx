@@ -17,7 +17,7 @@ import { LuLogOut } from "react-icons/lu";
 import { FaTableList } from "react-icons/fa6";
 import { ImStatsBars } from "react-icons/im";
 import { ToastContainer } from "react-toastify";
-import { FaQuestionCircle } from "react-icons/fa";
+import { FaQuestionCircle, FaTrophy } from "react-icons/fa";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import ProfileCompletion from "./ProfileCompletion";
 
@@ -29,41 +29,46 @@ const links = [
   {
     label: "Dashboard",
     href: "/dashboard",
-    icon: <FaTableList className="h-5 w-5 shrink-0 text-neutral-200" />,
+    icon: <FaTableList className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
   },
   {
-    label: "Statistics",
+    label: "Stats",
     href: "/dashboard/stats",
-    icon: <ImStatsBars className="h-5 w-5 shrink-0 text-neutral-200" />,
+    icon: <ImStatsBars className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
   },
+  // {
+  //   label: "Season Totals",
+  //   href: "/dashboard/season-totals",
+  //   icon: <FaTrophy className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
+  // },
   {
     label: "Live PickEm",
     href: "/dashboard/pick-em",
-    icon: <GiCardRandom className="h-5 w-5 shrink-0 text-neutral-200" />,
+    icon: <GiCardRandom className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
   },
   {
     label: "Leaderboards",
     href: "/dashboard/leaderboard",
-    icon: <PiRankingThin className="h-5 w-5 shrink-0 text-neutral-200" />,
+    icon: <PiRankingThin className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
   },
 ];
 const cmslinks = [
   {
     label: "FAQ",
     href: "/pages/faq",
-    icon: <FaQuestionCircle className="h-5 w-5 shrink-0 text-neutral-200" />,
+    icon: <FaQuestionCircle className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
   },
   {
     label: "T&Cs",
     href: "/pages/terms-and-conditions",
-    icon: <HiOutlineDocumentText className="h-5 w-5 shrink-0 text-neutral-200" />,
+    icon: <HiOutlineDocumentText className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
   },
 ];
 
 export const Logo = () => {
   return (
     <Link
-      href="/"
+      href="/dashboard"
       className="w-[80px] relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-black"
     >
       <motion.span
@@ -75,6 +80,7 @@ export const Logo = () => {
         src="/logo.svg"
         alt="logo"
         width="130"
+        className="dark:invert-0 invert"
       />
         </motion.span>
     </Link>
@@ -87,10 +93,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div
       className={cn(
-        "flex w-full relative overflow-hidden bg-neutral-950 md:h-screen"
+        "flex w-full relative overflow-hidden bg-neutral-950 dark:bg-neutral-950 bg-white md:h-screen"
       )}
     >
-      <div className="z-50 border-white/30 border-r">
+      <div className="z-50 border-gray-200 dark:border-white/30 border-r">
         <Sidebar open={open} setOpen={setOpen}>
           <SidebarBody className="justify-between gap-10">
             <div className="md:flex hidden flex-1 flex-col overflow-x-hidden overflow-y-auto">
@@ -110,18 +116,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <Logoutbtn
                 text="Log out"
                 icon={
-                  <LuLogOut className="h-5 w-5 shrink-0 text-neutral-200" />
+                  <LuLogOut className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />
                 }
               />
             </div>
           </SidebarBody>
         </Sidebar>
-        <div className="fixed bottom-0 overflow-auto left-0 right-0 z-50 flex justify-around bg-stone-950 text-white p-2 md:hidden">
+        <div className="fixed bottom-0 overflow-auto left-0 right-0 z-50 flex justify-around bg-gray-100 dark:bg-stone-950 text-gray-700 dark:text-white p-2 md:hidden border-t border-gray-200 dark:border-gray-700">
           {links.map((link, index) => (
             <Link
               key={index}
               href={link.href}
-              className="flex min-w-[85px] flex-col items-center justify-center text-xs hover:text-stone-300"
+              className="flex min-w-[85px] flex-col items-center justify-center text-xs hover:text-gray-900 dark:hover:text-stone-300"
             >
               {link.icon}
               <span className="text-[10px] mt-1">{link.label}</span>
@@ -131,7 +137,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Link
               key={index}
               href={link.href}
-              className="flex min-w-[85px] flex-col items-center justify-center text-xs hover:text-stone-300"
+              className="flex min-w-[85px] flex-col items-center justify-center text-xs hover:text-gray-900 dark:hover:text-stone-300"
             >
               {link.icon}
               <span className="text-[10px] mt-1">{link.label}</span>
@@ -140,14 +146,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className="flex min-w-[85px] flex-col items-center justify-center text-xs hover:text-stone-300"
+            className="flex min-w-[85px] flex-col items-center justify-center text-xs hover:text-gray-900 dark:hover:text-stone-300"
           >
-            <LuLogOut className="h-5 w-5 shrink-0 text-neutral-200" />
+            <LuLogOut className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />
             <span className="text-[10px] mt-1">Log out</span>
           </button>
         </div>
       </div>
-      <main className="overflow-hidden flex w-full flex-col bg-stone-950">
+      <main className="overflow-hidden flex w-full flex-col bg-stone-950 dark:bg-stone-950 bg-white">
         <PageHeader />
         <ToastContainer
           position="top-center"

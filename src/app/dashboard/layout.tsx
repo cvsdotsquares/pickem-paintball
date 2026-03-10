@@ -3,6 +3,8 @@
 
 import ProtectedRoute from "../../components/Layout/ProtectedRoute";
 import Layout from "../../components/Layout/Layout";
+import { LeagueProvider } from "../../contexts/LeagueContext";
+import { NotificationProvider } from "../../contexts/NotificationContext";
 import { ReactNode } from "react";
 
 interface DashboardLayoutProps {
@@ -12,7 +14,11 @@ interface DashboardLayoutProps {
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   return (
     <ProtectedRoute>
-      <Layout>{children}</Layout>
+      <LeagueProvider>
+        <NotificationProvider>
+          <Layout>{children}</Layout>
+        </NotificationProvider>
+      </LeagueProvider>
     </ProtectedRoute>
   );
 };
