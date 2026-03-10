@@ -3,7 +3,7 @@ const { initializeApp } = require('firebase/app');
 const { getFirestore, collection, getDocs } = require('firebase/firestore');
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA1SBDORqH7rb573hhb9S4--g3rWMxDMOg",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: "fantasy-paintball.firebaseapp.com",
   projectId: "fantasy-paintball",
   storageBucket: "fantasy-paintball.firebasestorage.app",
