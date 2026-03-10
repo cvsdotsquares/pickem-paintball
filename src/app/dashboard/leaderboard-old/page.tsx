@@ -299,7 +299,7 @@ export default function Leaderboard() {
   );
 
   return (
-  <div className="p-2 pt-0 sm:pt-0 pb-10 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-black text-white">
+    <div className="p-2 pt-0 sm:pt-0 pb-10 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-black text-white">
       {/* Event Header */}
       <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
         <div
@@ -329,121 +329,121 @@ export default function Leaderboard() {
       {/* Current User Card (sticky on mobile) */}
       {currentUserData && (
         <>
-  <div ref={cardWrapperRef} className="sticky top-0 z-10 bg-black pt-4 pb-4 mb-4 sm:mb-0">
-          <div className="bg-gray-800/100 rounded-lg  shadow border border-gray-700">
-          <div
-            className=" mb-0  p-2 sm:p-3 cursor-pointer"
-            onClick={() => toggleTopExpand()}
-            aria-label={expandCurrentUser ? 'Collapse picks' : 'Expand picks'}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="relative">
-                  {currentUserData.profilePicture ? (
-                    <img
-                      src={currentUserData.profilePicture}
-                      alt="Profile"
-                      className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-yellow-400"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-700 flex items-center justify-center border-2 border-yellow-400">
-                      <FaUser className="text-xl text-gray-400" />
+          <div ref={cardWrapperRef} className="sticky top-0 z-10 bg-black pt-4 pb-4 mb-4 sm:mb-0">
+            <div className="bg-gray-800/100 rounded-lg  shadow border border-gray-700">
+              <div
+                className=" mb-0  p-2 sm:p-3 cursor-pointer"
+                onClick={() => toggleTopExpand()}
+                aria-label={expandCurrentUser ? 'Collapse picks' : 'Expand picks'}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="relative">
+                      {currentUserData.profilePicture ? (
+                        <img
+                          src={currentUserData.profilePicture}
+                          alt="Profile"
+                          className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-yellow-400"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-700 flex items-center justify-center border-2 border-yellow-400">
+                          <FaUser className="text-xl text-gray-400" />
+                        </div>
+                      )}
+                      {currentUserRank && (
+                        <div className="absolute -top-1 -right-1 bg-yellow-500 text-black w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs">
+                          #{currentUserRank}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {currentUserRank && (
-                    <div className="absolute -top-1 -right-1 bg-yellow-500 text-black w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs">
-                      #{currentUserRank}
+                    <div className="ml-3">
+                      <h3 className="font-bold text-sm sm:text-base flex items-center">
+                        {currentUserData.displayName}
+                        <span className="ml-1 text-xs bg-blue-600 px-1.5 py-0.5 rounded">
+                          You
+                        </span>
+                      </h3>
+                      <div className="flex items-center mt-0.5">
+                        <FaTrophy className="text-yellow-400 mr-1 text-sm" />
+                        <span className="font-medium text-sm">
+                          Confirmed Kills: {currentUserData.totalPoints}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        MVP: {currentUserData.mvp}
+                      </p>
                     </div>
-                  )}
-                </div>
-                <div className="ml-3">
-                  <h3 className="font-bold text-sm sm:text-base flex items-center">
-                    {currentUserData.displayName}
-                    <span className="ml-1 text-xs bg-blue-600 px-1.5 py-0.5 rounded">
-                      You
-                    </span>
-                  </h3>
-                  <div className="flex items-center mt-0.5">
-                    <FaTrophy className="text-yellow-400 mr-1 text-sm" />
-                    <span className="font-medium text-sm">
-                     Confirmed Kills: {currentUserData.totalPoints}
-                    </span>
                   </div>
-                  <p className="text-xs text-gray-400">
-                    MVP: {currentUserData.mvp}
-                  </p>
+                  {expandCurrentUser ? (
+                    <FaChevronUp className="text-gray-400 text-sm" />
+                  ) : (
+                    <FaChevronDown className="text-gray-400 text-sm" />
+                  )}
                 </div>
               </div>
-              {expandCurrentUser ? (
-                <FaChevronUp className="text-gray-400 text-sm" />
-              ) : (
-                <FaChevronDown className="text-gray-400 text-sm" />
-              )}
-            </div>
-          </div>
-          {/* Expanded row for current user's picks */}
-          <AnimatePresence>
-            {expandCurrentUser && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-                className="mb-0 p-0 "
-              >
-                <div
-                  ref={picksContainerRef}
+              {/* Expanded row for current user's picks */}
+              <AnimatePresence>
+                {expandCurrentUser && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="mb-0 p-0 "
+                  >
+                    <div
+                      ref={picksContainerRef}
 
-                  className="px-3  max-h-[280px] overflow-auto pb-3 border-t border-gray-700/70 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-600"
-                >
-                  <h3 className="pt-3 text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1 sticky top-0 bg-gray-800/100 z-10">
-                    Your Team
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {currentUserData.picks
-                      .sort((a, b) => {
-                        if (b.kills !== a.kills) return b.kills - a.kills;
-                        return a.name.localeCompare(b.name);
-                      })
-                      .map((pick) => (
-                        <div
-                          key={pick.id}
-                          className="bg-gray-700/50 p-2 rounded hover:bg-gray-700/70 transition-colors"
-                        >
-                          <div className="flex justify-between items-center">
-                            <span className="text-white text-xs font-medium truncate">
-                              {pick.name}
-                            </span>
-                            <span className="text-green-400 text-xs font-medium">
-                              Confirmed Kills: {pick.kills}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center mt-1 text-xs">
-                            <span className="text-gray-400 w-1/3">
-                              Rank: {pick.rank ?? 0}
-                            </span>
-                            <span className="flex text-gray-400 w-1/3">
-                              <span className="w-1/2 text-end">
-                                Cost:
-                              </span>
-                              <span className="w-1/2 text-start">
-                                &nbsp;${pick.cost}
-                              </span>
-                            </span>
-                            <span className="text-yellow-400 text-end w-1/3">
-                              ROI: ${pick.kills === 0 || pick.cost === 0
-                                ? 0
-                                : (pick.cost / pick.kills).toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          </div>
+                      className="px-3  max-h-[280px] overflow-auto pb-3 border-t border-gray-700/70 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-600"
+                    >
+                      <h3 className="pt-3 text-xs font-medium text-white mb-2 border-b border-gray-700 pb-1 sticky top-0 bg-gray-800/100 z-10">
+                        Your Team
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {currentUserData.picks
+                          .sort((a, b) => {
+                            if (b.kills !== a.kills) return b.kills - a.kills;
+                            return a.name.localeCompare(b.name);
+                          })
+                          .map((pick) => (
+                            <div
+                              key={pick.id}
+                              className="bg-gray-700/70 p-2 rounded hover:bg-gray-700/70 transition-colors"
+                            >
+                              <div className="flex justify-between items-center">
+                                <span className="text-white text-xs font-medium truncate">
+                                  {pick.name}
+                                </span>
+                                <span className="text-green-400 text-xs font-medium">
+                                  Confirmed Kills: {pick.kills}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center mt-1 text-xs">
+                                <span className="text-gray-400 w-1/3">
+                                  Rank: {pick.rank ?? 0}
+                                </span>
+                                <span className="flex text-gray-400 w-1/3">
+                                  <span className="w-1/2 text-end">
+                                    Cost:
+                                  </span>
+                                  <span className="w-1/2 text-start">
+                                    &nbsp;${pick.cost}
+                                  </span>
+                                </span>
+                                <span className="text-yellow-400 text-end w-1/3">
+                                  ROI: ${pick.kills === 0 || pick.cost === 0
+                                    ? 0
+                                    : (pick.cost / pick.kills).toFixed(2)}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </>
       )}
@@ -531,11 +531,10 @@ export default function Leaderboard() {
               paginatedUsers.map((user, index) => (
                 <Fragment key={user.id}>
                   <tr
-                    className={`hover:bg-gray-700/50 transition-colors ${
-                      currentUserId === user.id
-                        ? "bg-blue-900/30"
-                        : "bg-gray-800/30"
-                    }`}
+                    className={`hover:bg-gray-700/50 transition-colors ${currentUserId === user.id
+                      ? "bg-blue-900/30"
+                      : "bg-gray-800/30"
+                      }`}
                     onClick={() => toggleExpand(user.id)}
                   >
                     <td className="px-2 py-2 whitespace-nowrap text-sm sticky left-0 z-10 bg-inherit">

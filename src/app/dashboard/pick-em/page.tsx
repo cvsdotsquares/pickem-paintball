@@ -22,6 +22,7 @@ import PlayerCard1 from "../../../components/temp-card";
 import { PiPlusBold } from "react-icons/pi";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { getFirebaseStorageUrl } from "@/src/lib/storage";
 
 export interface Player {
   player_id: string;
@@ -86,7 +87,26 @@ export default function Pickems() {
   const db = getFirestore();
   const { user } = useAuth();
   const { isSubscribed, showModal } = useSubscription();
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "savedx" | "error">("idle");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  // Fetch profile picture from Firestore (same as sidebar/topbar)
+  useEffect(() => {
+    if (!user) return;
+    const fetchAvatar = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists() && userDoc.data().profilePicture) {
+          setAvatarUrl(getFirebaseStorageUrl(userDoc.data().profilePicture));
+        } else {
+          setAvatarUrl(user.photoURL || null);
+        }
+      } catch {
+        setAvatarUrl(user.photoURL || null);
+      }
+    };
+    fetchAvatar();
+  }, [user?.uid]);
 
   function useThrottledState<T>(initialState: T, delay = 300): [T, React.Dispatch<React.SetStateAction<T>>] {
     const [state, setState] = useState(initialState);
@@ -390,10 +410,11 @@ export default function Pickems() {
   };
 
   const lastModalShown = useRef<number>(0);
-  const MODAL_COOLDOWN_MS = 5 * 60 * 1000;
+  const MODAL_COOLDOWN_MS = 0;
   const maybeShowSupportModal = () => {
     const now = Date.now();
-    if (!isSubscribed && now - lastModalShown.current > MODAL_COOLDOWN_MS) {
+    /** if (!isSubscribed && now - lastModalShown.current > MODAL_COOLDOWN_MS) { */
+    if (!isSubscribed) {
       lastModalShown.current = now;
       showModal('soft-gate');
     }
@@ -639,8 +660,8 @@ export default function Pickems() {
                     {/* Avatar + badges */}
                     <div className="flex flex-col items-center gap-1 flex-shrink-0">
                       <div className="w-11 h-11 rounded-full bg-white/10 border-2 border-white/20 overflow-hidden flex items-center justify-center">
-                        {user?.photoURL
-                          ? <img src={user.photoURL} alt="" className="w-full h-full object-cover" />
+                        {avatarUrl
+                          ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
                           : <span className="text-white/50 font-black text-lg">{user?.displayName?.[0] || "?"}</span>}
                       </div>
                       <div className="flex gap-0.5">{[0, 1, 2].map((i) => <div key={i} className="w-3.5 h-3.5 rounded-full bg-white/10 border border-white/15" />)}</div>
@@ -690,7 +711,7 @@ export default function Pickems() {
                     </div>
                   </div>
                   {/* Picks saved confirmation */}
-                  {saveStatus === "saved" && (
+                  {saveStatus === "savedx" && (
                     <div className="flex items-center gap-1.5 mt-1">
                       <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
                         <span className="text-white text-[8px] font-black">✓</span>

@@ -30,14 +30,14 @@ const MODAL_CONTENT = {
     description: (
       <>
         <h2 className="font-bold text-white">Pick'Em Paintball is built by fans, for fans.</h2>
-        
+
         <p>Our goal is to develop paintball stats and build a site for the fans. To reward those who support us, some features are currently subscriber only.
         </p>
         <p>
-        The core game and basic stats will always be free. Subscriptions simply helps support the extra work that makes Pick'Em better for everyone.
+          The core game and basic stats will always be free. Subscriptions simply helps support the extra work that makes Pick'Em better for everyone.
         </p>
-        <p> 
-        Even if you choose not subscribe, just playing, sharing, and being part of the community means a huge amount to us. Thank you!
+        <p>
+          Even if you choose not subscribe, just playing, sharing, and being part of the community means a huge amount to us. Thank you!
         </p>
       </>
     ),
@@ -75,14 +75,14 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
         // Try to get user's timezone to determine region as fallback
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         let regionParam = '';
-        
+
         // Simple timezone-based region detection as fallback
         if (timezone.includes('Europe/London')) {
           regionParam = '?region=UK';
         } else if (timezone.includes('Europe/')) {
           regionParam = '?region=EU';
         }
-        
+
         const response = await fetch(`/api/subscription/plans${regionParam}`);
         const data = await response.json();
         setPlans(data.plans || []);
@@ -99,7 +99,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
             savings: null,
             features: [
               'Custom Leagues',
-              'Advanced Statistics', 
+              'Advanced Statistics',
               'Priority Support',
               'Early Access to Features'
             ]
@@ -142,9 +142,9 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
         <div className="relative p-6 border-b border-gray-700">
           {/* Brand Logo */}
           <div className="flex justify-center mb-4">
-            <img 
-              src="/logo.svg" 
-              alt="Pick'Em Paintball Logo" 
+            <img
+              src="/logo.svg"
+              alt="Pick'Em Paintball Logo"
               className="h-12 w-auto"
             />
           </div>
@@ -162,31 +162,33 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
               <div
                 key={plan.id}
                 onClick={() => setSelectedPlan(plan.id)}
-                className={`relative p-6 rounded-lg border-2 cursor-pointer transition-all ${
-                  selectedPlan === plan.id ? 'border-blue-500 bg-blue-900/20' : 'border-gray-700 bg-gray-800'
-                }`}
+                className={`relative p-6 rounded-lg border-2 cursor-pointer transition-all ${selectedPlan === plan.id ? 'border-blue-500 bg-blue-900/20' : 'border-gray-700 bg-gray-800'
+                  }`}
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs px-3 py-1 rounded-full">
                     Most Popular
                   </div>
                 )}
-                
+
                 <div className="text-center mb-4">
                   <h3 className="text-lg font-bold text-white mb-2">{plan.name}</h3>
                   <div className="text-3xl font-bold text-white">
-                    {plan.price}<span className="text-sm text-gray-400">{plan.period}</span>
+                    {plan.price}<span className="text-sm text-gray-400">{plan.name === 'Event Subscription' ? '/event' : plan.period}</span>
                   </div>
                   {plan.savings && <div className="text-green-400 text-sm mt-1">{plan.savings}</div>}
                 </div>
-
+                {console.log(plan)}
                 <ul className="space-y-2">
-                  {plan.features.map((feature: string, i: number) => (
-                    <li key={i} className="flex items-center text-sm text-gray-300">
-                      <FaCheck className="text-green-400 mr-2" />
-                      {feature}
-                    </li>
-                  ))}
+                  {plan.features.map((feature: any, i: number) => {
+                    const text = typeof feature === 'string' ? feature : (feature?.name || feature?.toString() || '');
+                    return (
+                      <li key={i} className="flex items-center text-sm text-gray-300">
+                        <FaCheck className="text-green-400 mr-2 flex-shrink-0" />
+                        <span dangerouslySetInnerHTML={{ __html: text }} />
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ))}

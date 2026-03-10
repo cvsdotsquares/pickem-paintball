@@ -20,6 +20,22 @@ export default function SubscriptionManager() {
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const [billingHistory, setBillingHistory] = useState<BillingHistory[]>([]);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [plans, setPlans] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Only fetch plan data when user is subscribed (to show plan name/price)
+    if (!isSubscribed) return;
+    async function fetchPlans() {
+      try {
+        const response = await fetch('/api/subscription/plans');
+        const data = await response.json();
+        setPlans(data.plans || []);
+      } catch (error) {
+        console.error('Error fetching plans:', error);
+      }
+    }
+    fetchPlans();
+  }, [isSubscribed]);
 
   useEffect(() => {
     if (user && isSubscribed) {
@@ -33,7 +49,7 @@ export default function SubscriptionManager() {
       const data = await response.json();
       console.log('Fetched subscription data:', data); // Debug log
       setSubscriptionData(data);
-      
+
       if (data.stripeCustomerId) {
         const historyResponse = await fetch(`/api/stripe/billing-history?customerId=${data.stripeCustomerId}`);
         const historyData = await historyResponse.json();
@@ -87,23 +103,11 @@ export default function SubscriptionManager() {
     }
   };
 
-  const getPlanName = (tier: string) => {
-    const plans: any = {
-      monthly: 'Monthly',
-      quarterly: 'Event to Event',
-      yearly: 'Yearly'
-    };
-    return plans[tier] || tier;
-  };
-
-  const getPlanPrice = (tier: string) => {
-    const prices: any = {
-      monthly: '$4.99/month',
-      quarterly: '$13.99/event',
-      yearly: '$49.99/year'
-    };
-    return prices[tier] || '';
-  };
+  // Look up plan from Stripe-sourced data
+  const activeTier = subscriptionData?.subscriptionTier || subscriptionTier || '';
+  const activePlan = plans.find((p) => p.id === activeTier);
+  const planName = activePlan?.name || activeTier.charAt(0).toUpperCase() + activeTier.slice(1) || 'Plan';
+  const planPrice = activePlan ? `${activePlan.price}${activePlan.period}` : '';
 
   if (!isSubscribed) {
     return (
@@ -123,8 +127,8 @@ export default function SubscriptionManager() {
           <div className="flex items-center gap-3">
             <FaCrown className="text-yellow-400 text-2xl" />
             <div>
-              <h3 className="text-xl font-bold text-white">{getPlanName(subscriptionData?.subscriptionTier || subscriptionTier || '')}</h3>
-              <p className="text-blue-200 text-sm">{getPlanPrice(subscriptionData?.subscriptionTier || subscriptionTier || '')}</p>
+              <h3 className="text-xl font-bold text-white">{planName}</h3>
+              <p className="text-blue-200 text-sm">{planPrice}</p>
             </div>
           </div>
           <div className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -190,9 +194,8 @@ export default function SubscriptionManager() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    item.status === 'paid' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
-                  }`}>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.status === 'paid' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
+                    }`}>
                     {item.status}
                   </span>
                   {item.invoiceUrl && (

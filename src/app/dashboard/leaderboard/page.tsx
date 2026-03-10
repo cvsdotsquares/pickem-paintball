@@ -98,7 +98,7 @@ const getLiveEventFromCache = (): LiveEvent | null => {
 const setLiveEventCache = (event: LiveEvent) => {
   try {
     localStorage.setItem(LIVE_EVENT_CACHE_KEY, JSON.stringify({ event, timestamp: Date.now() }));
-  } catch {}
+  } catch { }
 };
 
 // Cache for profile picture download URLs to avoid repeated Storage API calls
@@ -164,11 +164,11 @@ function LeaderboardNewContent() {
   const [currentUserData, setCurrentUserData] = useState<User & { rank?: number } | null>(null);
   const [expandCurrentUser, setExpandCurrentUser] = useState<boolean>(false);
   const [updatingRows, setUpdatingRows] = useState<Set<string>>(new Set());
-  
+
   // League modals
   const [showCreateLeague, setShowCreateLeague] = useState(false);
   const [showJoinLeague, setShowJoinLeague] = useState(false);
-  
+
   const PAGE_SIZES = [10, 20, 50];
   const MAX_RETRIES = 3;
 
@@ -181,9 +181,8 @@ function LeaderboardNewContent() {
     return (
       <article
         onClick={onClick}
-        className={`relative flex flex-col cursor-pointer md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${
-          isSelected ? "border-4 rounded-xl border-blue-500 dark:border-white" : ""
-        }`}
+        className={`relative flex flex-col cursor-pointer md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${isSelected ? "border-4 rounded-xl border-blue-500 dark:border-white" : ""
+          }`}
       >
         <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg logographics">
           {event.event_logo ? (
@@ -219,9 +218,8 @@ function LeaderboardNewContent() {
                 )}
                 {event.status && (
                   <div
-                    className={`text-center font-azonix ${
-                      event.status === "live" ? "text-red-500" : "text-gray-300"
-                    }`}
+                    className={`text-center font-azonix ${event.status === "live" ? "text-red-500" : "text-gray-300"
+                      }`}
                     style={{
                       fontSize: "clamp(0.5rem, 1.5vw, 1rem)",
                       lineHeight: "1.2",
@@ -248,11 +246,11 @@ function LeaderboardNewContent() {
       try {
         const eventsCollection = collection(db, "events");
         const querySnapshot = await getDocs(eventsCollection);
-        
+
         const events: LiveEvent[] = querySnapshot.docs.map((doc) => {
           const id = doc.id;
           const yearFromId = id.split("_").pop() ?? new Date().getFullYear().toString();
-          
+
           const event = {
             id,
             name: doc.get("name") || "Unnamed Event",
@@ -262,27 +260,27 @@ function LeaderboardNewContent() {
             lockDate: doc.get("lockDate") || null,
             event_logo: doc.get("event_logo") || undefined,
           };
-          
+
           // Special handling for tampa_bay_2025
           if (id === 'tampa_bay_2025') {
             console.log('Tampa Bay 2025 event found:', event);
             console.log('Raw document data:', doc.data());
           }
-          
+
           return event;
         });
 
         // Debug: Log all events to check for Tampa
         console.log('All events fetched:', events.map(e => ({ id: e.id, name: e.name, year: e.year })));
-        
+
         // Check specifically for Tampa events
         const tampaEvents = events.filter(e => e.name.toLowerCase().includes('tampa') || e.id.includes('tampa'));
         console.log('Tampa events found:', tampaEvents);
-        
+
         // Force include tampa_bay_2025 if missing
         const hasTampa = events.some(e => e.id === 'tampa_bay_2025');
         console.log('Tampa Bay 2025 exists in events:', hasTampa);
-        
+
         if (!hasTampa) {
           console.warn('tampa_bay_2025 not found in events, adding manually');
           events.push({
@@ -295,7 +293,7 @@ function LeaderboardNewContent() {
             event_logo: undefined
           });
         }
-        
+
         // Debug final events list
         console.log('Final events list:', events.length, events.map(e => e.id));
 
@@ -328,13 +326,13 @@ function LeaderboardNewContent() {
           );
 
         setAllEvents(sortedEvents);
-        
+
         // Set default to live event or first event
         const defaultEvent = sortedEvents.find((e) => e.status === "live") ?? sortedEvents[0];
         if (defaultEvent) {
           setLiveEvent(defaultEvent);
         }
-        
+
         setPage(1);
         setLastDoc(null);
         participantsCache.clear();
@@ -357,25 +355,25 @@ function LeaderboardNewContent() {
       try {
         setUsersLoading(true);
         const usersCollection = collection(db, "users");
-        
+
         // Get all users who participated in any 2025 event
         const season2025Events = allEvents.filter(e => e.year === '2025');
         console.log('Season 2025 events for user fetching:', season2025Events.map(e => ({ id: e.id, name: e.name })));
-        
+
         const querySnapshot = await getDocs(usersCollection);
-        
+
         const seasonUsers: User[] = [];
         querySnapshot.docs.forEach((userDoc) => {
           const pickems = userDoc.get("pickems") || {};
-          const hasParticipated = season2025Events.some(event => 
+          const hasParticipated = season2025Events.some(event =>
             Array.isArray(pickems[event.id]) && pickems[event.id].length > 0
           );
-          
+
           // Apply league filter if selected
-          const isInLeague = selectedLeague 
+          const isInLeague = selectedLeague
             ? (userDoc.get("leagues") || []).includes(selectedLeague.id)
             : true;
-          
+
           if (hasParticipated && isInLeague) {
             // Calculate total points across all 2025 events
             let totalPoints = 0;
@@ -385,22 +383,22 @@ function LeaderboardNewContent() {
               totalPoints += pts;
               eventPoints[event.id] = pts;
             });
-            
+
             // Debug: Log user data for Tampa specifically
             const tampaEvent = season2025Events.find(e => e.id === 'tampa_bay_2025');
             if (tampaEvent && userDoc.id === 'test-user-id') { // Replace with actual user ID for testing
               const tampaPts = userDoc.get(`${tampaEvent.id}PTS`);
               const tampaMvp = userDoc.get(`${tampaEvent.id}MVP`);
               const tampaRank = userDoc.get(`${tampaEvent.id}Rank`);
-              console.log(`User ${userDoc.get('name')} Tampa data:`, { 
-                pts: tampaPts, 
-                mvp: tampaMvp, 
+              console.log(`User ${userDoc.get('name')} Tampa data:`, {
+                pts: tampaPts,
+                mvp: tampaMvp,
                 rank: tampaRank,
                 eventId: tampaEvent.id,
                 allUserFields: Object.keys(userDoc.data() || {})
               });
             }
-            
+
             seasonUsers.push({
               id: userDoc.id,
               displayName: userDoc.get("name") || userDoc.get("username") || "Unknown User",
@@ -410,21 +408,21 @@ function LeaderboardNewContent() {
             });
           }
         });
-        
+
         console.log(`Found ${seasonUsers.length} users for season 2025`);
-        
+
         // Sort by total points descending
         seasonUsers.sort((a, b) => {
           const aPts = a.seasonTotalPoints || 0;
           const bPts = b.seasonTotalPoints || 0;
           return bPts - aPts;
         });
-        
+
         // Apply pagination for season view
         const startIndex = (page - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
         const paginatedUsers = seasonUsers.slice(startIndex, endIndex);
-        
+
         setUsers(paginatedUsers);
         setHasMorePages(endIndex < seasonUsers.length);
         setUsersLoading(false);
@@ -459,7 +457,7 @@ function LeaderboardNewContent() {
 
         // Build query with dynamic event-specific rank field
         let constraints: QueryConstraint[];
-        
+
         if (selectedLeague) {
           // For league filtering, get all league members
           constraints = [
@@ -472,7 +470,7 @@ function LeaderboardNewContent() {
             where(`pickems.${liveEvent.id}`, '!=', null),
             limit(1000),
           ];
-          
+
           // Debug for Tampa Bay
           if (liveEvent.id === 'tampa_bay_2025') {
             console.log('Fetching participants for Tampa Bay 2025');
@@ -489,7 +487,7 @@ function LeaderboardNewContent() {
 
         // For league filtering, show ALL league members (not just those who participated)
         let participants: User[];
-        
+
         if (selectedLeague) {
           participants = querySnapshot.docs
             .map((userDoc) => {
@@ -508,13 +506,13 @@ function LeaderboardNewContent() {
               const aPts = parseFloat(a[`${liveEvent.id}PTS`]) || 0;
               const bPts = parseFloat(b[`${liveEvent.id}PTS`]) || 0;
               if (bPts !== aPts) return bPts - aPts;
-              
+
               const aRank = parseInt(a[`${liveEvent.id}Rank`]) || 999999;
               const bRank = parseInt(b[`${liveEvent.id}Rank`]) || 999999;
               return aRank - bRank;
             })
             .slice((page - 1) * itemsPerPage, page * itemsPerPage);
-          
+
           setHasMorePages(querySnapshot.docs.length > page * itemsPerPage);
         } else {
           // For all players, filter for event participation
@@ -523,7 +521,7 @@ function LeaderboardNewContent() {
             const hasPickems = Array.isArray(pickems[liveEvent.id]) && pickems[liveEvent.id].length > 0;
             const hasPTS = doc.get(`${liveEvent.id}PTS`) !== undefined;
             const hasRank = doc.get(`${liveEvent.id}Rank`) !== undefined;
-            
+
             // Debug for Tampa Bay
             if (liveEvent.id === 'tampa_bay_2025' && hasPickems) {
               console.log(`User ${doc.get('name')} has Tampa picks:`, {
@@ -533,22 +531,22 @@ function LeaderboardNewContent() {
                 mvp: doc.get(`${liveEvent.id}MVP`)
               });
             }
-            
+
             // For Tampa Bay 2025, show users even if they don't have PTS/Rank data
             if (liveEvent.id === 'tampa_bay_2025') {
               return hasPickems; // Show if they have picks, even without results
             }
-            
+
             return hasPickems && (hasPTS || hasRank);
           });
-          
+
           console.log(`Found ${docsWithParticipation.length} participants for ${liveEvent.id}`);
-          
+
           const hasMore = docsWithParticipation.length > itemsPerPage;
           setHasMorePages(hasMore);
-          
+
           const docsToDisplay = docsWithParticipation.slice(0, itemsPerPage);
-          
+
           participants = docsToDisplay
             .map((userDoc) => {
               const userData: User = {
@@ -566,12 +564,12 @@ function LeaderboardNewContent() {
               const aPts = parseFloat(a[`${liveEvent.id}PTS`]) || 0;
               const bPts = parseFloat(b[`${liveEvent.id}PTS`]) || 0;
               if (bPts !== aPts) return bPts - aPts;
-              
+
               const aRank = parseInt(a[`${liveEvent.id}Rank`]) || 999999;
               const bRank = parseInt(b[`${liveEvent.id}Rank`]) || 999999;
               return aRank - bRank;
             });
-          
+
           // Store last doc for pagination
           if (docsToDisplay.length > 0) {
             setLastDoc(docsToDisplay.at(-1) ?? null);
@@ -653,9 +651,9 @@ function LeaderboardNewContent() {
   const fetchUserDetails = async (userId: string, retry = 0, isCurrentUserCard = false, eventId?: string): Promise<void> => {
     const cacheKey = eventId ? `${userId}:${eventId}` : userId;
     const targetEventId = eventId || liveEvent?.id;
-    
+
     if (!targetEventId) return;
-    
+
     // Check if already cached
     if (userDetailsMap.has(cacheKey)) {
       return;
@@ -729,13 +727,13 @@ function LeaderboardNewContent() {
     try {
       const userDocRef = doc(db, "users", userId);
       const userDoc = await getDoc(userDocRef);
-      
+
       if (userDoc.exists()) {
         const pickems = userDoc.get("pickems") || {};
-        const userEventIds = Object.keys(pickems).filter(eventId => 
+        const userEventIds = Object.keys(pickems).filter(eventId =>
           Array.isArray(pickems[eventId]) && pickems[eventId].length > 0
         );
-        
+
         // Get event details for user's events with points and MVP
         const userEvents = allEvents.filter(event => userEventIds.includes(event.id)).map(event => ({
           ...event,
@@ -1122,7 +1120,7 @@ function LeaderboardNewContent() {
           Leaderboard
         </h1>
       </header>
-      
+
       {/* Year Filter */}
       <div className="flex justify-center px-4 mt-4">
         <div className="flex flex-wrap gap-2 justify-center">
@@ -1138,18 +1136,17 @@ function LeaderboardNewContent() {
             <button
               key={year}
               onClick={() => setSelectedYear(year || "All")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                selectedYear === year
-                  ? "bg-gray-900 dark:bg-white text-white dark:text-black"
-                  : "bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${selectedYear === year
+                ? "bg-gray-900 dark:bg-white text-white dark:text-black"
+                : "bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
+                }`}
             >
               {year}
             </button>
           ))}
         </div>
       </div>
-      
+
       {/* Events Carousel */}
       <div className="px-4 mt-6">
         <div className="bg-gray-100/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl p-4">
@@ -1165,9 +1162,8 @@ function LeaderboardNewContent() {
                 setLastDoc(null);
                 participantsCache.clear();
               }}
-              className={`relative flex flex-col cursor-pointer md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${
-                isSeasonView && selectedSeason === '2025' ? "border-4 rounded-xl border-blue-500 dark:border-white" : ""
-              }`}
+              className={`relative flex flex-col cursor-pointer md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${isSeasonView && selectedSeason === '2025' ? "border-4 rounded-xl border-blue-500 dark:border-white" : ""
+                }`}
             >
               <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg logographics">
                 <img
@@ -1197,7 +1193,7 @@ function LeaderboardNewContent() {
                 </div>
               </div>
             </article>
-            
+
             {allEvents.filter(event => selectedYear === "All" || event.year === selectedYear).map((event) => (
               <EventCard
                 key={event.id}
@@ -1325,9 +1321,8 @@ function LeaderboardNewContent() {
                         .map((pick, pickIndex) => (
                           <div
                             key={`current-user-${pick.id}-${pickIndex}`}
-                            className={`bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors ${
-                              pick.isCaptain ? "border-2 border-yellow-600 dark:border-yellow-400" : ""
-                            }`}
+                            className={`bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors ${pick.isCaptain ? "border-2 border-yellow-600 dark:border-yellow-400" : ""
+                              }`}
                           >
                             <div className="grid grid-cols-2 gap-x-4 text-xs">
                               <div>
@@ -1360,7 +1355,7 @@ function LeaderboardNewContent() {
 
       {/* League Selector */}
       {!eventLoading && (liveEvent || isSeasonView) && (
-        <LeagueSelector 
+        <LeagueSelector
           onCreateLeague={() => setShowCreateLeague(true)}
           onJoinLeague={() => setShowJoinLeague(true)}
         />
@@ -1372,30 +1367,30 @@ function LeaderboardNewContent() {
           <div className="h-10 bg-gray-700 rounded-lg animate-pulse"></div>
         </div>
       ) : (
-      <div className="relative mt-4 mb-4">
-        <form onSubmit={handleSearchSubmit} className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <FaSearch className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-sm" />
-          </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search players..."
-            className="w-full pl-9 pr-10 py-2 text-sm bg-gray-200 dark:bg-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900 dark:text-white"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={handleClearSearch}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center"
-            >
-              <FaTimes className="text-gray-400 hover:text-white text-sm" />
-            </button>
-          )}
-        </form>
+        <div className="relative mt-4 mb-4">
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FaSearch className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-sm" />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Search players..."
+              className="w-full pl-9 pr-10 py-2 text-sm bg-gray-200 dark:bg-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900 dark:text-white"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                <FaTimes className="text-gray-400 hover:text-white text-sm" />
+              </button>
+            )}
+          </form>
 
-      </div>
+        </div>
       )}
 
       {/* Pagination */}
@@ -1409,32 +1404,32 @@ function LeaderboardNewContent() {
               disabled={pageLoading}
               className="bg-gray-800 text-white text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
             >
-            {PAGE_SIZES.map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </select>
-        </div>
+              {PAGE_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="flex flex-row items-center gap-2">
-          <span className="text-xs text-gray-600 dark:text-gray-300">Page {page}</span>
-          <button
-            onClick={handlePreviousPage}
-            disabled={page === 1 || pageLoading}
-            className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors"
-          >
-            Prev
-          </button>
-          <button
-            onClick={handleNextPage}
-            disabled={!hasMorePages || pageLoading || usersLoading}
-            className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors"
-          >
-            Next
-          </button>
+          <div className="flex flex-row items-center gap-2">
+            <span className="text-xs text-gray-600 dark:text-gray-300">Page {page}</span>
+            <button
+              onClick={handlePreviousPage}
+              disabled={page === 1 || pageLoading}
+              className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors"
+            >
+              Prev
+            </button>
+            <button
+              onClick={handleNextPage}
+              disabled={!hasMorePages || pageLoading || usersLoading}
+              className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors"
+            >
+              Next
+            </button>
+          </div>
         </div>
-      </div>
       )}
 
       {/* Leaderboard Table */}
@@ -1483,11 +1478,9 @@ function LeaderboardNewContent() {
                 return (
                   <Fragment key={user.id}>
                     <tr
-                      className={`hover:bg-gray-400/60 dark:hover:bg-gray-600/60 transition-all duration-300 cursor-pointer ${
-                        currentUserId === user.id ? "bg-blue-200/40 dark:bg-blue-900/40" : "bg-gray-200/60 dark:bg-gray-800/60"
-                      } ${
-                        updatingRows.has(user.id) ? "bg-blue-300/30 dark:bg-blue-500/30 scale-[1.02]" : ""
-                      }`}
+                      className={`hover:bg-gray-400/60 dark:hover:bg-gray-600/60 transition-all duration-300 cursor-pointer ${currentUserId === user.id ? "bg-blue-200/40 dark:bg-blue-900/40" : "bg-gray-200/60 dark:bg-gray-800/60"
+                        } ${updatingRows.has(user.id) ? "bg-blue-300/30 dark:bg-blue-500/30 scale-[1.02]" : ""
+                        }`}
                       onClick={() => toggleExpand(user.id)}
                     >
                       <td className="px-2 py-2 whitespace-nowrap text-sm sticky left-0 z-10 bg-inherit">
@@ -1588,7 +1581,7 @@ function LeaderboardNewContent() {
                                       const eventDetails = userDetailsMap.get(eventCacheKey);
                                       const isEventExpanded = expandedUserEventId === event.id;
                                       const isEventLoading = userDetailsLoading === eventCacheKey;
-                                      
+
                                       // Calculate MVP from picks (rank 1 player) or use stored MVP
                                       let mvpName = "None";
                                       if (eventDetails?.picks) {
@@ -1599,12 +1592,12 @@ function LeaderboardNewContent() {
                                       if (mvpName === "None" && event.mvp) {
                                         mvpName = event.mvp;
                                       }
-                                      
+
                                       // Auto-fetch MVP event details for season view if not already loaded
                                       if (isSeasonView && mvpName !== "None" && !eventDetails && !userDetailsLoading) {
                                         fetchUserDetails(user.id, 0, false, event.id);
                                       }
-                                      
+
                                       return (
                                         <div key={event.id} className="bg-gray-300/30 dark:bg-gray-700/30 rounded">
                                           <div
@@ -1656,9 +1649,8 @@ function LeaderboardNewContent() {
                                                     .map((pick, pickIndex) => (
                                                       <div
                                                         key={`${event.id}-${pick.id}-${pickIndex}`}
-                                                        className={`bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors ${
-                                                          pick.isCaptain ? "border-2 border-yellow-600 dark:border-yellow-400" : ""
-                                                        }`}
+                                                        className={`bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors ${pick.isCaptain ? "border-2 border-yellow-600 dark:border-yellow-400" : ""
+                                                          }`}
                                                       >
                                                         <div className="grid grid-cols-2 gap-x-4 text-xs">
                                                           <div>
@@ -1706,9 +1698,8 @@ function LeaderboardNewContent() {
                                     .map((pick, pickIndex) => (
                                       <div
                                         key={`${user.id}-${pick.id}-${pickIndex}`}
-                                        className={`bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors ${
-                                          pick.isCaptain ? "border-2 border-yellow-600 dark:border-yellow-400" : ""
-                                        }`}
+                                        className={`bg-gray-300/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/80 dark:hover:bg-gray-700/70 transition-colors ${pick.isCaptain ? "border-2 border-yellow-600 dark:border-yellow-400" : ""
+                                          }`}
                                       >
                                         <div className="grid grid-cols-2 gap-x-4 text-xs">
                                           <div>
@@ -1757,52 +1748,52 @@ function LeaderboardNewContent() {
 
       {/* Pagination - Bottom */}
       {
-      // !isSearchMode && users.length > 0 && (
-      //   <div className="flex flex-row items-center justify-between mt-4 gap-2 mb-7 sm:mb-0">
-      //     <div className="flex items-center gap-2">
-      //       <span className="text-xs text-gray-600 dark:text-gray-300">Rows:</span>
-      //       <select
-      //         value={itemsPerPage}
-      //         onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-      //         disabled={pageLoading}
-      //         className="bg-gray-800 text-white text-xs rounded px-2 py-1 border border-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-      //       >
-      //         {PAGE_SIZES.map((size) => (
-      //           <option key={size} value={size}>
-      //             {size}
-      //           </option>
-      //         ))}
-      //       </select>
-      //     </div>
+        // !isSearchMode && users.length > 0 && (
+        //   <div className="flex flex-row items-center justify-between mt-4 gap-2 mb-7 sm:mb-0">
+        //     <div className="flex items-center gap-2">
+        //       <span className="text-xs text-gray-600 dark:text-gray-300">Rows:</span>
+        //       <select
+        //         value={itemsPerPage}
+        //         onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+        //         disabled={pageLoading}
+        //         className="bg-gray-800 text-white text-xs rounded px-2 py-1 border border-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+        //       >
+        //         {PAGE_SIZES.map((size) => (
+        //           <option key={size} value={size}>
+        //             {size}
+        //           </option>
+        //         ))}
+        //       </select>
+        //     </div>
 
-      //     <div className="flex items-center gap-2">
-      //       <span className="text-xs text-gray-600 dark:text-gray-300">Page {page}</span>
-      //       <button
-      //         onClick={handlePreviousPage}
-      //         disabled={page === 1 || pageLoading}
-      //         className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors border border-gray-700"
-      //       >
-      //         Prev
-      //       </button>
-      //       <button
-      //         onClick={handleNextPage}
-      //         disabled={!hasMorePages || pageLoading}
-      //         className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors border border-gray-700"
-      //       >
-      //         Next
-      //       </button>
-      //     </div>
-      //   </div>
-      // )
+        //     <div className="flex items-center gap-2">
+        //       <span className="text-xs text-gray-600 dark:text-gray-300">Page {page}</span>
+        //       <button
+        //         onClick={handlePreviousPage}
+        //         disabled={page === 1 || pageLoading}
+        //         className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors border border-gray-700"
+        //       >
+        //         Prev
+        //       </button>
+        //       <button
+        //         onClick={handleNextPage}
+        //         disabled={!hasMorePages || pageLoading}
+        //         className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors border border-gray-700"
+        //       >
+        //         Next
+        //       </button>
+        //     </div>
+        //   </div>
+        // )
       }
       {/* League Modals */}
-      <CreateLeagueModal 
-        isOpen={showCreateLeague} 
-        onClose={() => setShowCreateLeague(false)} 
+      <CreateLeagueModal
+        isOpen={showCreateLeague}
+        onClose={() => setShowCreateLeague(false)}
       />
-      <JoinLeagueModal 
-        isOpen={showJoinLeague} 
-        onClose={() => setShowJoinLeague(false)} 
+      <JoinLeagueModal
+        isOpen={showJoinLeague}
+        onClose={() => setShowJoinLeague(false)}
       />
     </div>
   );
