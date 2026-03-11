@@ -356,16 +356,16 @@ function LeaderboardNewContent() {
         setUsersLoading(true);
         const usersCollection = collection(db, "users");
 
-        // Get all users who participated in any 2025 event
-        const season2025Events = allEvents.filter(e => e.year === '2025');
-        console.log('Season 2025 events for user fetching:', season2025Events.map(e => ({ id: e.id, name: e.name })));
+        // Get all users who participated in any event for the selected season
+        const seasonEvents = allEvents.filter(e => e.year === selectedSeason);
+        console.log(`Season ${selectedSeason} events for user fetching:`, seasonEvents.map(e => ({ id: e.id, name: e.name })));
 
         const querySnapshot = await getDocs(usersCollection);
 
         const seasonUsers: User[] = [];
         querySnapshot.docs.forEach((userDoc) => {
           const pickems = userDoc.get("pickems") || {};
-          const hasParticipated = season2025Events.some(event =>
+          const hasParticipated = seasonEvents.some(event =>
             Array.isArray(pickems[event.id]) && pickems[event.id].length > 0
           );
 
@@ -375,29 +375,21 @@ function LeaderboardNewContent() {
             : true;
 
           if (hasParticipated && isInLeague) {
-            // Calculate total points across all 2025 events
+            // Calculate total points across all events in selected season
             let totalPoints = 0;
+            let seasonmvppts = 0;
+            let seasonmvpname = "n/a";
             const eventPoints: Record<string, number> = {};
-            season2025Events.forEach(event => {
+            seasonEvents.forEach(event => {
               const pts = parseFloat(userDoc.get(`${event.id}PTS`)) || 0;
               totalPoints += pts;
               eventPoints[event.id] = pts;
-            });
+              if (seasonmvppts < userDoc.get(`${event.id}MVPPTS`)) {
+                seasonmvpname = userDoc.get(`${event.id}MVP`);
+                seasonmvppts = userDoc.get(`${event.id}MVPPTS`);
+              }
 
-            // Debug: Log user data for Tampa specifically
-            const tampaEvent = season2025Events.find(e => e.id === 'tampa_bay_2025');
-            if (tampaEvent && userDoc.id === 'test-user-id') { // Replace with actual user ID for testing
-              const tampaPts = userDoc.get(`${tampaEvent.id}PTS`);
-              const tampaMvp = userDoc.get(`${tampaEvent.id}MVP`);
-              const tampaRank = userDoc.get(`${tampaEvent.id}Rank`);
-              console.log(`User ${userDoc.get('name')} Tampa data:`, {
-                pts: tampaPts,
-                mvp: tampaMvp,
-                rank: tampaRank,
-                eventId: tampaEvent.id,
-                allUserFields: Object.keys(userDoc.data() || {})
-              });
-            }
+            });
 
             seasonUsers.push({
               id: userDoc.id,
@@ -405,11 +397,13 @@ function LeaderboardNewContent() {
               profilePicture: userDoc.get("profilePicture") || undefined,
               pickemData: userDoc.get("pickemData") || undefined,
               seasonTotalPoints: totalPoints,
+              seasonmvppts: seasonmvppts,
+              seasonmvpname: seasonmvpname,
             });
           }
         });
 
-        console.log(`Found ${seasonUsers.length} users for season 2025`);
+        console.log(`Found ${seasonUsers.length} users for season ${selectedSeason}`);
 
         // Sort by total points descending
         seasonUsers.sort((a, b) => {
@@ -735,11 +729,18 @@ function LeaderboardNewContent() {
         );
 
         // Get event details for user's events with points and MVP
-        const userEvents = allEvents.filter(event => userEventIds.includes(event.id)).map(event => ({
-          ...event,
-          points: userDoc.get(`${event.id}PTS`) || 0,
-          mvp: userDoc.get(`${event.id}MVP`) || "None"
-        }));
+        // Filter by selected season if in season view
+        const userEvents = allEvents
+          .filter(event => {
+            const hasParticipated = userEventIds.includes(event.id);
+            const matchesSeason = selectedSeason ? event.year === selectedSeason : true;
+            return hasParticipated && matchesSeason;
+          })
+          .map(event => ({
+            ...event,
+            points: userDoc.get(`${event.id}PTS`) || 0,
+            mvp: userDoc.get(`${event.id}MVP`) || "None"
+          }));
         setUserEventsMap(prev => new Map(prev).set(userId, userEvents));
       }
     } catch (error) {
@@ -1152,47 +1153,61 @@ function LeaderboardNewContent() {
         <div className="bg-gray-100/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl p-4">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white font-azonix mb-4">Select Event</h3>
           <div className="flex flex-row overflow-x-auto gap-4 items-center">
-            {/* Season 2025 Card */}
-            <article
-              onClick={() => {
-                setIsSeasonView(true);
-                setSelectedSeason('2025');
-                setLiveEvent(null);
-                setPage(1);
-                setLastDoc(null);
-                participantsCache.clear();
-              }}
-              className={`relative flex flex-col cursor-pointer md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${isSeasonView && selectedSeason === '2025' ? "border-4 rounded-xl border-blue-500 dark:border-white" : ""
-                }`}
-            >
-              <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg logographics">
-                <img
-                  src="/background0.jpg"
-                  alt="Season 2025"
-                  className="absolute inset-0 w-full h-full object-cover rounded-lg"
-                />
-                <div className="relative flex flex-col items-center justify-center p-4 text-white overflow-auto">
-                  <div
-                    className="text-center font-azonix"
-                    style={{
-                      fontSize: "clamp(0.8rem, 2vw, 1.5rem)",
-                      lineHeight: "1.2",
-                    }}
-                  >
-                    Season 2025
+            {/* Season Cards - Generate dynamically for each year based on selected year filter */}
+            {useMemo(() => {
+              // Get unique years from all events (excluding 2024)
+              const allUniqueYears = Array.from(new Set(allEvents.map((event) => event.year).filter(year => year !== "2024")));
+
+              // Filter years based on selectedYear
+              const yearsToShow = selectedYear === "All"
+                ? allUniqueYears
+                : allUniqueYears.filter(year => year === selectedYear);
+
+              return yearsToShow.sort((a, b) => parseInt(b || "0") - parseInt(a || "0")).map((year) => (
+                <article
+                  key={`season-${year}`}
+                  onClick={() => {
+                    setIsSeasonView(true);
+                    setSelectedSeason(year || '2025');
+                    setLiveEvent(null);
+                    setPage(1);
+                    setLastDoc(null);
+                    participantsCache.clear();
+                    setUserEventsMap(new Map()); // Clear user events map when switching seasons
+                  }}
+                  className={`relative flex flex-col cursor-pointer md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${isSeasonView && selectedSeason === year ? "border-4 rounded-xl border-blue-500 dark:border-white" : ""
+                    }`}
+                >
+                  <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg logographics">
+                    <img
+                      src="/background0.jpg"
+                      alt={`Season ${year}`}
+                      className="absolute inset-0 w-full h-full object-cover rounded-lg"
+                    />
+                    <div className="relative flex flex-col items-center justify-center p-4 text-white overflow-auto">
+                      <div
+                        className="text-center font-azonix"
+                        style={{
+                          fontSize: "clamp(0.8rem, 2vw, 1.5rem)",
+                          lineHeight: "1.2",
+                        }}
+                      >
+                        Season {year}
+                      </div>
+                      <div
+                        className="text-center font-azonix text-yellow-400"
+                        style={{
+                          fontSize: "clamp(0.5rem, 1.5vw, 1rem)",
+                          lineHeight: "1.2",
+                        }}
+                      >
+                        All Events
+                      </div>
+                    </div>
                   </div>
-                  <div
-                    className="text-center font-azonix text-yellow-400"
-                    style={{
-                      fontSize: "clamp(0.5rem, 1.5vw, 1rem)",
-                      lineHeight: "1.2",
-                    }}
-                  >
-                    All Events
-                  </div>
-                </div>
-              </div>
-            </article>
+                </article>
+              ));
+            }, [allEvents, isSeasonView, selectedSeason, selectedYear])}
 
             {allEvents.filter(event => selectedYear === "All" || event.year === selectedYear).map((event) => (
               <EventCard
@@ -1321,7 +1336,7 @@ function LeaderboardNewContent() {
                         .map((pick, pickIndex) => (
                           <div
                             key={`current-user-${pick.id}-${pickIndex}`}
-                            className={`bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors ${pick.isCaptain ? "border-2 border-yellow-600 dark:border-yellow-400" : ""
+                            className={`bg-gray-300/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors ${pick.isCaptain ? "border-2 border-yellow-600 dark:border-yellow-400" : ""
                               }`}
                           >
                             <div className="grid grid-cols-2 gap-x-4 text-xs">
@@ -1535,7 +1550,7 @@ function LeaderboardNewContent() {
 
                       <td className="px-2 py-2 whitespace-nowrap text-xs sm:text-sm text-gray-900 dark:text-gray-300 hidden sm:table-cell">
                         {isSeasonView ? (
-                          "-"
+                          user.seasonmvpname || "N/A"
                         ) : (
                           liveEvent && user[`${liveEvent.id}MVP`] !== undefined && user[`${liveEvent.id}MVP`] !== null
                             ? user[`${liveEvent.id}MVP`] || "None"
@@ -1615,7 +1630,7 @@ function LeaderboardNewContent() {
                                                 )}
                                               </div>
                                               <div className="flex items-center gap-3">
-                                                <div className="text-xs text-gray-600 dark:text-gray-400">
+                                                <div className="text-xs text-gray-600 dark:text-gray-400 ml-2">
                                                   <span className="text-green-600 dark:text-green-400 font-medium">{event.points} pts</span>
                                                   {mvpName !== "None" && (
                                                     <span className="ml-2 text-yellow-600 dark:text-yellow-400">
@@ -1649,7 +1664,7 @@ function LeaderboardNewContent() {
                                                     .map((pick, pickIndex) => (
                                                       <div
                                                         key={`${event.id}-${pick.id}-${pickIndex}`}
-                                                        className={`bg-gray-200/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors ${pick.isCaptain ? "border-2 border-yellow-600 dark:border-yellow-400" : ""
+                                                        className={`bg-gray-300/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/80 dark:hover:bg-gray-700/70 transition-colors ${pick.isCaptain ? "border-2 border-yellow-600 dark:border-yellow-400" : ""
                                                           }`}
                                                       >
                                                         <div className="grid grid-cols-2 gap-x-4 text-xs">
