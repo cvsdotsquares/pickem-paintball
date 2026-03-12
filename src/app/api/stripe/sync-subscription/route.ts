@@ -21,9 +21,18 @@ export async function POST(request: NextRequest) {
     const priceId = subscription.items.data[0].price.id;
     let plan: 'monthly' | 'quarterly' | 'yearly' = 'monthly';
 
-    if (priceId === process.env.STRIPE_MONTHLY_PRICE_ID) plan = 'monthly';
-    else if (priceId === process.env.STRIPE_QUARTERLY_PRICE_ID) plan = 'quarterly';
-    else if (priceId === process.env.STRIPE_YEARLY_PRICE_ID) plan = 'yearly';
+    // Get price IDs from environment variables and split by pipe
+    const monthlyPrices = process.env.STRIPE_MONTHLY_PRICE_IDS?.split('|') || [];
+    const quarterlyPrices = process.env.STRIPE_QUARTERLY_PRICE_IDS?.split('|') || [];
+    const yearlyPrices = process.env.STRIPE_YEARLY_PRICE_IDS?.split('|') || [];
+
+    if (monthlyPrices.includes(priceId)) {
+      plan = 'monthly';
+    } else if (quarterlyPrices.includes(priceId)) {
+      plan = 'quarterly';
+    } else if (yearlyPrices.includes(priceId)) {
+      plan = 'yearly';
+    }
 
     await updateDoc(doc(db, 'users', userId), {
       isSubscribed: subscription.status === 'active',
