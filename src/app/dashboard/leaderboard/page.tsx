@@ -261,41 +261,8 @@ function LeaderboardNewContent() {
             event_logo: doc.get("event_logo") || undefined,
           };
 
-          // Special handling for tampa_bay_2025
-          if (id === 'tampa_bay_2025') {
-            console.log('Tampa Bay 2025 event found:', event);
-            console.log('Raw document data:', doc.data());
-          }
-
           return event;
         });
-
-        // Debug: Log all events to check for Tampa
-        console.log('All events fetched:', events.map(e => ({ id: e.id, name: e.name, year: e.year })));
-
-        // Check specifically for Tampa events
-        const tampaEvents = events.filter(e => e.name.toLowerCase().includes('tampa') || e.id.includes('tampa'));
-        console.log('Tampa events found:', tampaEvents);
-
-        // Force include tampa_bay_2025 if missing
-        const hasTampa = events.some(e => e.id === 'tampa_bay_2025');
-        console.log('Tampa Bay 2025 exists in events:', hasTampa);
-
-        if (!hasTampa) {
-          console.warn('tampa_bay_2025 not found in events, adding manually');
-          events.push({
-            id: 'tampa_bay_2025',
-            name: 'Tampa Bay 2025',
-            status: 'archived',
-            event_place: '1',
-            year: '2025',
-            lockDate: null,
-            event_logo: undefined
-          });
-        }
-
-        // Debug final events list
-        console.log('Final events list:', events.length, events.map(e => e.id));
 
         // Sort events, excluding 2024 events completely
         const eventsByYear = events
@@ -464,11 +431,6 @@ function LeaderboardNewContent() {
             where(`pickems.${liveEvent.id}`, '!=', null),
             limit(1000),
           ];
-
-          // Debug for Tampa Bay
-          if (liveEvent.id === 'tampa_bay_2025') {
-            console.log('Fetching participants for Tampa Bay 2025');
-          }
         }
 
         // Pagination with startAfter (only for non-league queries)
@@ -524,11 +486,6 @@ function LeaderboardNewContent() {
                 rank: doc.get(`${liveEvent.id}Rank`),
                 mvp: doc.get(`${liveEvent.id}MVP`)
               });
-            }
-
-            // For Tampa Bay 2025, show users even if they don't have PTS/Rank data
-            if (liveEvent.id === 'tampa_bay_2025') {
-              return hasPickems; // Show if they have picks, even without results
             }
 
             return hasPickems && (hasPTS || hasRank);
