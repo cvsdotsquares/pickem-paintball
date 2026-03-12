@@ -104,10 +104,11 @@ export default function SubscriptionManager() {
   };
 
   // Look up plan from Stripe-sourced data
-  const activeTier = subscriptionData?.subscriptionTier || subscriptionTier || '';
-  const activePlan = plans.find((p) => p.id === activeTier);
-  const planName = activePlan?.name || activeTier.charAt(0).toUpperCase() + activeTier.slice(1) || 'Plan';
-  const planPrice = activePlan ? `${activePlan.price}${activePlan.period}` : '';
+  const activePlan = subscriptionData?.activePlanDetails;
+  console.log('--- FRONTEND ACTIVE PLAN DETAILS ---', activePlan);
+  
+  const planName = activePlan?.name || (subscriptionTier ? (subscriptionTier.charAt(0).toUpperCase() + subscriptionTier.slice(1)) : 'Premium Plan');
+  const planPrice = activePlan?.price ? `$${activePlan.price}${activePlan.period || ''}` : '';
 
   if (!isSubscribed) {
     return (
@@ -139,7 +140,12 @@ export default function SubscriptionManager() {
         {subscriptionData?.currentPeriodEnd && (
           <div className="flex items-center gap-2 text-blue-200 text-sm mb-4">
             <FaCalendar />
-            <span>Renews on {new Date(subscriptionData.currentPeriodEnd).toLocaleDateString()}</span>
+            <span>Renews on {new Date(subscriptionData.currentPeriodEnd).toLocaleDateString(undefined, {
+               year: 'numeric',
+               month: 'long',
+               day: 'numeric',
+               timeZone: 'UTC' // Forces it to display exactly the day Stripe reports
+            })}</span>
           </div>
         )}
 

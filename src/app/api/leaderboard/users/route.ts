@@ -41,6 +41,7 @@ interface LeaderboardUser {
   totalPoints: number;
   mvp: string;
   rank?: number;
+  mvpPoints?: number;
 }
 
 export const dynamic = 'force-dynamic';
@@ -51,7 +52,7 @@ export async function GET(request: Request) {
     // Check authentication - support both user tokens and API key
     const authHeader = request.headers.get('Authorization');
     const apiKey = request.headers.get('X-API-Key');
-    
+
     if (!authHeader && !apiKey) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -120,6 +121,7 @@ export async function GET(request: Request) {
         }
 
         let totalPoints = 0;
+        let points = 0;
         let mvp = { playerName: 'None', kills: 0 };
 
         await Promise.all(
@@ -139,6 +141,7 @@ export async function GET(request: Request) {
 
                 if (kills > mvp.kills) {
                   mvp = { playerName: name, kills };
+                  points = kills;
                 }
               }
             } catch (error) {
@@ -156,6 +159,7 @@ export async function GET(request: Request) {
           displayName: userData.name || userData.username || 'Unknown User',
           totalPoints,
           mvp: mvp.playerName,
+          mvpPoints: points,
         } as LeaderboardUser;
       })
     );

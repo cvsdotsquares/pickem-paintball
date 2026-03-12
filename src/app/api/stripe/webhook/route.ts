@@ -158,14 +158,19 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
 }
 
 function getPlanFromPriceId(priceId: string): 'monthly' | 'quarterly' | 'yearly' {
-  const plans: Record<string, 'monthly' | 'quarterly' | 'yearly'> = {
-    [process.env.STRIPE_MONTHLY_PRICE_ID!]: 'monthly',
-    [process.env.STRIPE_QUARTERLY_PRICE_ID!]: 'quarterly',
-    [process.env.STRIPE_YEARLY_PRICE_ID!]: 'yearly'
-  };
-  return plans[priceId] || 'monthly';
-}
+  const monthlyPrices = process.env.STRIPE_MONTHLY_PRICE_IDS?.split('|') || [];
+  const quarterlyPrices = process.env.STRIPE_QUARTERLY_PRICE_IDS?.split('|') || [];
+  const yearlyPrices = process.env.STRIPE_YEARLY_PRICE_IDS?.split('|') || [];
+  if (monthlyPrices.includes(priceId)) {
+    return 'monthly';
+  } else if (quarterlyPrices.includes(priceId)) {
+    return 'quarterly';
+  } else if (yearlyPrices.includes(priceId)) {
+    return 'yearly';
 
+  }
+  return 'monthly'; // default fallback
+}
 export const config = {
   api: {
     bodyParser: false

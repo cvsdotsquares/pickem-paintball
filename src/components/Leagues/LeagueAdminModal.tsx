@@ -657,18 +657,7 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                                 {processingRequestId === member.id ? 'Processing...' : 'Remove Admin'}
                               </button>
                             )}
-                            {member.isAdmin && league.admins.length > 1 && (
-                              <button
-                                onClick={() => {
-                                  setTransferUserId(member.id);
-                                  setShowTransferConfirm(true);
-                                }}
-                                disabled={processingRequestId === member.id}
-                                className="px-2 py-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-gray-900 dark:text-white rounded text-xs transition-colors"
-                              >
-                                Transfer
-                              </button>
-                            )}
+
                             <button
                               onClick={() => handleMemberAction(member.id, 'remove')}
                               disabled={processingRequestId === member.id}
