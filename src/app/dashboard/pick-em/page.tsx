@@ -319,9 +319,21 @@ export default function Pickems() {
           user?.email?.split("@")[0] ||
           "PLAYER";
 
+        // Resolve profile photo — profilePicture is a Storage path, needs getDownloadURL
+        let resolvedPhoto: string | undefined = undefined;
+        if (data.profilePicture) {
+          try {
+            resolvedPhoto = await getDownloadURL(ref(getStorage(), data.profilePicture));
+          } catch (e) {
+            resolvedPhoto = user?.photoURL || undefined;
+          }
+        } else {
+          resolvedPhoto = user?.photoURL || undefined;
+        }
+
         setUserProfile({
           displayName: resolvedName,
-          photoURL: data.photoURL || user?.photoURL || undefined,
+          photoURL: resolvedPhoto,
           eventRank: data.eventRank ?? undefined,
           seasonRank: data.seasonRank ?? undefined,
           eventElims: data.eventElims ?? undefined,
@@ -738,8 +750,11 @@ export default function Pickems() {
                   })()}
                 </div>
 
-                {/* ── ROWS 2–4: 9 player slots. Captain is a label only — all 10 picks live here + the captain slot above ── */}
-                {playerSlots.slice(0, 9).map((slot) => (
+                {/* ── ROWS 2–4: 9 player slots. Filter out the captain so they only appear in the captain slot above ── */}
+                {[
+                  ...playerSlots.filter((slot) => slot.player && String(slot.player.player_id) !== String(captainId)),
+                  ...playerSlots.filter((slot) => !slot.player),
+                ].slice(0, 9).map((slot) => (
                   <div key={slot.id}>
                     {slot.player
                       ? <SlotCard player={slot.player} isCaptain={captainId === slot.player.player_id} onRemove={() => handlePlayerAction(slot.player!)} onSetCaptain={() => handleCaptainSelection(slot.player!.player_id)} />
