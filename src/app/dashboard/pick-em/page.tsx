@@ -334,10 +334,10 @@ export default function Pickems() {
         setUserProfile({
           displayName: resolvedName,
           photoURL: resolvedPhoto,
-          eventRank: data.eventRank ?? undefined,
-          seasonRank: data.seasonRank ?? undefined,
-          eventElims: data.eventElims ?? undefined,
-          seasonElims: data.seasonElims ?? undefined,
+          eventRank: data[`${liveEvent.id}Rank`] ?? undefined,
+          seasonRank: data[`${liveEvent.id}Rank`] ?? undefined,  // season = event for first event
+          eventElims: data[`${liveEvent.id}PTS`] ?? undefined,
+          seasonElims: data[`${liveEvent.id}PTS`] ?? undefined,  // season = event for first event
         });
 
         const ids = data.pickems?.[liveEvent.id];
@@ -712,29 +712,7 @@ export default function Pickems() {
                       <div className={`h-full rounded-full transition-all duration-500 ${budgetPct > 85 ? "bg-red-500" : "bg-green-400"}`} style={{ width: `${100 - budgetPct}%` }} />
                     </div>
                   </div>
-                  {/* Picks saved confirmation */}
-                  {saveStatus === "saved" && (
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                        <span className="text-white text-[8px] font-black">✓</span>
-                      </div>
-                      <span className="text-green-400 text-[9px] font-black uppercase tracking-widest">Picks Saved</span>
-                    </div>
-                  )}
-                  {saveStatus === "saving" && (
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
-                      <span className="text-yellow-400 text-[9px] font-black uppercase tracking-widest">Saving...</span>
-                    </div>
-                  )}
-                  {saveStatus === "error" && (
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
-                        <span className="text-white text-[8px] font-black">✕</span>
-                      </div>
-                      <span className="text-red-400 text-[9px] font-black uppercase tracking-widest">Save Failed</span>
-                    </div>
-                  )}
+
                 </div>
 
                 {/* Captain slot */}
