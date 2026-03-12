@@ -311,8 +311,8 @@ export default function Dashboard() {
                         {[
                           { label: "Event Rank:", val: eventRank ? `#${eventRank}` : "#—" },
                           { label: "Season Rank:", val: seasonRank ? `#${seasonRank}` : "#—" },
-                          { label: "Event Points:", val: eventPoints ?? "—" },
-                          { label: "Season Points:", val: seasonPoints ?? "—" },
+                          { label: "Event Pts:", val: eventPoints ?? "—" },
+                          { label: "Season Pts:", val: seasonPoints ?? "—" },
                         ].map(({ label, val }) => (
                           <div key={label}>
                             <div className="text-white/30 text-[8px] uppercase tracking-widest font-bold leading-none">{label}</div>
