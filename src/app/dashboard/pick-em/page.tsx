@@ -76,6 +76,14 @@ export default function Pickems() {
   const { user } = useAuth();
   const { isSubscribed, showModal } = useSubscription();
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [userProfile, setUserProfile] = useState<{
+    displayName?: string;
+    photoURL?: string;
+    eventRank?: number;
+    seasonRank?: number;
+    eventElims?: number;
+    seasonElims?: number;
+  }>({});
 
   function useThrottledState<T>(initialState: T, delay = 300): [T, React.Dispatch<React.SetStateAction<T>>] {
     const [state, setState] = useState(initialState);
@@ -300,6 +308,26 @@ export default function Pickems() {
         const snap = await getDoc(doc(db, "users", user.uid));
         if (!snap.exists()) return;
         const data = snap.data();
+
+        // FIX: resolve display name with priority: username > firstName+lastName > name > displayName > email
+        const resolvedName =
+          data.username ||
+          (data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : null) ||
+          data.name ||
+          data.displayName ||
+          user?.displayName ||
+          user?.email?.split("@")[0] ||
+          "PLAYER";
+
+        setUserProfile({
+          displayName: resolvedName,
+          photoURL: data.photoURL || user?.photoURL || undefined,
+          eventRank: data.eventRank ?? undefined,
+          seasonRank: data.seasonRank ?? undefined,
+          eventElims: data.eventElims ?? undefined,
+          seasonElims: data.seasonElims ?? undefined,
+        });
+
         const ids = data.pickems?.[liveEvent.id];
         if (!Array.isArray(ids)) return;
         const docs = await Promise.all(ids.map((id: string) => getDoc(doc(db, `events/${liveEvent.id}/players`, id.toString()))));
@@ -622,22 +650,22 @@ export default function Pickems() {
                     {/* Avatar + badges */}
                     <div className="flex flex-col items-center gap-1 flex-shrink-0">
                       <div className="w-11 h-11 rounded-full bg-white/10 border-2 border-white/20 overflow-hidden flex items-center justify-center">
-                        {user?.photoURL
-                          ? <img src={user.photoURL} alt="" className="w-full h-full object-cover" />
-                          : <span className="text-white/50 font-black text-lg">{user?.displayName?.[0] || "?"}</span>}
+                        {userProfile.photoURL
+                          ? <img src={userProfile.photoURL} alt="" className="w-full h-full object-cover" />
+                          : <span className="text-white/50 font-black text-lg">{(userProfile.displayName || user?.email || "?")[0].toUpperCase()}</span>}
                       </div>
                       <div className="flex gap-0.5">{[0, 1, 2].map((i) => <div key={i} className="w-3.5 h-3.5 rounded-full bg-white/10 border border-white/15" />)}</div>
                     </div>
                     {/* Player name + stats */}
                     <div className="flex-1 min-w-0">
                       <div className="text-white/40 text-[8px] uppercase tracking-widest font-bold leading-none">Player</div>
-                      <div className="text-white font-black text-sm uppercase leading-tight truncate mb-1">{user?.email?.split("@")[0]?.toUpperCase() || "PLAYER"}</div>
+                      <div className="text-white font-black text-sm uppercase leading-tight truncate mb-1">{userProfile.displayName?.toUpperCase() || user?.email?.split("@")[0]?.toUpperCase() || "PLAYER"}</div>
                       <div className="grid grid-cols-2 gap-x-2 gap-y-0">
                         {[
-                          { label: "Event Rank:", val: "#3" },
-                          { label: "Season Rank:", val: "#3" },
-                          { label: "Event Elims:", val: "21" },
-                          { label: "Season Elims:", val: "21" },
+                          { label: "Event Rank:", val: userProfile.eventRank ? `#${userProfile.eventRank}` : "#—" },
+                          { label: "Season Rank:", val: userProfile.seasonRank ? `#${userProfile.seasonRank}` : "#—" },
+                          { label: "Event Elims:", val: userProfile.eventElims ?? "—" },
+                          { label: "Season Elims:", val: userProfile.seasonElims ?? "—" },
                         ].map(({ label, val }) => (
                           <div key={label}>
                             <div className="text-white/30 text-[8px] uppercase tracking-widest font-bold leading-none">{label}</div>
@@ -710,8 +738,8 @@ export default function Pickems() {
                   })()}
                 </div>
 
-                {/* ── ROWS 2–4: 9 player slots (captain excluded, shown separately above) ── */}
-                {playerSlots.filter((slot) => !slot.player || slot.player.player_id !== captainId).slice(0, 9).map((slot) => (
+                {/* ── ROWS 2–4: 9 player slots. Captain is a label only — all 10 picks live here + the captain slot above ── */}
+                {playerSlots.slice(0, 9).map((slot) => (
                   <div key={slot.id}>
                     {slot.player
                       ? <SlotCard player={slot.player} isCaptain={captainId === slot.player.player_id} onRemove={() => handlePlayerAction(slot.player!)} onSetCaptain={() => handleCaptainSelection(slot.player!.player_id)} />
