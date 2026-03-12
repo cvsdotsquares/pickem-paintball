@@ -42,6 +42,11 @@ export default function Dashboard() {
   );
   const [captainId, setCaptainId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string>("");
+  const [eventRank, setEventRank] = useState<number | undefined>();
+  const [seasonRank, setSeasonRank] = useState<number | undefined>();
+  const [eventPoints, setEventPoints] = useState<number | undefined>();
+  const [seasonPoints, setSeasonPoints] = useState<number | undefined>();
   const [liveEvent, setLiveEvent] = useState<any>(null);
   const [remainingBudget, setRemainingBudget] = useState(1000000);
   const TOTAL_BUDGET = 1000000;
@@ -52,14 +57,37 @@ export default function Dashboard() {
 
   const budgetPct = Math.min(100, ((TOTAL_BUDGET - remainingBudget) / TOTAL_BUDGET) * 100);
 
-  // Fetch avatar
+  // Fetch avatar + display name + stats
   useEffect(() => {
     if (!user) return;
     const fetchAvatar = async () => {
       try {
         const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists() && userDoc.data().profilePicture) {
-          setAvatarUrl(getFirebaseStorageUrl(userDoc.data().profilePicture));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+
+          // display name priority: username > firstName+lastName > name > displayName > email
+          const name =
+            data.username ||
+            (data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : null) ||
+            data.name ||
+            data.displayName ||
+            user.displayName ||
+            user.email?.split("@")[0] ||
+            "PLAYER";
+          setDisplayName(name);
+
+          // photo — profilePicture is a Storage path
+          if (data.profilePicture) {
+            try {
+              const url = await getDownloadURL(ref(getStorage(), data.profilePicture));
+              setAvatarUrl(url);
+            } catch {
+              setAvatarUrl(user.photoURL || null);
+            }
+          } else {
+            setAvatarUrl(user.photoURL || null);
+          }
         } else {
           setAvatarUrl(user.photoURL || null);
         }
@@ -87,11 +115,25 @@ export default function Dashboard() {
             endDate: live.endDate || "",
             lockDate: live.lockDate?.toDate ? live.lockDate.toDate() : null,
           });
+
+          // fetch stats from flat fields e.g. tampa_bay_2026Rank, tampa_bay_2026PTS
+          if (user) {
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+              const data = userDoc.data();
+              const rank = data[`${live.id}Rank`] ?? undefined;
+              const pts = data[`${live.id}PTS`] ?? undefined;
+              setEventRank(rank);
+              setSeasonRank(rank);   // season = event for first event
+              setEventPoints(pts);
+              setSeasonPoints(pts);  // season = event for first event
+            }
+          }
         }
       } catch (e) { console.error(e); }
     };
     fetchLiveEvent();
-  }, []);
+  }, [user?.uid]);
 
   // Countdown tick
   useEffect(() => {
@@ -253,7 +295,7 @@ export default function Dashboard() {
                       <div className="w-11 h-11 rounded-full bg-white/10 border-2 border-white/20 overflow-hidden flex items-center justify-center">
                         {avatarUrl
                           ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-                          : <span className="text-white/50 font-black text-lg">{user?.displayName?.[0] || "?"}</span>}
+                          : <span className="text-white/50 font-black text-lg">{displayName?.[0]?.toUpperCase() || "?"}</span>}
                       </div>
                       <div className="flex gap-0.5">
                         {[0, 1, 2].map((i) => <div key={i} className="w-3.5 h-3.5 rounded-full bg-white/10 border border-white/15" />)}
@@ -263,14 +305,14 @@ export default function Dashboard() {
                     <div className="flex-1 min-w-0">
                       <div className="text-white/40 text-[8px] uppercase tracking-widest font-bold leading-none">Player</div>
                       <div className="text-white font-black text-sm uppercase leading-tight truncate mb-1">
-                        {user?.email?.split("@")[0]?.toUpperCase() || "PLAYER"}
+                        {displayName?.toUpperCase() || user?.email?.split("@")[0]?.toUpperCase() || "PLAYER"}
                       </div>
                       <div className="grid grid-cols-2 gap-x-2 gap-y-0">
                         {[
-                          { label: "Event Rank:", val: "#—" },
-                          { label: "Season Rank:", val: "#—" },
-                          { label: "Event Elims:", val: "—" },
-                          { label: "Season Elims:", val: "—" },
+                          { label: "Event Rank:", val: eventRank ? `#${eventRank}` : "#—" },
+                          { label: "Season Rank:", val: seasonRank ? `#${seasonRank}` : "#—" },
+                          { label: "Event Points:", val: eventPoints ?? "—" },
+                          { label: "Season Points:", val: seasonPoints ?? "—" },
                         ].map(({ label, val }) => (
                           <div key={label}>
                             <div className="text-white/30 text-[8px] uppercase tracking-widest font-bold leading-none">{label}</div>

@@ -676,8 +676,8 @@ export default function Pickems() {
                         {[
                           { label: "Event Rank:", val: userProfile.eventRank ? `#${userProfile.eventRank}` : "#—" },
                           { label: "Season Rank:", val: userProfile.seasonRank ? `#${userProfile.seasonRank}` : "#—" },
-                          { label: "Event Elims:", val: userProfile.eventElims ?? "—" },
-                          { label: "Season Elims:", val: userProfile.seasonElims ?? "—" },
+                          { label: "Event Points:", val: userProfile.eventElims ?? "—" },
+                          { label: "Season Points:", val: userProfile.seasonElims ?? "—" },
                         ].map(({ label, val }) => (
                           <div key={label}>
                             <div className="text-white/30 text-[8px] uppercase tracking-widest font-bold leading-none">{label}</div>
