@@ -103,8 +103,8 @@ function formatPeriod(interval: string, intervalCount: number): string {
 // Determine plan order and metadata
 const PLAN_META: Record<string, { order: number; popular: boolean; savings: string | null }> = {
   quarterly: { order: 0, popular: false, savings: null },
-  monthly: { order: 1, popular: true, savings: null },
-  yearly: { order: 2, popular: false, savings: null },
+  monthly: { order: 1, popular: true, savings: 'Save 14%' },
+  yearly: { order: 2, popular: false, savings: 'Save 29%' },
 };
 
 export async function GET(request: NextRequest) {
@@ -191,14 +191,14 @@ export async function GET(request: NextRequest) {
           const equivalent = monthlyAmount * 3;
           if (equivalent > qAmount) {
             const pct = Math.round(((equivalent - qAmount) / equivalent) * 100);
-            plan.savings = `Save ${pct}%`;
+            //plan.savings = `Save ${pct}%`;
           }
         } else if (plan.id === 'yearly') {
           const yAmount = parseFloat(plan.price.replace(/[^0-9.]/g, ''));
           const equivalent = monthlyAmount * 12;
           if (equivalent > yAmount) {
             const pct = Math.round(((equivalent - yAmount) / equivalent) * 100);
-            plan.savings = `Save ${pct}%`;
+            //plan.savings = `Save ${pct}%`;
           }
         }
       });
