@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cachedPlansByCurrency } from '../plans/route';
 
 export const dynamic = 'force-dynamic';
+
+declare global {
+  var subscriptionPlansCache: Record<string, { plans: any[], timestamp: number }>;
+}
+
+if (!global.subscriptionPlansCache) {
+  global.subscriptionPlansCache = {};
+}
 
 export async function POST(request: NextRequest) {
   const secret = request.headers.get('x-revalidate-secret');
@@ -11,8 +18,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Clear all cached currencies
-  for (const key in cachedPlansByCurrency) {
-    delete cachedPlansByCurrency[key];
+  for (const key in global.subscriptionPlansCache) {
+    delete global.subscriptionPlansCache[key];
   }
 
   console.log('>>> Subscription plan cache cleared');
