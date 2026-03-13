@@ -103,7 +103,8 @@ export async function POST(request: NextRequest) {
                     const totalKills = playerDoc.get("Confirmed Kills") || 0;
                     const playerName = playerDoc.get("Player") || "Unknown Player";
 
-                    totalPoints += totalKills;
+                    const isCaptain = playerId === (userPickems[`${eventId}_captain`] || null);
+                    totalPoints += isCaptain ? totalKills * 1.25 : totalKills;
                     if (totalKills > mvp.kills) {
                       mvp = { playerName, kills: totalKills };
                     }
