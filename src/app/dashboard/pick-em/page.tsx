@@ -254,7 +254,7 @@ export default function Pickems() {
       try {
         const raw = await fetchFromFirestore(`events/${liveEvent.id}/players`);
         const players: Player[] = raw.map((r: any) => ({
-          player_id: r.player_id, league_id: r.league_id, Player: r.Player, Team: r.Team,
+          player_id: r.player_id != null ? String(r.player_id) : r.id, league_id: r.league_id, Player: r.Player, Team: r.Team,
           Rank: r.Rank, team_id: r.team_id, Cost: r.Cost, img_url: r.img_url,
           picture: r.img_url?.trim() ? r.img_url : undefined,
           pictureLoading: !r.img_url?.trim(),
@@ -347,7 +347,8 @@ export default function Pickems() {
           const pd = { ...d.data(), player_id: d.id } as any;
           return { ...pd, picture: pd.img_url?.trim() ? pd.img_url : await fetchPlayerPicture(pd.league_id) };
         }));
-        const captainIdValue = data.pickems?.[`${liveEvent.id}_captain`] || null;
+        const rawCaptainId = data.pickems?.[`${liveEvent.id}_captain`];
+        const captainIdValue = rawCaptainId != null ? String(rawCaptainId) : null;
         setCaptainId(captainIdValue);
         setTemporaryPicks(picks);
         setPlayerSlots((prev) => prev.map((slot, i) => ({ ...slot, player: picks[i] || null })));
@@ -424,8 +425,8 @@ export default function Pickems() {
     if (!captainId) { toast.warning("Select a captain first!"); return; }
     try {
       await updateDoc(doc(db, "users", user.uid), {
-        [`pickems.${liveEvent.id}`]: temporaryPicks.map((p) => p.player_id),
-        [`pickems.${liveEvent.id}_captain`]: captainId,
+        [`pickems.${liveEvent.id}`]: temporaryPicks.map((p) => String(p.player_id)),
+        [`pickems.${liveEvent.id}_captain`]: captainId ? String(captainId) : null,
       });
       setSaveStatus("saved");
       toast.success("Picks saved!");
@@ -458,8 +459,8 @@ export default function Pickems() {
     const timer = setTimeout(async () => {
       try {
         await updateDoc(doc(db, "users", user.uid), {
-          [`pickems.${liveEvent.id}`]: temporaryPicks.map((p) => p.player_id),
-          [`pickems.${liveEvent.id}_captain`]: captainId,
+          [`pickems.${liveEvent.id}`]: temporaryPicks.map((p) => String(p.player_id)),
+          [`pickems.${liveEvent.id}_captain`]: captainId ? String(captainId) : null,
         });
         setSaveStatus("saved");
         maybeShowSupportModal();
@@ -743,7 +744,7 @@ export default function Pickems() {
                 {/* Captain slot */}
                 <div>
                   {(() => {
-                    const cap = captainId ? temporaryPicks.find((p) => p.player_id === captainId) : null;
+                    const cap = captainId ? temporaryPicks.find((p) => String(p.player_id) === String(captainId)) : null;
                     return cap
                       ? <SlotCard player={cap} isCaptain={true} isLocked={!isBeforeLockDate(liveEvent.lockDate)} onRemove={() => handlePlayerAction(cap)} onSetCaptain={handleCaptainUnset} />
                       : <div onClick={() => setIsDrawerOpen(true)} className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-yellow-400/40 bg-yellow-400/5 h-full gap-1 min-h-[120px] cursor-pointer hover:border-yellow-400/60 transition-colors">
