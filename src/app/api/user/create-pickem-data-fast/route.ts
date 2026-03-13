@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
           const playerDoc = await getDoc(playerRef);
           if (playerDoc.exists()) {
             return {
+              playerId,
               kills: playerDoc.get("Confirmed Kills") || 0,
               name: playerDoc.get("Player") || "Unknown Player"
             };
