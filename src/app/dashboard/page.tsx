@@ -197,7 +197,7 @@ export default function Dashboard() {
 
         // Calculate live points with captain 1.5x multiplier (overrides stale Firebase flat field)
         const livePoints = picks.reduce((sum, p) => {
-          const kills = p["Confirmed Kills"] || 0;
+          const kills = (p as any)["Confirmed Kills"] || 0;
           return sum + (p.player_id === captainIdValue ? kills * 1.5 : kills);
         }, 0);
         if (livePoints > 0) {
