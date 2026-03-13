@@ -60,9 +60,12 @@ export async function GET(request: NextRequest) {
 
       const playerResults = await Promise.all(playerPromises);
       
+      const captainId = pickems[`${eventId}_captain`] || null;
+
       playerResults.forEach(result => {
         if (result) {
-          totalPoints += result.kills;
+          const isCaptain = result.playerId === captainId;
+          totalPoints += isCaptain ? result.kills * 1.25 : result.kills;
           if (result.kills > mvp.kills) {
             mvp = { playerName: result.name, kills: result.kills };
           }
