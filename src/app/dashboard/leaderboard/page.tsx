@@ -44,6 +44,7 @@ interface User {
   id: string;
   displayName: string;
   profilePicture?: string;
+  isSubscribed?: boolean;
   pickemData?: Record<string, {
     Rank: string;
     MVP: string;
@@ -130,6 +131,16 @@ const getProfilePictureUrl = async (storagePath: string): Promise<string | undef
     return undefined;
   }
 };
+
+// Display name hierarchy: username → firstName+lastName → name → displayName → fallback
+const resolveDisplayName = (userDoc: { get: (field: string) => any }): string =>
+  userDoc.get("username") ||
+  (userDoc.get("firstName") && userDoc.get("lastName")
+    ? `${userDoc.get("firstName")} ${userDoc.get("lastName")}`
+    : null) ||
+  userDoc.get("name") ||
+  userDoc.get("displayName") ||
+  "Unknown User";
 
 function LeaderboardNewContent() {
   const { selectedLeague } = useLeague();
@@ -360,8 +371,9 @@ function LeaderboardNewContent() {
 
             seasonUsers.push({
               id: userDoc.id,
-              displayName: userDoc.get("name") || userDoc.get("username") || "Unknown User",
+              displayName: resolveDisplayName(userDoc),
               profilePicture: userDoc.get("profilePicture") || undefined,
+              isSubscribed: userDoc.get("isSubscribed") || false,
               pickemData: userDoc.get("pickemData") || undefined,
               seasonTotalPoints: totalPoints,
               seasonmvppts: seasonmvppts,
@@ -449,8 +461,9 @@ function LeaderboardNewContent() {
             .map((userDoc) => {
               const userData: User = {
                 id: userDoc.id,
-                displayName: userDoc.get("name") || userDoc.get("username") || "Unknown User",
+                displayName: resolveDisplayName(userDoc),
                 profilePicture: userDoc.get("profilePicture") || undefined,
+                isSubscribed: userDoc.get("isSubscribed") || false,
                 pickemData: userDoc.get("pickemData") || undefined,
               };
               userData[`${liveEvent.id}Rank`] = userDoc.get(`${liveEvent.id}Rank`);
@@ -502,8 +515,9 @@ function LeaderboardNewContent() {
             .map((userDoc) => {
               const userData: User = {
                 id: userDoc.id,
-                displayName: userDoc.get("name") || userDoc.get("username") || "Unknown User",
+                displayName: resolveDisplayName(userDoc),
                 profilePicture: userDoc.get("profilePicture") || undefined,
+                isSubscribed: userDoc.get("isSubscribed") || false,
                 pickemData: userDoc.get("pickemData") || undefined,
               };
               userData[`${liveEvent.id}Rank`] = userDoc.get(`${liveEvent.id}Rank`);
@@ -568,7 +582,7 @@ function LeaderboardNewContent() {
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists()) {
-          const displayName = userDoc.get("name") || userDoc.get("username") || "Unknown User";
+          const displayName = resolveDisplayName(userDoc);
           const profilePicture = userDoc.get("profilePicture") || undefined;
           const pickemData = userDoc.get("pickemData") || undefined;
 
@@ -754,7 +768,7 @@ function LeaderboardNewContent() {
 
       const matchingUsers: User[] = [];
       for (const userDoc of querySnapshot.docs) {
-        const displayName = userDoc.get("name") || userDoc.get("username") || "Unknown User";
+        const displayName = resolveDisplayName(userDoc);
         const userId = userDoc.id;
 
         if (displayName.toLowerCase().includes(searchTermLower)) {
@@ -762,6 +776,7 @@ function LeaderboardNewContent() {
             id: userId,
             displayName,
             profilePicture: userDoc.get("profilePicture") || undefined,
+            isSubscribed: userDoc.get("isSubscribed") || false,
             pickemData: userDoc.get("pickemData") || undefined,
           };
           if (liveEvent) {
@@ -812,13 +827,14 @@ function LeaderboardNewContent() {
       const userDocsToFetch: Array<{ id: string; doc: any }> = [];
 
       for (const userDoc of querySnapshot.docs) {
-        const displayName = userDoc.get("name") || userDoc.get("username") || "Unknown User";
+        const displayName = resolveDisplayName(userDoc);
 
         if (displayName.toLowerCase().includes(searchTermLower)) {
           const userData: User = {
             id: userDoc.id,
             displayName,
             profilePicture: userDoc.get("profilePicture") || undefined,
+            isSubscribed: userDoc.get("isSubscribed") || false,
             pickemData: userDoc.get("pickemData") || undefined,
           };
           if (liveEvent) {
@@ -953,7 +969,7 @@ function LeaderboardNewContent() {
           .map((userDoc) => {
             const userData: User = {
               id: userDoc.id,
-              displayName: userDoc.get("name") || userDoc.get("username") || "Unknown User",
+              displayName: resolveDisplayName(userDoc),
               profilePicture: userDoc.get("profilePicture") || undefined,
               pickemData: userDoc.get("pickemData") || undefined,
             };
@@ -1040,6 +1056,20 @@ function LeaderboardNewContent() {
       return () => clearTimeout(timer);
     }
   }, [page, hasMorePages, isSearchMode, prefetchedPages, liveEvent, lastDoc, itemsPerPage]);
+
+  const SubscriberBadge = ({ displayName }: { displayName: string }) => (
+    <div className="relative group inline-flex items-center ml-1.5 flex-shrink-0">
+      <span className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full cursor-default select-none">
+        PRO
+      </span>
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-50 pointer-events-none">
+        <div className="bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap shadow-lg border border-gray-700">
+          {displayName} is a subscriber
+        </div>
+        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+      </div>
+    </div>
+  );
 
   // Show "No active event" only after loading is complete and no event found
   if (!eventLoading && !liveEvent && !isSeasonView) {
@@ -1489,8 +1519,11 @@ function LeaderboardNewContent() {
                               <FaUser className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-sm" />
                             </div>
                           )}
-                          <div className="text-xs sm:text-sm truncate max-w-[100px] sm:max-w-[150px] text-gray-900 dark:text-white">
-                            {user.displayName}
+                          <div className="flex items-center gap-0 max-w-[100px] sm:max-w-[150px]">
+                            <span className="text-xs sm:text-sm truncate text-gray-900 dark:text-white">
+                              {user.displayName}
+                            </span>
+                            {user.isSubscribed && <SubscriberBadge displayName={user.displayName} />}
                           </div>
                         </div>
                       </td>
