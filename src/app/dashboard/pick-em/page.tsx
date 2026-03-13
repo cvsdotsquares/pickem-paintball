@@ -433,15 +433,22 @@ export default function Pickems() {
     } catch { toast.error("Failed to save picks."); }
   };
 
-  const lastModalShown = useRef<number>(0);
-  const MODAL_COOLDOWN_MS = 5 * 60 * 1000;
-  const maybeShowSupportModal = () => {
+  const MODAL_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes, persisted in localStorage
+  const MODAL_COOLDOWN_KEY = 'pickem_modal_last_shown';
+
+  // Keep isSubscribed in a ref so autosave's setTimeout always reads the latest value
+  const isSubscribedRef = useRef(isSubscribed);
+  useEffect(() => { isSubscribedRef.current = isSubscribed; }, [isSubscribed]);
+
+  const maybeShowSupportModal = useCallback(() => {
+    if (isSubscribedRef.current) return;
+    const lastShown = parseInt(localStorage.getItem(MODAL_COOLDOWN_KEY) || '0', 10);
     const now = Date.now();
-    if (!isSubscribed && now - lastModalShown.current > MODAL_COOLDOWN_MS) {
-      lastModalShown.current = now;
+    if (now - lastShown > MODAL_COOLDOWN_MS) {
+      localStorage.setItem(MODAL_COOLDOWN_KEY, String(now));
       showModal('soft-gate');
     }
-  };
+  }, [showModal]);
 
   // Auto-save with 2s debounce when team is complete
   useEffect(() => {
@@ -462,7 +469,7 @@ export default function Pickems() {
       }
     }, 2000);
     return () => clearTimeout(timer);
-  }, [temporaryPicks, captainId]);
+  }, [temporaryPicks, captainId, maybeShowSupportModal]);
 
   const formatCost = (v: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
   const pad = (n: number) => String(n ?? 0).padStart(2, "0");
