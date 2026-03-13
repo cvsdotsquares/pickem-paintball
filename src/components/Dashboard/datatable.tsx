@@ -380,7 +380,12 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       displayText
     );
   };
-  // Update requestSort to use normalized keys
+  // Columns that sort ascending on first click (name/rank); all others sort descending first
+  const ascendingFirstColumns = new Set(["Rank", "Player"]);
+
+  // Update requestSort to use normalized keys with a 3-state cycle:
+  // Ascending-first columns: ascending → descending → null (reset to default)
+  // Descending-first columns: descending → ascending → null (reset to default)
   const requestSort = (displayText: string) => {
     const normalizedDisplay = normalizeHeaderKey(displayText);
     const actualKey = getActualDataKey(
@@ -388,11 +393,28 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       normalizedDisplay,
     );
 
-    let direction: "ascending" | "descending" = "ascending";
-    if (sortConfig?.key === actualKey && sortConfig.direction === "ascending") {
-      direction = "descending";
+    const isAscendingFirst = ascendingFirstColumns.has(normalizedDisplay);
+
+    if (sortConfig?.key === actualKey) {
+      if (isAscendingFirst) {
+        // ascending → descending → null
+        if (sortConfig.direction === "ascending") {
+          setSortConfig({ key: actualKey, direction: "descending" });
+        } else {
+          setSortConfig(null);
+        }
+      } else {
+        // descending → ascending → null
+        if (sortConfig.direction === "descending") {
+          setSortConfig({ key: actualKey, direction: "ascending" });
+        } else {
+          setSortConfig(null);
+        }
+      }
+    } else {
+      // New column — start with default direction for that column type
+      setSortConfig({ key: actualKey, direction: isAscendingFirst ? "ascending" : "descending" });
     }
-    setSortConfig({ key: actualKey, direction });
   };
 
   // Pagination handlers
@@ -1006,18 +1028,18 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
         <table className="w-full relative min-w-[800px] md:min-w-0">
           <thead>
             <tr
-              className={`sticky top-0 z-40 shadow-[0_0_0_0.4px] shadow-white ${themeClasses.headerBg}`}
+              className={`sticky top-0 z-40 shadow-[0_0_0_0.4px] shadow-white ${themeClasses.headerBg} h-10`}
             >
               {/* Rank Column - Smaller on mobile */}
               <th
                 className={`px-1 md:px-2 py-2 text-center text-[10px] md:text-[12px] font-medium font-azonix uppercase tracking-wider md:border-r z-20 w-12 md:w-20 transition-colors ${sortConfig?.key === 'Rank'
-                  ? 'bg-blue-900/50 text-blue-200 cursor-default'
+                  ? 'bg-blue-900/50 text-blue-200 cursor-pointer'
                   : `${themeClasses.headerBg} ${themeClasses.headerText} cursor-pointer hover:bg-gray-700/50`
                   }`}
               >
                 <div
                   className="flex items-center justify-center"
-                  onClick={() => sortConfig?.key !== 'Rank' && requestSort("Rank")}
+                  onClick={() => requestSort("Rank")}
                 >
                   #
                   {getSortIcon("Rank")}
@@ -1026,14 +1048,14 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
 
               {/* Player Column - Optimized for mobile */}
               <th
-                className={`pl-2 md:pl-4 pr-1 justify-center md:border-b/60 border-0 text-[10px] md:text-[12px] font-medium font-azonix uppercase sticky left-0 tracking-wider z-40 min-w-[100px] md:min-w-0 transition-colors ${sortConfig?.key === 'Player'
-                  ? 'bg-blue-900/50 text-blue-200 cursor-default'
+                className={`pl-2 md:pl-4 pr-1 justify-center md:border-b/60 border-0 text-[10px] md:text-[12px] font-medium font-azonix uppercase sticky left-0 tracking-wider z-40 w-[120px] md:w-[160px] transition-colors ${sortConfig?.key === 'Player'
+                  ? 'bg-blue-900/50 text-blue-200 cursor-pointer'
                   : `${themeClasses.headerBg} ${themeClasses.headerText} cursor-pointer hover:bg-gray-700/50`
                   }`}
               >
                 <div
                   className="flex items-center"
-                  onClick={() => sortConfig?.key !== 'Player' && requestSort("Player")}
+                  onClick={() => requestSort("Player")}
                 >
                   Player
                   {getSortIcon("Player")}
@@ -1065,19 +1087,16 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                   <th
                     key={index}
                     className={`px-1 md:px-2 p-1 text-center text-[9px] md:text-[12px] font-medium font-azonix uppercase w-16 md:w-24 min-w-[60px] md:min-w-[80px] transition-colors ${sortConfig?.key === key
-                      ? 'bg-blue-900/50 text-blue-200 cursor-default'
+                      ? 'bg-blue-900/50 text-blue-200 cursor-pointer'
                       : `${themeClasses.headerText} cursor-pointer hover:bg-gray-700/50`
                       }`}
                   >
                     <div
                       className="flex items-center justify-center"
-                      onClick={() => sortConfig?.key !== key && requestSort(key)}
+                      onClick={() => requestSort(key)}
                     >
-                      <span className="truncate">
-                        {key.replace(/_/g, " ").length > 8
-                          ? key.replace(/_/g, " ").substring(0, 6) + "..."
-                          : key.replace(/_/g, " ")
-                        }
+                      <span className="whitespace-normal text-center leading-tight">
+                        {key.replace(/_/g, " ")}
                       </span>
                       {getSortIcon(key)}
                     </div>
@@ -1158,18 +1177,18 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                       )}
                     </div>
 
-                    <div className="max-w-[80px] md:max-w-[35vw] whitespace-normal">
+                    <div className="max-w-[80px] md:max-w-[110px] whitespace-normal">
                       <div
                         className={`text-[9px] md:text-[12px] font-azonix font-medium ${darkMode ? "text-white" : "text-gray-900"
                           } whitespace-normal break-words leading-tight`}
                       >
-                        {row.Player.length > 12 ? `${row.Player.substring(0, 10)}...` : row.Player}
+                        {row.Player}
                       </div>
                       <div
                         className={`text-[8px] md:text-[12px] font-azonix ${darkMode ? "text-gray-400" : "text-gray-700"
                           } whitespace-normal break-words leading-tight`}
                       >
-                        {row.Team.length > 10 ? `${row.Team.substring(0, 8)}...` : row.Team}
+                        {row.Team}
                       </div>
                     </div>
                   </div>

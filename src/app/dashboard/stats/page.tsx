@@ -333,12 +333,9 @@ export default function Statistics() {
     return rowData;
   }, [rowData, sortConfig]);
 
-  // Handle sort config changes to prevent data from disappearing
+  // Handle sort config changes — null means user completed the 3-click cycle, reset to default
   const handleSortChange = (newSortConfig: SortConfig | null) => {
-    // Don't allow clearing sort config, always maintain some sort
-    if (newSortConfig) {
-      setSortConfig(newSortConfig);
-    }
+    setSortConfig(newSortConfig ?? { key: "Rank", direction: "ascending" });
   };
 
   // Fetch player data based on the selected event
@@ -550,53 +547,48 @@ export default function Statistics() {
 
         {/* Individual Event Table or Season Table */}
         <motion.section className="px-4 mt-6">
-          <div className="bg-gray-100/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl p-6">
-            {showSeasonTable ? (
-              // Season Table
-              <>
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
-                  <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white font-azonix">
-                    Season {selectedYear === "All" ? selectedSeasonYear || "2025" : selectedYear} - Player Rankings
-                  </h3>
-                  <span className="bg-blue-500 text-white px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm whitespace-nowrap">
-                    SEASON TOTALS
+          {showSeasonTable ? (
+            // Season Table
+            <>
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
+                <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white font-azonix">
+                  Season {selectedYear === "All" ? selectedSeasonYear || "2025" : selectedYear} - Player Rankings
+                </h3>
+                <span className="bg-blue-500 text-white px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm whitespace-nowrap">
+                  SEASON TOTALS
+                </span>
+              </div>
+              <MatchupTable
+                data={sortedRowData}
+                sortConfig={sortConfig}
+                onSortChange={handleSortChange}
+                myPicks={livePicks}
+                currentEventId={selectedEvent?.id}
+                isSeasonView={true}
+              />
+            </>
+          ) : (
+            // Individual Event Table
+            <>
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
+                <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white font-azonix">
+                  {selectedEvent?.name || 'Select Event'} - Player Stats
+                </h3>
+                {selectedEvent?.status === 'live' && (
+                  <span className="bg-red-500 text-white px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm animate-pulse whitespace-nowrap">
+                    🔴 LIVE
                   </span>
-                </div>
-                <MatchupTable
-                  data={sortedRowData}
-                  sortConfig={sortConfig}
-                  onSortChange={handleSortChange}
-                  myPicks={livePicks}
-                  currentEventId={selectedEvent?.id}
-                  isSeasonView={true}
-                />
-
-
-              </>
-            ) : (
-              // Individual Event Table
-              <>
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
-                  <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white font-azonix">
-                    {selectedEvent?.name || 'Select Event'} - Player Stats
-                  </h3>
-                  {selectedEvent?.status === 'live' && (
-                    <span className="bg-red-500 text-white px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm animate-pulse whitespace-nowrap">
-                      🔴 LIVE
-                    </span>
-                  )}
-                </div>
-                <MatchupTable
-                  data={sortedRowData}
-                  sortConfig={sortConfig}
-                  onSortChange={handleSortChange}
-                  myPicks={livePicks}
-                  currentEventId={selectedEvent?.id}
-                />
-
-              </>
-            )}
-          </div>
+                )}
+              </div>
+              <MatchupTable
+                data={sortedRowData}
+                sortConfig={sortConfig}
+                onSortChange={handleSortChange}
+                myPicks={livePicks}
+                currentEventId={selectedEvent?.id}
+              />
+            </>
+          )}
         </motion.section>
       </div>
     </div>
