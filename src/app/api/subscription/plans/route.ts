@@ -9,7 +9,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 // Server-side cache keyed by currency to avoid hitting Stripe on every request
-export let cachedPlansByCurrency: Record<string, { plans: any[], timestamp: number }> = {};
+let cachedPlansByCurrency: Record<string, { plans: any[], timestamp: number }> = {};
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 function resolveCurrency(req: NextRequest): string {
