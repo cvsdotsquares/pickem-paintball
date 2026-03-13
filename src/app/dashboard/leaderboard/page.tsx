@@ -586,21 +586,33 @@ function LeaderboardNewContent() {
           const profilePicture = userDoc.get("profilePicture") || undefined;
           const pickemData = userDoc.get("pickemData") || undefined;
 
+          // Calculate live PTS from picks with captain 1.5x multiplier
+          let livePTS: number | undefined = userDoc.get(`${liveEvent.id}PTS`);
+          const pickems = userDoc.get("pickems") || {};
+          const playerIds: string[] = Array.isArray(pickems[liveEvent.id]) ? pickems[liveEvent.id] : [];
+          const captainIdValue: string | null = pickems[`${liveEvent.id}_captain`] || null;
+          if (playerIds.length > 0) {
+            const playerDocs = await Promise.all(
+              playerIds.map((id) => getDoc(doc(db, `events/${liveEvent.id}/players`, id.toString())))
+            );
+            const calculated = playerDocs.reduce((sum, d) => {
+              if (!d.exists()) return sum;
+              const kills = d.get("Confirmed Kills") || 0;
+              return sum + (d.id === captainIdValue ? kills * 1.5 : kills);
+            }, 0);
+            if (calculated > 0) livePTS = calculated;
+          }
+
           setCurrentUserData({
             id: currentUserId,
             displayName,
             profilePicture,
             pickemData,
-            rank: undefined, // Placeholder for now
+            rank: undefined,
             [`${liveEvent.id}Rank`]: userDoc.get(`${liveEvent.id}Rank`),
-            [`${liveEvent.id}PTS`]: userDoc.get(`${liveEvent.id}PTS`),
+            [`${liveEvent.id}PTS`]: livePTS,
             [`${liveEvent.id}MVP`]: userDoc.get(`${liveEvent.id}MVP`),
           });
-
-          // Don't fetch user details immediately - let user click to expand
-          // if (!userDetailsMap.has(currentUserId)) {
-          //   await fetchUserDetails(currentUserId);
-          // }
         }
       } catch (error) {
         console.error("Error fetching current user:", error);
@@ -1282,7 +1294,7 @@ function LeaderboardNewContent() {
                     <div className="flex items-center mt-0.5">
                       <FaTrophy className="text-yellow-400 mr-1 text-sm" />
                       <span className="font-medium text-sm">
-                        Confirmed Kills: {liveEvent && currentUserData[`${liveEvent.id}PTS`] !== undefined
+                        Points: {liveEvent && currentUserData[`${liveEvent.id}PTS`] !== undefined
                           ? currentUserData[`${liveEvent.id}PTS`]
                           : 0}
                       </span>
@@ -1532,8 +1544,8 @@ function LeaderboardNewContent() {
                         {isSeasonView ? (
                           user.seasonTotalPoints || 0
                         ) : (
-                          liveEvent && user[`${liveEvent.id}PTS`] !== undefined && user[`${liveEvent.id}PTS`] !== null
-                            ? user[`${liveEvent.id}PTS`]
+                          liveEvent
+                            ? (userDetailsMap.get(user.id)?.totalPoints ?? (user.id === currentUserId && currentUserData ? currentUserData[`${liveEvent.id}PTS`] : null) ?? (user[`${liveEvent.id}PTS`] !== undefined && user[`${liveEvent.id}PTS`] !== null ? user[`${liveEvent.id}PTS`] : "No Data"))
                             : "No Data"
                         )}
                       </td>

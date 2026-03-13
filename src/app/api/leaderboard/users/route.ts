@@ -138,7 +138,7 @@ export async function GET(request: Request) {
                 const name = playerDoc.get('Player') || 'Unknown Player';
 
                 const isCaptain = playerId === (pickems[`${eventId}_captain`] || null);
-                totalPoints += isCaptain ? kills * 1.25 : kills;
+                totalPoints += isCaptain ? kills * 1.5 : kills;
 
                 if (kills > mvp.kills) {
                   mvp = { playerName: name, kills };

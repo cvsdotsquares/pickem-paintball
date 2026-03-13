@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
                     const playerName = playerDoc.get("Player") || "Unknown Player";
 
                     const isCaptain = playerId === (userPickems[`${eventId}_captain`] || null);
-                    totalPoints += isCaptain ? totalKills * 1.25 : totalKills;
+                    totalPoints += isCaptain ? totalKills * 1.5 : totalKills;
                     if (totalKills > mvp.kills) {
                       mvp = { playerName, kills: totalKills };
                     }
@@ -145,18 +145,18 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Create event-specific rank fields
-    const rankFields: Record<string, number> = {};
+    // Create event-specific flat fields (rank + pts) for display across dashboard/leaderboard
+    const flatFields: Record<string, number> = {};
 
     for (const [eventId, eventData] of Object.entries(data)) {
-      const rankFieldName = `${eventId}Rank`;
-      rankFields[rankFieldName] = parseInt(eventData.Rank) || 999999;
+      flatFields[`${eventId}Rank`] = parseInt(eventData.Rank) || 999999;
+      flatFields[`${eventId}PTS`] = parseFloat(eventData.PTS) || 0;
     }
 
-    // Update user document with calculated pickem data and event-specific ranks
+    // Update user document with calculated pickem data and event-specific flat fields
     await updateDoc(userDocRef, {
       pickemData: data,
-      ...rankFields
+      ...flatFields
     });
 
     return NextResponse.json({

@@ -347,9 +347,19 @@ export default function Pickems() {
           const pd = { ...d.data(), player_id: d.id } as any;
           return { ...pd, picture: pd.img_url?.trim() ? pd.img_url : await fetchPlayerPicture(pd.league_id) };
         }));
-        setCaptainId(data.pickems?.[`${liveEvent.id}_captain`] || null);
+        const captainIdValue = data.pickems?.[`${liveEvent.id}_captain`] || null;
+        setCaptainId(captainIdValue);
         setTemporaryPicks(picks);
         setPlayerSlots((prev) => prev.map((slot, i) => ({ ...slot, player: picks[i] || null })));
+
+        // Calculate live points with captain 1.5x multiplier (overrides stale Firebase flat field)
+        const livePoints = picks.reduce((sum, p) => {
+          const kills = p["Confirmed Kills"] || 0;
+          return sum + (p.player_id === captainIdValue ? kills * 1.5 : kills);
+        }, 0);
+        if (livePoints > 0) {
+          setUserProfile(prev => ({ ...prev, eventElims: livePoints, seasonElims: livePoints }));
+        }
       } catch (e) { console.error(e); }
     };
     fetchPicks();
@@ -399,7 +409,12 @@ export default function Pickems() {
     if (!isBeforeLockDate(liveEvent.lockDate)) { toast.error("Picks are locked!"); return; }
     if (!temporaryPicks.find((p) => p.player_id === playerId)) { toast.error("Captain must be one of your picks!"); return; }
     setCaptainId(playerId);
-    toast.success(`${temporaryPicks.find((p) => p.player_id === playerId)?.Player} is now captain (1.25× pts)`);
+    toast.success(`${temporaryPicks.find((p) => p.player_id === playerId)?.Player} is now captain (1.5× pts)`);
+  };
+
+  const handleCaptainUnset = () => {
+    if (!isBeforeLockDate(liveEvent.lockDate)) { toast.error("Picks are locked!"); return; }
+    setCaptainId(null);
   };
 
   const confirmPicks = async () => {
@@ -454,27 +469,30 @@ export default function Pickems() {
   const budgetPct = Math.min(100, ((TOTAL_BUDGET - remainingBudget) / TOTAL_BUDGET) * 100);
 
   // ── SLOT CARD ────────────────────────────────────────────────────────────────
-  const SlotCard = memo(({ player, isCaptain, onRemove, onSetCaptain }: {
-    player: Player; isCaptain: boolean; onRemove: () => void; onSetCaptain: () => void;
+  const SlotCard = memo(({ player, isCaptain, isLocked, onRemove, onSetCaptain }: {
+    player: Player; isCaptain: boolean; isLocked?: boolean; onRemove: () => void; onSetCaptain: () => void;
   }) => (
     <div className={`relative rounded-lg overflow-hidden group cursor-pointer h-full w-full ${isCaptain ? "ring-2 ring-yellow-400" : "ring-1 ring-black/10 dark:ring-white/10"}`}>
       <div className="absolute inset-0 bg-cover bg-top bg-[#1a1a1a]" style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }} />
       <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 to-transparent" />
-      {/* Remove button top-right */}
-      <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="absolute top-1 right-1 z-10 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-        <IoMdClose className="text-white text-[8px]" />
-      </button>
+      {/* Remove button top-right — hidden when locked */}
+      {!isLocked && (
+        <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="absolute top-1 right-1 z-10 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <IoMdClose className="text-white text-[8px]" />
+        </button>
+      )}
       {/* Player info bottom-left */}
       <div className="absolute bottom-0 inset-x-0 p-1">
         <div className="text-white font-bold text-[8px] truncate">{player.Player}</div>
         <div className="text-white/40 text-[7px] truncate">{player.Team}</div>
         <div className="text-white/60 text-[8px] font-bold">{formatCost(player.Cost)}</div>
       </div>
-      {/* CPT button bottom-right — always visible, yellow when active */}
+      {/* CPT button bottom-right — disabled after lock */}
       <button
-        onClick={(e) => { e.stopPropagation(); onSetCaptain(); }}
+        onClick={(e) => { e.stopPropagation(); if (!isLocked) onSetCaptain(); }}
         className={`absolute bottom-1 right-1 z-10 text-[6px] font-black uppercase tracking-widest px-1 py-0.5 rounded transition-all
-          ${isCaptain ? "bg-yellow-400 text-black" : "bg-black/50 text-white/30 border border-white/20"}`}>
+          ${isCaptain ? "bg-yellow-400 text-black" : "bg-black/50 text-white/30 border border-white/20"}
+          ${isLocked ? "opacity-50 cursor-not-allowed" : ""}`}>
         {isCaptain ? "★ CPT" : "CPT"}
       </button>
     </div>
@@ -720,7 +738,7 @@ export default function Pickems() {
                   {(() => {
                     const cap = captainId ? temporaryPicks.find((p) => p.player_id === captainId) : null;
                     return cap
-                      ? <SlotCard player={cap} isCaptain={true} onRemove={() => handlePlayerAction(cap)} onSetCaptain={() => setCaptainId(null)} />
+                      ? <SlotCard player={cap} isCaptain={true} isLocked={!isBeforeLockDate(liveEvent.lockDate)} onRemove={() => handlePlayerAction(cap)} onSetCaptain={handleCaptainUnset} />
                       : <div onClick={() => setIsDrawerOpen(true)} className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-yellow-400/40 bg-yellow-400/5 h-full gap-1 min-h-[120px] cursor-pointer hover:border-yellow-400/60 transition-colors">
                         <span className="bg-yellow-400 text-black text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest">CPT</span>
                         <span className="text-yellow-500/60 text-[7px] uppercase font-bold tracking-widest text-center px-1 leading-tight">Set a captain</span>
@@ -735,7 +753,7 @@ export default function Pickems() {
                 ].slice(0, 9).map((slot) => (
                   <div key={slot.id}>
                     {slot.player
-                      ? <SlotCard player={slot.player} isCaptain={captainId === slot.player.player_id} onRemove={() => handlePlayerAction(slot.player!)} onSetCaptain={() => handleCaptainSelection(slot.player!.player_id)} />
+                      ? <SlotCard player={slot.player} isCaptain={captainId === slot.player.player_id} isLocked={!isBeforeLockDate(liveEvent.lockDate)} onRemove={() => handlePlayerAction(slot.player!)} onSetCaptain={() => handleCaptainSelection(slot.player!.player_id)} />
                       : <EmptySlot slot={slot} />}
                   </div>
                 ))}

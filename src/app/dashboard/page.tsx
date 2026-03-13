@@ -190,9 +190,20 @@ export default function Dashboard() {
           })
         );
 
-        setCaptainId(data.pickems?.[`${liveEvent.id}_captain`] || null);
+        const captainIdValue = data.pickems?.[`${liveEvent.id}_captain`] || null;
+        setCaptainId(captainIdValue);
         setPlayerSlots(Array.from({ length: 10 }, (_, i) => ({ id: i + 1, player: picks[i] || null })));
         setRemainingBudget(TOTAL_BUDGET - picks.reduce((s, p) => s + Math.round(p.Cost), 0));
+
+        // Calculate live points with captain 1.5x multiplier (overrides stale Firebase flat field)
+        const livePoints = picks.reduce((sum, p) => {
+          const kills = p["Confirmed Kills"] || 0;
+          return sum + (p.player_id === captainIdValue ? kills * 1.5 : kills);
+        }, 0);
+        if (livePoints > 0) {
+          setEventPoints(livePoints);
+          setSeasonPoints(livePoints);
+        }
       } catch (e) { console.error(e); }
     };
     fetchPicks();
