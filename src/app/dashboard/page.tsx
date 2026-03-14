@@ -229,8 +229,9 @@ export default function Dashboard() {
         <div className="text-white/60 text-[8px] font-bold">{formatCost(player.Cost)}</div>
       </div>
       {isCaptain && (
-        <div className="absolute top-1 left-1 bg-yellow-400 text-black text-[6px] font-black px-1 py-0.5 rounded uppercase tracking-widest">
-          ★ CPT
+        <div className="absolute top-1 left-1 bg-yellow-400 text-black font-black px-1 py-0.5 rounded uppercase tracking-widest flex flex-col items-center leading-none gap-[1px]">
+          <span className="text-[6px]">★ CPT</span>
+          <span className="text-[5px] opacity-80">1.5× PTS</span>
         </div>
       )}
     </div>
@@ -361,9 +362,10 @@ export default function Dashboard() {
                     return cap
                       ? <SlotCard player={cap} isCaptain={true} />
                       : <Link href="/dashboard/pick-em">
-                          <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-yellow-400/40 bg-yellow-400/5 h-full gap-1 min-h-[120px] cursor-pointer hover:border-yellow-400/60 transition-colors">
+                          <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-yellow-400/50 bg-yellow-400/5 h-full gap-1.5 min-h-[120px] cursor-pointer hover:border-yellow-400/80 hover:bg-yellow-400/10 transition-all">
                             <span className="bg-yellow-400 text-black text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest">CPT</span>
-                            <span className="text-yellow-500/60 text-[7px] uppercase font-bold tracking-widest text-center px-1 leading-tight">Set a captain</span>
+                            <span className="text-yellow-600 dark:text-yellow-400 text-[8px] uppercase font-black tracking-widest text-center px-1 leading-tight">Set a captain</span>
+                            <span className="text-yellow-600 dark:text-yellow-400/70 text-[7px] font-bold tracking-widest text-center px-1 leading-tight">1.5× Points</span>
                           </div>
                         </Link>;
                   })()}
