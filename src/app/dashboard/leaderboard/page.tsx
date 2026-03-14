@@ -8,12 +8,9 @@ import {
   where,
   limit,
   getDocs,
-  QueryConstraint,
-  startAfter,
-  DocumentSnapshot,
   doc,
   getDoc,
-  orderBy,
+  onSnapshot,
 } from "firebase/firestore";
 import { getDownloadURL, ref } from "firebase/storage";
 import { motion, AnimatePresence } from "framer-motion";
@@ -175,6 +172,7 @@ function LeaderboardNewContent() {
   const [currentUserData, setCurrentUserData] = useState<User & { rank?: number } | null>(null);
   const [expandCurrentUser, setExpandCurrentUser] = useState<boolean>(false);
   const [updatingRows, setUpdatingRows] = useState<Set<string>>(new Set());
+  const [totalParticipants, setTotalParticipants] = useState<number>(0);
 
   // League modals
   const [showCreateLeague, setShowCreateLeague] = useState(false);
@@ -327,248 +325,87 @@ function LeaderboardNewContent() {
 
   // Fetch users for season view
   useEffect(() => {
-    async function fetchSeasonUsers() {
-      if (!isSeasonView || !selectedSeason) return;
+    if (!isSeasonView || !selectedSeason) return;
 
-      try {
-        setUsersLoading(true);
-        const usersCollection = collection(db, "users");
-
-        // Get all users who participated in any event for the selected season
-        const seasonEvents = allEvents.filter(e => e.year === selectedSeason);
-        console.log(`Season ${selectedSeason} events for user fetching:`, seasonEvents.map(e => ({ id: e.id, name: e.name })));
-
-        const querySnapshot = await getDocs(usersCollection);
-
-        const seasonUsers: User[] = [];
-        querySnapshot.docs.forEach((userDoc) => {
-          const pickems = userDoc.get("pickems") || {};
-          const hasParticipated = seasonEvents.some(event =>
-            Array.isArray(pickems[event.id]) && pickems[event.id].length > 0
-          );
-
-          // Apply league filter if selected
-          const isInLeague = selectedLeague
-            ? (userDoc.get("leagues") || []).includes(selectedLeague.id)
-            : true;
-
-          if (hasParticipated && isInLeague) {
-            // Calculate total points across all events in selected season
-            let totalPoints = 0;
-            let seasonmvppts = 0;
-            let seasonmvpname = "n/a";
-            const eventPoints: Record<string, number> = {};
-            seasonEvents.forEach(event => {
-              const pts = parseFloat(userDoc.get(`${event.id}PTS`)) || 0;
-              totalPoints += pts;
-              eventPoints[event.id] = pts;
-              if (seasonmvppts < userDoc.get(`${event.id}MVPPTS`)) {
-                seasonmvpname = userDoc.get(`${event.id}MVP`);
-                seasonmvppts = userDoc.get(`${event.id}MVPPTS`);
-              }
-
-            });
-
-            seasonUsers.push({
-              id: userDoc.id,
-              displayName: resolveDisplayName(userDoc),
-              profilePicture: userDoc.get("profilePicture") || undefined,
-              isSubscribed: userDoc.get("isSubscribed") || false,
-              pickemData: userDoc.get("pickemData") || undefined,
-              seasonTotalPoints: totalPoints,
-              seasonmvppts: seasonmvppts,
-              seasonmvpname: seasonmvpname,
-            });
-          }
-        });
-
-        console.log(`Found ${seasonUsers.length} users for season ${selectedSeason}`);
-
-        // Sort by total points descending
-        seasonUsers.sort((a, b) => {
-          const aPts = a.seasonTotalPoints || 0;
-          const bPts = b.seasonTotalPoints || 0;
-          return bPts - aPts;
-        });
-
-        // Apply pagination for season view
-        const startIndex = (page - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        const paginatedUsers = seasonUsers.slice(startIndex, endIndex);
-
-        setUsers(paginatedUsers);
-        setHasMorePages(endIndex < seasonUsers.length);
+    setUsersLoading(true);
+    const unsub = onSnapshot(doc(db, "leaderboards", `season_${selectedSeason}`), (snap) => {
+      if (!snap.exists()) {
+        setUsers([]);
+        setHasMorePages(false);
         setUsersLoading(false);
-      } catch (error) {
-        console.error("Error fetching season users:", error);
-        setUsersLoading(false);
+        return;
       }
-    }
 
-    fetchSeasonUsers();
-  }, [isSeasonView, selectedSeason, allEvents, page, itemsPerPage, selectedLeague]);
+      const allUsers: any[] = snap.data()?.users || [];
+
+      // Apply league filter client-side
+      const filtered = selectedLeague
+        ? allUsers.filter(u => (u.leagues || []).includes(selectedLeague.id))
+        : allUsers;
+
+      const start = (page - 1) * itemsPerPage;
+      setUsers(filtered.slice(start, start + itemsPerPage));
+      setHasMorePages(filtered.length > start + itemsPerPage);
+      setUsersLoading(false);
+    });
+
+    return () => unsub();
+  }, [isSeasonView, selectedSeason, page, itemsPerPage, selectedLeague?.id]);
 
   // Fetch users with Firestore sorting by currentRank
+  // ── Live leaderboard: onSnapshot on summary doc written by Cloud Function ──
   useEffect(() => {
-    async function fetchParticipants() {
-      if (!liveEvent || isSearchMode || isSeasonView) return;
+    if (!liveEvent || isSearchMode || isSeasonView) return;
 
-      try {
-        setPageLoading(true);
-        const usersCollection = collection(db, "users");
-
-        // Check cache first
-        const cacheKey = `${liveEvent.id}:${itemsPerPage}:${page}:${selectedLeague?.id || 'all'}`;
-        const cached = participantsCache.get(cacheKey);
-        if (cached) {
-          setUsers(cached.users);
-          setLastDoc(cached.lastDoc);
-          setHasMorePages(cached.hasMore);
-          setPageLoading(false);
-          return;
-        }
-
-        // Build query with dynamic event-specific rank field
-        let constraints: QueryConstraint[];
-
-        if (selectedLeague) {
-          // For league filtering, get all league members
-          constraints = [
-            where('leagues', 'array-contains', selectedLeague.id),
-            limit(1000)
-          ];
-        } else {
-          // For all players, fetch users who participated in this event
-          constraints = [
-            where(`pickems.${liveEvent.id}`, '!=', null),
-            limit(1000),
-          ];
-        }
-
-        // Pagination with startAfter (only for non-league queries)
-        if (page > 1 && lastDoc && !selectedLeague) {
-          constraints.push(startAfter(lastDoc));
-        }
-
-        const participantsQuery = query(usersCollection, ...constraints);
-        const querySnapshot = await getDocs(participantsQuery);
-
-        // For league filtering, show ALL league members (not just those who participated)
-        let participants: User[];
-
-        if (selectedLeague) {
-          participants = querySnapshot.docs
-            .map((userDoc) => {
-              const userData: User = {
-                id: userDoc.id,
-                displayName: resolveDisplayName(userDoc),
-                profilePicture: userDoc.get("profilePicture") || undefined,
-                isSubscribed: userDoc.get("isSubscribed") || false,
-                pickemData: userDoc.get("pickemData") || undefined,
-              };
-              userData[`${liveEvent.id}Rank`] = userDoc.get(`${liveEvent.id}Rank`);
-              userData[`${liveEvent.id}PTS`] = userDoc.get(`${liveEvent.id}PTS`);
-              userData[`${liveEvent.id}MVP`] = userDoc.get(`${liveEvent.id}MVP`);
-              return userData;
-            })
-            .sort((a, b) => {
-              const aPts = parseFloat(a[`${liveEvent.id}PTS`]) || 0;
-              const bPts = parseFloat(b[`${liveEvent.id}PTS`]) || 0;
-              if (bPts !== aPts) return bPts - aPts;
-
-              const aRank = parseInt(a[`${liveEvent.id}Rank`]) || 999999;
-              const bRank = parseInt(b[`${liveEvent.id}Rank`]) || 999999;
-              return aRank - bRank;
-            })
-            .slice((page - 1) * itemsPerPage, page * itemsPerPage);
-
-          setHasMorePages(querySnapshot.docs.length > page * itemsPerPage);
-        } else {
-          // For all players, filter for event participation
-          const docsWithParticipation = querySnapshot.docs.filter((doc) => {
-            const pickems = doc.get("pickems") || {};
-            const hasPickems = Array.isArray(pickems[liveEvent.id]) && pickems[liveEvent.id].length > 0;
-            const hasPTS = doc.get(`${liveEvent.id}PTS`) !== undefined;
-            const hasRank = doc.get(`${liveEvent.id}Rank`) !== undefined;
-
-            // Debug for Tampa Bay
-            if (liveEvent.id === 'tampa_bay_2025' && hasPickems) {
-              console.log(`User ${doc.get('name')} has Tampa picks:`, {
-                picks: pickems[liveEvent.id],
-                pts: doc.get(`${liveEvent.id}PTS`),
-                rank: doc.get(`${liveEvent.id}Rank`),
-                mvp: doc.get(`${liveEvent.id}MVP`)
-              });
-            }
-
-            return hasPickems && (hasPTS || hasRank);
-          });
-
-          console.log(`Found ${docsWithParticipation.length} participants for ${liveEvent.id}`);
-
-          const hasMore = docsWithParticipation.length > itemsPerPage;
-          setHasMorePages(hasMore);
-
-          const docsToDisplay = docsWithParticipation.slice(0, itemsPerPage);
-
-          participants = docsToDisplay
-            .map((userDoc) => {
-              const userData: User = {
-                id: userDoc.id,
-                displayName: resolveDisplayName(userDoc),
-                profilePicture: userDoc.get("profilePicture") || undefined,
-                isSubscribed: userDoc.get("isSubscribed") || false,
-                pickemData: userDoc.get("pickemData") || undefined,
-              };
-              userData[`${liveEvent.id}Rank`] = userDoc.get(`${liveEvent.id}Rank`);
-              userData[`${liveEvent.id}PTS`] = userDoc.get(`${liveEvent.id}PTS`);
-              userData[`${liveEvent.id}MVP`] = userDoc.get(`${liveEvent.id}MVP`);
-              return userData;
-            })
-            .sort((a, b) => {
-              const aPts = parseFloat(a[`${liveEvent.id}PTS`]) || 0;
-              const bPts = parseFloat(b[`${liveEvent.id}PTS`]) || 0;
-              if (bPts !== aPts) return bPts - aPts;
-
-              const aRank = parseInt(a[`${liveEvent.id}Rank`]) || 999999;
-              const bRank = parseInt(b[`${liveEvent.id}Rank`]) || 999999;
-              return aRank - bRank;
-            });
-
-          // Store last doc for pagination
-          if (docsToDisplay.length > 0) {
-            setLastDoc(docsToDisplay.at(-1) ?? null);
-          }
-        }
-
-        setUsers(participants);
-
-        // Save to cache
-        participantsCache.set(cacheKey, {
-          users: participants,
-          lastDoc: selectedLeague ? null : (querySnapshot.docs.at(-1) ?? null),
-          hasMore: selectedLeague ? (querySnapshot.docs.length > page * itemsPerPage) : hasMorePages,
-        });
-
+    setPageLoading(true);
+    const unsub = onSnapshot(doc(db, "leaderboards", liveEvent.id), (snap) => {
+      if (!snap.exists()) {
+        // Summary doc not yet created (first deploy / new event) — fall back to empty
+        setUsers([]);
+        setTotalParticipants(0);
+        setHasMorePages(false);
         setPageLoading(false);
         setUsersLoading(false);
-      } catch (error) {
-        console.error("Error fetching participants:", error);
-        setPageLoading(false);
-        setUsersLoading(false);
+        return;
       }
-    }
 
-    fetchParticipants();
-  }, [liveEvent, page, itemsPerPage, isSearchMode, selectedLeague, isSeasonView]);
+      const allUsers: any[] = snap.data()?.users || [];
+      setTotalParticipants(snap.data()?.totalParticipants || allUsers.length);
 
-  // Reset pagination and cache when liveEvent or selectedLeague changes
+      // Apply league filter client-side
+      const filtered = selectedLeague
+        ? allUsers.filter(u => (u.leagues || []).includes(selectedLeague.id))
+        : allUsers;
+
+      // Normalise to the shape the rest of the page expects
+      const normalised: User[] = filtered.map(u => ({
+        id: u.id,
+        displayName: u.displayName,
+        profilePicture: u.profilePicture || undefined,
+        isSubscribed: u.isSubscribed || false,
+        leagues: u.leagues,
+        [`${liveEvent.id}Rank`]: u.eventRank,
+        [`${liveEvent.id}PTS`]: u.eventPTS,
+        [`${liveEvent.id}MVP`]: u.mvp,
+      }));
+
+      // Paginate client-side
+      const start = (page - 1) * itemsPerPage;
+      setUsers(normalised.slice(start, start + itemsPerPage));
+      setHasMorePages(filtered.length > start + itemsPerPage);
+      setPageLoading(false);
+      setUsersLoading(false);
+    });
+
+    return () => unsub();
+  }, [liveEvent?.id, isSearchMode, isSeasonView, selectedLeague?.id, page, itemsPerPage]);
+
+  // Reset pagination when event or league changes
   useEffect(() => {
     if (liveEvent) {
       setPage(1);
-      setLastDoc(null);
-      participantsCache.clear();
-      setExpandedUserId(null); // Close expanded rows when event changes
+      setExpandedUserId(null);
+      setTotalParticipants(0);
     }
   }, [liveEvent?.id, selectedLeague?.id]);
 
@@ -1407,6 +1244,13 @@ function LeaderboardNewContent() {
         </div>
       )}
 
+      {/* Participant count */}
+      {!eventLoading && !isSearchMode && !isSeasonView && totalParticipants > 0 && (
+        <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+          {totalParticipants} team{totalParticipants !== 1 ? 's' : ''} entered
+        </div>
+      )}
+
       {/* Pagination */}
       {!eventLoading && !isSearchMode && users.length > 0 && (
         <div className="flex flex-row items-center justify-between my-4 gap-2">
@@ -1545,7 +1389,7 @@ function LeaderboardNewContent() {
                           user.seasonTotalPoints || 0
                         ) : (
                           liveEvent
-                            ? (userDetailsMap.get(user.id)?.totalPoints ?? (user.id === currentUserId && currentUserData ? currentUserData[`${liveEvent.id}PTS`] : null) ?? (user[`${liveEvent.id}PTS`] !== undefined && user[`${liveEvent.id}PTS`] !== null ? user[`${liveEvent.id}PTS`] : "No Data"))
+                            ? (userDetailsMap.get(user.id)?.totalPoints ?? (user.id === currentUserId && currentUserData ? currentUserData[`${liveEvent.id}PTS`] : null) ?? (user[`${liveEvent.id}PTS`] !== undefined && user[`${liveEvent.id}PTS`] !== null ? user[`${liveEvent.id}PTS`] : 0))
                             : "No Data"
                         )}
                       </td>
@@ -1556,7 +1400,7 @@ function LeaderboardNewContent() {
                         ) : (
                           liveEvent && user[`${liveEvent.id}MVP`] !== undefined && user[`${liveEvent.id}MVP`] !== null
                             ? user[`${liveEvent.id}MVP`] || "None"
-                            : "No Data"
+                            : "None"
                         )}
                       </td>
 

@@ -7,6 +7,7 @@ import {
   getDoc,
   getDocs,
   getFirestore,
+  onSnapshot,
   updateDoc,
 } from "firebase/firestore";
 import { AnimatePresence, motion } from "framer-motion";
@@ -471,6 +472,25 @@ export default function Pickems() {
     }, 2000);
     return () => clearTimeout(timer);
   }, [temporaryPicks, captainId, maybeShowSupportModal]);
+
+  // Live rank/pts: updates the moment the Cloud Function writes flat fields
+  useEffect(() => {
+    if (!user?.uid || !liveEvent?.id) return;
+    const db = getFirestore();
+    const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const rank = data[`${liveEvent.id}Rank`] ?? undefined;
+      const pts  = data[`${liveEvent.id}PTS`]  ?? undefined;
+      setUserProfile(prev => ({
+        ...prev,
+        eventRank: rank,
+        seasonRank: rank,
+        ...(pts !== undefined && pts > 0 ? { eventElims: pts, seasonElims: pts } : {}),
+      }));
+    });
+    return () => unsub();
+  }, [user?.uid, liveEvent?.id]);
 
   const formatCost = (v: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
   const pad = (n: number) => String(n ?? 0).padStart(2, "0");

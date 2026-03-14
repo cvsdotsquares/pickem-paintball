@@ -1,30 +1,11 @@
 import { useAuth } from "@/src/contexts/authProvider";
-import {
-  collection,
-  doc,
-  getDocs,
-  getDoc,
-  getFirestore,
-} from "firebase/firestore";
+import { doc, getFirestore, onSnapshot, collection, getDocs } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { FaTrophy } from "react-icons/fa";
 
 const DivisionInfo = () => {
-  interface User {
-    id: string;
-    name?: string;
-    username?: string;
-    pickems?: Record<string, string[]>;
-  }
-
-  const [liveEvent, setLiveEvent] = useState<{
-    id: string | any;
-    name: any;
-  }>({
-    id: null,
-    name: "",
-  });
-
+  const [liveEventId, setLiveEventId] = useState<string | null>(null);
+  const [liveEventName, setLiveEventName] = useState<string>("");
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [currentUserRank, setCurrentUserRank] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,38 +14,20 @@ const DivisionInfo = () => {
   const db = getFirestore();
   const { user } = useAuth();
 
-  const fetchFromFirestore = async (path: string) => {
-    try {
-      const ref = collection(db, path);
-      const snapshot = await getDocs(ref);
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      return data;
-    } catch (err) {
-      console.error(`Error fetching from ${path}:`, err);
-      setError(`Failed to load data from ${path}`);
-      throw err;
-    }
-  };
-
+  // Resolve the current live event once
   useEffect(() => {
     const fetchLiveEvent = async () => {
       try {
-        const events = await fetchFromFirestore("events");
-        const live = events.find((e: any) => e.status === "live");
-
+        const snap = await getDocs(collection(db, "events"));
+        const live = snap.docs.find(d => d.data().status === "live");
         if (live) {
-          const eventData = {
-            id: live.id,
-            name: live.id.replace(/_/g, " "),
-          };
-          setLiveEvent(eventData);
-          await fetchLeaderboard(live.id);
+          setLiveEventId(live.id);
+          setLiveEventName(live.data().name || live.id.replace(/_/g, " "));
         } else {
           setError("No active event currently running");
           setLoading(false);
         }
-      } catch (err) {
-        console.error("Error in fetchLiveEvent:", err);
+      } catch {
         setError("Failed to load event data");
         setLoading(false);
       }
@@ -72,73 +35,36 @@ const DivisionInfo = () => {
     fetchLiveEvent();
   }, []);
 
-  const fetchLeaderboard = async (eventId: string) => {
-    try {
-      const users: User[] = await fetchFromFirestore("users");
+  // Subscribe to the pre-computed summary doc — updates whenever Cloud Function runs
+  useEffect(() => {
+    if (!liveEventId) return;
 
-      const usersWithPickems = users
-        .map((userDoc) => {
-          const pickems = userDoc.pickems || {};
-          const playerIds = pickems[eventId] || [];
-          return {
-            id: userDoc.id,
-            displayName: userDoc?.name || userDoc?.username || "Unknown",
-            playerIds,
-          };
-        })
-        .filter((user) => user.playerIds.length > 0);
+    const unsub = onSnapshot(doc(db, "leaderboards", liveEventId), (snap) => {
+      if (!snap.exists()) {
+        setError("Leaderboard not yet calculated");
+        setLoading(false);
+        return;
+      }
 
-      const leaderboardWithPoints = await Promise.all(
-        usersWithPickems.map(async (user) => {
-          let totalPoints = 0;
-          const playerLoadPromises = user.playerIds.map(async (playerId) => {
-            if (!playerId) return 0;
-            try {
-              const playerRef = doc(
-                db,
-                `events/${eventId}/players/${playerId}`
-              );
-              const playerDoc = await getDoc(playerRef);
-              return playerDoc.exists()
-                ? playerDoc.get("Confirmed Kills") || 0
-                : 0;
-            } catch (err) {
-              console.error(`Error loading player ${playerId}:`, err);
-              return 0;
-            }
-          });
-
-          const points = await Promise.all(playerLoadPromises);
-          totalPoints = points.reduce((sum, point) => sum + point, 0);
-          return { ...user, totalPoints };
-        })
-      );
-
-      const sortedLeaderboard = leaderboardWithPoints.sort((a, b) => {
-        if (b.totalPoints !== a.totalPoints) {
-          return b.totalPoints - a.totalPoints;
-        }
-        return a.displayName.localeCompare(b.displayName);
-      });
-      setLeaderboard(sortedLeaderboard);
+      const users: any[] = snap.data()?.users || [];
+      // Sort is pre-applied by Cloud Function; just use the array as-is
+      setLeaderboard(users);
 
       if (user?.uid) {
-        const rank = sortedLeaderboard.findIndex((u) => u.id === user.uid) + 1;
-        setCurrentUserRank(rank > 0 ? rank : null);
+        const idx = users.findIndex(u => u.id === user.uid);
+        setCurrentUserRank(idx >= 0 ? idx + 1 : null);
       }
 
       setLoading(false);
       setError(null);
-    } catch (error) {
-      console.error("Error in fetchLeaderboard:", error);
-      setError("Failed to load leaderboard data");
-      setLoading(false);
-    }
-  };
+    });
+
+    return () => unsub();
+  }, [liveEventId, user?.uid]);
 
   const topUsers = leaderboard.slice(0, 3);
   const currentUserData = user?.uid
-    ? leaderboard.find((u) => u.id === user.uid)
+    ? leaderboard.find(u => u.id === user.uid)
     : null;
 
   return (
@@ -146,7 +72,7 @@ const DivisionInfo = () => {
       <div className="w-full">
         <div className="flex items-center mb-3">
           <h2 className="text-md font-bold text-white dark:text-white capitalize truncate">
-            {liveEvent.name || "Event"} Leaderboard
+            {liveEventName || "Event"} Leaderboard
           </h2>
         </div>
 
@@ -173,9 +99,9 @@ const DivisionInfo = () => {
             ) : (
               <div className="space-y-3">
                 <div className="flex flex-col lg:flex-row gap-2">
-                  {topUsers.map((user, index) => (
+                  {topUsers.map((u, index) => (
                     <div
-                      key={user.id}
+                      key={u.id}
                       className={`lg:w-1/3 p-2 rounded-lg ${
                         index === 0
                           ? "bg-gradient-to-b from-yellow-600/30 to-yellow-800/30 order-first"
@@ -193,10 +119,10 @@ const DivisionInfo = () => {
                           )}
                         </div>
                         <div className="text-xs font-medium truncate w-full text-center">
-                          {user.displayName}
+                          {u.displayName}
                         </div>
                         <div className="text-xs text-gray-300">
-                          {user.totalPoints} pts
+                          {u.eventPTS ?? 0} pts
                         </div>
                       </div>
                     </div>
@@ -205,22 +131,18 @@ const DivisionInfo = () => {
 
                 {currentUserData && (
                   <div className="mt-3 pt-3 border-t border-gray-700">
-                    <div className="text-xs text-gray-400 mb-1">
-                      YOUR POSITION
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-blue-900/30 dark:bg-blue-900/30 rounded-lg">
+                    <div className="text-xs text-gray-400 mb-1">YOUR POSITION</div>
+                    <div className="flex items-center justify-between p-2 bg-blue-900/30 rounded-lg">
                       <div className="flex items-center gap-2">
                         <div>
                           <div className="text-xs font-medium">You</div>
                           <div className="text-xs text-gray-300">
-                            {currentUserRank
-                              ? `#${currentUserRank}`
-                              : "Not ranked"}
+                            {currentUserRank ? `#${currentUserRank}` : "Not ranked"}
                           </div>
                         </div>
                       </div>
                       <div className="text-xs font-bold">
-                        {currentUserData.totalPoints} pts
+                        {currentUserData.eventPTS ?? 0} pts
                       </div>
                     </div>
                   </div>

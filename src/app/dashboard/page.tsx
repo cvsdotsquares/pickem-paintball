@@ -9,6 +9,7 @@ import {
   getDoc,
   getDocs,
   getFirestore,
+  onSnapshot,
 } from "firebase/firestore";
 import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
 import { memo, useEffect, useRef, useState } from "react";
@@ -116,19 +117,7 @@ export default function Dashboard() {
             lockDate: live.lockDate?.toDate ? live.lockDate.toDate() : null,
           });
 
-          // fetch stats from flat fields e.g. tampa_bay_2026Rank, tampa_bay_2026PTS
-          if (user) {
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (userDoc.exists()) {
-              const data = userDoc.data();
-              const rank = data[`${live.id}Rank`] ?? undefined;
-              const pts = data[`${live.id}PTS`] ?? undefined;
-              setEventRank(rank);
-              setSeasonRank(rank);   // season = event for first event
-              setEventPoints(pts);
-              setSeasonPoints(pts);  // season = event for first event
-            }
-          }
+          // Flat fields are kept live via onSnapshot below — nothing to read here
         }
       } catch (e) { console.error(e); }
     };
@@ -156,6 +145,25 @@ export default function Dashboard() {
     tick();
     return () => clearInterval(interval);
   }, [liveEvent?.lockDate]);
+
+  // Live flat-field listener: updates rank/pts the moment the Cloud Function writes them
+  useEffect(() => {
+    if (!user?.uid || !liveEvent?.id) return;
+    const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const rank = data[`${liveEvent.id}Rank`] ?? undefined;
+      const pts  = data[`${liveEvent.id}PTS`]  ?? undefined;
+      setEventRank(rank);
+      setSeasonRank(rank);
+      // Only override live-calculated points when kills exist (pts > 0)
+      if (pts !== undefined && pts > 0) {
+        setEventPoints(pts);
+        setSeasonPoints(pts);
+      }
+    });
+    return () => unsub();
+  }, [user?.uid, liveEvent?.id]);
 
   // Fetch player picture helper
   const fetchPlayerPicture = async (leagueId: string): Promise<string> => {
