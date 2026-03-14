@@ -643,7 +643,6 @@ function LeaderboardNewContent() {
     if (!liveEvent || !searchTerm.trim()) {
       setIsSearchMode(false);
       setPage(1);
-      setLastDoc(null);
       return;
     }
 
