@@ -94,8 +94,9 @@ const DivisionInfo = () => {
                 <p className="text-sm">Loading leaderboard...</p>
               </div>
             ) : leaderboard.length === 0 ? (
-              <div className="flex justify-center items-center py-4">
-                <p className="text-sm">No entries yet</p>
+              <div className="flex flex-col items-center justify-center py-4 gap-1">
+                <p className="text-sm font-semibold text-white">{liveEventName}</p>
+                <p className="text-xs text-gray-400">Leaderboard will update when event is live</p>
               </div>
             ) : (
               <div className="space-y-3">

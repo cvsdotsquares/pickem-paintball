@@ -320,21 +320,61 @@ function LeaderboardNewContent() {
     if (!isSeasonView || !selectedSeason) return;
 
     setUsersLoading(true);
-    const unsub = onSnapshot(doc(db, "leaderboards", `season_${selectedSeason}`), (snap) => {
+    const unsub = onSnapshot(doc(db, "leaderboards", `season_${selectedSeason}`), async (snap) => {
       if (!snap.exists()) {
-        setUsers([]);
-        setHasMorePages(false);
+        // Fall back to direct calculation from stored flat fields
+        try {
+          const seasonEvents = allEvents.filter(e => e.year === selectedSeason);
+          const qs = await getDocs(collection(db, "users"));
+          const fallback: User[] = [];
+
+          qs.docs.forEach(userDoc => {
+            const data = userDoc.data();
+            const pickems = data.pickems || {};
+            const participated = seasonEvents.some(
+              e => Array.isArray(pickems[e.id]) && pickems[e.id].length > 0
+            );
+            if (!participated) return;
+
+            let seasonTotalPoints = 0;
+            let seasonmvppts = 0;
+            let seasonmvpname = "n/a";
+            seasonEvents.forEach(e => {
+              const pts = parseFloat(data[`${e.id}PTS`]) || 0;
+              seasonTotalPoints += pts;
+              const mvpPts = parseFloat(data[`${e.id}MVPPTS`]) || 0;
+              if (mvpPts > seasonmvppts) {
+                seasonmvppts = mvpPts;
+                seasonmvpname = data[`${e.id}MVP`] || "n/a";
+              }
+            });
+
+            fallback.push({
+              id: userDoc.id,
+              displayName: resolveDisplayName(userDoc),
+              profilePicture: data.profilePicture || undefined,
+              isSubscribed: data.isSubscribed || false,
+              seasonTotalPoints,
+              seasonmvpname,
+              seasonmvppts,
+            });
+          });
+
+          fallback.sort((a, b) => (b.seasonTotalPoints || 0) - (a.seasonTotalPoints || 0));
+          const start = (page - 1) * itemsPerPage;
+          setUsers(fallback.slice(start, start + itemsPerPage));
+          setHasMorePages(fallback.length > start + itemsPerPage);
+        } catch {
+          setUsers([]);
+        }
         setUsersLoading(false);
         return;
       }
 
       const allUsers: any[] = snap.data()?.users || [];
-
-      // Apply league filter client-side
       const filtered = selectedLeague
         ? allUsers.filter(u => (u.leagues || []).includes(selectedLeague.id))
         : allUsers;
-
       const start = (page - 1) * itemsPerPage;
       setUsers(filtered.slice(start, start + itemsPerPage));
       setHasMorePages(filtered.length > start + itemsPerPage);
@@ -342,7 +382,7 @@ function LeaderboardNewContent() {
     });
 
     return () => unsub();
-  }, [isSeasonView, selectedSeason, page, itemsPerPage, selectedLeague?.id]);
+  }, [isSeasonView, selectedSeason, allEvents, page, itemsPerPage, selectedLeague?.id]);
 
   // Fetch users with Firestore sorting by currentRank
   // ── Live leaderboard: onSnapshot on summary doc written by Cloud Function ──
