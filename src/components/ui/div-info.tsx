@@ -41,7 +41,8 @@ const DivisionInfo = () => {
 
     const unsub = onSnapshot(doc(db, "leaderboards", liveEventId), (snap) => {
       if (!snap.exists()) {
-        setError("Leaderboard not yet calculated");
+        // Summary doc created on first macro run — show neutral state until then
+        setLeaderboard([]);
         setLoading(false);
         return;
       }

@@ -350,12 +350,44 @@ function LeaderboardNewContent() {
     if (!liveEvent || isSearchMode || isSeasonView) return;
 
     setPageLoading(true);
-    const unsub = onSnapshot(doc(db, "leaderboards", liveEvent.id), (snap) => {
+    const unsub = onSnapshot(doc(db, "leaderboards", liveEvent.id), async (snap) => {
       if (!snap.exists()) {
-        // Summary doc not yet created (first deploy / new event) — fall back to empty
-        setUsers([]);
-        setTotalParticipants(0);
-        setHasMorePages(false);
+        // Summary doc not yet created — fall back to direct query so participants
+        // are always visible even before the first macro run
+        try {
+          const qs = await getDocs(
+            query(collection(db, "users"), where(`pickems.${liveEvent.id}`, "!=", null), limit(1000))
+          );
+          const fallback: User[] = qs.docs
+            .filter(d => {
+              const p = d.get("pickems") || {};
+              return Array.isArray(p[liveEvent.id]) && p[liveEvent.id].length > 0;
+            })
+            .map(d => ({
+              id: d.id,
+              displayName: resolveDisplayName(d),
+              profilePicture: d.get("profilePicture") || undefined,
+              isSubscribed: d.get("isSubscribed") || false,
+              [`${liveEvent.id}Rank`]: d.get(`${liveEvent.id}Rank`),
+              [`${liveEvent.id}PTS`]: d.get(`${liveEvent.id}PTS`) ?? 0,
+              [`${liveEvent.id}MVP`]: d.get(`${liveEvent.id}MVP`),
+            }));
+          // Sort by stored rank / pts so past events display correctly
+          fallback.sort((a, b) => {
+            const aPts = parseFloat(a[`${liveEvent.id}PTS`]) || 0;
+            const bPts = parseFloat(b[`${liveEvent.id}PTS`]) || 0;
+            if (bPts !== aPts) return bPts - aPts;
+            const aRank = parseInt(a[`${liveEvent.id}Rank`]) || 999999;
+            const bRank = parseInt(b[`${liveEvent.id}Rank`]) || 999999;
+            return aRank - bRank;
+          });
+          setTotalParticipants(fallback.length);
+          const start = (page - 1) * itemsPerPage;
+          setUsers(fallback.slice(start, start + itemsPerPage));
+          setHasMorePages(fallback.length > start + itemsPerPage);
+        } catch {
+          setUsers([]);
+        }
         setPageLoading(false);
         setUsersLoading(false);
         return;
