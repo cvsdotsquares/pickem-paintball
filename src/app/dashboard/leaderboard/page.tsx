@@ -67,12 +67,6 @@ interface UserDetails {
   captain: string | null;
 }
 
-// Simple in-memory cache for paginated participants
-const participantsCache = new Map<string, {
-  users: User[];
-  lastDoc: DocumentSnapshot | null;
-  hasMore: boolean;
-}>();
 
 // Cache for live event to avoid repeated queries
 const LIVE_EVENT_CACHE_KEY = 'leaderboard_live_event';
@@ -153,7 +147,6 @@ function LeaderboardNewContent() {
   const [pageLoading, setPageLoading] = useState<boolean>(false);
   const [page, setPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
   const [hasMorePages, setHasMorePages] = useState(true);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [expandedUserEventId, setExpandedUserEventId] = useState<string | null>(null);
@@ -310,8 +303,6 @@ function LeaderboardNewContent() {
         }
 
         setPage(1);
-        setLastDoc(null);
-        participantsCache.clear();
       } catch (error) {
         console.error("Error fetching events:", error);
         setLiveEvent(null);
@@ -788,82 +779,11 @@ function LeaderboardNewContent() {
     setPage(1);
   }, []);
 
-  // Auto-refresh data every 3 minutes with wave effect
-  useEffect(() => {
-    if (!liveEvent) return;
-
-    const autoRefresh = async () => {
-      try {
-        // Fetch fresh data
-        const usersCollection = collection(db, "users");
-        const eventRankField = `${liveEvent.id}Rank`;
-        const constraints: QueryConstraint[] = [
-          orderBy(eventRankField),
-          limit(itemsPerPage + 1),
-        ];
-
-        if (page > 1 && lastDoc) {
-          constraints.push(startAfter(lastDoc));
-        }
-
-        const participantsQuery = query(usersCollection, ...constraints);
-        const querySnapshot = await getDocs(participantsQuery);
-        const docsToDisplay = querySnapshot.docs.slice(0, itemsPerPage);
-
-        const freshUsers: User[] = docsToDisplay
-          .filter((userDoc) => {
-            const pickems = userDoc.get("pickems") || {};
-            return Array.isArray(pickems[liveEvent.id]) && pickems[liveEvent.id].length > 0;
-          })
-          .map((userDoc) => {
-            const userData: User = {
-              id: userDoc.id,
-              displayName: resolveDisplayName(userDoc),
-              profilePicture: userDoc.get("profilePicture") || undefined,
-              pickemData: userDoc.get("pickemData") || undefined,
-            };
-            userData[`${liveEvent.id}Rank`] = userDoc.get(`${liveEvent.id}Rank`);
-            userData[`${liveEvent.id}PTS`] = userDoc.get(`${liveEvent.id}PTS`);
-            userData[`${liveEvent.id}MVP`] = userDoc.get(`${liveEvent.id}MVP`);
-            return userData;
-          });
-
-        // Wave update effect
-        freshUsers.forEach((freshUser, index) => {
-          setTimeout(() => {
-            setUpdatingRows(prev => new Set(prev).add(freshUser.id));
-
-            setTimeout(() => {
-              setUsers(prevUsers =>
-                prevUsers.map(user =>
-                  user.id === freshUser.id ? freshUser : user
-                )
-              );
-
-              setTimeout(() => {
-                setUpdatingRows(prev => {
-                  const next = new Set(prev);
-                  next.delete(freshUser.id);
-                  return next;
-                });
-              }, 300);
-            }, 100);
-          }, index * 150);
-        });
-
-      } catch (error) {
-        console.error("Auto-refresh error:", error);
-      }
-    };
-
-    const interval = setInterval(autoRefresh, 5 * 60 * 1000); // 5 minutes
-    return () => clearInterval(interval);
-  }, [liveEvent, page, itemsPerPage, lastDoc]);
+  // Auto-refresh is handled by onSnapshot — no polling needed
 
   const handlePageSizeChange = useCallback((newSize: number) => {
     setItemsPerPage(newSize);
     setPage(1);
-    setLastDoc(null);
   }, []);
 
   const handleNextPage = useCallback(() => {
@@ -878,33 +798,7 @@ function LeaderboardNewContent() {
     }
   }, [page]);
 
-  // Prefetch next page in background
-  useEffect(() => {
-    if (!isSearchMode && hasMorePages && !prefetchedPages.has(page + 1) && liveEvent) {
-      const prefetchNextPage = async () => {
-        try {
-          const usersCollection = collection(db, "users");
-          const constraints: QueryConstraint[] = [
-            where(`pickems.${liveEvent.id}`, "!=", null),
-            limit(itemsPerPage + 1),
-          ];
-
-          if (lastDoc) {
-            constraints.push(startAfter(lastDoc));
-          }
-
-          const prefetchQuery = query(usersCollection, ...constraints);
-          await getDocs(prefetchQuery);
-          setPrefetchedPages((prev) => new Set(prev).add(page + 1));
-        } catch (error) {
-          console.error("Error prefetching next page:", error);
-        }
-      };
-
-      const timer = setTimeout(prefetchNextPage, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [page, hasMorePages, isSearchMode, prefetchedPages, liveEvent, lastDoc, itemsPerPage]);
+  // Prefetch not needed — pagination is client-side from summary doc
 
   const SubscriberBadge = ({ displayName }: { displayName: string }) => (
     <div className="relative group inline-flex items-center ml-1.5 flex-shrink-0">
@@ -1007,9 +901,7 @@ function LeaderboardNewContent() {
                     setSelectedSeason(year || '2025');
                     setLiveEvent(null);
                     setPage(1);
-                    setLastDoc(null);
-                    participantsCache.clear();
-                    setUserEventsMap(new Map()); // Clear user events map when switching seasons
+                    setUserEventsMap(new Map());
                   }}
                   className={`relative flex flex-col cursor-pointer md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${isSeasonView && selectedSeason === year ? "border-4 rounded-xl border-blue-500 dark:border-white" : ""
                     }`}
@@ -1055,8 +947,6 @@ function LeaderboardNewContent() {
                   setSelectedSeason(null);
                   setLiveEvent(event);
                   setPage(1);
-                  setLastDoc(null);
-                  participantsCache.clear();
                 }}
               />
             ))}
