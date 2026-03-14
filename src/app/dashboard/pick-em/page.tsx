@@ -153,7 +153,7 @@ export default function Pickems() {
       container.addEventListener("scroll", handleScroll, { passive: true });
       return () => container.removeEventListener("scroll", handleScroll);
     }
-  }, [visiblePlayers, handleScroll, isMobile]);
+  }, [visiblePlayers, handleScroll, isMobile, isDrawerOpen]);
 
   const fetchFromFirestore = async (path: string): Promise<any[]> => {
     const snap = await getDocs(collection(db, path));
@@ -518,10 +518,11 @@ export default function Pickems() {
       {/* CPT button bottom-right — disabled after lock */}
       <button
         onClick={(e) => { e.stopPropagation(); if (!isLocked) onSetCaptain(); }}
-        className={`absolute bottom-1 right-1 z-10 text-[6px] font-black uppercase tracking-widest px-1 py-0.5 rounded transition-all
+        className={`absolute bottom-1 right-1 z-10 font-black uppercase tracking-widest px-1 py-0.5 rounded transition-all flex flex-col items-center leading-none gap-[1px]
           ${isCaptain ? "bg-yellow-400 text-black" : "bg-black/50 text-white/30 border border-white/20"}
           ${isLocked ? "opacity-50 cursor-not-allowed" : ""}`}>
-        {isCaptain ? "★ CPT" : "CPT"}
+        <span className="text-[6px]">{isCaptain ? "★ CPT" : "CPT"}</span>
+        {isCaptain && <span className="text-[5px] opacity-80">1.5× PTS</span>}
       </button>
     </div>
   ));
@@ -767,9 +768,10 @@ export default function Pickems() {
                     const cap = captainId ? temporaryPicks.find((p) => String(p.player_id) === String(captainId)) : null;
                     return cap
                       ? <SlotCard player={cap} isCaptain={true} isLocked={!isBeforeLockDate(liveEvent.lockDate)} onRemove={() => handlePlayerAction(cap)} onSetCaptain={handleCaptainUnset} />
-                      : <div onClick={() => setIsDrawerOpen(true)} className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-yellow-400/40 bg-yellow-400/5 h-full gap-1 min-h-[120px] cursor-pointer hover:border-yellow-400/60 transition-colors">
+                      : <div onClick={() => setIsDrawerOpen(true)} className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-yellow-400/50 bg-yellow-400/5 h-full gap-1.5 min-h-[120px] cursor-pointer hover:border-yellow-400/80 hover:bg-yellow-400/10 transition-all">
                         <span className="bg-yellow-400 text-black text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest">CPT</span>
-                        <span className="text-yellow-500/60 text-[7px] uppercase font-bold tracking-widest text-center px-1 leading-tight">Set a captain</span>
+                        <span className="text-yellow-600 dark:text-yellow-400 text-[8px] uppercase font-black tracking-widest text-center px-1 leading-tight">Set a captain</span>
+                        <span className="text-yellow-600 dark:text-yellow-400/70 text-[7px] font-bold tracking-widest text-center px-1 leading-tight">1.5× Points</span>
                       </div>;
                   })()}
                 </div>
@@ -873,8 +875,18 @@ export default function Pickems() {
           <motion.div className="fixed md:hidden top-28 left-0 right-0 z-30 bg-white dark:bg-[#0d0d0d] shadow-xl border-t border-gray-200 dark:border-white/10"
             style={{ height: "80vh" }} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 30, stiffness: 400 }}>
             <div className="flex flex-col h-full">
-              <div className="flex justify-between items-center p-4 border-b border-gray-100 dark:border-white/10">
-                <span className="text-xs font-black uppercase tracking-widest text-gray-900 dark:text-white">Select Players</span>
+              <div className="flex justify-between items-center px-4 pt-4 pb-3 border-b border-gray-100 dark:border-white/10">
+                <div>
+                  <span className="text-xs font-black uppercase tracking-widest text-gray-900 dark:text-white">Select Players</span>
+                  <div className="flex gap-3 mt-1">
+                    <span className={`text-[10px] font-bold ${10 - temporaryPicks.length === 0 ? "text-green-500" : "text-gray-400 dark:text-white/40"}`}>
+                      {10 - temporaryPicks.length === 0 ? "✓ Team full" : `${10 - temporaryPicks.length} pick${10 - temporaryPicks.length !== 1 ? "s" : ""} remaining`}
+                    </span>
+                    <span className={`text-[10px] font-bold ${remainingBudget < 0 ? "text-red-500" : "text-gray-400 dark:text-white/40"}`}>
+                      {formatCost(remainingBudget)} left
+                    </span>
+                  </div>
+                </div>
                 <button onClick={() => setIsDrawerOpen(false)} className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"><IoMdClose size={18} /></button>
               </div>
               <div className="flex flex-col gap-2 px-3 py-2 border-b border-gray-100 dark:border-white/5">
@@ -915,7 +927,12 @@ export default function Pickems() {
               <div className="flex-shrink-0 border-b border-gray-100 dark:border-white/5"
                 style={{ display: "grid", gridTemplateColumns: MOBILE_GRID_COLS, alignItems: "center", gap: "8px", padding: "6px 12px" }}>
                 <div />
-                <div />
+                {/* Player name — sortable */}
+                <div className="cursor-pointer select-none" onClick={() => setSortOption((prev) => ({ field: "name", direction: prev.field === "name" && prev.direction === "asc" ? "desc" : "asc" }))}>
+                  <span className={`text-[7px] uppercase tracking-widest font-bold leading-none ${sortOption.field === "name" ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-white/30"}`}>
+                    Player{sortOption.field === "name" && <span className="ml-0.5 text-[6px]">{sortOption.direction === "asc" ? "↑" : "↓"}</span>}
+                  </span>
+                </div>
                 {[
                   { label: "Cost", sub: null, field: "cost" },
                   { label: "Elims", sub: "WC", field: "elim" },
@@ -932,7 +949,7 @@ export default function Pickems() {
                 ))}
                 <div />
               </div>
-              <div className="flex-1 overflow-y-auto touch-pan-y" ref={mobileScrollRef} style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", scrollbarGutter: "stable" }}>
+              <div className="flex-1 min-h-0 overflow-y-auto touch-pan-y" ref={mobileScrollRef} style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", scrollbarGutter: "stable" }}>
                 {visiblePlayers.map((player) => (
                   <MobilePlayerRow key={`m-${player.player_id}`} player={player} isSelected={temporaryPicks.some((p) => String(p.player_id) === String(player.player_id))} />
                 ))}
