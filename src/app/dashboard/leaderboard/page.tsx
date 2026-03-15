@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Fragment, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, Fragment, useMemo, useCallback } from "react";
 import { db, storage } from "@/src/lib/firebaseClient";
 import {
   collection,
@@ -384,54 +384,74 @@ function LeaderboardNewContent() {
     return () => unsub();
   }, [isSeasonView, selectedSeason, allEvents, page, itemsPerPage, selectedLeague?.id]);
 
-  // Fetch users with Firestore sorting by currentRank
-  // ── Live leaderboard: onSnapshot on summary doc written by Cloud Function ──
+  // Tracks whether the summary doc has delivered real data — prevents the async
+  // fallback from overwriting snapshot data if it resolves after the snapshot fires.
+  const hasSummaryData = useRef(false);
+
+  // ── Fallback: one-time query while CF hasn't run yet ─────────────────────────
+  useEffect(() => {
+    if (!liveEvent || isSearchMode || isSeasonView) return;
+    hasSummaryData.current = false; // reset on event change
+
+    let cancelled = false;
+    const runFallback = async () => {
+      try {
+        const qs = await getDocs(
+          query(collection(db, "users"), where(`pickems.${liveEvent.id}`, "!=", null), limit(1000))
+        );
+        if (cancelled || hasSummaryData.current) return; // snapshot beat us — don't overwrite
+        const fallback: User[] = qs.docs
+          .filter(d => {
+            const p = d.get("pickems") || {};
+            return Array.isArray(p[liveEvent.id]) && p[liveEvent.id].length > 0;
+          })
+          .map(d => ({
+            id: d.id,
+            displayName: resolveDisplayName(d),
+            profilePicture: d.get("profilePicture") || undefined,
+            isSubscribed: d.get("isSubscribed") || false,
+            [`${liveEvent.id}Rank`]: d.get(`${liveEvent.id}Rank`),
+            [`${liveEvent.id}PTS`]: d.get(`${liveEvent.id}PTS`) ?? 0,
+            [`${liveEvent.id}MVP`]: d.get(`${liveEvent.id}MVP`),
+          }));
+        fallback.sort((a, b) => {
+          const aPts = parseFloat(a[`${liveEvent.id}PTS`]) || 0;
+          const bPts = parseFloat(b[`${liveEvent.id}PTS`]) || 0;
+          if (bPts !== aPts) return bPts - aPts;
+          const aRank = parseInt(a[`${liveEvent.id}Rank`]) || 999999;
+          const bRank = parseInt(b[`${liveEvent.id}Rank`]) || 999999;
+          return aRank - bRank;
+        });
+        if (cancelled || hasSummaryData.current) return;
+        setTotalParticipants(fallback.length);
+        const start = (page - 1) * itemsPerPage;
+        setUsers(fallback.slice(start, start + itemsPerPage));
+        setHasMorePages(fallback.length > start + itemsPerPage);
+        setPageLoading(false);
+        setUsersLoading(false);
+      } catch {
+        if (!cancelled && !hasSummaryData.current) setUsers([]);
+        setPageLoading(false);
+        setUsersLoading(false);
+      }
+    };
+    runFallback();
+    return () => { cancelled = true; };
+  }, [liveEvent?.id, isSearchMode, isSeasonView]);
+
+  // ── Live leaderboard: onSnapshot on summary doc written by Cloud Function ────
   useEffect(() => {
     if (!liveEvent || isSearchMode || isSeasonView) return;
 
     setPageLoading(true);
-    const unsub = onSnapshot(doc(db, "leaderboards", liveEvent.id), async (snap) => {
+    const unsub = onSnapshot(doc(db, "leaderboards", liveEvent.id), (snap) => {
       if (!snap.exists()) {
-        // Summary doc not yet created — fall back to direct query so participants
-        // are always visible even before the first macro run
-        try {
-          const qs = await getDocs(
-            query(collection(db, "users"), where(`pickems.${liveEvent.id}`, "!=", null), limit(1000))
-          );
-          const fallback: User[] = qs.docs
-            .filter(d => {
-              const p = d.get("pickems") || {};
-              return Array.isArray(p[liveEvent.id]) && p[liveEvent.id].length > 0;
-            })
-            .map(d => ({
-              id: d.id,
-              displayName: resolveDisplayName(d),
-              profilePicture: d.get("profilePicture") || undefined,
-              isSubscribed: d.get("isSubscribed") || false,
-              [`${liveEvent.id}Rank`]: d.get(`${liveEvent.id}Rank`),
-              [`${liveEvent.id}PTS`]: d.get(`${liveEvent.id}PTS`) ?? 0,
-              [`${liveEvent.id}MVP`]: d.get(`${liveEvent.id}MVP`),
-            }));
-          // Sort by stored rank / pts so past events display correctly
-          fallback.sort((a, b) => {
-            const aPts = parseFloat(a[`${liveEvent.id}PTS`]) || 0;
-            const bPts = parseFloat(b[`${liveEvent.id}PTS`]) || 0;
-            if (bPts !== aPts) return bPts - aPts;
-            const aRank = parseInt(a[`${liveEvent.id}Rank`]) || 999999;
-            const bRank = parseInt(b[`${liveEvent.id}Rank`]) || 999999;
-            return aRank - bRank;
-          });
-          setTotalParticipants(fallback.length);
-          const start = (page - 1) * itemsPerPage;
-          setUsers(fallback.slice(start, start + itemsPerPage));
-          setHasMorePages(fallback.length > start + itemsPerPage);
-        } catch {
-          setUsers([]);
-        }
-        setPageLoading(false);
-        setUsersLoading(false);
+        // Fallback effect handles the empty state — nothing to do here
         return;
       }
+
+      // Mark that real data has arrived so the fallback won't overwrite it
+      hasSummaryData.current = true;
 
       const allUsers: any[] = snap.data()?.users || [];
       setTotalParticipants(snap.data()?.totalParticipants || allUsers.length);

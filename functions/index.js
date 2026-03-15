@@ -25,10 +25,15 @@ exports.recalculateLeaderboard = functions.firestore
     const newData = change.after.data();
     const oldData = change.before.data();
 
-    // Only run when last_updated changes (i.e. the macro just uploaded data)
-    const newTs = newData?.last_updated?.toMillis?.() || 0;
-    const oldTs = oldData?.last_updated?.toMillis?.() || 0;
-    if (newTs === oldTs) return null;
+    // Only run when last_updated changes (i.e. the macro just uploaded data).
+    // Handle both Firestore Timestamp objects and raw Date/number values written
+    // by the Apps Script macro so the comparison never silently returns 0 === 0.
+    const toMs = (v) =>
+      v?.toMillis?.() ?? (v instanceof Date ? v.getTime() : (typeof v === 'number' ? v : null));
+    const newTs = toMs(newData?.last_updated);
+    const oldTs = toMs(oldData?.last_updated);
+    if (newTs !== null && oldTs !== null && newTs === oldTs) return null;
+    if (newTs === null && oldTs === null) return null;
 
     console.log(`📊 Recalculating leaderboard for: ${eventId}`);
 
