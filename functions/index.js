@@ -48,6 +48,11 @@ exports.recalculateLeaderboard = functions.firestore
         playerNameMap[doc.id] = d['Player'] || 'Unknown';
       });
 
+      // Log all players with kills so we can verify correct data was read
+      const scorers = Object.entries(killMap).filter(([, k]) => k > 0).map(([id, k]) => `${playerNameMap[id]}(${id}):${k}`);
+      console.log(`📋 Players with kills (${scorers.length}): ${scorers.join(', ') || 'none'}`);
+      console.log(`📋 Total players read: ${playersSnap.docs.length}`);
+
       // ── 2. Fetch all users with picks for this event (one batch read) ────
       const usersSnap = await db.collection('users')
         .where(`pickems.${eventId}`, '!=', null)
