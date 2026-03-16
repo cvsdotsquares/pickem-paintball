@@ -168,6 +168,10 @@ function LeaderboardNewContent() {
   const [updatingRows, setUpdatingRows] = useState<Set<string>>(new Set());
   const [totalParticipants, setTotalParticipants] = useState<number>(0);
 
+  // Live member IDs for the selected league — fetched directly from the
+  // leagues doc so the filter is never based on stale leaderboard cache data.
+  const [leagueMemberIds, setLeagueMemberIds] = useState<Set<string> | null>(null);
+
   // League modals
   const [showCreateLeague, setShowCreateLeague] = useState(false);
   const [showJoinLeague, setShowJoinLeague] = useState(false);
@@ -372,8 +376,8 @@ function LeaderboardNewContent() {
       }
 
       const allUsers: any[] = snap.data()?.users || [];
-      const filtered = selectedLeague
-        ? allUsers.filter(u => (u.leagues || []).includes(selectedLeague.id))
+      const filtered = leagueMemberIds
+        ? allUsers.filter(u => leagueMemberIds.has(u.id))
         : allUsers;
       const start = (page - 1) * itemsPerPage;
       setUsers(filtered.slice(start, start + itemsPerPage));
@@ -382,7 +386,7 @@ function LeaderboardNewContent() {
     });
 
     return () => unsub();
-  }, [isSeasonView, selectedSeason, allEvents, page, itemsPerPage, selectedLeague?.id]);
+  }, [isSeasonView, selectedSeason, allEvents, page, itemsPerPage, selectedLeague?.id, leagueMemberIds]);
 
   // Tracks whether the summary doc has delivered real data — prevents the async
   // fallback from overwriting snapshot data if it resolves after the snapshot fires.
@@ -456,9 +460,10 @@ function LeaderboardNewContent() {
       const allUsers: any[] = snap.data()?.users || [];
       setTotalParticipants(snap.data()?.totalParticipants || allUsers.length);
 
-      // Apply league filter client-side
-      const filtered = selectedLeague
-        ? allUsers.filter(u => (u.leagues || []).includes(selectedLeague.id))
+      // Apply league filter using live membership from leagues doc,
+      // not the stale leagues field cached in the leaderboard summary.
+      const filtered = leagueMemberIds
+        ? allUsers.filter(u => leagueMemberIds.has(u.id))
         : allUsers;
 
       // Normalise to the shape the rest of the page expects
@@ -482,7 +487,7 @@ function LeaderboardNewContent() {
     });
 
     return () => unsub();
-  }, [liveEvent?.id, isSearchMode, isSeasonView, selectedLeague?.id, page, itemsPerPage]);
+  }, [liveEvent?.id, isSearchMode, isSeasonView, selectedLeague?.id, leagueMemberIds, page, itemsPerPage]);
 
   // Reset pagination when event or league changes
   useEffect(() => {
@@ -492,6 +497,23 @@ function LeaderboardNewContent() {
       setTotalParticipants(0);
     }
   }, [liveEvent?.id, selectedLeague?.id]);
+
+  // Fetch live league membership directly from the leagues collection.
+  // This ensures the filter is always accurate regardless of when the
+  // leaderboard summary doc was last rebuilt by the Cloud Function.
+  useEffect(() => {
+    if (!selectedLeague) {
+      setLeagueMemberIds(null);
+      return;
+    }
+    let cancelled = false;
+    getDoc(doc(db, "leagues", selectedLeague.id)).then((snap) => {
+      if (cancelled || !snap.exists()) return;
+      const members: string[] = snap.data()?.members || [];
+      setLeagueMemberIds(new Set(members));
+    }).catch(() => setLeagueMemberIds(null));
+    return () => { cancelled = true; };
+  }, [selectedLeague?.id]);
 
   // Fetch current user data
   useEffect(() => {
