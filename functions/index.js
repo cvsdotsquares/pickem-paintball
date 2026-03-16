@@ -233,6 +233,75 @@ exports.recalculateLeaderboard = functions.firestore
     }
   });
 
+// ─── Auto-add user to leaderboard on picks save ───────────────────────────
+// Fires on every user doc write. If the user just saved picks for a live event
+// and isn't yet in the leaderboard summary doc, appends them with 0 pts so
+// they appear immediately without waiting for the next macro run.
+exports.onUserPicksSaved = functions.firestore
+  .document('users/{userId}')
+  .onWrite(async (change, context) => {
+    if (!change.after.exists) return null; // user deleted
+
+    const userId = context.params.userId;
+    const before = change.before.exists ? (change.before.data().pickems || {}) : {};
+    const after = change.after.data().pickems || {};
+
+    // Find event IDs where picks were newly added in this write
+    const newlyPickedEventIds = Object.keys(after).filter(key => {
+      if (key.includes('_captain')) return false;
+      const picks = after[key];
+      if (!Array.isArray(picks) || picks.length === 0) return false;
+      const hadBefore = Array.isArray(before[key]) && before[key].length > 0;
+      return !hadBefore; // only truly new picks
+    });
+
+    if (newlyPickedEventIds.length === 0) return null;
+
+    const userData = change.after.data();
+    const displayName = resolveDisplayName(userData);
+    const profilePicture = userData.profilePicture || null;
+    const isSubscribed = userData.isSubscribed || false;
+    const leagues = userData.leagues || [];
+
+    try {
+      for (const eventId of newlyPickedEventIds) {
+        const lbRef = db.doc(`leaderboards/${eventId}`);
+        const lbSnap = await lbRef.get();
+
+        if (!lbSnap.exists) continue; // leaderboard not built yet — CF will create it on first macro run
+
+        const existingUsers = lbSnap.data().users || [];
+        const alreadyIn = existingUsers.some(u => u.id === userId);
+        if (alreadyIn) continue;
+
+        const newEntry = {
+          id: userId,
+          displayName,
+          profilePicture,
+          isSubscribed,
+          leagues,
+          eventPTS: 0,
+          eventRank: existingUsers.length + 1,
+          mvp: 'None',
+          mvpPTS: 0,
+          seasonPTS: 0,
+          seasonRank: existingUsers.length + 1,
+        };
+
+        await lbRef.update({
+          users: admin.firestore.FieldValue.arrayUnion(newEntry),
+          totalParticipants: admin.firestore.FieldValue.increment(1),
+        });
+
+        console.log(`✅ Added ${displayName} (${userId}) to leaderboard for ${eventId}`);
+      }
+    } catch (err) {
+      console.error('❌ onUserPicksSaved failed:', err);
+    }
+
+    return null;
+  });
+
 // Helper function to migrate single event
 const migrateSingleEvent = async (eventId) => {
   console.log(`🔄 Migrating event: ${eventId}`);
