@@ -52,6 +52,15 @@ body {
   font-family: var(--font-azonix), sans-serif;
 }
 
+/* Prevent iOS Safari from auto-zooming when tapping input fields.
+   iOS zooms in whenever an input's font-size is below 16px.
+   !important is required to override Tailwind text-xs/text-sm utilities. */
+input,
+select,
+textarea {
+  font-size: max(16px, 1em) !important;
+}
+
 /* Universal Custom Scrollbar Styles */
 * {
   scrollbar-width: thin;

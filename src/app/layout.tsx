@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "../contexts/authProvider";
 import { SubscriptionProvider } from "../contexts/SubscriptionContext";
@@ -13,6 +13,13 @@ import "@twallpaper/react/css";
 export const metadata: Metadata = {
   title: "PickEm Paintball Website",
   description: "Play Fantasy Paintball and support your player",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Do NOT set maximumScale/userScalable — that breaks accessibility.
+  // iOS zoom is prevented by ensuring all inputs are >= 16px font size instead.
 };
 
 const inter = localFont({
