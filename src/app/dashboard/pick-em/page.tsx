@@ -63,11 +63,15 @@ export default function Pickems() {
   const [teams, setTeams] = useState<string[]>([]);
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
+  }, []);
+  useEffect(() => {
+    setIsTouchDevice("ontouchstart" in window || navigator.maxTouchPoints > 0);
   }, []);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [sortOption, setSortOption] = useState<{ field: string; direction: "asc" | "desc" }>({ field: "name", direction: "asc" });
@@ -341,15 +345,28 @@ export default function Pickems() {
           seasonElims: data[`${liveEvent.id}PTS`] ?? undefined,  // season = event for first event
         });
 
-        const ids = data.pickems?.[liveEvent.id];
-        if (!Array.isArray(ids)) return;
+        // Use official picks if present, otherwise fall back to saved draft
+        const officialIds = data.pickems?.[liveEvent.id];
+        const draftIds = data.pickems?.[`${liveEvent.id}_draft`];
+        const ids = (Array.isArray(officialIds) && officialIds.length > 0)
+          ? officialIds
+          : (Array.isArray(draftIds) && draftIds.length > 0 ? draftIds : null);
+        if (!ids) return;
+
+        const isDraft = !(Array.isArray(officialIds) && officialIds.length > 0);
+        const rawCaptainId = isDraft
+          ? data.pickems?.[`${liveEvent.id}_draft_captain`]
+          : data.pickems?.[`${liveEvent.id}_captain`];
+
         const docs = await Promise.all(ids.map((id: string) => getDoc(doc(db, `events/${liveEvent.id}/players`, id.toString()))));
         const picks = await Promise.all(docs.filter((d) => d.exists()).map(async (d) => {
           const pd = { ...d.data(), player_id: d.id } as any;
           return { ...pd, picture: pd.img_url?.trim() ? pd.img_url : await fetchPlayerPicture(pd.league_id) };
         }));
-        const rawCaptainId = data.pickems?.[`${liveEvent.id}_captain`];
         const captainIdValue = rawCaptainId != null ? String(rawCaptainId) : null;
+        if (isDraft && picks.length > 0) {
+          toast.info(`Restored ${picks.length} draft pick${picks.length !== 1 ? 's' : ''} — confirm when you're ready!`, { duration: 4000 });
+        }
         setCaptainId(captainIdValue);
         setTemporaryPicks(picks);
         setPlayerSlots((prev) => prev.map((slot, i) => ({ ...slot, player: picks[i] || null })));
@@ -452,7 +469,7 @@ export default function Pickems() {
     }
   }, [showModal]);
 
-  // Auto-save with 2s debounce when team is complete
+  // Auto-save with 2s debounce when team is complete (official picks — drives scoring)
   useEffect(() => {
     if (temporaryPicks.length < 10 || !captainId || !user) return;
     if (!isBeforeLockDate(liveEvent?.lockDate)) return;
@@ -472,6 +489,23 @@ export default function Pickems() {
     }, 2000);
     return () => clearTimeout(timer);
   }, [temporaryPicks, captainId, maybeShowSupportModal]);
+
+  // Draft save with 3s debounce — saves partial picks so users don't lose
+  // progress on refresh. Stored separately from official picks so it never
+  // affects scoring until all 10 are confirmed.
+  useEffect(() => {
+    if (!user || !liveEvent?.id || temporaryPicks.length === 0) return;
+    if (!isBeforeLockDate(liveEvent?.lockDate)) return;
+    const timer = setTimeout(async () => {
+      try {
+        await updateDoc(doc(db, "users", user.uid), {
+          [`pickems.${liveEvent.id}_draft`]: temporaryPicks.map((p) => String(p.player_id)),
+          [`pickems.${liveEvent.id}_draft_captain`]: captainId ? String(captainId) : null,
+        });
+      } catch { /* draft save failure is silent */ }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [temporaryPicks, captainId, user, liveEvent?.id]);
 
   // Live rank/pts: updates the moment the Cloud Function writes flat fields
   useEffect(() => {
@@ -530,7 +564,7 @@ export default function Pickems() {
   // ── EMPTY SLOT ───────────────────────────────────────────────────────────────
   const EmptySlot = ({ slot }: { slot: PlayerSlot }) => (
     <button onClick={() => { setPlayerSlots((p) => p.map((s) => ({ ...s, isSelected: s.id === slot.id }))); setIsDrawerOpen(true); }}
-      className="flex flex-col gap-1 justify-center items-center rounded-lg border border-dashed border-black/15 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02] hover:border-black/30 dark:hover:border-white/30 transition-all w-full h-full min-h-[80px]">
+      className="flex flex-col gap-1 justify-center items-center rounded-lg border border-dashed border-black/15 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02] hover:border-black/30 dark:hover:border-white/30 transition-all w-full h-full">
       <span className="text-black/20 dark:text-white/20 text-base">+</span>
       <span className="text-[7px] uppercase text-black/20 dark:text-white/20 font-bold tracking-widest text-center px-1 leading-tight">Add Player</span>
     </button>
@@ -603,21 +637,24 @@ export default function Pickems() {
   ));
 
   return (
-    <div className="flex flex-col w-full h-[calc(100vh-48px)] overflow-hidden bg-[#f0f0f0] dark:bg-[#111]">
+    <div className="flex flex-col w-full overflow-hidden bg-[#f0f0f0] dark:bg-[#111] h-[calc(100dvh-106px)] md:h-[calc(100dvh-48px)]">
 
       {/* ── EVENT BANNER ──────────────────────────────────────────────────────── */}
 
       {/* MOBILE banner */}
-      <div className="md:hidden flex-shrink-0 rounded-b-2xl overflow-hidden mx-0" style={{ backgroundColor: liveEvent.brandColor || "#b91c1c" }}>
+      <div className="md:hidden flex-shrink-0 rounded-b-2xl mx-0" style={{ backgroundColor: liveEvent.brandColor || "#b91c1c" }}>
         {/* Top strip — countdown */}
-        <div className="flex items-center gap-2 px-3 py-2" style={{ backgroundColor: "rgba(0,0,0,0.35)" }}>
-          <span className="text-white text-[11px] font-black uppercase tracking-widest whitespace-nowrap">Team Lock Deadline:</span>
-          <span className="text-white font-black text-[11px]">
-            {pad(liveEvent._days)}d : {pad(liveEvent._hours)}h : {pad(liveEvent._minutes)}m : {pad(liveEvent._seconds)}s
-          </span>
+        <div style={{ backgroundColor: "rgba(0,0,0,0.35)", height: "32px", display: "flex", flexDirection: "column", paddingLeft: "12px", paddingRight: "12px", paddingBottom: "6px" }}>
+          <div style={isTouchDevice ? { height: "12px", flexShrink: 0 } : { flex: 1, minHeight: 0 }} />
+          <div style={{ display: "flex", gap: "8px" }}>
+            <span className="text-white text-[11px] font-black uppercase tracking-widest whitespace-nowrap">Team Lock Deadline:</span>
+            <span className="text-white font-black text-[11px] whitespace-nowrap">
+              {pad(liveEvent._days)}d : {pad(liveEvent._hours)}h : {pad(liveEvent._minutes)}m : {pad(liveEvent._seconds)}s
+            </span>
+          </div>
         </div>
         {/* Bottom strip — event name + cost cap */}
-        <div className="flex items-center justify-between px-3 py-2.5">
+        <div className="flex items-center justify-between px-3 py-2">
           <div>
             <div className="text-white/70 text-[10px] uppercase tracking-widest font-bold">Event {liveEvent.eventNumber || "1"}</div>
             <div className="text-white font-black text-lg uppercase leading-tight">NXL {liveEvent.name || "TAMPA BAY OPEN"}</div>
@@ -694,23 +731,21 @@ export default function Pickems() {
         {/* LEFT: Unified Grid */}
         <div className="flex flex-col w-full md:w-[45%] border-r border-gray-200 dark:border-white/10 overflow-hidden bg-[#f0f0f0] dark:bg-[#111]">
 
-          {/* Scroll container with fade indicator */}
-          <div className="relative flex-1 overflow-hidden">
-            <div className="h-full overflow-y-auto px-2 pt-3 pb-2" style={{ paddingBottom: isMobile ? "80px" : "8px" }}>
-              <div className="grid grid-cols-3 gap-1.5" style={{
-                gridTemplateRows: isMobile
-                  ? "minmax(120px, 120px) minmax(100px, 100px) minmax(100px, 100px) minmax(100px, 100px)"
-                  : "minmax(130px, 1fr) minmax(110px, 1fr) minmax(110px, 1fr) minmax(110px, 1fr)"
+          {/* Grid fills all remaining height — confirm bar is always visible below */}
+          <div className="relative flex-1 overflow-hidden min-h-0">
+            <div className="h-full px-2 pt-2 pb-1">
+              <div className="grid grid-cols-3 gap-1.5 h-full" style={{
+                gridTemplateRows: "auto 1fr 1fr 1fr"
               }}>
 
                 {/* ── ROW 1: My Team + Cost Cap (2 cols) + Captain slot (1 col) ── */}
                 <div className="col-span-2 bg-black rounded-lg p-2 flex flex-col justify-between">
                   <div className="flex items-start gap-2">
-                    {/* Avatar + badges */}
+                    {/* Avatar — forced square so it never squishes */}
                     <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                      <div className="w-11 h-11 rounded-full bg-white/10 border-2 border-white/20 overflow-hidden flex items-center justify-center">
+                      <div className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-white/10 border-2 border-white/20 overflow-hidden flex items-center justify-center">
                         {userProfile.photoURL
-                          ? <img src={userProfile.photoURL} alt="" className="w-full h-full object-cover" />
+                          ? <img src={userProfile.photoURL} alt="" className="w-full h-full object-cover rounded-full" style={{ aspectRatio: "1/1" }} />
                           : <span className="text-white/50 font-black text-lg">{(userProfile.displayName || user?.email || "?")[0].toUpperCase()}</span>}
                       </div>
                       <div className="flex gap-0.5">{[0, 1, 2].map((i) => <div key={i} className="w-3.5 h-3.5 rounded-full bg-white/10 border border-white/15" />)}</div>
@@ -727,27 +762,11 @@ export default function Pickems() {
                           { label: "Season Points:", val: userProfile.seasonElims ?? "—" },
                         ].map(({ label, val }) => (
                           <div key={label}>
-                            <div className="text-white/30 text-[8px] uppercase tracking-widest font-bold leading-none">{label}</div>
+                            <div className="text-white/30 text-[8px] uppercase tracking-widest font-bold leading-none whitespace-nowrap">{label}</div>
                             <div className="text-white font-black text-lg leading-tight">{val}</div>
                           </div>
                         ))}
                       </div>
-                    </div>
-                    <div className="flex flex-col gap-1 flex-shrink-0">
-                      <button
-                        onClick={confirmPicks}
-                        disabled={temporaryPicks.length < 10 || !captainId}
-                        className={`text-[7px] font-black uppercase tracking-widest border rounded px-1.5 py-0.5 transition-colors whitespace-nowrap
-                      ${temporaryPicks.length < 10 || !captainId
-                            ? "border-white/10 text-white/20 cursor-not-allowed"
-                            : "border-green-500 text-green-400 hover:bg-green-500 hover:text-white"
-                          }`}>
-                        {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "✓ Saved" : "Save Picks"}
-                      </button>
-                      <button onClick={() => { setTemporaryPicks([]); setCaptainId(null); setSaveStatus("idle"); setPlayerSlots((p) => p.map((s) => ({ ...s, player: null }))); }}
-                        className="text-white/30 hover:text-white/60 text-[7px] font-black uppercase tracking-widest border border-white/15 hover:border-white/30 rounded px-1.5 py-0.5 transition-colors">
-                        Reset
-                      </button>
                     </div>
                   </div>
                   <div className="hidden md:block">
@@ -768,7 +787,7 @@ export default function Pickems() {
                     const cap = captainId ? temporaryPicks.find((p) => String(p.player_id) === String(captainId)) : null;
                     return cap
                       ? <SlotCard player={cap} isCaptain={true} isLocked={!isBeforeLockDate(liveEvent.lockDate)} onRemove={() => handlePlayerAction(cap)} onSetCaptain={handleCaptainUnset} />
-                      : <div onClick={() => setIsDrawerOpen(true)} className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-yellow-400/50 bg-yellow-400/5 h-full gap-1.5 min-h-[120px] cursor-pointer hover:border-yellow-400/80 hover:bg-yellow-400/10 transition-all">
+                      : <div onClick={() => setIsDrawerOpen(true)} className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-yellow-400/50 bg-yellow-400/5 h-full gap-1.5 cursor-pointer hover:border-yellow-400/80 hover:bg-yellow-400/10 transition-all">
                         <span className="bg-yellow-400 text-black text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest">CPT</span>
                         <span className="text-yellow-600 dark:text-yellow-400 text-[8px] uppercase font-black tracking-widest text-center px-1 leading-tight">Set a captain</span>
                         <span className="text-yellow-600 dark:text-yellow-400/70 text-[7px] font-bold tracking-widest text-center px-1 leading-tight">1.5× Points</span>
@@ -790,9 +809,46 @@ export default function Pickems() {
 
               </div>
             </div>
-            {/* Scroll fade indicator */}
-            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#f0f0f0] dark:from-[#111] to-transparent" />
           </div>
+
+          {/* ── CONFIRM BAR (all screen sizes) ── flex-shrink-0 so it never pushes the grid */}
+          {(() => {
+            const picksLeft = 10 - temporaryPicks.length;
+            const isReady = temporaryPicks.length >= 10 && !!captainId;
+            const needsCaptain = temporaryPicks.length >= 10 && !captainId;
+            const isLocked = !isBeforeLockDate(liveEvent.lockDate);
+            const confirmLabel = isLocked ? "Picks Locked"
+              : saveStatus === "saving" ? "Saving..."
+              : saveStatus === "saved" ? "✓ Picks Confirmed!"
+              : isReady ? "Confirm My Picks"
+              : needsCaptain ? "Set a Captain to Confirm"
+              : `Pick ${picksLeft} more to confirm`;
+            return (
+              <div className="flex-shrink-0 flex gap-2 px-3 pb-2 pt-1">
+                {/* Confirm — 75% */}
+                <button
+                  onClick={confirmPicks}
+                  disabled={!isReady || saveStatus === "saving" || isLocked}
+                  style={{ flex: 3 }}
+                  className={`py-2 rounded-xl font-black uppercase tracking-widest text-sm transition-all
+                    ${isLocked ? "bg-white/10 text-white/30 cursor-not-allowed"
+                    : saveStatus === "saved" ? "bg-green-500 text-white shadow-lg shadow-green-500/30"
+                    : isReady ? "bg-green-500 hover:bg-green-400 text-white shadow-lg shadow-green-500/30 active:scale-95"
+                    : needsCaptain ? "bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 cursor-not-allowed"
+                    : "bg-white/5 border border-white/10 text-white/30 cursor-not-allowed"}`}>
+                  {confirmLabel}
+                </button>
+                {/* Reset — 25% */}
+                <button
+                  onClick={() => { setTemporaryPicks([]); setCaptainId(null); setSaveStatus("idle"); setPlayerSlots((p) => p.map((s) => ({ ...s, player: null }))); }}
+                  disabled={isLocked}
+                  style={{ flex: 1 }}
+                  className="py-2 rounded-xl font-black uppercase tracking-widest text-sm border border-black/20 text-black/50 hover:text-black/80 hover:border-black/40 dark:border-white/15 dark:text-white/50 dark:hover:text-white/70 dark:hover:border-white/30 transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed">
+                  Reset
+                </button>
+              </div>
+            );
+          })()}
         </div>
 
         {/* RIGHT: Player Table */}

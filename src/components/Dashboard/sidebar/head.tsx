@@ -38,11 +38,12 @@ const UserHead: React.FC<UserHeadProps> = ({
           {/* User Profile */}
           <Link href="/dashboard/profile" className="flex flex-row">
             <div className="flex gap-2 items-center">
-              <div className="overflow-hidden w-9 h-9 rounded-2xl ">
+              <div className="overflow-hidden w-9 h-9 min-w-[36px] min-h-[36px] rounded-2xl flex-shrink-0">
                 <img
                   src={avatarUrl}
                   alt="User avatar"
-                  className="object-cover size-full"
+                  className="w-full h-full object-cover"
+                  style={{ aspectRatio: "1/1" }}
                 />
               </div>
               <div className="flex flex-col gap-1 max-xs:max-w-[150px]">
