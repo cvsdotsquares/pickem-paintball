@@ -365,7 +365,7 @@ export default function Pickems() {
         }));
         const captainIdValue = rawCaptainId != null ? String(rawCaptainId) : null;
         if (isDraft && picks.length > 0) {
-          toast.info(`Restored ${picks.length} draft pick${picks.length !== 1 ? 's' : ''} — confirm when you're ready!`, { duration: 4000 });
+          toast.info(`Restored ${picks.length} draft pick${picks.length !== 1 ? 's' : ''} — confirm when you're ready!`, { autoClose: 4000 });
         }
         setCaptainId(captainIdValue);
         setTemporaryPicks(picks);
