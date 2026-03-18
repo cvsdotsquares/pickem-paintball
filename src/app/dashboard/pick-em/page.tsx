@@ -831,11 +831,11 @@ export default function Pickems() {
                   disabled={!isReady || saveStatus === "saving" || isLocked}
                   style={{ flex: 3 }}
                   className={`py-2 rounded-xl font-black uppercase tracking-widest text-sm transition-all
-                    ${isLocked ? "bg-white/10 text-white/30 cursor-not-allowed"
+                    ${isLocked ? "bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-white/10 text-gray-400 dark:text-white/30 cursor-not-allowed"
                     : saveStatus === "saved" ? "bg-green-500 text-white shadow-lg shadow-green-500/30"
                     : isReady ? "bg-green-500 hover:bg-green-400 text-white shadow-lg shadow-green-500/30 active:scale-95"
-                    : needsCaptain ? "bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 cursor-not-allowed"
-                    : "bg-white/5 border border-white/10 text-white/30 cursor-not-allowed"}`}>
+                    : needsCaptain ? "bg-yellow-500/20 border border-yellow-500/40 text-yellow-600 dark:text-yellow-400 cursor-not-allowed"
+                    : "bg-gray-100 dark:bg-white/10 border border-gray-300 dark:border-white/25 text-gray-600 dark:text-white/75 cursor-not-allowed"}`}>
                   {confirmLabel}
                 </button>
                 {/* Reset — 25% */}
@@ -843,7 +843,7 @@ export default function Pickems() {
                   onClick={() => { setTemporaryPicks([]); setCaptainId(null); setSaveStatus("idle"); setPlayerSlots((p) => p.map((s) => ({ ...s, player: null }))); }}
                   disabled={isLocked}
                   style={{ flex: 1 }}
-                  className="py-2 rounded-xl font-black uppercase tracking-widest text-sm border border-black/20 text-black/50 hover:text-black/80 hover:border-black/40 dark:border-white/15 dark:text-white/50 dark:hover:text-white/70 dark:hover:border-white/30 transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed">
+                  className="py-2 rounded-xl font-black uppercase tracking-widest text-sm border border-gray-300 dark:border-white/25 text-gray-600 dark:text-white/75 hover:text-gray-800 dark:hover:text-white hover:border-gray-400 dark:hover:border-white/40 bg-gray-100 dark:bg-white/10 transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed">
                   Reset
                 </button>
               </div>
