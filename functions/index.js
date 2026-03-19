@@ -302,6 +302,59 @@ exports.onUserPicksSaved = functions.firestore
     return null;
   });
 
+// ─── Sync isSubscribed to leaderboard when user subscribes/unsubscribes ─────
+// Leaderboard summaries cache isSubscribed; without this, PRO badges stay stale
+// until the next recalculateLeaderboard (macro upload).
+exports.onUserSubscriptionChanged = functions.firestore
+  .document('users/{userId}')
+  .onWrite(async (change, context) => {
+    if (!change.after.exists) return null;
+    const before = change.before.exists ? change.before.data() : {};
+    const after = change.after.data();
+    if (!!before.isSubscribed === !!after.isSubscribed) return null;
+
+    const userId = context.params.userId;
+    const isSubscribed = !!after.isSubscribed;
+
+    const pickems = after.pickems || {};
+    const eventIds = Object.keys(pickems).filter(k => !k.includes('_captain'));
+    const participatedEventIds = eventIds.filter(
+      k => Array.isArray(pickems[k]) && pickems[k].length > 0
+    );
+    if (participatedEventIds.length === 0) return null;
+
+    const years = new Set();
+    for (const eventId of participatedEventIds) {
+      const m = eventId.match(/(\d{4})/);
+      if (m) years.add(m[1]);
+    }
+
+    const updateLeaderboardDoc = async (docId) => {
+      const ref = db.doc(`leaderboards/${docId}`);
+      const snap = await ref.get();
+      if (!snap.exists) return;
+      const data = snap.data();
+      const users = data.users || [];
+      const idx = users.findIndex(u => u.id === userId);
+      if (idx === -1) return;
+      users[idx] = { ...users[idx], isSubscribed };
+      await ref.update({ users });
+    };
+
+    try {
+      for (const eventId of participatedEventIds) {
+        await updateLeaderboardDoc(eventId);
+      }
+      for (const year of years) {
+        await updateLeaderboardDoc(`season_${year}`);
+      }
+      console.log(`✅ Synced isSubscribed=${isSubscribed} for ${userId} to leaderboards`);
+    } catch (err) {
+      console.error('❌ onUserSubscriptionChanged failed:', err);
+    }
+    return null;
+  });
+
 // Helper function to migrate single event
 const migrateSingleEvent = async (eventId) => {
   console.log(`🔄 Migrating event: ${eventId}`);

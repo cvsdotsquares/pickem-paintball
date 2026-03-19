@@ -498,6 +498,39 @@ function LeaderboardNewContent() {
     }
   }, [liveEvent?.id, selectedLeague?.id]);
 
+  // Localhost only: enrich users with fresh isSubscribed from Firestore.
+  // Leaderboard summary can be stale (built before users subscribed); this fixes PRO badges.
+  useEffect(() => {
+    if (typeof window === "undefined" || window.location.hostname !== "localhost") return;
+    if (users.length === 0) return;
+
+    let cancelled = false;
+    Promise.all(users.map((u) => getDoc(doc(db, "users", u.id))))
+      .then((docs) => {
+        if (cancelled) return;
+        const freshMap = new Map<string, boolean>();
+        docs.forEach((d, i) => {
+          if (d?.exists()) freshMap.set(users[i].id, !!d.get("isSubscribed"));
+        });
+        const hasUpdates = users.some((u) => {
+          const fresh = freshMap.get(u.id);
+          return fresh !== undefined && fresh !== !!u.isSubscribed;
+        });
+        if (!hasUpdates) return;
+        setUsers((prev) =>
+          prev.map((u) => {
+            const fresh = freshMap.get(u.id);
+            if (fresh === undefined) return u;
+            return { ...u, isSubscribed: fresh };
+          })
+        );
+      })
+      .catch((err) => console.warn("[localhost] PRO badge enrichment failed:", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [users]);
+
   // Fetch live league membership directly from the leagues collection.
   // This ensures the filter is always accurate regardless of when the
   // leaderboard summary doc was last rebuilt by the Cloud Function.

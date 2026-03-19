@@ -15,6 +15,7 @@
     "@mantine/hooks": "^7.17.0",
     "@subframe/core": "^1.137.0",
     "@twallpaper/react": "^2.1.2",
+    "@vercel/analytics": "^2.0.1",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

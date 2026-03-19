@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/react";
 import { AuthProvider } from "../contexts/authProvider";
 import { SubscriptionProvider } from "../contexts/SubscriptionContext";
 import { ThemeProvider } from "../contexts/ThemeContext";
@@ -88,6 +89,7 @@ export default function RootLayout({
 
                 {children}
                 <SubscriptionModalManager />
+                <Analytics />
               </SubscriptionProvider>
             </AuthProvider>
           </ThemeProvider>
