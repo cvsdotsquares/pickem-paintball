@@ -1,10 +1,10 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import Button from "../ui/button";
 import { TextField } from "../ui/TextField";
 import Alert from "../ui/Alert";
 import { auth, db } from "@/src/lib/firebaseClient";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 
 // Import the auth functions
 import {
@@ -16,12 +16,19 @@ import {
   updateFirestoreName,
 } from "@/src/lib/auth";
 
+const usernameRegex = /^[a-zA-Z0-9_]+$/;
+
 function AccountSettings() {
   // States for profile info
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [emailPlaceholder, setEmailPlaceholder] = useState("");
+  const [username, setUsername] = useState("");
+  const [originalUsername, setOriginalUsername] = useState("");
+  const [hasChangedUsername, setHasChangedUsername] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
 
   // States for password update
   const [currentPassword, setCurrentPassword] = useState("");
@@ -60,11 +67,47 @@ function AccountSettings() {
         setFirstName(first || ""); // Set to empty string if undefined
         setLastName(last || ""); // Set to empty string if undefined
         setEmailPlaceholder(email);
+        const un = (userDoc.data()?.username || "").trim();
+        setUsername(un);
+        setOriginalUsername(un.toLowerCase());
+        setHasChangedUsername(!!userDoc.data()?.hasChangedUsername);
       }
     };
     fetchUserData();
     }
   }, []);
+
+  const checkUsernameUnique = useCallback(async (value: string) => {
+    if (!value || !usernameRegex.test(value)) {
+      setUsernameAvailable(null);
+      return;
+    }
+    if (originalUsername && value.toLowerCase() === originalUsername) {
+      setUsernameAvailable(true);
+      return;
+    }
+    setCheckingUsername(true);
+    try {
+      const usersRef = collection(db, "users");
+      const qy = query(usersRef, where("username", "==", value.toLowerCase()));
+      const snapshot = await getDocs(qy);
+      const others = snapshot.docs.filter((d) => d.id !== auth.currentUser?.uid);
+      setUsernameAvailable(others.length === 0);
+    } catch {
+      setUsernameAvailable(null);
+    } finally {
+      setCheckingUsername(false);
+    }
+  }, [originalUsername]);
+
+  useEffect(() => {
+    if (!username) {
+      setUsernameAvailable(null);
+      return;
+    }
+    const t = setTimeout(() => checkUsernameUnique(username), 500);
+    return () => clearTimeout(t);
+  }, [username, checkUsernameUnique]);
 
   // File input ref for profile picture upload
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -347,6 +390,36 @@ function AccountSettings() {
       return;
     }
 
+    // Validate username if changed
+    if (username && hasChangedUsername === false) {
+      if (!usernameRegex.test(username)) {
+        setError("Username can only contain letters, numbers, and underscores.");
+        return;
+      }
+      if (username.length < 3) {
+        setError("Username must be at least 3 characters.");
+        return;
+      }
+      if (username.toLowerCase() !== originalUsername) {
+        if (usernameAvailable === false) {
+          setError("Username is already taken.");
+          return;
+        }
+        if (usernameAvailable === null && checkingUsername) {
+          setError("Please wait for the availability check to complete.");
+          return;
+        }
+        if (usernameAvailable !== true) {
+          setError("Please choose an available username.");
+          return;
+        }
+      }
+      if (containsProfanity(username)) {
+        setError("Username contains inappropriate language.");
+        return;
+      }
+    }
+
     try {
       // Update Firebase Auth profile (displayName)
       await updateProfileDetails(firstName, lastName);
@@ -361,6 +434,20 @@ function AccountSettings() {
         firstName.trim(),
         lastName.trim()
       );
+
+      // Update username if allowed (one-time change)
+      if (username && hasChangedUsername === false && username.trim().toLowerCase() !== originalUsername) {
+        await setDoc(
+          doc(db, "users", auth.currentUser.uid),
+          {
+            username: username.trim().toLowerCase(),
+            hasChangedUsername: true,
+          },
+          { merge: true }
+        );
+        setOriginalUsername(username.trim().toLowerCase());
+        setHasChangedUsername(true);
+      }
 
       // If email field is filled, update the email too (requires reauthentication)
       if (email) {
@@ -477,6 +564,29 @@ function AccountSettings() {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </TextField>
+          </div>
+          <div className="flex w-full flex-col items-start gap-1">
+            <TextField
+              className="h-auto grow text-gray-900 dark:text-white w-full"
+              label="Username"
+              helpText={hasChangedUsername ? "Username cannot be changed again." : "Usernames can only be changed once."}
+            >
+              <TextField.Input
+                className="font-sans text-gray-900 dark:text-neutral-200 bg-white dark:bg-gray-800"
+                placeholder="Enter username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={hasChangedUsername}
+              />
+            </TextField>
+            {!hasChangedUsername && username && (
+              <span className="text-sm text-amber-600 dark:text-amber-400">
+                {checkingUsername && "Checking availability..."}
+                {!checkingUsername && usernameAvailable === true && "✓ Available"}
+                {!checkingUsername && usernameAvailable === false && "✗ Username taken"}
+                {!checkingUsername && !usernameRegex.test(username) && "Invalid: use only letters, numbers, underscores"}
+              </span>
+            )}
           </div>
           <Button variant="primary" onClick={handleProfileUpdate}>
             Update Profile

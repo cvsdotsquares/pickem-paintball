@@ -2,7 +2,7 @@
  * Export picks as long dataset: user, pick (player name), team
  * Run: GOOGLE_APPLICATION_CREDENTIALS="path/to/key.json" node functions/export-picks-long.js [eventId]
  * If eventId omitted, uses the live event (status === "live").
- * Outputs .xlsx to project root, then copies to ~/Downloads.
+ * Outputs .xlsx to project root and ~/Downloads with timestamp (e.g. picks-long-tampa_bay_2026-2026-03-19T21-43-00.xlsx).
  */
 const admin = require('firebase-admin');
 const XLSX = require('xlsx');
@@ -83,8 +83,10 @@ async function main() {
   const ws = XLSX.utils.aoa_to_sheet(sheetData);
   XLSX.utils.book_append_sheet(wb, ws, 'Picks');
 
-  const outPath = path.join(process.cwd(), `picks-long-${eventId}.xlsx`);
-  const downloadsPath = path.join(process.env.HOME || process.env.USERPROFILE, 'Downloads', `picks-long-${eventId}.xlsx`);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const baseName = `picks-long-${eventId}-${timestamp}.xlsx`;
+  const outPath = path.join(process.cwd(), baseName);
+  const downloadsPath = path.join(process.env.HOME || process.env.USERPROFILE, 'Downloads', baseName);
 
   XLSX.writeFile(wb, outPath);
   fs.copyFileSync(outPath, downloadsPath);
