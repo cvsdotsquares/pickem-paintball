@@ -450,7 +450,7 @@ export default function Pickems() {
     if (temporaryPicks.length < 10) { toast.warning("Select all 10 players first!"); return; }
     if (!captainId) { toast.warning("Select a captain first!"); return; }
     try {
-      const picksIds = [...new Map(temporaryPicks.map((p) => [String(p.player_id), p])).values()].map((p) => String(p.player_id));
+      const picksIds = Array.from(new Map(temporaryPicks.map((p) => [String(p.player_id), p])).values()).map((p) => String(p.player_id));
       await updateDoc(doc(db, "users", user.uid), {
         [`pickems.${liveEvent.id}`]: picksIds,
         [`pickems.${liveEvent.id}_captain`]: captainId ? String(captainId) : null,
@@ -485,7 +485,7 @@ export default function Pickems() {
     setSaveStatus("saving");
     const timer = setTimeout(async () => {
       try {
-        const picksIds = [...new Map(temporaryPicks.map((p) => [String(p.player_id), p])).values()].map((p) => String(p.player_id));
+        const picksIds = Array.from(new Map(temporaryPicks.map((p) => [String(p.player_id), p])).values()).map((p) => String(p.player_id));
         await updateDoc(doc(db, "users", user.uid), {
           [`pickems.${liveEvent.id}`]: picksIds,
           [`pickems.${liveEvent.id}_captain`]: captainId ? String(captainId) : null,
@@ -508,7 +508,7 @@ export default function Pickems() {
     if (!isBeforeLockDate(liveEvent?.lockDate)) return;
     const timer = setTimeout(async () => {
       try {
-        const picksIds = [...new Map(temporaryPicks.map((p) => [String(p.player_id), p])).values()].map((p) => String(p.player_id));
+        const picksIds = Array.from(new Map(temporaryPicks.map((p) => [String(p.player_id), p])).values()).map((p) => String(p.player_id));
         await updateDoc(doc(db, "users", user.uid), {
           [`pickems.${liveEvent.id}_draft`]: picksIds,
           [`pickems.${liveEvent.id}_draft_captain`]: captainId ? String(captainId) : null,
