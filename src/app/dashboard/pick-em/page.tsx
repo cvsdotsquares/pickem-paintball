@@ -348,10 +348,18 @@ export default function Pickems() {
         // Use official picks if present, otherwise fall back to saved draft
         const officialIds = data.pickems?.[liveEvent.id];
         const draftIds = data.pickems?.[`${liveEvent.id}_draft`];
-        const ids = (Array.isArray(officialIds) && officialIds.length > 0)
+        let ids = (Array.isArray(officialIds) && officialIds.length > 0)
           ? officialIds
           : (Array.isArray(draftIds) && draftIds.length > 0 ? draftIds : null);
         if (!ids) return;
+        // Dedupe on load — corrupt data can have duplicate player IDs
+        const seen = new Set<string>();
+        ids = ids.filter((id: string | number) => {
+          const key = String(id);
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
 
         const isDraft = !(Array.isArray(officialIds) && officialIds.length > 0);
         const rawCaptainId = isDraft
@@ -442,8 +450,9 @@ export default function Pickems() {
     if (temporaryPicks.length < 10) { toast.warning("Select all 10 players first!"); return; }
     if (!captainId) { toast.warning("Select a captain first!"); return; }
     try {
+      const picksIds = [...new Map(temporaryPicks.map((p) => [String(p.player_id), p])).values()].map((p) => String(p.player_id));
       await updateDoc(doc(db, "users", user.uid), {
-        [`pickems.${liveEvent.id}`]: temporaryPicks.map((p) => String(p.player_id)),
+        [`pickems.${liveEvent.id}`]: picksIds,
         [`pickems.${liveEvent.id}_captain`]: captainId ? String(captainId) : null,
       });
       setSaveStatus("saved");
@@ -476,8 +485,9 @@ export default function Pickems() {
     setSaveStatus("saving");
     const timer = setTimeout(async () => {
       try {
+        const picksIds = [...new Map(temporaryPicks.map((p) => [String(p.player_id), p])).values()].map((p) => String(p.player_id));
         await updateDoc(doc(db, "users", user.uid), {
-          [`pickems.${liveEvent.id}`]: temporaryPicks.map((p) => String(p.player_id)),
+          [`pickems.${liveEvent.id}`]: picksIds,
           [`pickems.${liveEvent.id}_captain`]: captainId ? String(captainId) : null,
         });
         setSaveStatus("saved");
@@ -498,8 +508,9 @@ export default function Pickems() {
     if (!isBeforeLockDate(liveEvent?.lockDate)) return;
     const timer = setTimeout(async () => {
       try {
+        const picksIds = [...new Map(temporaryPicks.map((p) => [String(p.player_id), p])).values()].map((p) => String(p.player_id));
         await updateDoc(doc(db, "users", user.uid), {
-          [`pickems.${liveEvent.id}_draft`]: temporaryPicks.map((p) => String(p.player_id)),
+          [`pickems.${liveEvent.id}_draft`]: picksIds,
           [`pickems.${liveEvent.id}_draft_captain`]: captainId ? String(captainId) : null,
         });
       } catch { /* draft save failure is silent */ }

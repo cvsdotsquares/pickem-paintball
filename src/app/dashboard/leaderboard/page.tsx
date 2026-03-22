@@ -1361,12 +1361,13 @@ function LeaderboardNewContent() {
 
                 let displayRank: string | number;
                 if (isSeasonView) {
-                  // For season view, show sequential rank based on sorted order
-                  displayRank = (page - 1) * itemsPerPage + index + 1;
-                } else if (isSearchMode) {
-                  displayRank = index + 1;
+                  // For season view, use stored seasonRank if available, else sequential
+                  const stored = user.seasonRank ?? user.seasonrank;
+                  displayRank = stored ?? (page - 1) * itemsPerPage + index + 1;
+                } else if (liveEvent && user[`${liveEvent.id}Rank`] != null && user[`${liveEvent.id}Rank`] !== undefined) {
+                  // For events (incl. search), show true global rank from data
+                  displayRank = user[`${liveEvent.id}Rank`];
                 } else {
-                  // For individual events, show sequential rank based on sorted order
                   displayRank = (page - 1) * itemsPerPage + index + 1;
                 }
 
