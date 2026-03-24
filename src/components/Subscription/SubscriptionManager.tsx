@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/src/contexts/authProvider';
 import { useSubscription } from '@/src/contexts/SubscriptionContext';
 import { FaCrown, FaCalendar, FaCreditCard, FaTimes, FaCheck } from 'react-icons/fa';
+import { profileSubsectionTitle } from '@/src/components/Layout/profileSectionTokens';
 
 interface BillingHistory {
   id: string;
@@ -47,7 +48,6 @@ export default function SubscriptionManager() {
     try {
       const response = await fetch(`/api/users/${user?.uid}/subscription`);
       const data = await response.json();
-      console.log('Fetched subscription data:', data); // Debug log
       setSubscriptionData(data);
 
       if (data.stripeCustomerId) {
@@ -105,17 +105,18 @@ export default function SubscriptionManager() {
 
   // Look up plan from Stripe-sourced data
   const activePlan = subscriptionData?.activePlanDetails;
-  console.log('--- FRONTEND ACTIVE PLAN DETAILS ---', activePlan);
-  
+
   const planName = activePlan?.name || (subscriptionTier ? (subscriptionTier.charAt(0).toUpperCase() + subscriptionTier.slice(1)) : 'Premium Plan');
   const planPrice = activePlan?.price ? `$${activePlan.price}${activePlan.period || ''}` : '';
 
   if (!isSubscribed) {
     return (
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 text-center">
-        <FaCrown className="text-gray-400 dark:text-gray-500 text-5xl mx-auto mb-4" />
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No Active Subscription</h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-4">Subscribe to unlock premium features</p>
+      <div className="rounded-lg bg-gray-100 p-6 text-center dark:bg-gray-800">
+        <FaCrown className="mx-auto mb-4 text-5xl text-gray-400 dark:text-gray-500" />
+        <h3 className={`${profileSubsectionTitle} mb-2`}>No active subscription</h3>
+        <p className="mb-4 text-sm leading-relaxed text-gray-600 dark:text-white/55">
+          Subscribe to unlock premium features.
+        </p>
       </div>
     );
   }
@@ -167,8 +168,11 @@ export default function SubscriptionManager() {
       </div>
 
       {/* Features */}
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
-        <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Your Benefits</h4>
+      <div className="rounded-lg bg-gray-100 p-6 dark:bg-gray-800">
+        <h3 className={`${profileSubsectionTitle} mb-2`}>Your benefits</h3>
+        <p className="mb-4 text-sm leading-relaxed text-gray-600 dark:text-white/55">
+          Included with your current plan.
+        </p>
         <ul className="space-y-3">
           {[
             'Create unlimited custom leagues',
@@ -177,7 +181,7 @@ export default function SubscriptionManager() {
             'Priority support',
             'Ad-free experience'
           ].map((feature, i) => (
-            <li key={i} className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+            <li key={i} className="flex items-center gap-3 text-sm leading-relaxed text-gray-700 dark:text-white/65">
               <FaCheck className="text-green-500 dark:text-green-400" />
               {feature}
             </li>
@@ -187,8 +191,11 @@ export default function SubscriptionManager() {
 
       {/* Billing History */}
       {billingHistory.length > 0 && (
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
-          <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Billing History</h4>
+        <div className="rounded-lg bg-gray-100 p-6 dark:bg-gray-800">
+          <h3 className={`${profileSubsectionTitle} mb-2`}>Billing history</h3>
+          <p className="mb-4 text-sm leading-relaxed text-gray-600 dark:text-white/55">
+            Recent invoices and payment status.
+          </p>
           <div className="space-y-3">
             {billingHistory.map((item) => (
               <div key={item.id} className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg">

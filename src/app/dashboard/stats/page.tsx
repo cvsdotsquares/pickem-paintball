@@ -8,6 +8,7 @@ import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
 import { motion } from "framer-motion";
 import { Player } from "../pick-em/page";
 import { useAuth } from "@/src/contexts/authProvider";
+import { useDashboardNestedScrollHandler } from "@/src/contexts/DashboardMainScrollContext";
 import SeasonTotals from "@/src/components/Dashboard/SeasonTotals";
 
 export interface Event {
@@ -51,6 +52,7 @@ export default function Statistics() {
 
 
   const { user } = useAuth();
+  const reportStatsScroll = useDashboardNestedScrollHandler("dashboard-stats");
   // Fetch events and set initial state
   useEffect(() => {
     async function fetchEvents() {
@@ -568,9 +570,11 @@ export default function Statistics() {
   };
 
 
-  console.log("Rendered Statistics with selectedEvent:", selectedEvent);
   return (
-    <div className="relative left-0 flex flex-col w-auto scroll-smooth overflow-y-scroll font-inter pb-20 bg-white dark:bg-stone-950">
+    <div
+      className="relative left-0 flex flex-col w-auto scroll-smooth overflow-y-scroll font-inter pb-20 bg-white dark:bg-stone-950"
+      onScroll={reportStatsScroll}
+    >
       <div>
         <section>
           <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
@@ -590,14 +594,32 @@ export default function Statistics() {
             />
             <div className="absolute inset-0 bg-black/45 pointer-events-none"></div>
 
-            <h1 className="relative font-azonix max-w-full m-auto md:text-7xl text-4xl text-white">
-              Statistics Center
-            </h1>
+            <div className="relative z-[1] mx-auto flex w-full max-w-4xl flex-col items-center text-center px-4">
+              <h1 className="font-azonix text-4xl text-white md:text-7xl">
+                Statistics Center
+              </h1>
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/85 md:text-base">
+                Browse event and season leaderboards, compare player stats, and see how the field stacks up across the year.
+              </p>
+            </div>
           </header>
 
           {/* Year Filter */}
-          <div className="flex justify-center px-4 mt-4">
-            <div className="flex flex-wrap gap-2 justify-center">
+          <section
+            className="mx-auto mt-6 max-w-4xl px-4"
+            aria-labelledby="stats-year-heading"
+          >
+            <h2
+              id="stats-year-heading"
+              className="font-azonix text-center text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-white/45"
+            >
+              Season filter
+            </h2>
+            <p className="mx-auto mt-2 max-w-xl text-center text-sm leading-relaxed text-gray-600 dark:text-white/55">
+              Choose a year to narrow events, or keep <span className="font-semibold text-gray-800 dark:text-white/80">All</span> to see every season card.
+            </p>
+            <div className="mt-4 flex justify-center">
+              <div className="flex flex-wrap justify-center gap-2">
               {years.map((year) => (
                 <button
                   key={year}
@@ -613,17 +635,23 @@ export default function Statistics() {
                   {year}
                 </button>
               ))}
+              </div>
             </div>
-          </div>
+          </section>
 
           {/* Main Content Area */}
-          <div className="flex flex-col xl:flex-row gap-6 px-4 mt-6">
+          <div className="mt-8 flex flex-col gap-6 px-4 xl:flex-row">
             {/* Right Side - Events Carousel */}
             <div className="w-full">
               {/* Events Carousel */}
-              <div className="bg-gray-100/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl p-4">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white font-azonix mb-4">Select Event</h3>
-                <div className="flex flex-row overflow-x-auto gap-4 items-center">
+              <div className="rounded-xl bg-gray-100/90 p-4 backdrop-blur-sm dark:bg-gray-900/90">
+                <h3 className="font-azonix text-lg font-bold text-gray-900 dark:text-white">
+                  Select event
+                </h3>
+                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-gray-600 dark:text-white/55">
+                  Tap a season tile for combined rankings, or an individual event for full player breakdowns and categories.
+                </p>
+                <div className="mt-4 flex flex-row items-center gap-4 overflow-x-auto">
                   {/* Season Card - Show only for specific years, not "All" */}
                   {selectedYear !== "All" && (
                     <EventCard
@@ -663,16 +691,25 @@ export default function Statistics() {
         </section>
 
         {/* Individual Event Table or Season Table */}
-        <motion.section className="px-4 mt-6">
+        <motion.section className="mt-8 px-4 pb-16">
           {showSeasonTable ? (
             // Season Table
             <>
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
-                <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white font-azonix">
-                  Season {selectedYear === "All" ? selectedSeasonYear || "2025" : selectedYear} - Player Rankings
-                </h3>
-                <span className="bg-blue-500 text-white px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm whitespace-nowrap">
-                  SEASON TOTALS
+              <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="max-w-3xl">
+                  <h3 className="font-azonix text-lg font-bold text-gray-900 dark:text-white md:text-xl">
+                    Season{" "}
+                    {selectedYear === "All"
+                      ? selectedSeasonYear || "2025"
+                      : selectedYear}{" "}
+                    — player rankings
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-white/55">
+                    Totals and per-event columns for everyone in this season. Sort any column to re-rank the table.
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-blue-500 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white md:text-sm">
+                  Season totals
                 </span>
               </div>
               <MatchupTable
@@ -688,13 +725,20 @@ export default function Statistics() {
           ) : (
             // Individual Event Table
             <>
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
-                <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white font-azonix">
-                  {selectedEvent?.name || 'Select Event'} - Player Stats
-                </h3>
-                {selectedEvent?.status === 'live' && (
-                  <span className="bg-red-500 text-white px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm animate-pulse whitespace-nowrap">
-                    🔴 LIVE
+              <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="max-w-3xl">
+                  <h3 className="font-azonix text-lg font-bold text-gray-900 dark:text-white md:text-xl">
+                    {selectedEvent?.name || "Select an event"} — player stats
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-white/55">
+                    {selectedEvent
+                      ? "Confirmed kills, category grades, and rankings for this event. Use the row above to switch events or open a season view."
+                      : "Pick an event card above to load the full stat table for that tournament."}
+                  </p>
+                </div>
+                {selectedEvent?.status === "live" && (
+                  <span className="shrink-0 animate-pulse rounded-full bg-red-500 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white md:text-sm">
+                    Live
                   </span>
                 )}
               </div>

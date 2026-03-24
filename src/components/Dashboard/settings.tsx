@@ -15,6 +15,11 @@ import {
   deleteUserAccount,
   updateFirestoreName,
 } from "@/src/lib/auth";
+import {
+  profileInSectionDivider,
+  profileSectionBody,
+  profileSectionTitle,
+} from "@/src/components/Layout/profileSectionTokens";
 
 const usernameRegex = /^[a-zA-Z0-9_]+$/;
 
@@ -642,13 +647,12 @@ function AccountSettings() {
             </div>
           )}
 
-          <div className="flex h-px w-full flex-none flex-col items-center gap-4 border-gray-300 dark:border-neutral-300 border " />
-
           {/* Danger Zone Section */}
-          <div className="flex w-full flex-col items-start gap-4">
-            <span className="text-heading-3 font-azonix font-heading-3 text-gray-900 dark:text-white">
-              Danger zone
-            </span>
+          <div className={`flex w-full flex-col items-start gap-4 ${profileInSectionDivider}`}>
+            <h3 className={profileSectionTitle}>Danger zone</h3>
+            <p className={profileSectionBody}>
+              Actions here permanently affect your account. Only continue if you intend to delete it.
+            </p>
             <Alert
               variant="error"
               className="font-sans text-gray-900 dark:text-neutral-200"

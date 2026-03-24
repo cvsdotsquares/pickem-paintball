@@ -15,6 +15,7 @@ import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
 import { memo, useEffect, useRef, useState } from "react";
 import { IoMdClose } from "react-icons/io";
 import { getFirebaseStorageUrl } from "@/src/lib/storage";
+import { useDashboardNestedScrollHandler } from "@/src/contexts/DashboardMainScrollContext";
 import Link from "next/link";
 
 export interface Player {
@@ -37,6 +38,8 @@ interface PlayerSlot {
 export default function Dashboard() {
   const { user } = useAuth();
   const db = getFirestore();
+  const reportTeamColScroll = useDashboardNestedScrollHandler("dashboard-home-team");
+  const reportProfileColScroll = useDashboardNestedScrollHandler("dashboard-home-profile");
 
   const [playerSlots, setPlayerSlots] = useState<PlayerSlot[]>(
     Array.from({ length: 10 }, (_, i) => ({ id: i + 1, player: null }))
@@ -253,7 +256,10 @@ export default function Dashboard() {
     <section className="relative flex md:flex-row flex-col-reverse font-azonix w-screen md:w-[calc(100vw-60px)] md:h-screen h-full overflow-hidden top-0 bg-white dark:bg-stone-950">
 
       {/* Left Column — Team Grid */}
-      <div className="flex flex-col w-full md:w-1/2 pb-[75px] md:pb-[35px] pt-5 border-r border-white/30 dark:border-white/30 border-gray-300 md:h-full overflow-hidden md:overflow-y-auto">
+      <div
+        className="flex flex-col w-full md:w-1/2 pb-[75px] md:pb-[35px] pt-5 border-r border-white/30 dark:border-white/30 border-gray-300 md:h-full overflow-hidden md:overflow-y-auto"
+        onScroll={reportTeamColScroll}
+      >
         <div className="flex-1 pb-6 p-3 md:p-6 justify-center">
           <div className="flex flex-col rounded-2xl h-full bg-gray-100 dark:bg-[#1a1a1a]">
 
@@ -349,7 +355,7 @@ export default function Dashboard() {
                       <div className="text-white font-black text-sm leading-none">{formatCost(remainingBudget)}</div>
                     </div>
                     <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all duration-500 ${budgetPct > 85 ? "bg-red-500" : "bg-green-400"}`}
+                      <div className={`h-full rounded-full transition-all duration-500 ${budgetPct > 85 ? "bg-red-500" : "bg-[#00f976]"}`}
                         style={{ width: `${100 - budgetPct}%` }} />
                     </div>
                   </div>
@@ -407,7 +413,10 @@ export default function Dashboard() {
             backgroundRepeat: "no-repeat",
           }}
         />
-        <div className="relative bg-black/40 h-full w-full md:p-10 py-6 overflow-auto flex items-center m-auto justify-center">
+        <div
+          className="relative bg-black/40 h-full w-full md:p-10 py-6 overflow-auto flex items-center m-auto justify-center"
+          onScroll={reportProfileColScroll}
+        >
           <UserProfile />
         </div>
       </div>

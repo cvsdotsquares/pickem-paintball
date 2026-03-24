@@ -5,7 +5,7 @@ import { auth, db, storage } from "@/src/lib/firebaseClient";
 import { doc, getDoc } from "firebase/firestore";
 import { getDownloadURL, ref, StorageReference } from "firebase/storage";
 import { useAuth } from "@/src/contexts/authProvider";
-import UserHead from "./head";
+import DashboardTopNav from "@/src/components/Layout/DashboardTopNav";
 import { getFirebaseStorageUrl } from "@/src/lib/storage";
 
 // Cache for user data to prevent refetching
@@ -148,13 +148,12 @@ const PageHeader: React.FC = () => {
   const userCountry = useMemo(() => userData?.country, [userData?.country]);
 
   return (
-    <div className="relative inset-y-0 top-0 left-0 right-0 z-30 w-full h-[48px]">
-      <UserHead
+    <div className="relative z-50 w-full">
+      <DashboardTopNav
         username={displayName}
         avatarUrl={avatarUrl}
         points={userCountry}
       />
-      <div className="bg-white relative top-0 z-50 w-full -scale-y-50 h-[0.1px]" />
     </div>
   );
 };

@@ -6,8 +6,6 @@ import {
   FaList,
   FaMoon,
   FaSun,
-  FaAngleDoubleRight,
-  FaAngleDoubleLeft,
   FaTimes,
 } from "react-icons/fa";
 import {
@@ -852,7 +850,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
             {/* Theme Toggle - Hidden as requested */}
             {/* Search + mobile Filters */}
             <div className="flex min-w-0 w-full flex-row items-center gap-2 md:min-w-0 md:max-w-none md:flex-1">
-              <div className="relative min-w-0 flex-1 md:max-w-md">
+              <div className="relative min-w-0 flex-1 md:min-w-[160px] md:max-w-[220px] md:flex-initial">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
                   <FaSearch
                     className={darkMode ? "text-gray-400" : "text-gray-500"}
@@ -899,7 +897,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                       key={team}
                       value={team}
                       className={`${themeClasses.bg} ${themeClasses.text} truncate`}
-                      title={team} // Show full team name on hover
+                      title={team}
                     >
                       {team.length > 12 ? `${team.substring(0, 10)}...` : team}
                     </option>
@@ -972,28 +970,6 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               className={`flex min-w-0 shrink items-center justify-end gap-1 max-md:gap-0.5 ${darkMode ? "text-[rgba(255,255,255,0.66)]" : "text-gray-700"
                 }`}
             >
-              {/* First / last page — desktop only (saves width on phones) */}
-              <button
-                type="button"
-                disabled={currentPage === 1}
-                onClick={() => goToPage(1)}
-                className={`
-        box-border hidden h-9 w-9 shrink-0 items-center justify-center rounded md:flex
-        ${darkMode
-                    ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
-                    : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
-                  }
-        disabled:opacity-50 disabled:cursor-not-allowed
-        focus:outline-none focus:ring-1
-        transition-colors duration-200
-      `}
-              >
-                <FaAngleDoubleLeft
-                  className={`${darkMode ? "text-current" : "text-gray-700"
-                    } h-3.5 w-3.5`}
-                />
-              </button>
-
               <button
                 type="button"
                 disabled={currentPage === 1}
@@ -1078,27 +1054,6 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       `}
               >
                 <FaAngleRight
-                  className={`${darkMode ? "text-current" : "text-gray-700"
-                    } h-3.5 w-3.5`}
-                />
-              </button>
-
-              <button
-                type="button"
-                disabled={currentPage === totalPages}
-                onClick={() => goToPage(totalPages)}
-                className={`
-        box-border hidden h-9 w-9 shrink-0 items-center justify-center rounded md:flex
-        ${darkMode
-                    ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
-                    : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
-                  }
-        disabled:opacity-50 disabled:cursor-not-allowed
-        focus:outline-none focus:ring-1
-        transition-colors duration-200
-      `}
-              >
-                <FaAngleDoubleRight
                   className={`${darkMode ? "text-current" : "text-gray-700"
                     } h-3.5 w-3.5`}
                 />

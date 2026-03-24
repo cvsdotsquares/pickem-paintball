@@ -7,6 +7,8 @@ import Badge from "@/src/components/ui/Badge";
 import { Tabs } from "@/src/components/ui/Tabs";
 import SubscriptionManager from "@/src/components/Subscription/SubscriptionManager";
 import Link from "next/link";
+import { handleLogout } from "@/src/components/Dashboard/sidebar/sidebar1";
+import { LuLogOut } from "react-icons/lu";
 import { BiMapPin, BiPlusCircle } from "react-icons/bi";
 import { FaPersonRunning } from "react-icons/fa6";
 import { TiTick } from "react-icons/ti";
@@ -15,6 +17,14 @@ import { auth, db, storage } from "@/src/lib/firebaseClient";
 import { useAuth } from "@/src/contexts/authProvider";
 import { getDownloadURL, ref, StorageReference } from "firebase/storage";
 import { getFirebaseStorageUrl } from "@/src/lib/storage";
+import { useDashboardNestedScrollHandler } from "@/src/contexts/DashboardMainScrollContext";
+import { cn } from "@/src/lib/utils";
+import {
+  profileSectionBody,
+  profileSectionDivider,
+  profileSectionTitle,
+  profileSubsectionTitle,
+} from "@/src/components/Layout/profileSectionTokens";
 
 // Define a TypeScript interface for the user data
 interface UserData {
@@ -45,6 +55,7 @@ function ProfilePage() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const { user } = useAuth();
+  const reportProfileScroll = useDashboardNestedScrollHandler("dashboard-profile");
   // Fetch user details on component mount
   useEffect(() => {
     async function fetchUserData() {
@@ -126,7 +137,10 @@ function ProfilePage() {
   }, [user]);
 
   return (
-    <div className="flex flex-col font-inter font-medium items-start h-auto overflow-auto bg-white dark:bg-black">
+    <div
+      className="flex flex-col font-inter font-medium items-start h-auto overflow-auto bg-white dark:bg-black"
+      onScroll={reportProfileScroll}
+    >
       {loading ? (
         <div className="w-full flex justify-center items-center min-h-screen text-gray-900 dark:text-white">
           <p>Loading your profile...</p>
@@ -163,8 +177,8 @@ function ProfilePage() {
                   {userData?.name || defaultUserData.name}
                 </span>
                 {/* Display badges */}
-                <div className="flex w-full flex-col font-inter items-start gap-4">
-                  <span className="w-full font-azonix text-gray-900 dark:text-white">Badges</span>
+                <div className="flex w-full flex-col items-start gap-2 font-inter">
+                  <h3 className={cn("w-full", profileSubsectionTitle)}>Badges</h3>
                   <div className="flex w-full flex-wrap items-start gap-2">
                     {(userData?.badges || defaultUserData.badges).map(
                       (badge, index) => (
@@ -176,10 +190,10 @@ function ProfilePage() {
                   </div>
                 </div>
                 {/* Support Information */}
-                <div className="flex w-full flex-col items-start gap-4">
-                  <span className="w-full font-azonix text-gray-900 dark:text-white">Support</span>
+                <div className="flex w-full flex-col items-start gap-2">
+                  <h3 className={cn("w-full", profileSubsectionTitle)}>Support</h3>
                   <div className="flex w-full flex-wrap items-start gap-2">
-                    <div className="flex flex-col items-start gap-4 text-gray-700 dark:text-gray-300">
+                    <div className="flex flex-col items-start gap-4 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
                       <div className="flex w-full items-center gap-2">
                         <BiMapPin />
                         <span className="grow shrink-0 basis-0">Country:</span>
@@ -209,15 +223,42 @@ function ProfilePage() {
               </div>
             </div>
 
-            {/* Main content area with tabs */}
-            <div className="relative w-full md:w-auto flex flex-col px-5 md:px-3 gap-6 pt-1 md:pt-5 md:pb-5 pb-10 font-sans">
-              <h1 className="text-3xl font-azonix text-gray-900 dark:text-white">Change account settings!</h1>
-              <AccountSettings />
-              
-              <div className="mt-8">
-                <h2 className="text-2xl font-azonix text-gray-900 dark:text-white mb-4">Subscription</h2>
-                <SubscriptionManager />
-              </div>
+            {/* Main content */}
+            <div className="relative flex w-full max-w-3xl flex-col px-5 pb-10 pt-1 font-sans md:w-auto md:px-3 md:pb-5 md:pt-5">
+              <section className={cn("w-full", profileSectionDivider)}>
+                <h2 className={profileSectionTitle}>Session</h2>
+                <p className={profileSectionBody}>
+                  Sign out of Pick&apos;em on this device. You can sign back in anytime.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleLogout()}
+                  className="mt-6 inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 font-azonix text-sm font-bold uppercase tracking-wide text-red-700 transition-colors hover:bg-red-100 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60"
+                >
+                  <LuLogOut className="h-4 w-4 shrink-0" aria-hidden />
+                  Log out
+                </button>
+              </section>
+
+              <section className={cn("w-full", profileSectionDivider, "pt-10")}>
+                <h1 className={profileSectionTitle}>Account settings</h1>
+                <p className={profileSectionBody}>
+                  Update your profile, bio, and how you show up in leagues and leaderboards.
+                </p>
+                <div className="mt-6">
+                  <AccountSettings />
+                </div>
+              </section>
+
+              <section className="w-full pt-10">
+                <h2 className={profileSectionTitle}>Subscription</h2>
+                <p className={profileSectionBody}>
+                  Manage billing and your Pick&apos;em supporter status.
+                </p>
+                <div className="mt-6">
+                  <SubscriptionManager />
+                </div>
+              </section>
             </div>
           </div>
         </div>

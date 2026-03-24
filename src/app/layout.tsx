@@ -19,6 +19,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
+  // Default until ThemeContext sets theme-color from user preference (Safari status bar / browser chrome).
+  themeColor: "#ffffff",
   // Do NOT set maximumScale/userScalable — that breaks accessibility.
   // iOS zoom is prevented by ensuring all inputs are >= 16px font size instead.
 };
@@ -69,7 +72,10 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${hanson.variable} ${azonix.variable}`}
     >
-      <body className={` bg-gray-100`} suppressHydrationWarning>
+      <body
+        className="min-h-screen bg-[var(--background)] antialiased"
+        suppressHydrationWarning
+      >
         <ErrorBoundary>
           <ThemeProvider>
             <AuthProvider>

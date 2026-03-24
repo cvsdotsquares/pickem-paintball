@@ -1,173 +1,100 @@
-import React, { ReactNode, useState } from "react";
+"use client";
+
+import React, { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { GiCardRandom } from "react-icons/gi";
+import { usePathname } from "next/navigation";
 import { cn } from "@/src/lib/utils";
-import { PiRankingThin } from "react-icons/pi";
-import {
-  handleLogout,
-  Logoutbtn,
-  MobileSidebar,
-  Sidebar,
-  SidebarBody,
-  SidebarLink,
-} from "../Dashboard/sidebar/sidebar1";
 import PageHeader from "../Dashboard/sidebar/topbar";
-import { LuLogOut } from "react-icons/lu";
-import { FaTableList } from "react-icons/fa6";
-import { ImStatsBars } from "react-icons/im";
 import { ToastContainer } from "react-toastify";
-import { FaQuestionCircle, FaTrophy } from "react-icons/fa";
-import { HiOutlineDocumentText } from "react-icons/hi";
 import ProfileCompletion from "./ProfileCompletion";
+import DashboardFloatingBanner from "./DashboardFloatingBanner";
+import DashboardFooterBanner from "./DashboardFooterBanner";
+import { DashboardMainScrollContext } from "@/src/contexts/DashboardMainScrollContext";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
-const links = [
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: <FaTableList className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
-  },
-  {
-    label: "Stats",
-    href: "/dashboard/stats",
-    icon: <ImStatsBars className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
-  },
-  // {
-  //   label: "Season Totals",
-  //   href: "/dashboard/season-totals",
-  //   icon: <FaTrophy className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
-  // },
-  {
-    label: "Live PickEm",
-    href: "/dashboard/pick-em",
-    icon: <GiCardRandom className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
-  },
-  {
-    label: "Leaderboards",
-    href: "/dashboard/leaderboard",
-    icon: <PiRankingThin className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
-  },
-];
-const cmslinks = [
-  {
-    label: "FAQ",
-    href: "/pages/faq",
-    icon: <FaQuestionCircle className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
-  },
-  {
-    label: "T&Cs",
-    href: "/pages/terms-and-conditions",
-    icon: <HiOutlineDocumentText className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />,
-  },
-];
-
+/** Used by emails / other surfaces that still link a compact logo mark */
 export const Logo = () => {
   return (
     <Link
       href="/dashboard"
-      className="w-[80px] relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-black"
+      className="relative z-20 flex w-[80px] items-center space-x-2 py-1 text-sm font-normal text-black"
     >
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
       <img
         loading="lazy"
         src="/logo.svg"
         alt="logo"
         width="130"
-        className="dark:invert-0 invert"
+        className="invert dark:invert-0"
       />
-        </motion.span>
     </Link>
   );
 };
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const [mainColumnScrollTop, setMainColumnScrollTop] = useState(0);
+  const [nestedScrollTops, setNestedScrollTops] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    setMainColumnScrollTop(0);
+    setNestedScrollTops({});
+  }, [pathname]);
+
+  const setNestedScrollTop = useCallback((regionId: string, top: number) => {
+    setNestedScrollTops((prev) => {
+      if (prev[regionId] === top) return prev;
+      return { ...prev, [regionId]: top };
+    });
+  }, []);
+
+  const nestedScrollTop = useMemo(
+    () => Math.max(0, ...Object.values(nestedScrollTops)),
+    [nestedScrollTops],
+  );
+
+  const scrollCtx = useMemo(
+    () => ({
+      scrollTop: Math.max(mainColumnScrollTop, nestedScrollTop),
+      setNestedScrollTop,
+    }),
+    [mainColumnScrollTop, nestedScrollTop, setNestedScrollTop],
+  );
 
   return (
     <div
       className={cn(
-        "flex w-full relative overflow-hidden bg-neutral-950 dark:bg-neutral-950 bg-white md:h-screen"
+        "relative flex min-h-screen w-full flex-col overflow-hidden bg-neutral-950 dark:bg-neutral-950 bg-white md:h-screen",
       )}
     >
-      <div className="z-50 border-gray-200 dark:border-white/30 border-r">
-        <Sidebar open={open} setOpen={setOpen}>
-          <SidebarBody className="justify-between gap-10">
-            <div className="md:flex hidden flex-1 flex-col overflow-x-hidden overflow-y-auto">
-              <Logo />
-              <div className="md:mt-8 flex md:flex-col flex-row gap-2">
-                {links.map((link, idx) => (
-                  <SidebarLink key={idx} link={link} />
-                ))}
-              </div>
-            </div>
-            <div>
-              <div className="md:mt-8 flex md:flex-col flex-row gap-2">
-                {cmslinks.map((link, idx) => (
-                  <SidebarLink key={idx} link={link} />
-                ))}
-              </div>
-              <Logoutbtn
-                text="Log out"
-                icon={
-                  <LuLogOut className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />
-                }
-              />
-            </div>
-          </SidebarBody>
-        </Sidebar>
-        <div className="fixed bottom-0 overflow-auto left-0 right-0 z-50 flex justify-around bg-gray-100 dark:bg-stone-950 text-gray-700 dark:text-white p-2 md:hidden border-t border-gray-200 dark:border-gray-700">
-          {links.map((link, index) => (
-            <Link
-              key={index}
-              href={link.href}
-              className="flex min-w-[85px] flex-col items-center justify-center text-xs hover:text-gray-900 dark:hover:text-stone-300"
-            >
-              {link.icon}
-              <span className="text-[10px] mt-1">{link.label}</span>
-            </Link>
-          ))}
-           {cmslinks.map((link, index) => (
-            <Link
-              key={index}
-              href={link.href}
-              className="flex min-w-[85px] flex-col items-center justify-center text-xs hover:text-gray-900 dark:hover:text-stone-300"
-            >
-              {link.icon}
-              <span className="text-[10px] mt-1">{link.label}</span>
-            </Link>
-          ))}
-          {/* Logout Button */}
-          <button
-            onClick={handleLogout}
-            className="flex min-w-[85px] flex-col items-center justify-center text-xs hover:text-gray-900 dark:hover:text-stone-300"
+      <main className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-white dark:bg-stone-950">
+        <DashboardMainScrollContext.Provider value={scrollCtx}>
+          <PageHeader />
+          <ToastContainer
+            position="top-center"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+          />
+          <div
+            className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain max-md:pt-[var(--pickem-dashboard-header-bottom)] md:pt-0"
+            onScroll={(e) => setMainColumnScrollTop(e.currentTarget.scrollTop)}
           >
-            <LuLogOut className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />
-            <span className="text-[10px] mt-1">Log out</span>
-          </button>
-        </div>
-      </div>
-      <main className="overflow-hidden flex w-full flex-col bg-stone-950 dark:bg-stone-950 bg-white">
-        <PageHeader />
-        <ToastContainer
-          position="top-center"
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-        />
-        {children}
+            <div className="flex min-h-full flex-col">
+              <div className="flex-1">{children}</div>
+              <DashboardFooterBanner />
+            </div>
+          </div>
+        </DashboardMainScrollContext.Provider>
       </main>
+      <DashboardFloatingBanner />
       <ProfileCompletion />
     </div>
   );

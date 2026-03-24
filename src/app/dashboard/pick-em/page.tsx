@@ -17,6 +17,7 @@ import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
 import { PiPlusBold } from "react-icons/pi";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useDashboardNestedScrollHandler } from "@/src/contexts/DashboardMainScrollContext";
 
 export interface Player {
   player_id: string;
@@ -76,6 +77,7 @@ export default function Pickems() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [sortOption, setSortOption] = useState<{ field: string; direction: "asc" | "desc" }>({ field: "name", direction: "asc" });
   const [teamLogos, setTeamLogos] = useState<Record<string, string>>({});
+  const reportPickEmDesktopListScroll = useDashboardNestedScrollHandler("pick-em-desktop-rows");
 
   const db = getFirestore();
   const { user } = useAuth();
@@ -675,7 +677,7 @@ export default function Pickems() {
             <div className="text-white/70 text-[10px] uppercase tracking-widest font-bold">Cost Cap</div>
             <div className="text-white font-black text-sm">{formatCost(remainingBudget)}</div>
             <div className="w-24 h-1.5 bg-black/30 rounded-full overflow-hidden mt-0.5">
-              <div className={`h-full rounded-full transition-all duration-500 ${budgetPct > 85 ? "bg-red-300" : "bg-green-400"}`} style={{ width: `${100 - budgetPct}%` }} />
+              <div className={`h-full rounded-full transition-all duration-500 ${budgetPct > 85 ? "bg-red-300" : "bg-[#00f976]"}`} style={{ width: `${100 - budgetPct}%` }} />
             </div>
           </div>
         </div>
@@ -786,7 +788,7 @@ export default function Pickems() {
                       <div className="text-white font-black text-sm leading-none">{formatCost(remainingBudget)}</div>
                     </div>
                     <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all duration-500 ${budgetPct > 85 ? "bg-red-500" : "bg-green-400"}`} style={{ width: `${100 - budgetPct}%` }} />
+                      <div className={`h-full rounded-full transition-all duration-500 ${budgetPct > 85 ? "bg-red-500" : "bg-[#00f976]"}`} style={{ width: `${100 - budgetPct}%` }} />
                     </div>
                   </div>
 
@@ -843,8 +845,8 @@ export default function Pickems() {
                   style={{ flex: 3 }}
                   className={`py-2 rounded-xl font-black uppercase tracking-widest text-sm transition-all
                     ${isLocked ? "bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-white/10 text-gray-400 dark:text-white/30 cursor-not-allowed"
-                    : saveStatus === "saved" ? "bg-green-500 text-white shadow-lg shadow-green-500/30"
-                    : isReady ? "bg-green-500 hover:bg-green-400 text-white shadow-lg shadow-green-500/30 active:scale-95"
+                    : saveStatus === "saved" ? "bg-[#00f976] text-neutral-950 shadow-lg shadow-[#00f976]/35"
+                    : isReady ? "bg-[#00f976] hover:brightness-[0.95] text-neutral-950 shadow-lg shadow-[#00f976]/35 active:scale-95"
                     : needsCaptain ? "bg-yellow-500/20 border border-yellow-500/40 text-yellow-600 dark:text-yellow-400 cursor-not-allowed"
                     : "bg-gray-100 dark:bg-white/10 border border-gray-300 dark:border-white/25 text-gray-600 dark:text-white/75 cursor-not-allowed"}`}>
                   {confirmLabel}
@@ -920,7 +922,12 @@ export default function Pickems() {
             <div />
           </div>
           {/* Rows */}
-          <div className="flex-1 overflow-y-auto" ref={desktopScrollRef} style={{ scrollbarGutter: "stable" }}>
+          <div
+            className="flex-1 overflow-y-auto"
+            ref={desktopScrollRef}
+            style={{ scrollbarGutter: "stable" }}
+            onScroll={reportPickEmDesktopListScroll}
+          >
             {isLoadingMore && rowData.length === 0
               ? <div className="flex flex-col items-center justify-center py-12"><div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-gray-300 dark:border-white/30 mb-2" /><span className="text-gray-400 dark:text-white/30 text-[10px] uppercase tracking-widest">Loading players...</span></div>
               : visiblePlayers.length === 0
@@ -946,7 +953,7 @@ export default function Pickems() {
                 <div>
                   <span className="text-xs font-black uppercase tracking-widest text-gray-900 dark:text-white">Select Players</span>
                   <div className="flex gap-3 mt-1">
-                    <span className={`text-[10px] font-bold ${10 - temporaryPicks.length === 0 ? "text-green-500" : "text-gray-400 dark:text-white/40"}`}>
+                    <span className={`text-[10px] font-bold ${10 - temporaryPicks.length === 0 ? "text-[#00f976]" : "text-gray-400 dark:text-white/40"}`}>
                       {10 - temporaryPicks.length === 0 ? "✓ Team full" : `${10 - temporaryPicks.length} pick${10 - temporaryPicks.length !== 1 ? "s" : ""} remaining`}
                     </span>
                     <span className={`text-[10px] font-bold ${remainingBudget < 0 ? "text-red-500" : "text-gray-400 dark:text-white/40"}`}>

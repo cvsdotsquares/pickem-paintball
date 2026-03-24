@@ -36,6 +36,8 @@
   --foreground: #171717;
   --scrollbar-bg: #e5e5e5;
   --scrollbar-thumb: #a0a0a0;
+  /* Fallback until DashboardTopNav measures the fixed header; sync 96 with `MOBILE_DASHBOARD_HEADER_BODY_PX`. */
+  --pickem-dashboard-header-bottom: calc(96px + env(safe-area-inset-top, 0px));
   scroll-behavior: smooth;
 }
 
@@ -44,6 +46,11 @@
   --foreground: #ededed;
   --scrollbar-bg: #212121;
   --scrollbar-thumb: #5a5a5a;
+}
+
+html {
+  /* Opaque root so iOS Safari doesn’t blend page chrome (e.g. green header) into the status bar */
+  background-color: var(--background);
 }
 
 body {

@@ -6,6 +6,7 @@ import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { motion } from "framer-motion";
 import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
 import { FaSearch, FaTimes, FaChevronUp, FaChevronDown } from "react-icons/fa";
+import { useDashboardNestedScrollHandler } from "@/src/contexts/DashboardMainScrollContext";
 
 interface SeasonPlayer {
   playerId: string;
@@ -46,6 +47,7 @@ export default function SeasonTotalsPage() {
 
   const availableYears = ["2025", "2024"];
   const PAGE_SIZES = [10, 20, 50, 100];
+  const reportSeasonTotalsScroll = useDashboardNestedScrollHandler("dashboard-season-totals");
 
   // Fetch season data
   useEffect(() => {
@@ -195,7 +197,10 @@ export default function SeasonTotalsPage() {
   }, [seasonPlayers]);
 
   return (
-    <div className="relative left-0 flex flex-col w-auto scroll-smooth overflow-y-scroll font-inter pb-20">
+    <div
+      className="relative left-0 flex flex-col w-auto scroll-smooth overflow-y-scroll font-inter pb-20"
+      onScroll={reportSeasonTotalsScroll}
+    >
       {/* Header */}
       <section>
         <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
