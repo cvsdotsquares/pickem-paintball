@@ -598,27 +598,12 @@ export default function Statistics() {
               <h1 className="font-azonix text-4xl text-white md:text-7xl">
                 Statistics Center
               </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/85 md:text-base">
-                Browse event and season leaderboards, compare player stats, and see how the field stacks up across the year.
-              </p>
             </div>
           </header>
 
           {/* Year Filter */}
-          <section
-            className="mx-auto mt-6 max-w-4xl px-4"
-            aria-labelledby="stats-year-heading"
-          >
-            <h2
-              id="stats-year-heading"
-              className="font-azonix text-center text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-white/45"
-            >
-              Season filter
-            </h2>
-            <p className="mx-auto mt-2 max-w-xl text-center text-sm leading-relaxed text-gray-600 dark:text-white/55">
-              Choose a year to narrow events, or keep <span className="font-semibold text-gray-800 dark:text-white/80">All</span> to see every season card.
-            </p>
-            <div className="mt-4 flex justify-center">
+          <section className="mx-auto mt-6 max-w-4xl px-4" aria-label="Filter by season year">
+            <div className="flex justify-center">
               <div className="flex flex-wrap justify-center gap-2">
               {years.map((year) => (
                 <button
@@ -648,10 +633,7 @@ export default function Statistics() {
                 <h3 className="font-azonix text-lg font-bold text-gray-900 dark:text-white">
                   Select event
                 </h3>
-                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-gray-600 dark:text-white/55">
-                  Tap a season tile for combined rankings, or an individual event for full player breakdowns and categories.
-                </p>
-                <div className="mt-4 flex flex-row items-center gap-4 overflow-x-auto">
+                <div className="mt-3 flex flex-row items-center gap-4 overflow-x-auto">
                   {/* Season Card - Show only for specific years, not "All" */}
                   {selectedYear !== "All" && (
                     <EventCard
@@ -725,17 +707,7 @@ export default function Statistics() {
           ) : (
             // Individual Event Table
             <>
-              <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div className="max-w-3xl">
-                  <h3 className="font-azonix text-lg font-bold text-gray-900 dark:text-white md:text-xl">
-                    {selectedEvent?.name || "Select an event"} — player stats
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-white/55">
-                    {selectedEvent
-                      ? "Confirmed kills, category grades, and rankings for this event. Use the row above to switch events or open a season view."
-                      : "Pick an event card above to load the full stat table for that tournament."}
-                  </p>
-                </div>
+              <div className="mb-6 flex justify-end">
                 {selectedEvent?.status === "live" && (
                   <span className="shrink-0 animate-pulse rounded-full bg-red-500 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white md:text-sm">
                     Live
