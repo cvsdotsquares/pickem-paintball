@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/src/contexts/authProvider';
 import { useSubscription } from '@/src/contexts/SubscriptionContext';
 import { FaCrown, FaCalendar, FaCreditCard, FaTimes, FaCheck } from 'react-icons/fa';
@@ -13,6 +13,15 @@ interface BillingHistory {
   status: string;
   invoiceUrl?: string;
 }
+
+/** Shown only when the API does not return plan features (older data / Stripe fetch failed). */
+const LEGACY_PLAN_BENEFITS = [
+  'Create unlimited custom leagues',
+  'Save and track your picks',
+  'Advanced statistics',
+  'Priority support',
+  'Ad-free experience',
+] as const;
 
 export default function SubscriptionManager() {
   const { user } = useAuth();
@@ -109,6 +118,21 @@ export default function SubscriptionManager() {
   const planName = activePlan?.name || (subscriptionTier ? (subscriptionTier.charAt(0).toUpperCase() + subscriptionTier.slice(1)) : 'Premium Plan');
   const planPrice = activePlan?.price ? `$${activePlan.price}${activePlan.period || ''}` : '';
 
+  const planBenefits = useMemo(() => {
+    const ap = subscriptionData?.activePlanDetails as
+      | { id?: string; features?: string[] }
+      | undefined;
+    if (ap?.features !== undefined) {
+      return ap.features;
+    }
+    const tierId = ap?.id || subscriptionTier;
+    if (tierId && plans.length) {
+      const match = plans.find((p: { id: string }) => p.id === tierId);
+      if (match?.features?.length) return match.features as string[];
+    }
+    return [...LEGACY_PLAN_BENEFITS];
+  }, [subscriptionData?.activePlanDetails, subscriptionTier, plans]);
+
   if (!isSubscribed) {
     return (
       <div className="rounded-lg bg-gray-100 p-6 text-center dark:bg-gray-800">
@@ -173,20 +197,20 @@ export default function SubscriptionManager() {
         <p className="mb-4 text-sm leading-relaxed text-gray-600 dark:text-white/55">
           Included with your current plan.
         </p>
-        <ul className="space-y-3">
-          {[
-            'Create unlimited custom leagues',
-            'Save and track your picks',
-            'Advanced statistics',
-            'Priority support',
-            'Ad-free experience'
-          ].map((feature, i) => (
-            <li key={i} className="flex items-center gap-3 text-sm leading-relaxed text-gray-700 dark:text-white/65">
-              <FaCheck className="text-green-500 dark:text-green-400" />
-              {feature}
-            </li>
-          ))}
-        </ul>
+        {planBenefits.length === 0 ? (
+          <p className="text-sm leading-relaxed text-gray-600 dark:text-white/55">
+            Benefits for your current plan aren&apos;t listed yet. If this persists, contact support.
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {planBenefits.map((feature, i) => (
+              <li key={`${i}-${feature.slice(0, 24)}`} className="flex items-center gap-3 text-sm leading-relaxed text-gray-700 dark:text-white/65">
+                <FaCheck className="shrink-0 text-green-500 dark:text-green-400" />
+                {feature}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Billing History */}
@@ -239,7 +263,7 @@ export default function SubscriptionManager() {
               </button>
             </div>
             <p className="text-gray-700 dark:text-gray-300 mb-6">
-              Are you sure you want to cancel? You'll lose access to premium features at the end of your billing period.
+              Are you sure you want to cancel? You&apos;ll lose access to premium features at the end of your billing period.
             </p>
             <div className="flex gap-3">
               <button

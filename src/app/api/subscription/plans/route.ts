@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { productFeaturesFromStripe } from '@/src/lib/stripeProductFeatures';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -150,18 +151,7 @@ export async function GET(request: NextRequest) {
         const planKey = priceIdToPlanKey[price.id];
         const product = price.product as Stripe.Product;
 
-        // Get features from product marketing_features or metadata
-        let features: string[] = [];
-        if (product.marketing_features && product.marketing_features.length > 0) {
-          features = product.marketing_features.map((f: any) => f.name).filter(Boolean);
-        }
-        if (features.length === 0 && product.metadata) {
-          features = Object.keys(product.metadata)
-            .filter((key) => key.startsWith('features'))
-            .sort()
-            .map((key) => product.metadata[key])
-            .filter(Boolean);
-        }
+        let features = productFeaturesFromStripe(product);
         if (features.length === 0) {
           features = ['Custom Leagues', 'Advanced Statistics', 'Priority Support', 'Early Access to Features'];
         }

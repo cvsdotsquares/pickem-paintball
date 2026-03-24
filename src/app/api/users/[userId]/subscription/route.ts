@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/src/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 import Stripe from 'stripe';
+import { productFeaturesFromStripe } from '@/src/lib/stripeProductFeatures';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-02-25.clover' as any
@@ -116,6 +117,7 @@ export async function GET(
     let planPrice = subscriptionTier ? tierConfig[subscriptionTier]?.price : null;
     let planName = subscriptionTier ? tierConfig[subscriptionTier]?.name : null;
     let planPeriod = subscriptionTier ? tierConfig[subscriptionTier]?.period : null;
+    let planFeatures: string[] | undefined = undefined;
 
     if (stripeSubscriptionId) {
       try {
@@ -145,10 +147,11 @@ export async function GET(
              
              const productItem = priceDetails.product;
              
-             if (priceDetails && productItem) {
+             if (priceDetails && productItem && typeof productItem === 'object') {
                planName = productItem.name;
                planPrice = priceDetails.unit_amount / 100;
                planPeriod = `/${priceDetails.recurring?.interval}`;
+               planFeatures = productFeaturesFromStripe(productItem as Stripe.Product);
                
                console.log('Successfully fetched price details from Stripe:', { planName, planPrice, planPeriod });
              }
@@ -166,7 +169,8 @@ export async function GET(
          id: subscriptionTier,
          name: planName || (subscriptionTier.charAt(0).toUpperCase() + subscriptionTier.slice(1)),
          price: planPrice || 0,
-         period: planPeriod || ''
+         period: planPeriod || '',
+         ...(planFeatures !== undefined ? { features: planFeatures } : {}),
       };
       
       console.log('--- FINAL PLAN DETAILS ---', activePlanDetails);
