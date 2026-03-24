@@ -15,6 +15,9 @@ interface LayoutProps {
   children: ReactNode;
 }
 
+/** Routes with fixed in-page height + inner scroll: nested regions must not control the desktop nav second row. */
+const MAIN_COLUMN_SCROLL_ONLY_PATHS = new Set(["/dashboard/pick-em"]);
+
 /** Used by emails / other surfaces that still link a compact logo mark */
 export const Logo = () => {
   return (
@@ -55,13 +58,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     [nestedScrollTops],
   );
 
-  const scrollCtx = useMemo(
-    () => ({
-      scrollTop: Math.max(mainColumnScrollTop, nestedScrollTop),
+  const scrollCtx = useMemo(() => {
+    const pathKey = pathname?.replace(/\/$/, "") ?? "";
+    const mainOnly = MAIN_COLUMN_SCROLL_ONLY_PATHS.has(pathKey);
+    return {
+      scrollTop: mainOnly
+        ? mainColumnScrollTop
+        : Math.max(mainColumnScrollTop, nestedScrollTop),
       setNestedScrollTop,
-    }),
-    [mainColumnScrollTop, nestedScrollTop, setNestedScrollTop],
-  );
+    };
+  }, [mainColumnScrollTop, nestedScrollTop, pathname, setNestedScrollTop]);
 
   return (
     <div

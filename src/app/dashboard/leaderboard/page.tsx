@@ -25,7 +25,6 @@ import LeagueSelector from "../../../components/Leagues/LeagueSelector";
 import CreateLeagueModal from "../../../components/Leagues/CreateLeagueModal";
 import JoinLeagueModal from "../../../components/Leagues/JoinLeagueModal";
 import { useLeague } from "../../../contexts/LeagueContext";
-import { useDashboardNestedScrollHandler } from "@/src/contexts/DashboardMainScrollContext";
 
 interface LiveEvent {
   id: string;
@@ -176,8 +175,6 @@ function LeaderboardNewContent() {
   // League modals
   const [showCreateLeague, setShowCreateLeague] = useState(false);
   const [showJoinLeague, setShowJoinLeague] = useState(false);
-
-  const reportLeaderboardScroll = useDashboardNestedScrollHandler("leaderboard-main");
 
   const PAGE_SIZES = [10, 20, 50];
   const MAX_RETRIES = 3;
@@ -967,10 +964,7 @@ function LeaderboardNewContent() {
   // Show "No active event" only after loading is complete and no event found
   if (!eventLoading && !liveEvent && !isSeasonView) {
     return (
-      <div
-        className="p-2 pt-0 sm:pt-0 pb-24 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
-        onScroll={reportLeaderboardScroll}
-      >
+      <div className="min-h-[220px] bg-gray-50 p-2 pb-10 pt-0 text-gray-900 dark:bg-gray-900 dark:text-white sm:p-4 sm:pb-4 sm:pt-0">
         <div className="flex items-center justify-center min-h-screen">
           <p className="text-center text-white text-lg">
             No active event currently running.
@@ -981,10 +975,7 @@ function LeaderboardNewContent() {
   }
 
   return (
-    <div
-      className="p-2 pt-0 sm:pt-0 pb-24 sm:pb-4 sm:p-4 h-[calc(100vh-48px)] min-h-[220px] overflow-auto bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
-      onScroll={reportLeaderboardScroll}
-    >
+    <div className="min-h-[220px] bg-gray-50 p-2 pb-10 pt-0 text-gray-900 dark:bg-gray-900 dark:text-white sm:p-4 sm:pb-4 sm:pt-0">
       {/* Event Header */}
       <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
         <div
