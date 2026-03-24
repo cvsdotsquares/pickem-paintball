@@ -16,6 +16,7 @@ import { handleLogout } from "@/src/components/Dashboard/sidebar/sidebar1";
 import { useDashboardMainScrollTop } from "@/src/contexts/DashboardMainScrollContext";
 import {
   cmsDashboardLinks,
+  faqDashboardLink,
   primaryDashboardLinks,
   type DashboardNavItem,
 } from "./dashboardNavLinks";
@@ -141,7 +142,7 @@ function NavLinkInline({ item, onNavigate }: { item: DashboardNavItem; onNavigat
   );
 }
 
-/** Desktop top nav + ☰ panel: core app links only (FAQ / T&Cs / log out live elsewhere). */
+/** Desktop second row: primary routes + FAQ inline (T&Cs stay in ☰ / mobile footer). */
 function DesktopMainNavRow({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav
@@ -151,6 +152,7 @@ function DesktopMainNavRow({ onNavigate }: { onNavigate?: () => void }) {
       {primaryDashboardLinks.map((item) => (
         <NavLinkInline key={item.href} item={item} onNavigate={onNavigate} />
       ))}
+      <NavLinkInline item={faqDashboardLink} onNavigate={onNavigate} />
     </nav>
   );
 }

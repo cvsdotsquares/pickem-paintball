@@ -43,19 +43,24 @@ export const primaryDashboardLinks: DashboardNavItem[] = [
   },
 ];
 
+export const faqDashboardLink: DashboardNavItem = {
+  label: "FAQ",
+  href: "/pages/faq",
+  icon: (
+    <FaQuestionCircle className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />
+  ),
+};
+
+export const termsDashboardLink: DashboardNavItem = {
+  label: "T&Cs",
+  href: "/pages/terms-and-conditions",
+  icon: (
+    <HiOutlineDocumentText className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />
+  ),
+};
+
+/** Mobile footer: FAQ + T&Cs (desktop also shows FAQ on the second nav row). */
 export const cmsDashboardLinks: DashboardNavItem[] = [
-  {
-    label: "FAQ",
-    href: "/pages/faq",
-    icon: (
-      <FaQuestionCircle className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />
-    ),
-  },
-  {
-    label: "T&Cs",
-    href: "/pages/terms-and-conditions",
-    icon: (
-      <HiOutlineDocumentText className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />
-    ),
-  },
+  faqDashboardLink,
+  termsDashboardLink,
 ];
