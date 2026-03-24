@@ -355,6 +355,66 @@ exports.onUserSubscriptionChanged = functions.firestore
     return null;
   });
 
+// ─── Sync profilePicture/displayName to leaderboard when user profile changes ─
+// Leaderboard summaries cache profilePicture and displayName; without this,
+// profile pics/names stay stale until the next recalculateLeaderboard.
+exports.onUserProfileChanged = functions.firestore
+  .document('users/{userId}')
+  .onWrite(async (change, context) => {
+    if (!change.after.exists) return null;
+    const before = change.before.exists ? change.before.data() : {};
+    const after = change.after.data();
+
+    const profileFields = ['profilePicture', 'username', 'firstName', 'lastName', 'name', 'displayName'];
+    const changed = profileFields.some(f => {
+      const b = before[f];
+      const a = after[f];
+      return (b !== a) || (typeof b !== typeof a);
+    });
+    if (!changed) return null;
+
+    const userId = context.params.userId;
+    const profilePicture = after.profilePicture || null;
+    const displayName = resolveDisplayName(after);
+
+    const pickems = after.pickems || {};
+    const participatedEventIds = Object.keys(pickems)
+      .filter(k => !k.includes('_captain'))
+      .filter(k => Array.isArray(pickems[k]) && pickems[k].length > 0);
+    if (participatedEventIds.length === 0) return null;
+
+    const years = new Set();
+    participatedEventIds.forEach(eventId => {
+      const m = eventId.match(/(\d{4})/);
+      if (m) years.add(m[1]);
+    });
+
+    const updateLeaderboardDoc = async (docId) => {
+      const ref = db.doc(`leaderboards/${docId}`);
+      const snap = await ref.get();
+      if (!snap.exists) return;
+      const data = snap.data();
+      const users = data.users || [];
+      const idx = users.findIndex(u => u.id === userId);
+      if (idx === -1) return;
+      users[idx] = { ...users[idx], profilePicture, displayName };
+      await ref.update({ users });
+    };
+
+    try {
+      for (const eventId of participatedEventIds) {
+        await updateLeaderboardDoc(eventId);
+      }
+      for (const year of years) {
+        await updateLeaderboardDoc(`season_${year}`);
+      }
+      console.log(`✅ Synced profile for ${userId} (profilePicture/displayName) to leaderboards`);
+    } catch (err) {
+      console.error('❌ onUserProfileChanged failed:', err);
+    }
+    return null;
+  });
+
 // Helper function to migrate single event
 const migrateSingleEvent = async (eventId) => {
   console.log(`🔄 Migrating event: ${eventId}`);

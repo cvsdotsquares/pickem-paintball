@@ -1145,6 +1145,7 @@ function LeaderboardNewContent() {
                       <img
                         src={getFirebaseStorageUrl(currentUserData.profilePicture)}
                         alt="Profile"
+                        referrerPolicy="no-referrer"
                         className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-yellow-400"
                       />
                     ) : (

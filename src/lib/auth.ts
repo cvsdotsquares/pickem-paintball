@@ -99,19 +99,21 @@ export const updateUserPassword = async (
     return updatePassword(auth.currentUser, newPassword);
 };
 
-// Upload a new profile picture and update the user profile with the photo URL
+// Upload a new profile picture and update the user profile with the photo URL.
+// We upload to "profile" so the Resize Images extension creates "profile_200x200"
+// (avoiding profile_200x200_200x200 when the path already contained _200x200).
 export const uploadProfilePicture = async (file: File): Promise<string> => {
     if (!auth.currentUser) {
         throw new Error("No authenticated user found");
     }
-    const storagePath = `user/${auth.currentUser.uid}/profile_200x200`;
-    // Explicitly type the storage reference for TypeScript
-    const storageRef: StorageReference = ref(storage, storagePath);
+    const uid = auth.currentUser.uid;
+    const uploadPath = `user/${uid}/profile`;
+    const displayPath = `user/${uid}/profile_200x200`;
+    const storageRef: StorageReference = ref(storage, uploadPath);
     await uploadBytes(storageRef, file);
     const downloadURL = await getDownloadURL(storageRef);
     await updateProfile(auth.currentUser, { photoURL: downloadURL });
-    // Return the storage path, not the download URL
-    return storagePath;
+    return displayPath;
 };
 
 // Upload league icon

@@ -146,6 +146,7 @@ function ProfilePage() {
                         defaultUserData.profilePicture
                       }
                       alt="Profile Picture"
+                      referrerPolicy="no-referrer"
                     />
                   </div>
                   <Badge

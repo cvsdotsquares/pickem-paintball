@@ -25,6 +25,15 @@ interface SortConfig {
   direction: "ascending" | "descending";
 }
 
+/** Season aggregate player docs use these labels; live aggregation uses `event.name` */
+const AGGREGATE_EVENT_COLUMN_BY_EVENT_ID: Record<string, string> = {
+  tampa_bay_2025: "Tampa Bay",
+  world_cup_2025: "World Cup",
+  lonestar_open_2025: "Lone Star",
+  midwest_open_2025: "Mid West",
+  atlantic_city_2025: "Atlantic City",
+};
+
 export default function Statistics() {
   const [rowData, setRowData] = useState<Player[]>([]);
   const [eventsList, setEventsList] = useState<Event[]>([]);
@@ -239,12 +248,14 @@ export default function Statistics() {
   // Fetch season data when season table is shown
   useEffect(() => {
     async function fetchSeasonData() {
-
       if (!showSeasonTable) {
-        return; // Don't clear data if not showing season table
+        return;
       }
 
-      const yearToFetch = selectedYear === "All" ? selectedSeasonYear || "2025" : selectedYear;
+      const yearToFetch =
+        selectedYear === "All"
+          ? selectedSeasonYear || eventsList.find((e) => e.year)?.year || "2025"
+          : selectedYear;
 
       try {
         setRowData([]);
@@ -252,24 +263,15 @@ export default function Statistics() {
         const seasonPlayersQuery = collection(db, `players/season_${yearToFetch}/players`);
         const seasonSnapshot = await getDocs(seasonPlayersQuery);
 
-        if (seasonSnapshot.empty) {
-          setRowData([]);
-          return;
-        }
-
-        const seasonPlayers = seasonSnapshot.docs.map((doc) => {
-          const data = doc.data();
-
-          // Base data structure matching MatchupTable expectations
-          const playerData: any = {
-            player_id: data.playerId || doc.id,
+        const mapAggregateDoc = (docSnap: { id: string; data: () => Record<string, unknown> }) => {
+          const data = docSnap.data() as Record<string, any>;
+          const playerData: Record<string, unknown> = {
+            player_id: data.playerId || docSnap.id,
             Rank: data.seasonRank || 999,
-            Player: data.playerName || 'Unknown Player',
-            Team: data.team || 'Unknown Team',
-            "Total Kills": data.totalConfirmedKills || 0,
-            Number: data.playerNumber || '',
-
-            // Aggregated stats
+            Player: data.playerName || "Unknown Player",
+            Team: data.team || "Unknown Team",
+            "Confirmed Kills": data.totalConfirmedKills || 0,
+            Number: data.playerNumber || "",
             Gunfights: data.gunfights || 0,
             Breakshooting: data.breakshooting || 0,
             Movement: data.movement || 0,
@@ -277,12 +279,11 @@ export default function Statistics() {
             Pressure: data.pressure || 0,
             Trades: data.trades || 0,
             Unclassified: data.unclassified || 0,
-            img_url: data.img_url || null, // Keep img_url for MatchupTable
-            picture: data.img_url || '/placeholder.svg',
-            pictureLoading: false // Set to false since we have direct URL
+            img_url: data.img_url || null,
+            picture: data.img_url || "/placeholder.svg",
+            pictureLoading: false,
           };
 
-          // Add event-specific kills based on year
           if (yearToFetch === "2025") {
             playerData["World Cup"] = data.world_cup_2025?.confirmedKills || 0;
             playerData["Lone Star"] = data.lonestar_open_2025?.confirmedKills || 0;
@@ -298,11 +299,90 @@ export default function Statistics() {
           }
 
           return playerData;
+        };
+
+        if (!seasonSnapshot.empty) {
+          const seasonPlayers = seasonSnapshot.docs.map(mapAggregateDoc) as unknown as Player[];
+          setRowData(seasonPlayers);
+          setCurrentPage(1);
+          return;
+        }
+
+        // No pre-aggregated season doc (e.g. 2026+) — build from events/{eventId}/players
+        const eventsForYear = eventsList.filter(
+          (e) => String(e.year) === String(yearToFetch) && e.status !== "season"
+        );
+        if (eventsForYear.length === 0) {
+          setRowData([]);
+          return;
+        }
+
+        const seasonPlayersMap = new Map<string, Record<string, unknown>>();
+
+        for (const event of eventsForYear) {
+          const evSnap = await getDocs(collection(db, `events/${event.id}/players`));
+          evSnap.docs.forEach((playerDoc) => {
+            const playerData = playerDoc.data();
+            const playerId = playerDoc.id;
+            const kills =
+              Number(playerData["Confirmed Kills"] ?? playerData.confirmedKills ?? 0) || 0;
+
+            if (!seasonPlayersMap.has(playerId)) {
+              const imgUrl =
+                playerData.images?.img_url ||
+                playerData.img_url ||
+                playerData.picture ||
+                playerData.profilePicture ||
+                "";
+              seasonPlayersMap.set(playerId, {
+                player_id: playerId,
+                Rank: 999,
+                Player: playerData.Player || "Unknown Player",
+                Team: playerData.Team || "Unknown Team",
+                Number: playerData.Number ?? "",
+                "Confirmed Kills": 0,
+                Gunfights: 0,
+                Breakshooting: 0,
+                Movement: 0,
+                "Zone Coverage": 0,
+                Pressure: 0,
+                Trades: 0,
+                Unclassified: 0,
+                img_url: imgUrl || null,
+                picture: imgUrl || "/placeholder.svg",
+                pictureLoading: false,
+              });
+            }
+            const row = seasonPlayersMap.get(playerId)!;
+            row["Confirmed Kills"] = (Number(row["Confirmed Kills"]) || 0) + kills;
+            row.Gunfights = (Number(row.Gunfights) || 0) + (Number(playerData.Gunfights) || 0);
+            row.Breakshooting =
+              (Number(row.Breakshooting) || 0) + (Number(playerData.Breakshooting) || 0);
+            row.Movement = (Number(row.Movement) || 0) + (Number(playerData.Movement) || 0);
+            row["Zone Coverage"] =
+              (Number(row["Zone Coverage"]) || 0) +
+              (Number(playerData["Zone Coverage"] ?? playerData.zoneCoverage) || 0);
+            row.Pressure = (Number(row.Pressure) || 0) + (Number(playerData.Pressure) || 0);
+            row.Trades = (Number(row.Trades) || 0) + (Number(playerData.Trades) || 0);
+            row.Unclassified =
+              (Number(row.Unclassified) || 0) + (Number(playerData.Unclassified) || 0);
+            const label = event.name || event.id;
+            row[label] = (Number(row[label]) || 0) + kills;
+          });
+        }
+
+        const aggregated = Array.from(seasonPlayersMap.values()) as unknown as Player[];
+        aggregated.sort(
+          (a, b) =>
+            (Number((b as any)["Confirmed Kills"]) || 0) -
+            (Number((a as any)["Confirmed Kills"]) || 0)
+        );
+        aggregated.forEach((p, i) => {
+          (p as any).Rank = i + 1;
         });
 
-        setRowData(seasonPlayers);
+        setRowData(aggregated);
         setCurrentPage(1);
-
       } catch (error) {
         console.error("Error fetching season data:", error);
         setRowData([]);
@@ -310,7 +390,7 @@ export default function Statistics() {
     }
 
     fetchSeasonData();
-  }, [showSeasonTable, selectedSeasonYear, selectedYear]);
+  }, [showSeasonTable, selectedSeasonYear, selectedYear, eventsList]);
 
   // Handle sorting separately to avoid infinite re-renders
   const sortedRowData = useMemo(() => {
@@ -332,6 +412,43 @@ export default function Statistics() {
     }
     return rowData;
   }, [rowData, sortConfig]);
+
+  const seasonYearForView =
+    selectedYear === "All" ? selectedSeasonYear : selectedYear;
+
+  const eventsForSeasonView = useMemo(() => {
+    if (!seasonYearForView) return [];
+    return eventsList
+      .filter(
+        (e) =>
+          String(e.year) === String(seasonYearForView) && e.status !== "season"
+      )
+      .sort((a, b) => {
+        const sa = a.lockDate?.seconds ?? 0;
+        const sb = b.lockDate?.seconds ?? 0;
+        if (sb !== sa) return sb - sa;
+        const pa = parseInt(a.event_place || "0", 10) || 0;
+        const pb = parseInt(b.event_place || "0", 10) || 0;
+        return pb - pa;
+      });
+  }, [eventsList, seasonYearForView]);
+
+  /** Event columns left-to-right: most recent → oldest (then category stats in table) */
+  const seasonEventColumnOrder = useMemo(() => {
+    if (!showSeasonTable || sortedRowData.length === 0) return [];
+    const row = sortedRowData[0] as unknown as Record<string, unknown>;
+    const rowKeys = new Set(Object.keys(row));
+    const ordered: string[] = [];
+    for (const e of eventsForSeasonView) {
+      if (rowKeys.has(e.name)) {
+        ordered.push(e.name);
+        continue;
+      }
+      const agg = AGGREGATE_EVENT_COLUMN_BY_EVENT_ID[e.id];
+      if (agg && rowKeys.has(agg)) ordered.push(agg);
+    }
+    return ordered;
+  }, [showSeasonTable, sortedRowData, eventsForSeasonView]);
 
   // Handle sort config changes — null means user completed the 3-click cycle, reset to default
   const handleSortChange = (newSortConfig: SortConfig | null) => {
@@ -565,6 +682,7 @@ export default function Statistics() {
                 myPicks={livePicks}
                 currentEventId={selectedEvent?.id}
                 isSeasonView={true}
+                seasonEventColumnOrder={seasonEventColumnOrder}
               />
             </>
           ) : (

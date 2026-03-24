@@ -151,6 +151,7 @@ const UserProfile = () => {
           <img
             src={userData.profilePicture}
             alt={userData.name}
+            referrerPolicy="no-referrer"
             className="w-20 h-20 rounded-full"
           />
           <h1 className="inline-flex gap-2 md:text-5xl text-3xl text-center font-bold text-white">

@@ -16,9 +16,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem("theme") as Theme;
-    if (stored) {
-      setTheme(stored);
-      document.documentElement.classList.toggle("dark", stored === "dark");
+    // Default is light; only apply dark when user explicitly chose it
+    const resolved = stored === "dark" ? "dark" : "light";
+    setTheme(resolved);
+    document.documentElement.classList.toggle("dark", resolved === "dark");
+    if (stored !== "dark" && stored !== "light") {
+      localStorage.setItem("theme", resolved);
     }
   }, []);
 
