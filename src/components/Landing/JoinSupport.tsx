@@ -17,12 +17,20 @@ const JoinSupport = () => {
           grow the sport.
         </p>
 
-        <Link
-          href="/register"
-          className="mt-8 inline-block rounded-lg bg-pickem-green px-10 py-4 font-heading text-lg font-bold uppercase tracking-wide text-pickem-navy transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-pickem-green/30"
-        >
-          Join Now
-        </Link>
+        <div className="mx-auto mt-8 flex w-full max-w-[14.5rem] flex-col gap-4">
+          <Link
+            href="/register"
+            className="block w-full rounded-lg bg-pickem-green px-6 py-4 text-center font-heading text-lg font-bold uppercase tracking-wide text-pickem-navy transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-pickem-green/30"
+          >
+            Join Now
+          </Link>
+          <Link
+            href="/login"
+            className="block w-full rounded-lg border-2 border-white/35 bg-transparent px-6 py-4 text-center font-heading text-lg font-semibold uppercase tracking-wide text-white transition-all duration-300 hover:border-white/70 hover:bg-white/10"
+          >
+            Login
+          </Link>
+        </div>
       </div>
     </section>
   );
