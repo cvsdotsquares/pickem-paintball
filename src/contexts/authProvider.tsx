@@ -20,6 +20,8 @@ import { doc, getDoc } from "firebase/firestore";
 interface AuthContextType {
   user: User | null;
   userId: string | null;
+  /** True until Firebase `onAuthStateChanged` has fired at least once. */
+  loading: boolean;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   registerWithEmail: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
@@ -131,6 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     user,
     userId,
+    loading,
     loginWithEmail,
     registerWithEmail,
     loginWithGoogle,
@@ -138,8 +141,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
   );
 };

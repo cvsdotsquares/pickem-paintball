@@ -10,16 +10,16 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (user === null) {
+    if (!authLoading && user === null) {
       router.push("/login");
     }
-  }, [user, router]);
+  }, [user, authLoading, router]);
 
-  if (user === null) {
+  if (authLoading || user === null) {
     return <CutoutTextLoader
 
       background="black"

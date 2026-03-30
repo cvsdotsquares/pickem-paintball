@@ -10,6 +10,11 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig = {
   outputFileTracingRoot: projectRoot,
+  /** Avoid flaky vendor-chunk resolution for icon packages (fixes missing `vendor-chunks/lucide-react.js`). */
+  transpilePackages: ["lucide-react"],
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
+  },
   reactStrictMode: false,
   /**
    * Dev-only: allow phones / other devices on your LAN to load App Router + dev assets.
@@ -30,6 +35,12 @@ const nextConfig = {
   },
   images: {
     domains: ["lh3.googleusercontent.com", "firebasestorage.googleapis.com"],
+  },
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.output.chunkLoadTimeout = 120000;
+    }
+    return config;
   },
   async headers() {
     return [

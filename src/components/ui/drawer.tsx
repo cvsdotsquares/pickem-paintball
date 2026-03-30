@@ -16,7 +16,7 @@ const Path: React.FC<PathProps> = (props) => (
     <path
         fill="transparent"
         strokeWidth="3"
-        stroke="var(--background)"
+        stroke="hsl(var(--background))"
         strokeLinecap="round"
         {...props}
     />

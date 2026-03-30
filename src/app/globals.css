@@ -32,8 +32,32 @@
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* HSL components for Tailwind `hsl(var(--token))` utilities */
+  --background: 0 0% 100%;
+  --foreground: 0 0% 9%;
+  --primary: 213 95% 13%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 20% 96%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 210 20% 96%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 210 20% 96%;
+  --accent-foreground: 0 0% 9%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 213 95% 13%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 9%;
+  --radius: 0.5rem;
+  --pickem-navy: 213 95% 13%;
+  --pickem-green: 149 100% 49%;
+  --pickem-blue: 198 76% 56%;
+  --pickem-navy-light: 213 60% 20%;
+  --pickem-navy-dark: 213 95% 8%;
   --scrollbar-bg: #e5e5e5;
   --scrollbar-thumb: #a0a0a0;
   /* Fallback until DashboardTopNav measures the fixed header; sync 96 with `MOBILE_DASHBOARD_HEADER_BODY_PX`. */
@@ -42,21 +66,38 @@
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: 0 0% 4%;
+  --foreground: 0 0% 93%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 0 0% 9%;
+  --secondary: 0 0% 15%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 64%;
+  --accent: 0 0% 15%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62% 30%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 15%;
+  --input: 0 0% 15%;
+  --ring: 0 0% 83%;
+  --card: 0 0% 4%;
+  --card-foreground: 0 0% 93%;
+  --popover: 0 0% 4%;
+  --popover-foreground: 0 0% 93%;
   --scrollbar-bg: #212121;
   --scrollbar-thumb: #5a5a5a;
 }
 
 html {
   /* Opaque root so iOS Safari doesn’t blend page chrome (e.g. green header) into the status bar */
-  background-color: var(--background);
+  background-color: hsl(var(--background));
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: var(--font-azonix), sans-serif;
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  font-family: var(--font-industry), system-ui, sans-serif;
 }
 
 /* Prevent iOS Safari from auto-zooming when tapping input fields.
@@ -100,6 +141,65 @@ textarea {
   .animate-slide-in {
     animation: slide-in 0.3s ease-out;
   }
+}
+
+/* Marketing landing: brand tokens (overrides semantic colors for Pick’Em palette). */
+.landing-page {
+  --background: 0 0% 100%;
+  --foreground: 213 95% 13%;
+  --primary: 213 95% 13%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 149 100% 49%;
+  --secondary-foreground: 213 95% 13%;
+  --muted: 210 20% 94%;
+  --muted-foreground: 213 30% 40%;
+  --accent: 198 76% 56%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 210 20% 90%;
+  --input: 210 20% 90%;
+  --ring: 149 100% 49%;
+  --radius: 0.5rem;
+  --card: 0 0% 100%;
+  --card-foreground: 213 95% 13%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 213 95% 13%;
+  --pickem-navy: 213 95% 13%;
+  --pickem-green: 149 100% 49%;
+  --pickem-blue: 198 76% 56%;
+  --pickem-navy-light: 213 60% 20%;
+  --pickem-navy-dark: 213 95% 8%;
+  --font-heading: var(--font-industry);
+  --font-body: var(--font-industry);
+  font-family: var(--font-industry), system-ui, sans-serif;
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--background));
+}
+
+.landing-page h1,
+.landing-page h2,
+.landing-page h3,
+.landing-page h4,
+.landing-page h5,
+.landing-page h6 {
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* Hero H1 uses Industry Ultra (overrides generic landing h1 rule above). */
+.landing-page h1.hero-tagline {
+  font-family: var(--font-industry-ultra), var(--font-industry), system-ui,
+    sans-serif;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 .logographics::before {

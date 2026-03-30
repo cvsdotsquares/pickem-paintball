@@ -1,14 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/react";
-import { AuthProvider } from "../contexts/authProvider";
-import { SubscriptionProvider } from "../contexts/SubscriptionContext";
-import { ThemeProvider } from "../contexts/ThemeContext";
-import SubscriptionModalManager from "../components/Subscription/SubscriptionModalManager";
-import NextTopLoader from "nextjs-toploader";
-import { Inter } from "next/font/google";
 import localFont from "next/font/local";
-import ErrorBoundary from "../components/Layout/ErrorBoundary";
+import AppProviders from "@/src/components/Layout/AppProviders";
 import "@twallpaper/react/css";
 
 export const metadata: Metadata = {
@@ -20,13 +13,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  // Default until ThemeContext sets theme-color from user preference (Safari status bar / browser chrome).
   themeColor: "#ffffff",
-  // Do NOT set maximumScale/userScalable — that breaks accessibility.
-  // iOS zoom is prevented by ensuring all inputs are >= 16px font size instead.
 };
 
-const inter = localFont({
+const industryDemi = localFont({
   src: [
     {
       path: "../../public/fonts/Industry-Demi.ttf",
@@ -34,33 +24,23 @@ const inter = localFont({
       style: "normal",
     },
   ],
-  variable: "--font-inter", // Create a CSS variable for the font
+  variable: "--font-industry",
+  display: "swap",
+  fallback: ["system-ui", "-apple-system", "Segoe UI", "sans-serif"],
 });
 
-const hanson = localFont({
+const industryUltra = localFont({
   src: [
     {
-      path: "../../public/fonts/Industry-Demi.ttf",
+      path: "../../public/fonts/Industry-Ultra.ttf",
       weight: "400",
       style: "normal",
     },
   ],
-  variable: "--font-hanson", // Create a CSS variable for the font
+  variable: "--font-industry-ultra",
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
 });
-
-const azonix = localFont({
-  src: [
-    {
-      path: "../../public/fonts/Industry-Demi.ttf",
-      weight: "400",
-      style: "normal",
-    },
-  ],
-  variable: "--font-azonix", // Create a CSS variable for the font
-});
-
-
-
 
 export default function RootLayout({
   children,
@@ -70,36 +50,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${hanson.variable} ${azonix.variable}`}
+      className={`${industryDemi.variable} ${industryUltra.variable}`}
     >
       <body
-        className="min-h-screen bg-[var(--background)] antialiased"
+        className="min-h-screen bg-background antialiased"
         suppressHydrationWarning
       >
-        <ErrorBoundary>
-          <ThemeProvider>
-            <AuthProvider>
-              <SubscriptionProvider>
-                <NextTopLoader
-                  color="#BFD641"
-                  initialPosition={0.3}
-                  crawlSpeed={800}
-                  height={6}
-                  crawl={true}
-                  showSpinner={true}
-                  easing="ease"
-                  speed={400}
-                  zIndex={5000}
-                  showAtBottom={false}
-                />
-
-                {children}
-                <SubscriptionModalManager />
-                <Analytics />
-              </SubscriptionProvider>
-            </AuthProvider>
-          </ThemeProvider>
-        </ErrorBoundary>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );
