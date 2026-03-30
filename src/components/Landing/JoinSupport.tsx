@@ -4,7 +4,7 @@ const JoinSupport = () => {
   return (
     <section
       id="join-support"
-      className="relative bg-pickem-navy-dark py-16 md:py-24"
+      className="relative scroll-mt-20 bg-pickem-navy-dark py-16 md:py-24"
     >
       <div className="container mx-auto px-4 text-center md:px-6">
         <h2 className="font-heading text-3xl font-bold uppercase tracking-wide text-white md:text-5xl">

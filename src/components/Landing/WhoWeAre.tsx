@@ -1,6 +1,9 @@
 const WhoWeAre = () => {
   return (
-    <section id="who-we-are" className="relative bg-pickem-navy py-6 md:py-10">
+    <section
+      id="who-we-are"
+      className="relative scroll-mt-20 bg-pickem-navy py-6 md:py-10"
+    >
       <div className="container mx-auto px-4 md:px-6">
         <div className="mb-10 text-center">
           <h2 className="font-heading text-3xl font-bold uppercase tracking-wide text-white md:text-5xl">
