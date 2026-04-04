@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { auth, db, storage } from "@/src/lib/firebaseClient";
+import { auth, db } from "@/src/lib/firebaseClient";
 import { doc, getDoc } from "firebase/firestore";
-import { getDownloadURL, ref, StorageReference } from "firebase/storage";
 import { useAuth } from "@/src/contexts/authProvider";
 import DashboardTopNav from "@/src/components/Layout/DashboardTopNav";
-import { getFirebaseStorageUrl } from "@/src/lib/storage";
+import {
+  resolveProfilePictureToUrl,
+  subscribeProfileImagesRefresh,
+} from "@/src/lib/resolveProfilePictureUrl";
 
 // Cache for user data to prevent refetching
 const userDataCache = new Map<string, { data: any; timestamp: number }>();
@@ -49,6 +51,14 @@ const PageHeader: React.FC = () => {
     return null;
   });
   const [loading, setLoading] = useState<boolean>(true);
+  const [profileImageRefreshEpoch, setProfileImageRefreshEpoch] = useState(0);
+
+  useEffect(() => {
+    return subscribeProfileImagesRefresh(() => {
+      userDataCache.clear();
+      setProfileImageRefreshEpoch((n) => n + 1);
+    });
+  }, []);
 
   const getDisplayName = useCallback((userData: UserData | null): string => {
     if (!userData) return "Guest";
@@ -106,9 +116,12 @@ const PageHeader: React.FC = () => {
 
         const rawData = userDoc.data();
         let profilePicture = defaultUserData.profilePicture;
-        
-        if (rawData?.profilePicture) {
-          profilePicture = getFirebaseStorageUrl(rawData.profilePicture);
+        const resolved = await resolveProfilePictureToUrl(
+          rawData?.profilePicture ?? null,
+          { userId: currentUserId },
+        );
+        if (resolved) {
+          profilePicture = resolved;
         }
 
         const validatedUserData: UserData = {
@@ -140,7 +153,7 @@ const PageHeader: React.FC = () => {
     }
 
     fetchUserData();
-  }, [user?.uid]); // Only depend on user.uid, not the entire user object
+  }, [user?.uid, profileImageRefreshEpoch]);
 
   // Memoize the computed values to prevent unnecessary re-renders
   const displayName = useMemo(() => getDisplayName(userData), [userData, getDisplayName]);
@@ -148,7 +161,7 @@ const PageHeader: React.FC = () => {
   const userCountry = useMemo(() => userData?.country, [userData?.country]);
 
   return (
-    <div className="relative z-50 w-full">
+    <div className="relative z-[60] w-full">
       <DashboardTopNav
         username={displayName}
         avatarUrl={avatarUrl}

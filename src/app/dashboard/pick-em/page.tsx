@@ -11,13 +11,16 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { AnimatePresence, motion } from "framer-motion";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { IoMdClose } from "react-icons/io";
 import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
 import { PiPlusBold } from "react-icons/pi";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useDashboardNestedScrollHandler } from "@/src/contexts/DashboardMainScrollContext";
+import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanner";
+import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dashboardEventBannerShared";
+import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
 
 export interface Player {
   player_id: string;
@@ -64,15 +67,11 @@ export default function Pickems() {
   const [teams, setTeams] = useState<string[]>([]);
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const [isMobile, setIsMobile] = useState(false);
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
-  }, []);
-  useEffect(() => {
-    setIsTouchDevice("ontouchstart" in window || navigator.maxTouchPoints > 0);
   }, []);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [sortOption, setSortOption] = useState<{ field: string; direction: "asc" | "desc" }>({ field: "name", direction: "asc" });
@@ -181,9 +180,12 @@ export default function Pickems() {
         const live = events.find((e: any) => e.status === "live") as any;
         if (live) {
           const logoUrl = live.event_logo || live.logoUrl || null;
+          const yearFromId = typeof live.id === "string" ? live.id.match(/(\d{4})/)?.[1] : undefined;
+          const year = live.year != null ? String(live.year) : yearFromId || undefined;
           console.log("[PickEm] live event:", live.id, "logo:", logoUrl);
           setLiveEvent({
             id: live.id,
+            year,
             lockDate: live.lockDate?.toDate ? live.lockDate.toDate() : null,
             timeLeft: "",
             name: live.name || "TAMPA BAY OPEN",
@@ -200,24 +202,6 @@ export default function Pickems() {
     };
     fetchLiveEvent();
   }, []);
-
-  useEffect(() => {
-    if (!liveEvent.lockDate) return;
-    const tick = () => {
-      const diff = new Date(liveEvent.lockDate).getTime() - Date.now();
-      if (diff <= 0) { setLiveEvent((p: any) => ({ ...p, _days: 0, _hours: 0, _minutes: 0, _seconds: 0 })); return; }
-      setLiveEvent((p: any) => ({
-        ...p,
-        _days: Math.floor(diff / 86400000),
-        _hours: Math.floor((diff % 86400000) / 3600000),
-        _minutes: Math.floor((diff % 3600000) / 60000),
-        _seconds: Math.floor((diff % 60000) / 1000),
-      }));
-    };
-    const interval = setInterval(tick, 1000);
-    tick();
-    return () => clearInterval(interval);
-  }, [liveEvent.lockDate]);
 
   const [seasonElims, setSeasonElims] = useState<Record<string, number>>({});
   const seasonElimsRef = useRef<Record<string, number>>({});
@@ -342,9 +326,9 @@ export default function Pickems() {
           displayName: resolvedName,
           photoURL: resolvedPhoto,
           eventRank: data[`${liveEvent.id}Rank`] ?? undefined,
-          seasonRank: data[`${liveEvent.id}Rank`] ?? undefined,  // season = event for first event
+          seasonRank: undefined,
           eventElims: data[`${liveEvent.id}PTS`] ?? undefined,
-          seasonElims: data[`${liveEvent.id}PTS`] ?? undefined,  // season = event for first event
+          seasonElims: undefined,
         });
 
         // Use official picks if present, otherwise fall back to saved draft
@@ -387,7 +371,7 @@ export default function Pickems() {
           return sum + (p.player_id === captainIdValue ? kills * 1.5 : kills);
         }, 0);
         if (livePoints > 0) {
-          setUserProfile(prev => ({ ...prev, eventElims: livePoints, seasonElims: livePoints }));
+          setUserProfile((prev) => ({ ...prev, eventElims: livePoints }));
         }
       } catch (e) { console.error(e); }
     };
@@ -520,7 +504,14 @@ export default function Pickems() {
     return () => clearTimeout(timer);
   }, [temporaryPicks, captainId, user, liveEvent?.id]);
 
-  // Live rank/pts: updates the moment the Cloud Function writes flat fields
+  const seasonLeaderboardYear = useMemo(() => {
+    if (!liveEvent?.id) return null;
+    const y = (liveEvent as { year?: string }).year;
+    if (y) return String(y);
+    return typeof liveEvent.id === "string" ? liveEvent.id.match(/(\d{4})/)?.[1] ?? null : null;
+  }, [liveEvent?.id, (liveEvent as { year?: string }).year]);
+
+  // Event rank/pts from flat fields on users/{uid} (written by leaderboard CF)
   useEffect(() => {
     if (!user?.uid || !liveEvent?.id) return;
     const db = getFirestore();
@@ -528,19 +519,38 @@ export default function Pickems() {
       if (!snap.exists()) return;
       const data = snap.data();
       const rank = data[`${liveEvent.id}Rank`] ?? undefined;
-      const pts  = data[`${liveEvent.id}PTS`]  ?? undefined;
-      setUserProfile(prev => ({
+      const pts = data[`${liveEvent.id}PTS`] ?? undefined;
+      setUserProfile((prev) => ({
         ...prev,
         eventRank: rank,
-        seasonRank: rank,
-        ...(pts !== undefined && pts > 0 ? { eventElims: pts, seasonElims: pts } : {}),
+        ...(pts !== undefined && pts > 0 ? { eventElims: pts } : {}),
       }));
     });
     return () => unsub();
   }, [user?.uid, liveEvent?.id]);
 
+  // Season rank & points from leaderboards/season_{year} (not duplicated event fields)
+  useEffect(() => {
+    if (!user?.uid || !seasonLeaderboardYear) return;
+    const db = getFirestore();
+    const unsub = onSnapshot(doc(db, "leaderboards", `season_${seasonLeaderboardYear}`), (snap) => {
+      if (!snap.exists()) return;
+      const usersArr = snap.data()?.users || [];
+      const row = usersArr.find((u: { id: string }) => u.id === user.uid);
+      if (!row) return;
+      setUserProfile((prev) => ({
+        ...prev,
+        seasonRank: row.seasonRank ?? prev.seasonRank,
+        seasonElims:
+          row.seasonTotalPoints !== undefined && row.seasonTotalPoints !== null
+            ? row.seasonTotalPoints
+            : prev.seasonElims,
+      }));
+    });
+    return () => unsub();
+  }, [user?.uid, seasonLeaderboardYear]);
+
   const formatCost = (v: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
-  const pad = (n: number) => String(n ?? 0).padStart(2, "0");
   const budgetPct = Math.min(100, ((TOTAL_BUDGET - remainingBudget) / TOTAL_BUDGET) * 100);
 
   // ── SLOT CARD ────────────────────────────────────────────────────────────────
@@ -560,7 +570,7 @@ export default function Pickems() {
       <div className="absolute bottom-0 inset-x-0 p-1">
         <div className="text-white font-bold text-[8px] truncate">{player.Player}</div>
         <div className="text-white/40 text-[7px] truncate">{player.Team}</div>
-        <div className="text-white/60 text-[8px] font-bold">{formatCost(player.Cost)}</div>
+        <div className="pickem-numeric text-white/60 text-[8px] font-bold">{formatCost(player.Cost)}</div>
       </div>
       {/* CPT button bottom-right — disabled after lock */}
       <button
@@ -597,15 +607,15 @@ export default function Pickems() {
         <div className="text-gray-900 dark:text-white font-bold text-[11px] truncate">{player.Player}</div>
         <div className="text-gray-400 dark:text-white/40 text-[9px] truncate">{player.Team}</div>
       </div>
-      <div className="text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">{formatCostShort(player.Cost)}</div>
+      <div className="pickem-numeric text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">{formatCostShort(player.Cost)}</div>
       <div className="text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">
-        {player.totalElims != null ? player.totalElims : <span className="text-gray-300 dark:text-white/25">—</span>}
+        {player.totalElims != null ? <span className="pickem-numeric">{player.totalElims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
       </div>
       <div className="text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">
-        {player.lonestarElims != null ? player.lonestarElims : <span className="text-gray-300 dark:text-white/25">—</span>}
+        {player.lonestarElims != null ? <span className="pickem-numeric">{player.lonestarElims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
       </div>
       <div className="text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">
-        {player.midwestElims != null ? player.midwestElims : <span className="text-gray-300 dark:text-white/25">—</span>}
+        {player.midwestElims != null ? <span className="pickem-numeric">{player.midwestElims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
       </div>
       <div className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors justify-self-center
         ${isSelected ? "bg-gray-900 dark:bg-white border-gray-900 dark:border-white" : "border-gray-300 dark:border-white/20 bg-transparent"}`}>
@@ -626,15 +636,15 @@ export default function Pickems() {
         <div className="text-gray-900 dark:text-white font-bold text-[11px] truncate">{player.Player}</div>
         <div className="text-gray-400 dark:text-white/40 text-[10px] truncate">{player.Team}</div>
       </div>
-      <div className="text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">{formatCost(player.Cost)}</div>
+      <div className="pickem-numeric text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">{formatCost(player.Cost)}</div>
       <div className="text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">
-        {player.totalElims != null ? player.totalElims : <span className="text-gray-300 dark:text-white/25">—</span>}
+        {player.totalElims != null ? <span className="pickem-numeric">{player.totalElims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
       </div>
       <div className="text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">
-        {player.lonestarElims != null ? player.lonestarElims : <span className="text-gray-300 dark:text-white/25">—</span>}
+        {player.lonestarElims != null ? <span className="pickem-numeric">{player.lonestarElims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
       </div>
       <div className="text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">
-        {player.midwestElims != null ? player.midwestElims : <span className="text-gray-300 dark:text-white/25">—</span>}
+        {player.midwestElims != null ? <span className="pickem-numeric">{player.midwestElims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
       </div>
       <div className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors justify-self-center
         ${isSelected
@@ -652,91 +662,36 @@ export default function Pickems() {
   return (
     <div className="flex flex-col w-full overflow-hidden bg-[#f0f0f0] dark:bg-[#111] h-[calc(100dvh-106px)] md:h-[calc(100dvh-48px)]">
 
-      {/* ── EVENT BANNER ──────────────────────────────────────────────────────── */}
-
-      {/* MOBILE banner */}
-      <div className="md:hidden flex-shrink-0 rounded-b-2xl mx-0" style={{ backgroundColor: liveEvent.brandColor || "#b91c1c" }}>
-        {/* Top strip — countdown */}
-        <div style={{ backgroundColor: "rgba(0,0,0,0.35)", height: "32px", display: "flex", flexDirection: "column", paddingLeft: "12px", paddingRight: "12px", paddingBottom: "6px" }}>
-          <div style={isTouchDevice ? { height: "12px", flexShrink: 0 } : { flex: 1, minHeight: 0 }} />
-          <div style={{ display: "flex", gap: "8px" }}>
-            <span className="text-white text-[11px] font-black uppercase tracking-widest whitespace-nowrap">Team Lock Deadline:</span>
-            <span className="text-white font-black text-[11px] whitespace-nowrap">
-              {pad(liveEvent._days)}d : {pad(liveEvent._hours)}h : {pad(liveEvent._minutes)}m : {pad(liveEvent._seconds)}s
-            </span>
-          </div>
-        </div>
-        {/* Bottom strip — event name + cost cap */}
-        <div className="flex items-center justify-between px-3 py-2">
-          <div>
-            <div className="text-white/70 text-[10px] uppercase tracking-widest font-bold">Event {liveEvent.eventNumber || "1"}</div>
-            <div className="text-white font-black text-lg uppercase leading-tight">NXL {liveEvent.name || "TAMPA BAY OPEN"}</div>
-            <div className="text-white/70 text-[11px] font-bold">{liveEvent.startDate || "MAR 19"} — {liveEvent.endDate || "22"}</div>
-          </div>
-          <div className="text-right flex-shrink-0 ml-4">
-            <div className="text-white/70 text-[10px] uppercase tracking-widest font-bold">Cost Cap</div>
-            <div className="text-white font-black text-sm">{formatCost(remainingBudget)}</div>
-            <div className="w-24 h-1.5 bg-black/30 rounded-full overflow-hidden mt-0.5">
-              <div className={`h-full rounded-full transition-all duration-500 ${budgetPct > 85 ? "bg-red-300" : "bg-[#00f976]"}`} style={{ width: `${100 - budgetPct}%` }} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* DESKTOP banner */}
-      <div className="hidden md:flex flex-shrink-0 bg-black py-3 px-4 items-center justify-center">
-        <div className="flex items-stretch rounded-xl w-full max-w-4xl bg-white" style={{ height: 110, boxShadow: "0 0 0 1px rgba(0,0,0,0.08)" }}>
-
-          {/* Logo panel */}
-          <div style={{ width: 180, borderRadius: "0.75rem 0 0 0.75rem", backgroundColor: liveEvent.brandColor || "#b91c1c", flexShrink: 0, overflow: "hidden", position: "relative" }}>
-            {liveEvent.logoUrl && (
-              <img
-                src={liveEvent.logoUrl}
-                alt="Event Logo"
-                style={{ position: "absolute", inset: 0, width: "90%", height: "90%", top: "5%", left: "5%", objectFit: "contain" }}
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-              />
-            )}
-            {!liveEvent.logoUrl && (
-              <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0.75rem", color: "white", fontWeight: 900, fontSize: "0.875rem", textTransform: "uppercase", textAlign: "center", lineHeight: 1.2 }}>{liveEvent.name || "NXL EVENT"}</span>
-            )}
-          </div>
-
-          {/* Event details */}
-          <div className="flex-1 px-5 flex flex-col justify-center border-l border-gray-100">
-            <div className="text-gray-400 text-[8px] uppercase tracking-widest font-bold">Event #{liveEvent.eventNumber || "1"}</div>
-            <div className="text-gray-900 font-black text-base uppercase leading-tight mt-0.5" style={{ fontWeight: 900, letterSpacing: "-0.02em" }}>NXL<br />{liveEvent.name || "TAMPA BAY OPEN"}</div>
-            <div className="text-gray-500 text-[9px] mt-1 uppercase leading-snug">{liveEvent.venue || "RAYMOND JAMES STADIUM"}<br />{liveEvent.city || "TAMPA , FLORIDA"}</div>
-            <div className="text-gray-700 text-[10px] font-bold mt-0.5">{liveEvent.startDate || "MAR 19"} — {liveEvent.endDate || "22"}</div>
-          </div>
-
-          {/* Countdown + CTA */}
-          <div className="flex-shrink-0 flex flex-col justify-center items-start px-5 border-l border-gray-100 gap-1.5 min-w-[240px]">
-            <div className="text-gray-500 text-[8px] uppercase tracking-widest font-bold">Team Lock Deadline:</div>
-            <div className="flex gap-1 items-end">
-              {[
-                { v: pad(liveEvent._days), l: "DAYS" },
-                { v: pad(liveEvent._hours), l: "HOURS" },
-                { v: pad(liveEvent._minutes), l: "MINS" },
-                { v: pad(liveEvent._seconds), l: "SECS" },
-              ].map(({ v, l }, i) => (
-                <div key={l} className="flex items-end gap-1">
-                  <div className="flex flex-col items-center">
-                    <div className="bg-gray-900 text-white font-black text-base w-9 h-9 flex items-center justify-center rounded font-mono">{v}</div>
-                    <span className="text-gray-400 text-[6px] uppercase tracking-widest mt-0.5">{l}</span>
-                  </div>
-                  {i < 3 && <span className="text-gray-300 font-black text-base mb-4 leading-none">:</span>}
-                </div>
-              ))}
-            </div>
-            <button onClick={confirmPicks} className="text-white text-[8px] font-black uppercase tracking-widest py-1.5 px-4 rounded transition-colors w-full text-center"
-              style={{ backgroundColor: liveEvent.brandColor || "#dc2626" }}>
-              Pick Your Team →
+      {/* ── EVENT BANNER (shared component) ───────────────────────────────────── */}
+      {liveEvent?.id ? (
+        <EventCountdownBanner
+          variant="dashboard"
+          mobileBlackBarFullBleed
+          event={eventRecordToBannerModel({
+            id: liveEvent.id,
+            name: liveEvent.name || "TAMPA BAY OPEN",
+            brand_color: liveEvent.brandColor ?? "#b91c1c",
+            event_logo: liveEvent.logoUrl ?? null,
+            eventNumber: liveEvent.eventNumber || "1",
+            startDate: liveEvent.startDate || "MAR 19",
+            endDate: liveEvent.endDate || "22",
+            lockDate: liveEvent.lockDate ?? null,
+            venue: liveEvent.venue,
+            city: liveEvent.city,
+          } as Record<string, unknown> & { id: string })}
+          showBudget={false}
+          desktopCta={
+            <button
+              type="button"
+              onClick={confirmPicks}
+              className={DASHBOARD_BANNER_PICK_CTA_CLASS}
+              style={{ backgroundColor: liveEvent.brandColor || "#b91c1c" }}
+            >
+              Pick your team &gt;
             </button>
-          </div>
-
-        </div>
-      </div>
+          }
+        />
+      ) : null}
 
       {/* ── MAIN SPLIT ────────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
@@ -776,7 +731,7 @@ export default function Pickems() {
                         ].map(({ label, val }) => (
                           <div key={label}>
                             <div className="text-white/30 text-[8px] uppercase tracking-widest font-bold leading-none whitespace-nowrap">{label}</div>
-                            <div className="text-white font-black text-lg leading-tight">{val}</div>
+                            <div className="pickem-numeric text-white font-black text-lg leading-tight">{val}</div>
                           </div>
                         ))}
                       </div>
@@ -784,8 +739,8 @@ export default function Pickems() {
                   </div>
                   <div className="hidden md:block">
                     <div className="flex items-baseline justify-between mb-0.5">
-                      <div className="text-white/40 text-[8px] uppercase tracking-widest font-bold">Cost Cap</div>
-                      <div className="text-white font-black text-sm leading-none">{formatCost(remainingBudget)}</div>
+                      <div className="text-white/40 text-[8px] uppercase tracking-widest font-bold">Budget left</div>
+                      <div className="pickem-numeric text-white font-black text-sm leading-none">{formatCost(remainingBudget)}</div>
                     </div>
                     <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full transition-all duration-500 ${budgetPct > 85 ? "bg-red-500" : "bg-[#00f976]"}`} style={{ width: `${100 - budgetPct}%` }} />
@@ -830,12 +785,16 @@ export default function Pickems() {
             const isReady = temporaryPicks.length >= 10 && !!captainId;
             const needsCaptain = temporaryPicks.length >= 10 && !captainId;
             const isLocked = !isBeforeLockDate(liveEvent.lockDate);
-            const confirmLabel = isLocked ? "Picks Locked"
+            const confirmLabel: ReactNode = isLocked ? "Picks Locked"
               : saveStatus === "saving" ? "Saving..."
               : saveStatus === "saved" ? "✓ Picks Confirmed!"
               : isReady ? "Confirm My Picks"
               : needsCaptain ? "Set a Captain to Confirm"
-              : `Pick ${picksLeft} more to confirm`;
+              : (
+                <>
+                  Pick <span className="pickem-numeric">{picksLeft}</span> more to confirm
+                </>
+              );
             return (
               <div className="flex-shrink-0 flex gap-2 px-3 pb-2 pt-1">
                 {/* Confirm — 75% */}
@@ -875,7 +834,7 @@ export default function Pickems() {
               <button
                 onClick={() => setIsFilterOpen((v) => !v)}
                 className={`px-4 py-2 border rounded-full text-xs font-bold transition-colors ${isFilterOpen ? "border-gray-800 dark:border-white/60 text-gray-900 dark:text-white bg-gray-100 dark:bg-white/10" : "border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/50 hover:border-gray-400"}`}>
-                Filter {(selectedTeams.length > 0) && <span className="ml-1 bg-black dark:bg-white text-white dark:text-black rounded-full px-1.5 py-0.5 text-[8px]">{selectedTeams.length}</span>}
+                Filter {(selectedTeams.length > 0) && <span className="ml-1 bg-black dark:bg-white text-white dark:text-black rounded-full px-1.5 py-0.5 text-[8px]"><span className="pickem-numeric">{selectedTeams.length}</span></span>}
               </button>
             </div>
 
@@ -954,10 +913,17 @@ export default function Pickems() {
                   <span className="text-xs font-black uppercase tracking-widest text-gray-900 dark:text-white">Select Players</span>
                   <div className="flex gap-3 mt-1">
                     <span className={`text-[10px] font-bold ${10 - temporaryPicks.length === 0 ? "text-[#00f976]" : "text-gray-400 dark:text-white/40"}`}>
-                      {10 - temporaryPicks.length === 0 ? "✓ Team full" : `${10 - temporaryPicks.length} pick${10 - temporaryPicks.length !== 1 ? "s" : ""} remaining`}
+                      {10 - temporaryPicks.length === 0
+                        ? "✓ Team full"
+                        : (
+                          <>
+                            <span className="pickem-numeric">{10 - temporaryPicks.length}</span>
+                            {` pick${10 - temporaryPicks.length !== 1 ? "s" : ""} remaining`}
+                          </>
+                        )}
                     </span>
                     <span className={`text-[10px] font-bold ${remainingBudget < 0 ? "text-red-500" : "text-gray-400 dark:text-white/40"}`}>
-                      {formatCost(remainingBudget)} left
+                      <span className="pickem-numeric">{formatCost(remainingBudget)}</span> left
                     </span>
                   </div>
                 </div>
@@ -973,7 +939,7 @@ export default function Pickems() {
                       ${isFilterOpen ? "bg-gray-900 dark:bg-white text-white dark:text-black border-transparent" : "border-gray-200 dark:border-white/15 text-gray-600 dark:text-white/60"}`}>
                     Filter
                     {selectedTeams.length > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-gray-900 dark:bg-white text-white dark:text-black text-[8px] font-black rounded-full w-4 h-4 flex items-center justify-center">{selectedTeams.length}</span>
+                      <span className="absolute -top-1 -right-1 bg-gray-900 dark:bg-white text-white dark:text-black text-[8px] font-black rounded-full w-4 h-4 flex items-center justify-center"><span className="pickem-numeric">{selectedTeams.length}</span></span>
                     )}
                   </button>
                 </div>

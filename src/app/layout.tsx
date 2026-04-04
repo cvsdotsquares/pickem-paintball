@@ -42,6 +42,20 @@ const industryUltra = localFont({
   fallback: ["system-ui", "sans-serif"],
 });
 
+/** Standalone numerals (countdown, currency, stats) — not mixed into body copy. */
+const hitmarkerCondensed = localFont({
+  src: [
+    {
+      path: "../../public/fonts/HitmarkerCondensed-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-hitmarker-condensed",
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
+});
+
 export default function RootLayout({
   children,
 }: {
@@ -50,7 +64,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${industryDemi.variable} ${industryUltra.variable}`}
+      className={`${industryDemi.variable} ${industryUltra.variable} ${hitmarkerCondensed.variable}`}
     >
       <body
         className="min-h-screen bg-background antialiased"

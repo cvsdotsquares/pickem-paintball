@@ -1,5 +1,5 @@
 /**
- * FAQ body from Firestore uses inline Tailwind (e.g. h3 text-orange-300, p text-base on bg-slate-900).
+ * FAQ body from Firestore uses inline Tailwind (e.g. h3 accent classes, p text-base on bg-slate-900).
  * We insert the kill-types block with the same classes so it slots in visually.
  */
 
@@ -7,16 +7,16 @@ const KILL_TYPES_SENTINEL = "What are the different types of kills";
 
 /** Appended after the “missing stats” answer; matches your cmsPages `faq` HTML patterns. */
 const FAQ_KILL_TYPES_HTML = `
-<h3 class="mt-4 font-bold text-orange-300">Q: What are the different types of kills?</h3>
+<h3 class="mt-4 font-bold text-black dark:text-white">Q: What are the different types of kills?</h3>
 <p class="text-base">The breakdown below explains how kills are classified.</p>
-<div class="mt-3 ml-4 border-l-2 border-orange-500/35 pl-4 sm:ml-6 sm:pl-5">
-<h3 class="mt-4 font-bold text-orange-300 first:mt-0">CONFIRMED KILL</h3>
+<div class="mt-3 ml-4 border-l-2 border-black/20 pl-4 dark:border-white/25 sm:ml-6 sm:pl-5">
+<h3 class="mt-4 font-bold text-black first:mt-0 dark:text-white">CONFIRMED KILL</h3>
 <p class="text-base">Any kill that can confidently be attributed to a specific player or players.</p>
-<h3 class="mt-4 font-bold text-orange-300">BREAKSHOOTING KILL</h3>
+<h3 class="mt-4 font-bold text-black dark:text-white">BREAKSHOOTING KILL</h3>
 <p class="text-base">Any kill a player gets off the break.</p>
-<h3 class="mt-4 font-bold text-orange-300">GUNFIGHT KILL</h3>
+<h3 class="mt-4 font-bold text-black dark:text-white">GUNFIGHT KILL</h3>
 <p class="text-base">Any kill where two stationary players are shooting at each other and they don&apos;t trade.</p>
-<h3 class="mt-4 font-bold text-orange-300">MOVEMENT KILL</h3>
+<h3 class="mt-4 font-bold text-black dark:text-white">MOVEMENT KILL</h3>
 <p class="text-base">Any kill that is the result of a move.</p>
 <p class="text-base">Examples include:</p>
 <ul class="mt-2 list-disc space-y-1 pl-5 text-base">
@@ -24,17 +24,17 @@ const FAQ_KILL_TYPES_HTML = `
 <li>A player shoots another player while running and gunning (not on the break).</li>
 <li>A player bunkers another player and survives.</li>
 </ul>
-<h3 class="mt-4 font-bold text-orange-300">TRADES</h3>
+<h3 class="mt-4 font-bold text-black dark:text-white">TRADES</h3>
 <p class="text-base">Where a player sacrifices their own body to shoot another player.</p>
 <ul class="mt-2 list-disc space-y-1 pl-5 text-base">
 <li>A mutual trade where each player shoots each other.</li>
 <li>A player makes a play to shoot another player, getting shot by a third player.</li>
 </ul>
-<h3 class="mt-4 font-bold text-orange-300">ZONE COVERAGE KILLS</h3>
+<h3 class="mt-4 font-bold text-black dark:text-white">ZONE COVERAGE KILLS</h3>
 <p class="text-base">A kill where an individual shoots a moving player (not as a result of a recent move).</p>
-<h3 class="mt-4 font-bold text-orange-300">PRESSURE KILLS</h3>
+<h3 class="mt-4 font-bold text-black dark:text-white">PRESSURE KILLS</h3>
 <p class="text-base">A kill where a player, or players, shoot another player out of their spot that is not the result of a gunfight or movement. Examples include pinches, bounce shots etc.</p>
-<h3 class="mt-4 font-bold text-orange-300">SHARED KILLS</h3>
+<h3 class="mt-4 font-bold text-black dark:text-white">SHARED KILLS</h3>
 <p class="text-base">Kills can be shared if 2 or more players are shooting at an opponent simultaneously; in this instance, each player will be awarded a half kill (analogous to half sacks in American Football).</p>
 <p class="text-base">Shared kills typically occur:</p>
 <ul class="mt-2 list-disc space-y-1 pl-5 text-base">
@@ -71,4 +71,38 @@ export function transformFaqPageBody(html: string): string {
 
   const insertAt = closeIdx + "</p>".length;
   return withGrammar.slice(0, insertAt) + FAQ_KILL_TYPES_HTML + withGrammar.slice(insertAt);
+}
+
+/**
+ * Dashboard FAQ: CMS HTML targets dark slate + white body copy. Remap to light page (black text, no navy panels).
+ */
+function transformFaqHtmlForDashboardLight(html: string): string {
+  if (!html) return html;
+  let s = html;
+  s = s.replace(/\bbg-slate-950\b/g, "bg-white dark:bg-stone-950");
+  s = s.replace(/\bbg-slate-900\b/g, "bg-white dark:bg-stone-900");
+  s = s.replace(/\bbg-slate-800\b/g, "bg-white dark:bg-stone-900");
+  s = s.replace(/\btext-white\/90\b/g, "text-gray-800 dark:text-stone-200");
+  s = s.replace(/\btext-white\/80\b/g, "text-gray-700 dark:text-stone-300");
+  s = s.replace(/\btext-white\/70\b/g, "text-gray-600 dark:text-stone-400");
+  s = s.replace(/\btext-white\/60\b/g, "text-gray-600 dark:text-stone-400");
+  s = s.replace(/\btext-white\b/g, "text-gray-900 dark:text-stone-100");
+  /** Accent headings / Q lines: neutral black (white in dark mode) — avoids brand token / safelist issues. */
+  const faqAccent = "text-black dark:text-white";
+  const faqBorder = "border-black/20 dark:border-white/25";
+  s = s.replace(/\btext-orange-600 dark:text-orange-400\b/g, faqAccent);
+  s = s.replace(/\btext-orange-300\b/g, faqAccent);
+  s = s.replace(/\btext-orange-600\b/g, faqAccent);
+  s = s.replace(/\btext-orange-400\b/g, faqAccent);
+  s = s.replace(/\bborder-orange-500\/35\b/g, faqBorder);
+  s = s.replace(/\btext-pickem-navy\b/g, faqAccent);
+  s = s.replace(/\bborder-pickem-navy\/35\b/g, faqBorder);
+  s = s.replace(/\btext-pickem-green\b/g, faqAccent);
+  s = s.replace(/\bborder-pickem-green\/35\b/g, faqBorder);
+  return s;
+}
+
+/** FAQ body for `/dashboard/faq`: grammar + kill-types + light-theme class remap. */
+export function transformFaqPageBodyForDashboard(html: string): string {
+  return transformFaqHtmlForDashboardLight(transformFaqPageBody(html));
 }

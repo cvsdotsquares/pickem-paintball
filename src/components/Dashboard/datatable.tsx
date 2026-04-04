@@ -1,13 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  FaUser,
-  FaSearch,
-  FaFilter,
-  FaList,
-  FaMoon,
-  FaSun,
-  FaTimes,
-} from "react-icons/fa";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { FaUser, FaSearch } from "react-icons/fa";
 import {
   FaAngleLeft,
   FaAngleRight,
@@ -19,7 +11,13 @@ import {
 import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
 import { useScroll, useTransform, motion } from "framer-motion";
 import { useTheme } from "../../contexts/ThemeContext";
-import { getFirebaseStorageUrl } from "../../lib/storage";
+import {
+  resolveProfilePictureToUrl,
+  subscribeProfileImagesRefresh,
+} from "@/src/lib/resolveProfilePictureUrl";
+import { cn } from "@/src/lib/utils";
+import { useDashboardMainScrollTop } from "@/src/contexts/DashboardMainScrollContext";
+import { MOBILE_DASHBOARD_HEADER_BODY_PX } from "@/src/components/Layout/dashboardMobileHeader";
 
 type ThemeClasses = {
   bg: string;
@@ -49,12 +47,6 @@ type TableRow = {
   [key: string]: any;
   stats: number[];
 };
-
-const headerButtons = [
-  { icon: <FaSearch /> },
-  { icon: <FaFilter /> },
-  { icon: <FaList /> },
-];
 
 /** Columns rendered as fixed # / Player cells; remainder follow `headers` order */
 const FIXED_IDENTITY_DISPLAY_KEYS = new Set([
@@ -234,25 +226,151 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   const { theme, toggleTheme } = useTheme();
   const darkMode = theme === 'dark';
   const themeClasses = darkMode ? darkThemeClasses : lightThemeClasses;
+  /**
+   * Labels/spans in the filter row — size comes from `.pickem-matchup-filter-bar` (Preflight uses
+   * `font-size: 100%` on select/button, so they inherit the wrapper’s 10px / 12px md like `<th>`).
+   */
+  const filterBarChromeClass =
+    "font-medium font-azonix uppercase tracking-wider leading-none";
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedTeam, setSelectedTeam] = useState<string>("All");
   const [showOnlyMyPicks, setShowOnlyMyPicks] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [currentPageInput, setCurrentPageInput] = useState(
-    currentPage.toString(),
-  );
-  const [rowsPerPage, setRowsPerPage] = useState(20);
+  /** `0` = show all rows (no paging slice) */
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [totalPages, setTotalPages] = useState(1);
   const [paginatedData, setPaginatedData] = useState<Player[]>([]);
   const [VisibleData, setVisibleData] = useState<Player[]>([]);
-  const tableRef = useRef(null);
+  const tableRef = useRef<HTMLDivElement | null>(null);
+  const tableBlockRef = useRef<HTMLDivElement | null>(null);
+  const mainColumnScrollTop = useDashboardMainScrollTop();
+  const [theadStickyTopPx, setTheadStickyTopPx] = useState(0);
   const { scrollYProgress } = useScroll({ container: tableRef });
 
   // Map scroll progress to opacity values
   const opacity = useTransform(scrollYProgress, [0.5, 1], [1, 0]);
-  useEffect(() => {
-    setCurrentPageInput(currentPage.toString());
+
+  const skipPageScrollIntoViewRef = useRef(true);
+
+  /** After changing page (top or bottom arrows), reset table scroll and bring table into view */
+  useLayoutEffect(() => {
+    const viewport = tableRef.current;
+    if (viewport) {
+      viewport.scrollTop = 0;
+    }
+    if (skipPageScrollIntoViewRef.current) {
+      skipPageScrollIntoViewRef.current = false;
+      return;
+    }
+    tableBlockRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   }, [currentPage]);
+
+  /**
+   * Fixed/sticky dashboard header + inner table scroll: sticky `th` use `top` relative to the table
+   * viewport. When the main column scrolls, the table can move under the header; offset =
+   * max(0, headerBottomPx − tableViewportTop) keeps the header row below the nav on all breakpoints.
+   */
+  useLayoutEffect(() => {
+    const el = tableRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const raw = getComputedStyle(document.documentElement)
+        .getPropertyValue("--pickem-dashboard-header-bottom")
+        .trim();
+      let headerBottom = parseFloat(raw);
+      if (!Number.isFinite(headerBottom)) {
+        headerBottom = MOBILE_DASHBOARD_HEADER_BODY_PX;
+      }
+      const tableTop = el.getBoundingClientRect().top;
+      setTheadStickyTopPx(Math.max(0, Math.round(headerBottom - tableTop)));
+    };
+
+    update();
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    vv?.addEventListener("resize", update);
+    vv?.addEventListener("scroll", update);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+      vv?.removeEventListener("resize", update);
+      vv?.removeEventListener("scroll", update);
+    };
+  }, [mainColumnScrollTop]);
+
+  /** When table viewport is scrolled to top/bottom, pass wheel delta to the page scroll parent (scroll chaining). */
+  useEffect(() => {
+    const el = tableRef.current;
+    if (!el) return;
+
+    const findVerticalScrollParent = (start: HTMLElement | null): HTMLElement | null => {
+      let node: HTMLElement | null = start?.parentElement ?? null;
+      while (node) {
+        const { overflowY } = getComputedStyle(node);
+        if (
+          (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay") &&
+          node.scrollHeight > node.clientHeight + 2
+        ) {
+          return node;
+        }
+        node = node.parentElement;
+      }
+      return null;
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
+      const { scrollTop, scrollHeight, clientHeight } = el;
+      const atTop = scrollTop <= 0;
+      const atBottom = scrollTop + clientHeight >= scrollHeight - 2;
+      if ((atTop && e.deltaY < 0) || (atBottom && e.deltaY > 0)) {
+        const parent = findVerticalScrollParent(el);
+        if (parent) {
+          parent.scrollTop += e.deltaY;
+          e.preventDefault();
+        }
+      }
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+
+    let lastTouchY = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) lastTouchY = e.touches[0].clientY;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const y = e.touches[0].clientY;
+      const dy = lastTouchY - y;
+      lastTouchY = y;
+      const { scrollTop, scrollHeight, clientHeight } = el;
+      const atTop = scrollTop <= 0;
+      const atBottom = scrollTop + clientHeight >= scrollHeight - 2;
+      if ((atTop && dy < 0) || (atBottom && dy > 0)) {
+        const parent = findVerticalScrollParent(el);
+        if (parent) {
+          parent.scrollTop += dy;
+          e.preventDefault();
+        }
+      }
+    };
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+    };
+  }, []);
 
   // Reset "My Picks" toggle when switching events
   useEffect(() => {
@@ -353,8 +471,12 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   // Add this useEffect to ensure pagination updates after filtering
   useEffect(() => {
     if (!isDataLoading) {
-      const startIndex = (currentPage - 1) * rowsPerPage;
-      const endIndex = startIndex + rowsPerPage;
+      const startIndex =
+        rowsPerPage === 0 ? 0 : (currentPage - 1) * rowsPerPage;
+      const endIndex =
+        rowsPerPage === 0
+          ? filteredData.length
+          : startIndex + rowsPerPage;
       const newPaginatedData = filteredData.slice(startIndex, endIndex);
       setPaginatedData(newPaginatedData);
       fetchPlayersWithPictures(newPaginatedData);
@@ -440,12 +562,19 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   };
 
   const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setRowsPerPage(Number(e.target.value));
-    setCurrentPage(1); // Reset to first page when changing rows per page
+    const raw = e.target.value;
+    setRowsPerPage(raw === "all" ? 0 : Number(raw));
+    setCurrentPage(1);
   };
 
   useEffect(() => {
-    setTotalPages(Math.ceil(filteredData.length / rowsPerPage));
+    if (rowsPerPage === 0) {
+      setTotalPages(1);
+    } else {
+      setTotalPages(
+        Math.max(1, Math.ceil(filteredData.length / rowsPerPage)),
+      );
+    }
   }, [filteredData, rowsPerPage]);
   const fetchPlayerPicture = async (leagueId: string): Promise<string> => {
     const storage = getStorage();
@@ -529,17 +658,25 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     }
   };
   const fetchPlayersWithPictures = async (players: Player[]) => {
-    // Set initial state with placeholders or img_url if available
-    const playersWithPlaceholders = players.map((player) => ({
-      ...player,
-      picture:
-        player.img_url && player.img_url.trim() !== ""
-          ? player.img_url
-          : player.profilePicture
-            ? getFirebaseStorageUrl(player.profilePicture)
-            : "/placeholder.svg",
-      pictureLoading: false, // Don't show loading for direct URLs
-    }));
+    const playersWithPlaceholders = await Promise.all(
+      players.map(async (player) => {
+        let picture = "/placeholder.svg";
+        if (player.img_url && player.img_url.trim() !== "") {
+          picture = player.img_url;
+        } else if (player.profilePicture) {
+          const uid = typeof player.id === "string" ? player.id : undefined;
+          picture =
+            (await resolveProfilePictureToUrl(player.profilePicture, {
+              userId: uid,
+            })) ?? "/placeholder.svg";
+        }
+        return {
+          ...player,
+          picture,
+          pictureLoading: false,
+        };
+      }),
+    );
     setVisibleData(playersWithPlaceholders);
 
     // Only load images from Firebase Storage for players without img_url or profilePicture
@@ -553,6 +690,23 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
 
     return playersWithPlaceholders;
   };
+
+  const refreshTablePicturesRef = useRef({
+    fetch: fetchPlayersWithPictures,
+    page: [] as Player[],
+  });
+  refreshTablePicturesRef.current = {
+    fetch: fetchPlayersWithPictures,
+    page: paginatedData,
+  };
+
+  useEffect(() => {
+    return subscribeProfileImagesRefresh(() => {
+      const { fetch, page } = refreshTablePicturesRef.current;
+      void fetch(page);
+    });
+  }, []);
+
   const getSortIcon = (key: string) => {
     if (!sortConfig || sortConfig.key !== key) {
       return <FaSort className="ml-1" />;
@@ -711,372 +865,248 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     [headers],
   );
 
-  function MobileFilterUI({
-    teams,
-    selectedTeam,
-    onTeamChange,
-    darkMode,
-    toggleDarkMode,
-    showOnlyMyPicks,
-    toggleMyPicks,
-    myPicksAvailable,
-    isSeasonView,
-  }: {
-    teams: string[];
-    selectedTeam: string;
-    onTeamChange: (team: string) => void;
-    darkMode: boolean;
-    toggleDarkMode: () => void;
-    showOnlyMyPicks: boolean;
-    toggleMyPicks: () => void;
-    myPicksAvailable: boolean;
-    isSeasonView: boolean;
-  }) {
-    const [isOpen, setIsOpen] = useState(false);
-
-    return (
-      <div className="md:hidden relative">
-        {/* Mobile Filter Button */}
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex h-9 min-h-9 items-center justify-center gap-1.5 rounded-md bg-gray-700 px-3 text-base text-white"
-        >
-          <FaFilter className="h-3.5 w-3.5 shrink-0" />
-          Filters
-        </button>
-
-        {/* Mobile Filter Dropdown */}
-        {isOpen && (
-          <div className="absolute right-0 mt-2 w-64 bg-gray-800 rounded-lg shadow-lg z-50 p-2">
-            {/* Close Button */}
-            <div className="flex justify-end mb-2">
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-gray-400 hover:text-white"
-              >
-                <FaTimes />
-              </button>
-            </div>
-
-            {/* Team Filter */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-white mb-1">
-                Team
-              </label>
-              <div className="relative">
-                <select
-                  value={selectedTeam}
-                  onChange={(e) => {
-                    onTeamChange(e.target.value);
-                    setIsOpen(false);
-                  }}
-                  className="box-border h-11 min-h-11 w-full rounded-md border border-gray-600 bg-gray-700 px-2 py-0 text-base text-white truncate focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="All">All Teams</option>
-                  {teams.map((team) => (
-                    <option
-                      key={team}
-                      value={team}
-                      className="truncate"
-                      title={team}
-                    >
-                      {team.length > 20 ? `${team.substring(0, 17)}...` : team}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* My Picks Toggle */}
-            {!isSeasonView && (
-              <div className="flex items-center justify-between mb-4">
-                <label className="flex items-center text-sm font-medium text-white">
-                  <FaUserCheck className="mr-2" />
-                  My Picks Only
-                </label>
-                <button
-                  onClick={toggleMyPicks}
-                  disabled={!myPicksAvailable}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${showOnlyMyPicks ? "bg-blue-600" : "bg-gray-600"
-                    } ${!myPicksAvailable ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showOnlyMyPicks ? "translate-x-6" : "translate-x-1"
-                      }`}
-                  />
-                </button>
-              </div>
-            )}
-
-            {/* Dark Mode Toggle */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center text-sm font-medium text-white">
-                {darkMode ? (
-                  <FaSun className="mr-2" />
-                ) : (
-                  <FaMoon className="mr-2" />
-                )}
-                {darkMode ? "Light Mode" : "Dark Mode"}
-              </label>
-              <button
-                onClick={toggleDarkMode}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${darkMode ? "bg-gray-600" : "bg-gray-400"
-                  }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${darkMode ? "translate-x-1" : "translate-x-6"
-                    }`}
-                />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return (
+  const renderPageArrows = (align: "end" | "center" = "end") => (
     <div
-      className={`sticky top-0 md:pt-5 h-[80vh] md:h-[100vh] overflow-visible w-full items-center justify-center mx-auto pb-20 md:pb-0`}
+      className={`flex min-w-0 shrink items-center gap-1 max-md:gap-0.5 ${align === "center" ? "justify-center" : "justify-end"} ${darkMode ? "text-[rgba(255,255,255,0.66)]" : "text-gray-700"}`}
+      role="navigation"
+      aria-label="Table pages"
     >
-      {/* Compact Filters — h-9 + text-base on inputs/selects avoids iOS zoom & keeps row aligned */}
-      <div
-        className={`flex flex-row items-center justify-between gap-2 p-2 ${themeClasses.bg} rounded-lg mb-2 shadow-sm ${themeClasses.border} border`}
+      <button
+        type="button"
+        disabled={currentPage === 1}
+        onClick={() => goToPage(currentPage - 1)}
+        className={`
+        box-border flex h-8 w-8 shrink-0 items-center justify-center rounded md:h-9 md:w-9
+        ${darkMode
+            ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
+            : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
+          }
+        disabled:opacity-50 disabled:cursor-not-allowed
+        focus:outline-none focus:ring-1
+        transition-colors duration-200
+      `}
       >
-        <div className="flex w-full flex-col gap-2 md:flex-row md:flex-nowrap md:items-center md:justify-between md:gap-3 lg:gap-4">
-          {/* Row 1: search + Filters (mobile); md+: same row as team, picks, then rows+paging on the right */}
-          <div className="flex w-full min-w-0 flex-row flex-wrap items-center gap-2 md:flex-1 md:flex-nowrap md:justify-start md:gap-3">
-            {/* Theme Toggle - Hidden as requested */}
-            {/* Search + mobile Filters */}
-            <div className="flex min-w-0 w-full flex-row items-center gap-2 md:min-w-0 md:max-w-none md:flex-1">
-              <div className="relative min-w-0 flex-1 md:min-w-[160px] md:max-w-[220px] md:flex-initial">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
-                  <FaSearch
-                    className={darkMode ? "text-gray-400" : "text-gray-500"}
-                    size={14}
-                  />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className={`box-border h-9 min-h-9 w-full rounded-md border py-0 pl-9 pr-2.5 text-base leading-none ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="shrink-0">
-                <MobileFilterUI
-                  teams={teams}
-                  selectedTeam={selectedTeam}
-                  onTeamChange={setSelectedTeam}
-                  darkMode={darkMode}
-                  toggleDarkMode={toggleTheme}
-                  showOnlyMyPicks={showOnlyMyPicks}
-                  toggleMyPicks={() => setShowOnlyMyPicks(!showOnlyMyPicks)}
-                  myPicksAvailable={!!myPicks && myPicks.size > 0}
-                  isSeasonView={isSeasonView}
-                />
-              </div>
-            </div>
-            {/* Team Filter */}
-            <div className="hidden shrink-0 md:flex items-center gap-2">
-              <span
-                className={`shrink-0 text-base leading-none ${themeClasses.text}`}
-              >
-                Team:
-              </span>
-              <div className="relative min-w-[4.5rem] max-w-[9rem]">
-                <select
-                  className={`box-border h-9 min-h-9 w-full cursor-pointer truncate rounded-md border px-2 py-0 text-base leading-none shadow-sm ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                  value={selectedTeam}
-                  onChange={(e) => setSelectedTeam(e.target.value)}
-                >
-                  {teams.map((team) => (
-                    <option
-                      key={team}
-                      value={team}
-                      className={`${themeClasses.bg} ${themeClasses.text} truncate`}
-                      title={team}
-                    >
-                      {team.length > 12 ? `${team.substring(0, 10)}...` : team}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="hidden shrink-0 md:flex items-center">
-              {!isSeasonView && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('My Picks clicked, current state:', showOnlyMyPicks);
-                    setShowOnlyMyPicks(!showOnlyMyPicks);
-                  }}
-                  disabled={!myPicks || myPicks.size === 0}
-                  className={`
-    box-border flex h-9 min-h-9 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md border px-3 text-base leading-none transition-all duration-200
+        <FaAngleLeft
+          className={`${darkMode ? "text-current" : "text-gray-700"} h-3.5 w-3.5`}
+        />
+      </button>
+      <button
+        type="button"
+        disabled={currentPage === totalPages}
+        onClick={() => goToPage(currentPage + 1)}
+        className={`
+        box-border flex h-8 w-8 shrink-0 items-center justify-center rounded md:h-9 md:w-9
+        ${darkMode
+            ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
+            : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
+          }
+        disabled:opacity-50 disabled:cursor-not-allowed
+        focus:outline-none focus:ring-1
+        transition-colors duration-200
+      `}
+      >
+        <FaAngleRight
+          className={`${darkMode ? "text-current" : "text-gray-700"} h-3.5 w-3.5`}
+        />
+      </button>
+    </div>
+  );
+
+  const renderTeamSelect = () => (
+    <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
+      <span className={`shrink-0 ${filterBarChromeClass} ${themeClasses.text}`}>
+        Team:
+      </span>
+      <div className="relative w-max max-w-[5rem] shrink-0">
+        <select
+          title={selectedTeam}
+          className={`pickem-stats-filter box-border h-9 min-h-9 w-full max-w-[5rem] cursor-pointer truncate rounded-md border px-1.5 py-0 shadow-sm font-azonix font-medium uppercase tracking-wider leading-none ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} focus:outline-none focus:ring-1 focus:ring-blue-500`}
+          value={selectedTeam}
+          onChange={(e) => setSelectedTeam(e.target.value)}
+        >
+          {teams.map((team) => (
+            <option
+              key={team}
+              value={team}
+              className={`${themeClasses.bg} ${themeClasses.text} truncate`}
+              title={team}
+            >
+              {team.length > 12 ? `${team.substring(0, 10)}...` : team}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+
+  const renderRowsSelect = () => (
+    <div className="flex shrink-0 items-center gap-2">
+      <span className={`shrink-0 ${filterBarChromeClass} ${themeClasses.text}`}>
+        Rows:
+      </span>
+      <select
+        value={rowsPerPage === 0 ? "all" : String(rowsPerPage)}
+        onChange={handleRowsPerPageChange}
+        title={
+          rowsPerPage === 0
+            ? "All players"
+            : `${rowsPerPage} rows per page`
+        }
+        className={`pickem-stats-filter box-border h-9 min-h-9 w-max max-w-[5rem] min-w-[2.25rem] cursor-pointer rounded-md border px-1.5 py-0 font-azonix font-medium uppercase tracking-wider leading-none ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} focus:outline-none focus:ring-1 focus:ring-blue-500`}
+      >
+        {[50, 100, 200].map((size) => (
+          <option
+            key={size}
+            value={size}
+            className={`${themeClasses.bg} ${themeClasses.text}`}
+          >
+            {size}
+          </option>
+        ))}
+        <option
+          value="all"
+          className={`${themeClasses.bg} ${themeClasses.text}`}
+        >
+          All players
+        </option>
+      </select>
+    </div>
+  );
+
+  const renderMyPicksButton = () =>
+    !isSeasonView ? (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setShowOnlyMyPicks(!showOnlyMyPicks);
+        }}
+        disabled={!myPicks || myPicks.size === 0}
+        className={`
+    pickem-stats-filter box-border flex h-9 min-h-9 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 font-azonix font-medium uppercase tracking-wider leading-none transition-all duration-200 md:px-3
     ${showOnlyMyPicks
-                      ? "bg-blue-600 text-white border-blue-600 shadow-md" // Active state with shadow
-                      : darkMode
-                        ? "bg-gray-700 text-gray-100 hover:bg-gray-600 border-gray-600"
-                        : "bg-gray-200 text-gray-900 hover:bg-gray-300 border-gray-400" // Better contrast for light mode
-                    }
+          ? "bg-blue-600 text-white border-blue-600 shadow-md"
+          : darkMode
+            ? "bg-gray-700 text-gray-100 hover:bg-gray-600 border-gray-600"
+            : "bg-gray-200 text-gray-900 hover:bg-gray-300 border-gray-400"
+        }
     ${!myPicks || myPicks.size === 0 ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:opacity-90"}
   `}
-                  title={
-                    !myPicks || myPicks.size === 0
-                      ? "You haven't made any picks for this event"
-                      : showOnlyMyPicks
-                        ? "Show all players"
-                        : "Show only my picks"
-                  }
-                >
-                  <FaUserCheck className="h-3.5 w-3.5 shrink-0" />
-                  <span>My Picks</span>
-                </button>
-              )}
-            </div>
-          </div>
+        title={
+          !myPicks || myPicks.size === 0
+            ? "You haven't made any picks for this event"
+            : showOnlyMyPicks
+              ? "Show all players"
+              : "Show only my picks"
+        }
+      >
+        <FaUserCheck className="h-3 w-3 shrink-0 md:h-3.5 md:w-3.5" />
+        <span className="max-md:text-[9px] md:text-inherit">My Picks</span>
+      </button>
+    ) : null;
 
-          {/* Row 2: Rows + pagination (mobile); md+: same bar, right-aligned, no wrap */}
-          <div className="flex w-full min-w-0 flex-nowrap items-center justify-between gap-2 md:w-auto md:shrink-0 md:justify-end md:gap-3">
-            <div className="flex shrink-0 items-center gap-2">
-              <span
-                className={`shrink-0 text-base leading-none ${themeClasses.text}`}
-              >
-                Rows:
-              </span>
-              <select
-                value={rowsPerPage}
-                onChange={handleRowsPerPageChange}
-                className={`box-border h-9 min-h-9 min-w-[3rem] cursor-pointer rounded-md border px-2 py-0 text-base leading-none md:min-w-[3.25rem] ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} focus:outline-none focus:ring-1 focus:ring-blue-500`}
-              >
-                {[20, 40, 80, 100].map((size) => (
-                  <option
-                    key={size}
-                    value={size}
-                    className={`${themeClasses.bg} ${themeClasses.text}`}
-                  >
-                    {size}
-                  </option>
-                ))}
-              </select>
-            </div>
+  const searchFieldClass = `pickem-stats-search normal-case box-border h-9 min-h-9 w-full rounded-md border py-0 pl-9 pr-2.5 text-base leading-none ${themeClasses.bg} ${themeClasses.text} ${themeClasses.border} focus:outline-none focus:ring-1 focus:ring-blue-500`;
 
-            <div
-              className={`flex min-w-0 shrink items-center justify-end gap-1 max-md:gap-0.5 ${darkMode ? "text-[rgba(255,255,255,0.66)]" : "text-gray-700"
-                }`}
-            >
-              <button
-                type="button"
-                disabled={currentPage === 1}
-                onClick={() => goToPage(currentPage - 1)}
-                className={`
-        box-border flex h-8 w-8 shrink-0 items-center justify-center rounded md:h-9 md:w-9
-        ${darkMode
-                    ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
-                    : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
-                  }
-        disabled:opacity-50 disabled:cursor-not-allowed
-        focus:outline-none focus:ring-1
-        transition-colors duration-200
-      `}
-              >
-                <FaAngleLeft
-                  className={`${darkMode ? "text-current" : "text-gray-700"
-                    } h-3.5 w-3.5`}
+  return (
+    <div className="relative overflow-visible w-full mx-auto pb-0 max-md:pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]"
+    >
+      {/* Wrapper font-size matches <th>; Preflight makes select/button use 100% of this. Search uses 16px via pickem-stats-search + text-base. */}
+      <div
+        className={`pickem-matchup-filter-bar flex w-full flex-col gap-2 p-2 text-[10px] md:flex-row md:items-center md:justify-between md:gap-2 md:text-[12px] font-medium font-azonix tracking-wider ${themeClasses.bg} rounded-lg mb-1 shadow-sm ${themeClasses.border} border`}
+      >
+        {/* Mobile: row1 = search + page arrows; row2 = My Picks, Team, Rows */}
+        <div className="flex w-full flex-col gap-2 md:hidden">
+          <div className="flex w-full min-w-0 flex-row items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
+                <FaSearch
+                  className={darkMode ? "text-gray-400" : "text-gray-500"}
+                  size={14}
                 />
-              </button>
-
-              <div className="flex items-center gap-1.5 max-md:gap-1">
-                <input
-                  min="1"
-                  max={totalPages || 1}
-                  type="number"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={currentPageInput}
-                  onChange={(e) => setCurrentPageInput(e.target.value)}
-                  onBlur={(e) => {
-                    let page = parseInt(e.target.value);
-                    if (isNaN(page) || page < 1) page = 1;
-                    if (page > totalPages) page = totalPages;
-                    goToPage(page);
-                    setCurrentPageInput(page.toString());
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      let page = parseInt(currentPageInput);
-                      if (isNaN(page) || page < 1) page = 1;
-                      if (page > totalPages) page = totalPages;
-                      goToPage(page);
-                      setCurrentPageInput(page.toString());
-                      e.currentTarget.blur();
-                    }
-                  }}
-                  className={`
-          box-border h-9 min-h-9 w-10 rounded border px-1 py-0 text-center text-base leading-none md:w-11
-          ${darkMode
-                      ? "bg-[rgba(255,255,255,0.07)] text-white border-[rgba(255,255,255,0.17)] focus:ring-[rgba(255,255,255,0.17)]"
-                      : "bg-gray-100 text-gray-800 border-gray-300 focus:ring-gray-400"
-                    }
-          focus:outline-none focus:ring-1
-          [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
-          [&::-webkit-inner-spin-button]:appearance-none
-        `}
-                />
-                <span
-                  className={`shrink-0 whitespace-nowrap text-base leading-none tabular-nums ${darkMode
-                    ? "text-[rgba(255,255,255,0.66)]"
-                    : "text-gray-600"
-                    }`}
-                >
-                  of {totalPages}
-                </span>
               </div>
-
-              <button
-                type="button"
-                disabled={currentPage === totalPages}
-                onClick={() => goToPage(currentPage + 1)}
-                className={`
-        box-border flex h-8 w-8 shrink-0 items-center justify-center rounded md:h-9 md:w-9
-        ${darkMode
-                    ? "bg-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.11)] focus:ring-[rgba(255,255,255,0.17)]"
-                    : "bg-gray-200 hover:bg-gray-300 focus:ring-gray-400"
-                  }
-        disabled:opacity-50 disabled:cursor-not-allowed
-        focus:outline-none focus:ring-1
-        transition-colors duration-200
-      `}
-              >
-                <FaAngleRight
-                  className={`${darkMode ? "text-current" : "text-gray-700"
-                    } h-3.5 w-3.5`}
-                />
-              </button>
+              <input
+                type="search"
+                autoComplete="off"
+                placeholder="Search..."
+                className={searchFieldClass}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
+            {totalPages > 1 ? renderPageArrows() : null}
+          </div>
+          <div className="flex w-full min-w-0 flex-row flex-wrap items-center gap-x-2 gap-y-2">
+            <div className="flex shrink-0 items-center">{renderMyPicksButton()}</div>
+            {renderTeamSelect()}
+            {renderRowsSelect()}
+          </div>
+        </div>
+
+        {/* Desktop: search + team + my picks | rows + arrows */}
+        <div className="hidden w-full flex-row flex-nowrap items-center justify-between gap-3 lg:gap-4 md:flex">
+          <div className="flex min-w-0 flex-1 flex-row flex-wrap items-center gap-3">
+            <div className="relative min-w-0 md:min-w-[160px] md:max-w-[220px] md:flex-initial">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
+                <FaSearch
+                  className={darkMode ? "text-gray-400" : "text-gray-500"}
+                  size={14}
+                />
+              </div>
+              <input
+                type="search"
+                autoComplete="off"
+                placeholder="Search..."
+                className={searchFieldClass}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            {renderTeamSelect()}
+            <div className="flex shrink-0 items-center">{renderMyPicksButton()}</div>
+          </div>
+          <div className="flex shrink-0 flex-nowrap items-center justify-end gap-3">
+            {renderRowsSelect()}
+            {totalPages > 1 ? renderPageArrows() : null}
           </div>
         </div>
       </div>
 
-      {/* Table Container */}
-      <div
-        className={`flex items-start overflow-scroll h-[70vh] md:h-[80vh] rounded-lg ${themeClasses.bg}`}
-      >
-        <table className="w-full relative min-w-[800px] md:min-w-0">
+      {/* Table card: border ends with last row; bottom page arrows sit below (outside this box) */}
+      <div className="flex w-full flex-col">
+        <div
+          ref={tableBlockRef}
+          className={`rounded-lg border ${themeClasses.border} ${themeClasses.bg}`}
+        >
+          <div
+            ref={tableRef}
+            className={cn(
+              "flex min-h-0 flex-1 items-start scroll-smooth max-h-[70vh] md:max-h-[80vh]",
+              /* overflow-hidden on the card breaks sticky; scroll + rounding live on this node */
+              "overflow-auto overscroll-x-contain rounded-lg",
+              themeClasses.bg,
+            )}
+          >
+          <table className="w-full min-w-[800px] table-fixed border-separate border-spacing-0 md:min-w-0">
+            {/*
+              Lock column 1 width so sticky `left` on column 2 matches the real Rank width.
+              Otherwise `table-layout: auto` can shrink column 1 below `w-12`, leaving a gap where
+              horizontally scrolled stats show between Rank and Player.
+            */}
+            <colgroup>
+              <col className="w-12 md:w-20" />
+            </colgroup>
           <thead>
-            <tr
-              className={`sticky top-0 z-40 shadow-[0_0_0_0.4px] shadow-white ${themeClasses.headerBg} h-10`}
-            >
+            <tr className={`h-10 ${themeClasses.headerBg}`}>
               {/* Rank Column - Smaller on mobile */}
               <th
-                className={`px-1 md:px-2 py-2 text-center text-[10px] md:text-[12px] font-medium font-azonix uppercase tracking-wider md:border-r z-20 w-12 md:w-20 transition-colors ${sortConfig?.key === 'Rank'
-                  ? 'bg-blue-900/50 text-blue-200 cursor-pointer'
-                  : `${themeClasses.headerBg} ${themeClasses.headerText} cursor-pointer hover:bg-gray-700/50`
+                scope="col"
+                style={{ top: theadStickyTopPx }}
+                className={`sticky left-0 z-[50] box-border px-1 py-2 text-center text-[10px] font-medium font-azonix uppercase tracking-wider md:px-2 md:text-[12px] md:border-r w-12 min-w-12 max-w-12 border-b border-gray-300/80 shadow-[0_1px_0_0_rgba(0,0,0,0.06)] md:w-20 md:min-w-20 md:max-w-20 dark:border-white/10 ${sortConfig?.key === "Rank"
+                  ? darkMode
+                    ? "cursor-pointer bg-blue-800 text-blue-100"
+                    : "cursor-pointer bg-blue-600 text-white"
+                  : `${themeClasses.headerBg} ${themeClasses.headerText} cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600`
                   }`}
               >
                 <div
@@ -1090,9 +1120,13 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
 
               {/* Player Column - Optimized for mobile */}
               <th
-                className={`pl-2 md:pl-4 pr-1 justify-center md:border-b/60 border-0 text-[10px] md:text-[12px] font-medium font-azonix uppercase sticky left-0 tracking-wider z-40 w-[120px] md:w-[160px] transition-colors ${sortConfig?.key === 'Player'
-                  ? 'bg-blue-900/50 text-blue-200 cursor-pointer'
-                  : `${themeClasses.headerBg} ${themeClasses.headerText} cursor-pointer hover:bg-gray-700/50`
+                scope="col"
+                style={{ top: theadStickyTopPx }}
+                className={`sticky left-12 z-[52] box-border min-w-[107px] w-[min(31.5vw,8.25rem)] border-b border-gray-300/80 pl-2 pr-1 text-left text-[10px] font-medium font-azonix uppercase tracking-wider shadow-[0_1px_0_0_rgba(0,0,0,0.06)] dark:border-white/10 md:left-20 md:min-w-[200px] md:w-[200px] md:pl-4 md:text-[12px] ${sortConfig?.key === "Player"
+                  ? darkMode
+                    ? "cursor-pointer bg-blue-800 text-blue-100"
+                    : "cursor-pointer bg-blue-600 text-white"
+                  : `${themeClasses.headerBg} ${themeClasses.headerText} cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600`
                   }`}
               >
                 <div
@@ -1108,9 +1142,13 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               {dynamicHeaders.map(({ originalKey, displayKey }) => (
                 <th
                   key={originalKey}
-                  className={`px-1 md:px-2 p-1 text-center text-[9px] md:text-[12px] font-medium font-azonix uppercase w-16 md:w-24 min-w-[60px] md:min-w-[80px] transition-colors ${sortConfig?.key === originalKey
-                    ? "bg-blue-900/50 text-blue-200 cursor-pointer"
-                    : `${themeClasses.headerText} cursor-pointer hover:bg-gray-700/50`
+                  scope="col"
+                  style={{ top: theadStickyTopPx }}
+                  className={`sticky z-[48] box-border p-1 px-1 text-center text-[9px] font-medium font-azonix uppercase md:px-2 md:text-[12px] w-16 min-w-[60px] border-b border-gray-300/80 shadow-[0_1px_0_0_rgba(0,0,0,0.06)] dark:border-white/10 md:w-24 md:min-w-[80px] ${sortConfig?.key === originalKey
+                    ? darkMode
+                      ? "cursor-pointer bg-blue-800 text-blue-100"
+                      : "cursor-pointer bg-blue-600 text-white"
+                    : `${themeClasses.headerBg} ${themeClasses.headerText} cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600`
                     }`}
                 >
                   <div
@@ -1134,16 +1172,16 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               >
                 {/* Rank Column - Smaller on mobile */}
                 <td
-                  className={`px-1 md:px-2 py-2 whitespace-nowrap md:border-r ${themeClasses.border} z-0 ${themeClasses.bg} w-12 md:w-20`}
+                  className={`sticky left-0 z-[20] box-border px-1 py-2 whitespace-nowrap md:border-r ${themeClasses.border} ${themeClasses.bg} w-12 min-w-12 max-w-12 md:w-20 md:min-w-20 md:max-w-20`}
                 >
-                  <div className="text-center text-[10px] md:text-[12px] font-azonix font-medium">
+                  <div className="pickem-numeric text-center text-[10px] md:text-[12px] font-medium">
                     {row.Rank}
                   </div>
                 </td>
 
                 {/* Player Column - Compact mobile layout */}
                 <td
-                  className={`p-1 md:p-2 whitespace-nowrap sticky left-0 z-10 ${themeClasses.bg} shadow-[2px_0_5px_rgba(0,0,0,0.3)] min-w-[100px] md:min-w-0 md:shadow-none`}
+                  className={`sticky left-12 z-[21] box-border min-w-[107px] w-[min(31.5vw,8.25rem)] p-1 whitespace-nowrap shadow-[2px_0_6px_rgba(0,0,0,0.12)] md:left-20 md:min-w-[200px] md:w-[200px] md:p-2 md:shadow-[2px_0_8px_rgba(0,0,0,0.15)] ${themeClasses.bg}`}
                 >
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-8 w-8 md:h-10 md:w-10 flex items-center justify-center rounded-full overflow-hidden bg-gray-600 mr-1 md:mr-4 relative">
@@ -1199,7 +1237,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                       )}
                     </div>
 
-                    <div className="max-w-[80px] md:max-w-[110px] whitespace-normal">
+                    <div className="max-w-[min(100%,5.625rem)] md:max-w-[140px] whitespace-normal">
                       <div
                         className={`text-[9px] md:text-[12px] font-azonix font-medium ${darkMode ? "text-white" : "text-gray-900"
                           } whitespace-normal break-words leading-tight`}
@@ -1220,19 +1258,27 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                 {dynamicHeaders.map(({ originalKey }) => (
                   <td
                     key={originalKey}
-                    className={`px-1 md:px-2 py-2 md:py-3 whitespace-nowrap text-[9px] md:text-[12px] font-bold ${themeClasses.border
+                    className={`relative z-[10] px-1 md:px-2 py-2 md:py-3 whitespace-nowrap text-[9px] md:text-[12px] font-bold ${themeClasses.border
                       } text-center ${darkMode ? "text-gray-300" : "text-gray-900"
                       } w-16 md:w-24 min-w-[60px] md:min-w-[80px]`}
                   >
-                    {(row[originalKey] ?? "") as React.ReactNode}
+                    <span className="pickem-numeric">
+                      {(row[originalKey] ?? "") as React.ReactNode}
+                    </span>
                   </td>
                 ))}
               </tr>
             ))}
           </tbody>
         </table>
+          </div>
+        </div>
+        {totalPages > 1 ? (
+          <div className="flex justify-center pt-2 pb-0">
+            {renderPageArrows("center")}
+          </div>
+        ) : null}
       </div>
-      <div className="md:h-2" />
     </div>
   );
 };

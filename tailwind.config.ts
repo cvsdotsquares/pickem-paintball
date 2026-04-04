@@ -29,6 +29,13 @@ module.exports = {
           "system-ui",
           "sans-serif",
         ],
+        /** Hitmarker Condensed — standalone numbers (see `.pickem-numeric` in globals.css). */
+        hitmarker: [
+          "var(--font-hitmarker-condensed)",
+          "var(--font-industry)",
+          "system-ui",
+          "sans-serif",
+        ],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -65,8 +72,10 @@ module.exports = {
           foreground: "hsl(var(--card-foreground))",
         },
         pickem: {
-          navy: "hsl(var(--pickem-navy))",
-          green: "hsl(var(--pickem-green))",
+          /** Brand navy — exact #021e42 (also see `--pickem-navy` in globals.css for hsl() contexts). */
+          navy: "#021e42",
+          /** Brand green — exact #00f976 (also see `--pickem-green` in globals.css). */
+          green: "#00f976",
           blue: "hsl(var(--pickem-blue))",
           "navy-light": "hsl(var(--pickem-navy-light))",
           "navy-dark": "hsl(var(--pickem-navy-dark))",

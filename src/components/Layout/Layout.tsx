@@ -72,7 +72,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div
       className={cn(
-        "relative flex min-h-screen w-full flex-col overflow-hidden bg-neutral-950 dark:bg-neutral-950 bg-white md:h-screen",
+        // h-[100dvh] on all breakpoints (not only md:h-screen) so the flex main column gets a
+        // definite height; otherwise max-md flex-1 overflow-y-auto often won't scroll with wheel
+        // on a narrow desktop window, while touch still works on real phones.
+        "relative flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-neutral-950 dark:bg-neutral-950 bg-white",
       )}
     >
       <main className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-white dark:bg-stone-950">
@@ -90,11 +93,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             pauseOnHover
           />
           <div
-            className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain max-md:pt-[var(--pickem-dashboard-header-bottom)] md:pt-0"
+            className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain max-md:pt-[calc(var(--pickem-dashboard-header-bottom)+var(--pickem-dashboard-header-content-gap))] md:pt-0"
             onScroll={(e) => setMainColumnScrollTop(e.currentTarget.scrollTop)}
           >
             <div className="flex min-h-full flex-col">
-              <div className="flex-1">{children}</div>
+              <div className="w-full shrink-0">{children}</div>
               <DashboardFooterBanner />
             </div>
           </div>

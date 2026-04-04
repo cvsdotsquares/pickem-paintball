@@ -3,13 +3,19 @@
 import { db } from "@/src/lib/firebaseClient";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { MatchupTable } from "../../../components/Dashboard/datatable";
-import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
 import { motion } from "framer-motion";
 import { Player } from "../pick-em/page";
 import { useAuth } from "@/src/contexts/authProvider";
-import { useDashboardNestedScrollHandler } from "@/src/contexts/DashboardMainScrollContext";
-import SeasonTotals from "@/src/components/Dashboard/SeasonTotals";
+import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanner";
+import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
+import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dashboardEventBannerShared";
+import { cn } from "@/src/lib/utils";
+import {
+  EVENT_LOCATION_SHORT_LABEL_BY_EVENT_ID as AGGREGATE_EVENT_COLUMN_BY_EVENT_ID,
+  individualEventDisplayName,
+} from "@/src/lib/eventDisplayName";
 
 export interface Event {
   id: string;
@@ -19,6 +25,12 @@ export interface Event {
   year?: string;
   lockDate?: any; // Firestore timestamp
   event_logo?: string; // Event logo URL
+  brand_color?: string | null;
+  startDate?: string;
+  endDate?: string;
+  venue?: string;
+  city?: string;
+  eventNumber?: string;
 }
 // sort type definitions
 interface SortConfig {
@@ -27,13 +39,31 @@ interface SortConfig {
 }
 
 /** Season aggregate player docs use these labels; live aggregation uses `event.name` */
-const AGGREGATE_EVENT_COLUMN_BY_EVENT_ID: Record<string, string> = {
-  tampa_bay_2025: "Tampa Bay",
-  world_cup_2025: "World Cup",
-  lonestar_open_2025: "Lone Star",
-  midwest_open_2025: "Mid West",
-  atlantic_city_2025: "Atlantic City",
-};
+
+/** Stats nav chips only — do not use this pattern elsewhere (banners use raw `event.name`). */
+function statsEventNavLabel(event: Event): string {
+  return individualEventDisplayName(event).toUpperCase();
+}
+
+/** Firestore Timestamp or Date; missing/unparseable → MAX (sort last when ascending). */
+function getPickLockSeconds(ev: Event): number {
+  const ld = ev.lockDate;
+  if (ld == null) return Number.MAX_SAFE_INTEGER;
+  if (typeof ld === "object" && ld !== null && "seconds" in ld && typeof (ld as { seconds: number }).seconds === "number") {
+    return (ld as { seconds: number }).seconds;
+  }
+  if (ld instanceof Date) return Math.floor(ld.getTime() / 1000);
+  return Number.MAX_SAFE_INTEGER;
+}
+
+/** Newest pick lock first; events without lock date sort last. */
+function navPickLockDesc(a: Event, b: Event): number {
+  const key = (ev: Event) => {
+    const s = getPickLockSeconds(ev);
+    return s === Number.MAX_SAFE_INTEGER ? Number.NEGATIVE_INFINITY : s;
+  };
+  return key(b) - key(a);
+}
 
 export default function Statistics() {
   const [rowData, setRowData] = useState<Player[]>([]);
@@ -52,7 +82,6 @@ export default function Statistics() {
 
 
   const { user } = useAuth();
-  const reportStatsScroll = useDashboardNestedScrollHandler("dashboard-stats");
   // Fetch events and set initial state
   useEffect(() => {
     async function fetchEvents() {
@@ -72,7 +101,14 @@ export default function Statistics() {
             event_place: doc.get("event_place") || "0",
             year: doc.get("year") || yearFromId,
             lockDate: doc.get("lockDate") || null,
-            event_logo: doc.get("event_logo") || null, // Include event logo
+            event_logo: doc.get("event_logo") || null,
+            brand_color: doc.get("brand_color") ?? null,
+            startDate: doc.get("startDate") || "",
+            endDate: doc.get("endDate") || "",
+            venue: doc.get("venue") || "",
+            city: doc.get("city") || "",
+            eventNumber:
+              doc.get("eventNumber") != null ? String(doc.get("eventNumber")) : undefined,
           };
         });
 
@@ -151,12 +187,16 @@ export default function Statistics() {
   }, [user, selectedEvent]);
 
   // Get unique years for filter, excluding 2024
-  const years = useMemo(() => {
-    const uniqueYears = new Set(eventsList.map((event) => event.year).filter(year => year !== "2024"));
+  const years = useMemo((): string[] => {
+    const uniqueYears = new Set(
+      eventsList
+        .map((event) => event.year)
+        .filter((y): y is string => typeof y === "string" && y !== "2024"),
+    );
     return [
       "All",
       ...Array.from(uniqueYears).sort(
-        (a, b) => parseInt(b ? b : "1") - parseInt(a ? a : "1")
+        (a, b) => parseInt(b ? b : "1") - parseInt(a ? a : "1"),
       ),
     ];
   }, [eventsList]);
@@ -168,84 +208,49 @@ export default function Statistics() {
     return filtered.filter((event) => event.year !== "2024");
   }, [eventsList, selectedYear]);
 
-  interface LogoCardProps {
-    name: string;
-    status: string;
-    onClick: () => void;
-    isSelected: boolean;
-    event_logo?: string; // Add event logo prop
-  }
+  /**
+   * Row 2: by calendar year (newest first), each block is `{year} OVERALL` then events for that year
+   * ordered by pick lock date (most recent lock first). Single-year filter: same overall + lock-sorted events.
+   */
+  const eventNavSecondRow = useMemo(() => {
+    const nonSeason = filteredEvents.filter((e) => e.status !== "season");
 
-  let backgroundIndex = 0; // Global counter to track the background index
+    if (selectedYear === "All") {
+      const yearOptions = years.filter((y) => y !== "All");
+      const byYear = new Map<string, Event[]>();
+      for (const e of nonSeason) {
+        const y = e.year ?? "Unknown";
+        if (y === "2024") continue;
+        if (!byYear.has(y)) byYear.set(y, []);
+        byYear.get(y)!.push(e);
+      }
+      for (const arr of Array.from(byYear.values())) {
+        arr.sort(navPickLockDesc);
+      }
 
-  function EventCard({ name, status, onClick, isSelected, event_logo }: LogoCardProps) {
-    // Use the current index and update for the next call
-    const backgroundSrc = `/background${backgroundIndex}.jpg`;
-    backgroundIndex = (backgroundIndex + 1) % 3; // Cycle through 0, 1, 2
+      const out: (
+        | { kind: "season"; year: string; label: string }
+        | { kind: "event"; event: Event }
+      )[] = [];
+      for (const y of yearOptions) {
+        out.push({ kind: "season", year: y, label: `${y} OVERALL` });
+        for (const ev of byYear.get(y) ?? []) {
+          out.push({ kind: "event", event: ev });
+        }
+      }
+      return out;
+    }
 
-    return (
-      <article
-        onClick={isSelected ? undefined : onClick}
-        className={`relative flex flex-col md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] transition-all duration-200 ${isSelected
-          ? "border-4 rounded-xl border-blue-500 dark:border-white cursor-default opacity-80"
-          : "cursor-pointer hover:scale-105"
-          }`}
-      >
-        <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg  logographics">
-          {/* Use event_logo if available, otherwise fallback to background image */}
-          {event_logo ? (
-            <>
-              {/* White background for PNG logos */}
-              <div className="absolute inset-0 bg-white dark:bg-black rounded-lg"></div>
-              <img
-                src={event_logo}
-                alt={`${name} logo`}
-                className="absolute inset-0 w-full h-full object-scale-down rounded-lg"
-              />
-            </>
-          ) : (
-            <>
-              <img
-                src={backgroundSrc}
-                alt="Event card background"
-                className="absolute inset-0 w-full h-full object-cover rounded-lg"
-              />
-              {/* Only show text overlay when no event logo */}
-              <div className="relative flex flex-col items-center justify-center p-4 text-white overflow-auto">
-                {name && (
-                  <div
-                    className="text-center font-azonix"
-                    style={{
-                      fontSize: "clamp(0.8rem, 2vw, 1.5rem)", // Dynamic font size
-                      lineHeight: "1.2",
-                      overflow: "hidden", // Ensures no horizontal overflow
-                      textOverflow: "ellipsis",
-                      whiteSpace: "wrap",
-                    }}
-                  >
-                    {name}
-                  </div>
-                )}
-                {status && (
-                  <div
-                    className={`text-center font-azonix ${status === "live" ? "text-red-500" :
-                      status === "season" ? "text-blue-400" : "text-gray-300"
-                      }`}
-                    style={{
-                      fontSize: "clamp(0.5rem, 1.5vw, 1rem)", // Scales based on viewport
-                      lineHeight: "1.2",
-                    }}
-                  >
-                    {status === "season" ? "SEASON" : status}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </article>
-    );
-  }
+    const evs = [...nonSeason].sort(navPickLockDesc);
+    return [
+      {
+        kind: "season" as const,
+        year: selectedYear,
+        label: `${selectedYear} OVERALL`,
+      },
+      ...evs.map((e) => ({ kind: "event" as const, event: e })),
+    ];
+  }, [years, selectedYear, filteredEvents]);
 
   // Fetch season data when season table is shown
   useEffect(() => {
@@ -554,130 +559,134 @@ export default function Statistics() {
     setRowData([]); // Clear existing data when switching to event
   };
 
-  // Handle season card click
-  const handleSeasonSelect = (year?: string) => {
-    // Don't allow selecting the same season again
-    if (showSeasonTable && selectedSeasonYear === year) {
-      return;
-    }
-    setSelectedEvent(null);
-    setShowSeasonTable(true);
-    if (year) {
-      setSelectedSeasonYear(year);
+  /** Row 1: pick year — filters row 2; clears season view when year changes */
+  const handleYearSelect = (year: string) => {
+    setSelectedYear(year);
+    setShowSeasonTable(false);
+    setSelectedSeasonYear(null);
+    if (year === "All") {
+      const ev = eventsList.find((e) => e.status === "live") ?? eventsList[0] ?? null;
+      setSelectedEvent(ev);
     } else {
-      setSelectedSeasonYear(null);
+      const first = eventsList.find(
+        (e) => String(e.year) === String(year) && e.year !== "2024",
+      );
+      setSelectedEvent(first ?? null);
     }
   };
 
+  /** Row 2: season totals for a year (Season Totals / `players/season_{year}`) — does not change row 1 year */
+  const selectSeasonOverall = (year: string) => {
+    if (showSeasonTable && selectedSeasonYear === year) return;
+    setSelectedEvent(null);
+    setShowSeasonTable(true);
+    setSelectedSeasonYear(year);
+  };
+
+  const statsNavBtn =
+    "shrink-0 whitespace-nowrap rounded-md border-2 border-transparent bg-white px-3 py-2 font-azonix text-[10px] font-bold uppercase tracking-wide text-neutral-900 shadow-sm transition hover:bg-neutral-50 active:scale-[0.98] dark:bg-stone-800 dark:text-white dark:hover:bg-stone-700 md:text-[11px]";
+  const statsNavBtnActive = "border-neutral-900 dark:border-white";
+  /** Matches dashboard `sectionRowHeadingClass` accent — season OVERALL row-2 buttons only */
+  const statsNavOverallAccentBar =
+    "inline-block h-[1em] w-[3px] shrink-0 self-center rounded-[1px] bg-[#00f976]";
 
   return (
-    <div
-      className="relative left-0 flex flex-col w-auto scroll-smooth overflow-y-scroll font-inter pb-20 bg-white dark:bg-stone-950"
-      onScroll={reportStatsScroll}
-    >
+    <div className="relative left-0 flex w-full flex-col scroll-smooth font-inter bg-white dark:bg-stone-950">
       <div>
         <section>
-          <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
-            <div
-              className="absolute inset-0 top-0 brightness-110"
-              style={{
-                backgroundImage: "url('/stats-center.webp')",
-                backgroundSize: "cover",
-                backgroundPosition: "0 40%",
-                backgroundRepeat: "no-repeat",
-              }}
-            />
-            <div className="absolute inset-0 shadow-black shadow-[inset_0px_4px_50px_0px_] pointer-events-none"></div>
-            <ProgressiveBlur
-              className="pointer-events-none absolute bottom-0 left-0 h-[50%] w-full"
-              blurIntensity={1}
-            />
-            <div className="absolute inset-0 bg-black/45 pointer-events-none"></div>
-
-            <div className="relative z-[1] mx-auto flex w-full max-w-4xl flex-col items-center text-center px-4">
-              <h1 className="font-azonix text-4xl text-white md:text-7xl">
-                Statistics Center
-              </h1>
-            </div>
-          </header>
-
-          {/* Year Filter */}
-          <section className="mx-auto mt-6 max-w-4xl px-4" aria-label="Filter by season year">
-            <div className="flex justify-center">
-              <div className="flex flex-wrap justify-center gap-2">
-              {years.map((year) => (
-                <button
-                  key={year}
-                  onClick={() => {
-                    setSelectedYear(year ? year : "");
-                    // Don't clear selected event when changing year filter
-                  }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium ${selectedYear === year
-                    ? "bg-gray-900 dark:bg-white text-white dark:text-black"
-                    : "bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
-                    }`}
+          {liveEvent ? (
+            <EventCountdownBanner
+              variant="dashboard"
+              mobileBlackBarFullBleed
+              event={eventRecordToBannerModel(
+                liveEvent as unknown as Record<string, unknown> & { id: string },
+              )}
+              showBudget={false}
+              desktopCta={
+                <Link
+                  href="/dashboard/pick-em"
+                  className={DASHBOARD_BANNER_PICK_CTA_CLASS}
+                  style={{ backgroundColor: liveEvent.brand_color || "#b91c1c" }}
                 >
-                  {year}
-                </button>
-              ))}
+                  Pick your team &gt;
+                </Link>
+              }
+            />
+          ) : null}
+          <section
+            className="mx-auto mt-2 max-w-5xl px-4"
+            aria-label="Statistics navigation"
+          >
+            <div className="rounded-xl bg-neutral-100/90 p-3 dark:bg-stone-900/90">
+              <div
+                className="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                role="toolbar"
+                aria-label="Filter by year"
+              >
+                {years.map((year) => (
+                  <button
+                    key={year}
+                    type="button"
+                    onClick={() => handleYearSelect(year)}
+                    className={cn(statsNavBtn, selectedYear === year && statsNavBtnActive)}
+                  >
+                    {year === "All" ? "ALL" : year}
+                  </button>
+                ))}
+              </div>
+              <div
+                className="mt-2 flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                role="toolbar"
+                aria-label={
+                  selectedYear === "All"
+                    ? "Season totals and all events"
+                    : `Events for ${selectedYear}`
+                }
+              >
+                {eventNavSecondRow.map((item) => {
+                  if (item.kind === "season") {
+                    const seasonSelected =
+                      showSeasonTable && selectedSeasonYear === item.year;
+                    return (
+                      <button
+                        key={`season-${item.year}`}
+                        type="button"
+                        onClick={() => selectSeasonOverall(item.year)}
+                        className={cn(
+                          statsNavBtn,
+                          "flex items-center gap-2",
+                          seasonSelected && statsNavBtnActive,
+                        )}
+                      >
+                        <span className={statsNavOverallAccentBar} aria-hidden />
+                        {item.label}
+                      </button>
+                    );
+                  }
+                  const ev = item.event;
+                  const eventSelected = selectedEvent?.id === ev.id && !showSeasonTable;
+                  return (
+                    <button
+                      key={ev.id}
+                      type="button"
+                      onClick={() => handleEventSelect(ev)}
+                      className={cn(statsNavBtn, eventSelected && statsNavBtnActive)}
+                    >
+                      {statsEventNavLabel(ev)}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </section>
-
-          {/* Main Content Area */}
-          <div className="mt-8 flex flex-col gap-6 px-4 xl:flex-row">
-            {/* Right Side - Events Carousel */}
-            <div className="w-full">
-              {/* Events Carousel */}
-              <div className="rounded-xl bg-gray-100/90 p-4 backdrop-blur-sm dark:bg-gray-900/90">
-                <h3 className="font-azonix text-lg font-bold text-gray-900 dark:text-white">
-                  Select event
-                </h3>
-                <div className="mt-3 flex flex-row items-center gap-4 overflow-x-auto">
-                  {/* Season Card - Show only for specific years, not "All" */}
-                  {selectedYear !== "All" && (
-                    <EventCard
-                      key="season"
-                      name={`Season ${selectedYear}`}
-                      status="season"
-                      onClick={() => handleSeasonSelect(selectedYear)}
-                      isSelected={showSeasonTable}
-                      event_logo={undefined}
-                    />
-                  )}
-                  {/* Show season cards for all available years when "All" is selected */}
-                  {selectedYear === "All" && years.filter(year => year !== "All").map((year) => (
-                    <EventCard
-                      key={`season-${year}`}
-                      name={`Season ${year}`}
-                      status="season"
-                      onClick={() => handleSeasonSelect(year)}
-                      isSelected={showSeasonTable && selectedSeasonYear === year}
-                      event_logo={undefined}
-                    />
-                  ))}
-                  {filteredEvents.map((event, index) => (
-                    <EventCard
-                      key={index}
-                      name={event.name}
-                      status={event.status}
-                      onClick={() => handleEventSelect(event)}
-                      isSelected={selectedEvent?.id === event.id && !showSeasonTable}
-                      event_logo={event.event_logo}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
         </section>
 
         {/* Individual Event Table or Season Table */}
-        <motion.section className="mt-8 px-4 pb-16">
+        <motion.section className="mt-2 px-4 pb-0 md:mt-3">
           {showSeasonTable ? (
             // Season Table
             <>
-              <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:mb-4">
                 <div className="max-w-3xl">
                   <h3 className="font-azonix text-lg font-bold text-gray-900 dark:text-white md:text-xl">
                     Season{" "}
@@ -706,22 +715,13 @@ export default function Statistics() {
             </>
           ) : (
             // Individual Event Table
-            <>
-              <div className="mb-6 flex justify-end">
-                {selectedEvent?.status === "live" && (
-                  <span className="shrink-0 animate-pulse rounded-full bg-red-500 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white md:text-sm">
-                    Live
-                  </span>
-                )}
-              </div>
-              <MatchupTable
-                data={sortedRowData}
-                sortConfig={sortConfig}
-                onSortChange={handleSortChange}
-                myPicks={livePicks}
-                currentEventId={selectedEvent?.id}
-              />
-            </>
+            <MatchupTable
+              data={sortedRowData}
+              sortConfig={sortConfig}
+              onSortChange={handleSortChange}
+              myPicks={livePicks}
+              currentEventId={selectedEvent?.id}
+            />
           )}
         </motion.section>
       </div>

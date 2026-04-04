@@ -16,7 +16,10 @@ export const getFirebaseStorageUrl = (storagePath: string): string => {
     return decodedUrl;
   }
 
-  // Convert storage path to Firebase Storage URL
-  const encodedPath = storagePath.replace(/\//g, '%2F');
-  return `https://firebasestorage.googleapis.com/v0/b/fantasy-paintball.firebasestorage.app/o/${encodedPath}?alt=media`;
+  // Convert storage path to Firebase Storage URL (bucket must match the app's default bucket)
+  const bucket =
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ||
+    "fantasy-paintball.firebasestorage.app";
+  const encodedPath = storagePath.replace(/\//g, "%2F");
+  return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedPath}?alt=media`;
 };

@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/src/contexts/authProvider";
 import { signOut } from "firebase/auth";
 import { auth, db } from "@/src/lib/firebaseClient";
-import { loginWithEmail, loginWithGoogle } from "@/src/lib/auth";
+import { getFirebaseAuthErrorMessage } from "@/src/lib/firebaseAuthErrors";
+import { devAllowUnverifiedLogin } from "@/src/lib/firebasePublicEnv";
 import {
   Card,
   CardContent,
@@ -16,6 +17,7 @@ import { Input } from "@/src/components/ui/input";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import Button from "@/src/components/ui/button";
 import { sendPasswordResetEmail } from "firebase/auth"; // Import reset function
+import LocalDevFirebaseHint from "@/src/components/Login/LocalDevFirebaseHint";
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState<string>("");
@@ -24,79 +26,77 @@ const LoginPage: React.FC = () => {
   const [resetEmail, setResetEmail] = useState<string>(""); // For password reset email input
   const [showResetForm, setShowResetForm] = useState<boolean>(false); // Toggle the reset form
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading, loginWithEmail, loginWithGoogle } = useAuth();
+
+  /** Ensures a Firestore user doc exists, then sends the user to the dashboard. */
+  const ensureUserDocAndGoDashboard = useCallback(
+    async (uid: string, emailAddr: string | null) => {
+      const userRef = doc(db, "users", uid);
+      const userDoc = await getDoc(userRef);
+      if (!userDoc.exists()) {
+        await setDoc(userRef, {
+          email: emailAddr,
+          createdAt: new Date(),
+          pickems: {},
+          total_points: 0,
+        });
+      }
+      router.push("/dashboard");
+    },
+    [router],
+  );
 
   useEffect(() => {
+    if (authLoading) return;
     const checkUser = async () => {
-      if (user) {
-        if (user.emailVerified) {
-          const userRef = doc(db, "users", user.uid);
-          const userDoc = await getDoc(userRef);
-          if (userDoc.exists()) {
-            router.push("/dashboard");
-          }
-        } else {
-          setError("Please verify your email before logging in.");
-          signOut(auth); // Sign out unverified users
-        }
+      if (!user) return;
+      if (!user.emailVerified && !devAllowUnverifiedLogin()) {
+        setError("Please verify your email before logging in.");
+        await signOut(auth);
+        return;
+      }
+      try {
+        await ensureUserDocAndGoDashboard(user.uid, user.email);
+      } catch (err) {
+        console.error(err);
+        setError("Could not load your account data. Check Firestore rules and try again.");
       }
     };
     checkUser();
-  }, [user, router]);
+  }, [user, router, authLoading, ensureUserDocAndGoDashboard]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     try {
-      const userCredential = await loginWithEmail(email, password);
-      const user = userCredential.user;
-
-      // Check if the user's email is verified
-      if (user.emailVerified) {
-        // Check if the user already exists in Firestore
-        const userRef = doc(db, "users", user.uid);
-        const userDoc = await getDoc(userRef);
-
-        if (!userDoc.exists()) {
-          // If the user doesn't exist, create a new document
-          await setDoc(userRef, {
-            email: user.email,
-            createdAt: new Date(),
-            pickems: {}, // Initialize with empty pickems
-            total_points: 0, // Initialize total points
-          });
-        }
-
-        router.push("/dashboard");
-      } else {
-        setError("Please verify your email before accessing the dashboard.");
-        await signOut(auth); // Sign out unverified user
+      await loginWithEmail(email, password);
+      const current = auth.currentUser;
+      if (!current) {
+        setError("Sign-in did not complete. Please try again.");
+        return;
       }
+      await ensureUserDocAndGoDashboard(current.uid, current.email);
     } catch (err) {
-      setError("Login failed. Please check your credentials.");
+      setError(getFirebaseAuthErrorMessage(err));
     }
   };
 
   const handleGoogleLogin = async () => {
+    setError("");
     try {
       const userCredential = await loginWithGoogle();
-      const user = userCredential.user;
+      const u = userCredential.user;
 
-      // Check if the user already exists in Firestore
-      const userRef = doc(db, "users", user.uid);
+      const userRef = doc(db, "users", u.uid);
       const userDoc = await getDoc(userRef);
 
       if (!userDoc.exists()) {
-        // New Google user: send to registration completion instead of auto-creating
         router.push("/register?googleNew=1");
         return;
-      }else {
-        // Existing user proceeds to dashboard
-        router.push("/dashboard");
       }
-
-
+      router.push("/dashboard");
     } catch (err) {
-      setError("Google login failed.");
+      setError(getFirebaseAuthErrorMessage(err));
     }
   };
 
@@ -107,7 +107,7 @@ const LoginPage: React.FC = () => {
       alert("Your password reset email has been sent. Please check your inbox and spam folder.");
       setShowResetForm(false); // Hide the reset form
     } catch (err) {
-      setError("Error sending password reset email.");
+      setError(getFirebaseAuthErrorMessage(err));
     }
   };
 
@@ -127,6 +127,7 @@ const LoginPage: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <LocalDevFirebaseHint />
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Input

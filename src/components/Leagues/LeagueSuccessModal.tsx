@@ -48,7 +48,7 @@ export default function LeagueSuccessModal({ isOpen, onClose, leagueName, invite
               <p className="text-sm text-gray-400 mb-2">Share this invite code with friends:</p>
               <div className="flex items-center justify-center gap-2">
                 <div className="bg-gray-700 px-4 py-2 rounded-lg">
-                  <span className="text-2xl font-mono font-bold text-white tracking-wider">
+                  <span className="pickem-numeric text-2xl font-bold text-white tracking-wider">
                     {inviteCode}
                   </span>
                 </div>

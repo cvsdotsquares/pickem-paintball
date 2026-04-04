@@ -422,7 +422,7 @@ export const PickWidget = () => {
         {player?.Cost && (
           <div className="mx-auto flex w-full justify-center border-t-2 border-blue-500/80 items-center py-2 text-white dark:text-white bg-gray-800 dark:bg-gray-800 rounded-b-3xl pointer-events-none">
             <div
-              className={`${
+              className={`pickem-numeric ${
                 isSlot ? "text-[8px] md:text-[8px]" : "text-[8px]"
               } font-bold`}
             >

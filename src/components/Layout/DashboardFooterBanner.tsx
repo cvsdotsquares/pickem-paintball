@@ -33,7 +33,7 @@ export default function DashboardFooterBanner({ className }: { className?: strin
   return (
     <footer
       className={cn(
-        "mt-auto border-t border-gray-200 bg-gray-50/90 px-4 py-4 dark:border-white/10 dark:bg-black/30",
+        "shrink-0 border-t border-gray-200 bg-gray-50/90 px-4 py-4 dark:border-white/10 dark:bg-black/30",
         "pb-[max(1rem,env(safe-area-inset-bottom,0px))]",
         className,
       )}
@@ -43,13 +43,13 @@ export default function DashboardFooterBanner({ className }: { className?: strin
           className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 sm:justify-start"
           aria-label="Footer"
         >
-          <Link href="/pages/faq" className={linkClass}>
+          <Link href="/dashboard/faq" className={linkClass}>
             FAQ
           </Link>
           <span className="hidden text-gray-300 dark:text-white/15 sm:inline" aria-hidden>
             ·
           </span>
-          <Link href="/pages/terms-and-conditions" className={linkClass}>
+          <Link href="/dashboard/terms-and-conditions" className={linkClass}>
             T&amp;Cs
           </Link>
         </nav>

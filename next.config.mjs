@@ -39,8 +39,20 @@ const nextConfig = {
   webpack: (config, { dev }) => {
     if (dev) {
       config.output.chunkLoadTimeout = 120000;
+      // Stale webpack filesystem cache can reference missing chunks (e.g. `Cannot find module './5611.js'`)
+      // after interrupted compiles or switching LAN/mobile while dev is running. Memory cache avoids bad IDs.
+      config.cache = { type: "memory" };
     }
     return config;
+  },
+  async redirects() {
+    return [
+      {
+        source: "/pages/faq",
+        destination: "/dashboard/faq",
+        permanent: true,
+      },
+    ];
   },
   async headers() {
     return [

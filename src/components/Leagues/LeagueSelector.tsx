@@ -263,7 +263,7 @@ export default function LeagueSelector({ onCreateLeague, onJoinLeague }: LeagueS
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Invite Code</p>
-                  <span className="font-mono font-bold text-gray-900 dark:text-white tracking-wider">
+                  <span className="pickem-numeric font-bold text-gray-900 dark:text-white tracking-wider">
                     {selectedLeague.inviteCode}
                   </span>
                 </div>

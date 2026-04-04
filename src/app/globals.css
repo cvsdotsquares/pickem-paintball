@@ -35,7 +35,7 @@
   /* HSL components for Tailwind `hsl(var(--token))` utilities */
   --background: 0 0% 100%;
   --foreground: 0 0% 9%;
-  --primary: 213 95% 13%;
+  --primary: 213.75 94.12% 13.33%;
   --primary-foreground: 0 0% 100%;
   --secondary: 210 20% 96%;
   --secondary-foreground: 0 0% 9%;
@@ -47,21 +47,25 @@
   --destructive-foreground: 0 0% 100%;
   --border: 214 32% 91%;
   --input: 214 32% 91%;
-  --ring: 213 95% 13%;
+  --ring: 213.75 94.12% 13.33%;
   --card: 0 0% 100%;
   --card-foreground: 0 0% 9%;
   --popover: 0 0% 100%;
   --popover-foreground: 0 0% 9%;
   --radius: 0.5rem;
-  --pickem-navy: 213 95% 13%;
-  --pickem-green: 149 100% 49%;
+  /* Pick-Em brand navy #021e42 */
+  --pickem-navy: 213.75 94.12% 13.33%;
+  /* Pick-Em brand green #00f976 */
+  --pickem-green: 148.43 100% 48.82%;
   --pickem-blue: 198 76% 56%;
-  --pickem-navy-light: 213 60% 20%;
-  --pickem-navy-dark: 213 95% 8%;
+  --pickem-navy-light: 213.75 60% 20%;
+  --pickem-navy-dark: 213.75 94.12% 8%;
   --scrollbar-bg: #e5e5e5;
   --scrollbar-thumb: #a0a0a0;
-  /* Fallback until DashboardTopNav measures the fixed header; sync 96 with `MOBILE_DASHBOARD_HEADER_BODY_PX`. */
-  --pickem-dashboard-header-bottom: calc(96px + env(safe-area-inset-top, 0px));
+  /* SSR / pre-hydration fallback; `DashboardTopNav` sets the real value from measured header bottom. */
+  --pickem-dashboard-header-bottom: calc(152px + env(safe-area-inset-top, 0px));
+  /* Extra scroll padding below fixed header (mobile). Clears first content row from fixed nav + green strip. */
+  --pickem-dashboard-header-content-gap: 10px;
   scroll-behavior: smooth;
 }
 
@@ -100,13 +104,40 @@ body {
   font-family: var(--font-industry), system-ui, sans-serif;
 }
 
-/* Prevent iOS Safari from auto-zooming when tapping input fields.
-   iOS zooms in whenever an input's font-size is below 16px.
-   !important is required to override Tailwind text-xs/text-sm utilities. */
-input,
-select,
+/* iOS Safari: auto-zoom on focus when text inputs are smaller than ~16px.
+   Buttons and <select> are not affected — only text entry (see MDN / WebKit behavior).
+   Exempt `.pickem-stats-input-sm` (pagination) so it can match table header size. */
+input:not(.pickem-stats-input-sm),
 textarea {
   font-size: max(16px, 1em) !important;
+}
+
+/* Stats search only: 16px, normal case/tracking for typing (never use `.pickem-stats-filter` on this input) */
+input.pickem-stats-search {
+  font-size: 16px !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+/*
+ * Stats MatchupTable: `.pickem-matchup-filter-bar` sets font-size (matches `<th>`). Tailwind Preflight
+ * sets `select, button { font-size: 100% }`, so controls inherit that size — no per-control font-size needed.
+ * `.pickem-stats-filter` tames UA bold / font on native controls. Search uses `.pickem-stats-search` (16px).
+ */
+.pickem-stats-input-sm,
+.pickem-stats-filter {
+  font-family: var(--font-industry), system-ui, sans-serif !important;
+  font-weight: 500 !important;
+  font-synthesis: none !important;
+  letter-spacing: 0.05em !important;
+  line-height: 1.25 !important;
+  text-transform: uppercase !important;
+}
+
+select.pickem-stats-filter option {
+  font-family: var(--font-industry), system-ui, sans-serif !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
 }
 
 /* Universal Custom Scrollbar Styles */
@@ -146,11 +177,11 @@ textarea {
 /* Marketing landing: brand tokens (overrides semantic colors for Pick’Em palette). */
 .landing-page {
   --background: 0 0% 100%;
-  --foreground: 213 95% 13%;
-  --primary: 213 95% 13%;
+  --foreground: 213.75 94.12% 13.33%;
+  --primary: 213.75 94.12% 13.33%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 149 100% 49%;
-  --secondary-foreground: 213 95% 13%;
+  --secondary: 148.43 100% 48.82%;
+  --secondary-foreground: 213.75 94.12% 13.33%;
   --muted: 210 20% 94%;
   --muted-foreground: 213 30% 40%;
   --accent: 198 76% 56%;
@@ -159,17 +190,19 @@ textarea {
   --destructive-foreground: 0 0% 100%;
   --border: 210 20% 90%;
   --input: 210 20% 90%;
-  --ring: 149 100% 49%;
+  --ring: 148.43 100% 48.82%;
   --radius: 0.5rem;
   --card: 0 0% 100%;
-  --card-foreground: 213 95% 13%;
+  --card-foreground: 213.75 94.12% 13.33%;
   --popover: 0 0% 100%;
-  --popover-foreground: 213 95% 13%;
-  --pickem-navy: 213 95% 13%;
-  --pickem-green: 149 100% 49%;
+  --popover-foreground: 213.75 94.12% 13.33%;
+  /* Pick-Em brand navy #021e42 */
+  --pickem-navy: 213.75 94.12% 13.33%;
+  /* Pick-Em brand green #00f976 */
+  --pickem-green: 148.43 100% 48.82%;
   --pickem-blue: 198 76% 56%;
-  --pickem-navy-light: 213 60% 20%;
-  --pickem-navy-dark: 213 95% 8%;
+  --pickem-navy-light: 213.75 60% 20%;
+  --pickem-navy-dark: 213.75 94.12% 8%;
   --font-heading: var(--font-industry);
   --font-body: var(--font-industry);
   font-family: var(--font-industry), system-ui, sans-serif;
@@ -194,6 +227,33 @@ textarea {
     sans-serif;
 }
 
+/**
+ * Industry Ultra is loaded as a single master (weight 400). Browser `font-bold` / `font-black`
+ * synthesizes faux-bold and usually looks wrong. For emphasis, use this utility instead:
+ * micro text-shadow in the glyph color reads heavier without changing the font file.
+ * If the foundry ships a heavier cut or a variable font, prefer that over this trick long-term.
+ */
+.pickem-industry-ultra-emphasis {
+  font-family: var(--font-industry-ultra), var(--font-industry), system-ui, sans-serif;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: -0.02em;
+  text-shadow:
+    0.35px 0 0 currentColor,
+    -0.35px 0 0 currentColor,
+    0 0.3px 0 currentColor,
+    0 -0.3px 0 currentColor;
+}
+
+/**
+ * Hitmarker Condensed for numerals (and invite-style codes) that are not embedded in sentence copy.
+ */
+.pickem-numeric {
+  font-family: var(--font-hitmarker-condensed), var(--font-industry), system-ui,
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -215,6 +275,29 @@ textarea {
     background-position: center center;
     background-repeat: no-repeat;
     z-index: 1;
+}
+
+/* FAQ: collapsible Q&A — chevron (summary uses pr-10 in Tailwind) */
+.faq-html-accordion .faq-details > summary {
+  position: relative;
+}
+.faq-html-accordion .faq-details > summary::after {
+  content: "";
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  margin-top: -0.35em;
+  width: 0.45em;
+  height: 0.45em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.55;
+  transition: transform 0.2s ease;
+}
+.faq-html-accordion .faq-details[open] > summary::after {
+  transform: rotate(225deg);
+  margin-top: -0.15em;
 }
 
 

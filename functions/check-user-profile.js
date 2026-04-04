@@ -1,6 +1,6 @@
 /**
  * Check a user's profile picture and related data in Firestore.
- * Run: GOOGLE_APPLICATION_CREDENTIALS="path/to/key.json" node functions/check-user-profile.js <userId>
+ * Run: GOOGLE_APPLICATION_CREDENTIALS="path/to/key.json" node functions/check-user-profile.js <userId|username>
  */
 const admin = require('firebase-admin');
 
@@ -10,8 +10,36 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 const storage = admin.storage();
 
+/** Resolve CLI arg to a users/{uid} document id (UID or username lookup). */
+async function resolveUserDocId(arg) {
+  if (!arg) return 'wrM87GSjttNKpoVkJ1TFg0TqnUD3';
+  const byId = await db.doc(`users/${arg}`).get();
+  if (byId.exists) return arg;
+  const byUsername = await db
+    .collection('users')
+    .where('username', '==', arg)
+    .limit(1)
+    .get();
+  if (!byUsername.empty) return byUsername.docs[0].id;
+  const byUsernameLower = await db
+    .collection('users')
+    .where('username', '==', arg.toLowerCase())
+    .limit(1)
+    .get();
+  if (!byUsernameLower.empty) return byUsernameLower.docs[0].id;
+  return null;
+}
+
 async function main() {
-  const userId = process.argv[2] || 'wrM87GSjttNKpoVkJ1TFg0TqnUD3';
+  const arg = process.argv[2] || 'wrM87GSjttNKpoVkJ1TFg0TqnUD3';
+  let userId = await resolveUserDocId(arg);
+  if (!userId) {
+    console.error(`No user found for "${arg}" (not a UID and no matching username).`);
+    process.exit(1);
+  }
+  if (userId !== arg) {
+    console.log(`Resolved "${arg}" -> UID ${userId}`);
+  }
 
   console.log(`\nChecking user: ${userId}\n`);
 

@@ -19,6 +19,12 @@
 # misc
 .DS_Store
 *.pem
+.cursor/
+
+# local one-off exports (do not commit)
+/subscriber-emails.csv
+/picks-long-tampa_bay_2026*.xlsx
+/picks-long-tampa_bay_2026*.csv
 
 # debug
 npm-debug.log*

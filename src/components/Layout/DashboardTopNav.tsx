@@ -22,6 +22,26 @@ import {
 } from "./dashboardNavLinks";
 import { PICKEM_DASHBOARD_HEADER_BOTTOM_VAR } from "./dashboardMobileHeader";
 
+/** Strip search/hash and trailing slash so active nav matches reliably (e.g. `/dashboard/faq`). */
+function normalizePathname(pathname: string | null): string {
+  if (!pathname) return "/";
+  const noQuery = pathname.split("?")[0]?.split("#")[0] ?? pathname;
+  return noQuery.replace(/\/$/, "") || "/";
+}
+
+/** True when `pathname` matches this nav target (exact `/dashboard` for home; prefix for nested routes). */
+function isDashboardNavActive(pathname: string | null, href: string): boolean {
+  const n = normalizePathname(pathname);
+  const h = href.replace(/\/$/, "") || "/";
+  if (h === "/dashboard") {
+    return n === "/dashboard";
+  }
+  return n === h || n.startsWith(`${h}/`);
+}
+
+/** When true, desktop second row collapses as you scroll the main column (☰ reveals links). */
+const DESKTOP_NAV_HIDE_ON_SCROLL = false;
+
 /** Over this many px of main scroll, the inline nav row fully tucks away (☰ opens it). */
 const DESKTOP_NAV_HIDE_SCROLL_RANGE = 52;
 /** Upper bound for one wrapped row of links + padding (scroll-linked clip; generous for md wrap). */
@@ -117,12 +137,26 @@ function MobileSubscriptionBanner() {
   );
 }
 
-function NavLinkPill({ item, onNavigate }: { item: DashboardNavItem; onNavigate?: () => void }) {
+function NavLinkPill({
+  item,
+  onNavigate,
+  active,
+}: {
+  item: DashboardNavItem;
+  onNavigate?: () => void;
+  active?: boolean;
+}) {
   return (
     <Link
       href={item.href}
       onClick={onNavigate}
-      className="flex items-center gap-2 rounded-md px-2 py-2 text-gray-900 transition hover:bg-gray-100 dark:text-neutral-200 dark:hover:bg-white/10 md:py-1"
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex items-center gap-2 rounded-md px-2 py-2 text-gray-900 transition md:py-1 dark:text-neutral-200",
+        active
+          ? "border-l-[3px] border-[#00f976] bg-[#00f976]/10 pl-[5px] dark:bg-[#00f976]/15"
+          : "border-l-[3px] border-transparent hover:bg-gray-100 dark:hover:bg-white/10",
+      )}
     >
       {item.icon}
       <span className="font-azonix text-sm uppercase tracking-wide">{item.label}</span>
@@ -130,12 +164,26 @@ function NavLinkPill({ item, onNavigate }: { item: DashboardNavItem; onNavigate?
   );
 }
 
-function NavLinkInline({ item, onNavigate }: { item: DashboardNavItem; onNavigate?: () => void }) {
+function NavLinkInline({
+  item,
+  onNavigate,
+  active,
+}: {
+  item: DashboardNavItem;
+  onNavigate?: () => void;
+  active?: boolean;
+}) {
   return (
     <Link
       href={item.href}
       onClick={onNavigate}
-      className="font-azonix text-xs uppercase tracking-wide text-gray-800 transition hover:text-gray-950 dark:text-neutral-200 dark:hover:text-white sm:text-sm"
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "inline-block border-b-2 pb-0.5 font-azonix text-xs uppercase tracking-wide transition-colors sm:text-sm",
+        active
+          ? "border-[#00f976] text-gray-950 dark:text-white"
+          : "border-transparent text-gray-800 hover:text-gray-950 dark:text-neutral-200 dark:hover:text-white",
+      )}
     >
       {item.label}
     </Link>
@@ -144,15 +192,25 @@ function NavLinkInline({ item, onNavigate }: { item: DashboardNavItem; onNavigat
 
 /** Desktop second row: primary routes + FAQ inline (T&Cs stay in ☰ / mobile footer). */
 function DesktopMainNavRow({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = usePathname();
   return (
     <nav
-      className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-gray-100 px-4 pb-3 pt-2 dark:border-white/5"
+      className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 px-4 pb-3 pt-2"
       aria-label="Main"
     >
       {primaryDashboardLinks.map((item) => (
-        <NavLinkInline key={item.href} item={item} onNavigate={onNavigate} />
+        <NavLinkInline
+          key={item.href}
+          item={item}
+          onNavigate={onNavigate}
+          active={isDashboardNavActive(pathname, item.href)}
+        />
       ))}
-      <NavLinkInline item={faqDashboardLink} onNavigate={onNavigate} />
+      <NavLinkInline
+        item={faqDashboardLink}
+        onNavigate={onNavigate}
+        active={isDashboardNavActive(pathname, faqDashboardLink.href)}
+      />
     </nav>
   );
 }
@@ -164,28 +222,27 @@ export default function DashboardTopNav({
   const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [desktopCompact, setDesktopCompact] = useState(false);
+  const { loading: subscriptionLoading } = useSubscription();
   const mainScrollTop = useDashboardMainScrollTop();
   const reduceMotion = useReducedMotion();
   /** Slight shadow once the main column scrolls */
   const scrolled = mainScrollTop > 4;
   /** 0 = nav fully visible, 1 = fully tucked (same scroll source as page content). */
-  const desktopNavHideProgress = reduceMotion
-    ? mainScrollTop >= DESKTOP_NAV_HIDE_SCROLL_RANGE
-      ? 1
-      : 0
-    : Math.min(1, Math.max(0, mainScrollTop / DESKTOP_NAV_HIDE_SCROLL_RANGE));
+  const desktopNavHideProgress = !DESKTOP_NAV_HIDE_ON_SCROLL
+    ? 0
+    : reduceMotion
+      ? mainScrollTop >= DESKTOP_NAV_HIDE_SCROLL_RANGE
+        ? 1
+        : 0
+      : Math.min(1, Math.max(0, mainScrollTop / DESKTOP_NAV_HIDE_SCROLL_RANGE));
   /** Fully hidden — ☰ panel only; also dismiss overlay when crossing this threshold. */
-  const desktopNavCollapsed = mainScrollTop >= DESKTOP_NAV_HIDE_SCROLL_RANGE;
+  const desktopNavCollapsed =
+    DESKTOP_NAV_HIDE_ON_SCROLL &&
+    mainScrollTop >= DESKTOP_NAV_HIDE_SCROLL_RANGE;
 
   useEffect(() => {
     setMobileOpen(false);
-    setDesktopCompact(false);
   }, [pathname]);
-
-  useEffect(() => {
-    if (desktopNavCollapsed) setDesktopCompact(false);
-  }, [desktopNavCollapsed]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -201,34 +258,65 @@ export default function DashboardTopNav({
     if (!header) return;
 
     const syncHeaderBottomVar = () => {
-      const bottom = Math.ceil(header.getBoundingClientRect().bottom);
+      const raw = header.getBoundingClientRect().bottom;
+      if (!Number.isFinite(raw) || raw <= 0) return;
+      /** Match measured header bottom only — a px floor was forcing ~152px and leaving a white band under the nav. */
+      const px = Math.max(1, Math.ceil(raw));
       document.documentElement.style.setProperty(
         PICKEM_DASHBOARD_HEADER_BOTTOM_VAR,
-        `${bottom}px`,
+        `${px}px`,
       );
     };
 
     syncHeaderBottomVar();
+    requestAnimationFrame(() => syncHeaderBottomVar());
     const ro = new ResizeObserver(syncHeaderBottomVar);
     ro.observe(header);
     window.addEventListener("resize", syncHeaderBottomVar);
+    window.addEventListener("orientationchange", syncHeaderBottomVar);
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    vv?.addEventListener("resize", syncHeaderBottomVar);
+    vv?.addEventListener("scroll", syncHeaderBottomVar);
 
     return () => {
       ro.disconnect();
       window.removeEventListener("resize", syncHeaderBottomVar);
+      window.removeEventListener("orientationchange", syncHeaderBottomVar);
+      vv?.removeEventListener("resize", syncHeaderBottomVar);
+      vv?.removeEventListener("scroll", syncHeaderBottomVar);
       document.documentElement.style.removeProperty(PICKEM_DASHBOARD_HEADER_BOTTOM_VAR);
     };
   }, []);
+
+  /** Re-measure after subscription strip swaps loading → subscribed (height can change). */
+  useLayoutEffect(() => {
+    if (subscriptionLoading) return;
+    const header = headerRef.current;
+    if (!header) return;
+    const syncHeaderBottomVar = () => {
+      const raw = header.getBoundingClientRect().bottom;
+      if (!Number.isFinite(raw) || raw <= 0) return;
+      const px = Math.max(1, Math.ceil(raw));
+      document.documentElement.style.setProperty(
+        PICKEM_DASHBOARD_HEADER_BOTTOM_VAR,
+        `${px}px`,
+      );
+    };
+    syncHeaderBottomVar();
+    requestAnimationFrame(() => syncHeaderBottomVar());
+  }, [subscriptionLoading]);
 
   useLayoutEffect(() => {
     if (!mobileOpen) return;
     const header = headerRef.current;
     if (!header) return;
     const id = requestAnimationFrame(() => {
-      const bottom = Math.ceil(header.getBoundingClientRect().bottom);
+      const raw = header.getBoundingClientRect().bottom;
+      if (!Number.isFinite(raw) || raw <= 0) return;
+      const px = Math.max(1, Math.ceil(raw));
       document.documentElement.style.setProperty(
         PICKEM_DASHBOARD_HEADER_BOTTOM_VAR,
-        `${bottom}px`,
+        `${px}px`,
       );
     });
     return () => cancelAnimationFrame(id);
@@ -236,7 +324,6 @@ export default function DashboardTopNav({
 
   const closeAll = () => {
     setMobileOpen(false);
-    setDesktopCompact(false);
   };
 
   const mobileOverlayTop = `var(${PICKEM_DASHBOARD_HEADER_BOTTOM_VAR})`;
@@ -248,7 +335,7 @@ export default function DashboardTopNav({
     <header
       ref={headerRef}
       className={cn(
-        "z-50 w-full border-b-0 bg-white dark:bg-[#101010]",
+        "z-[60] w-full border-b-0 bg-white dark:bg-[#101010]",
         "md:border-b md:border-gray-200 dark:md:border-white/30",
         /* Mobile: safe area is a real block (not padding) so Safari samples neutral chrome above the green bar */
         "max-md:pt-0 fixed inset-x-0 top-0 md:relative md:pt-0",
@@ -293,102 +380,47 @@ export default function DashboardTopNav({
         </div>
       </div>
 
-      {/* —— Desktop: full header vs compact (menu) panel —— */}
+      {/* —— Desktop: profile | logo | utilities + main nav row —— */}
       <div className="hidden md:block">
-        {!desktopCompact ? (
-          <>
-            {/* Top row: (☰ when scrolled) + avatar | logo (true center) | utilities */}
-            <div className="grid min-h-[56px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-2">
-              <div className="flex items-center justify-start gap-2">
-                <button
-                  type="button"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-white/10"
-                  aria-label="Open navigation menu"
-                  onClick={() => setDesktopCompact(true)}
-                >
-                  <ImMenu2 className="h-6 w-6" />
-                </button>
-                <Link
-                  href="/dashboard/profile"
-                  className="shrink-0 rounded-lg p-0.5 hover:bg-gray-50 dark:hover:bg-white/5"
-                  aria-label={`Profile (${username})`}
-                >
-                  <div className="h-9 w-9 overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/10">
-                    <img
-                      src={avatarUrl}
-                      alt=""
-                      referrerPolicy="no-referrer"
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                </Link>
-              </div>
-              <Link href="/dashboard" className="justify-self-center">
-                <img
-                  src="/logo.svg"
-                  alt="Pickem Paintball"
-                  className="h-10 w-auto max-w-[min(240px,36vw)] dark:invert-0 invert"
-                />
-              </Link>
-              <div className="flex justify-end">
-                <HeaderUtilities />
-              </div>
-            </div>
-            {/* Second row: shrinks with scroll (content appears to pass behind the top bar). */}
-            <div
-              className="overflow-hidden"
-              style={{
-                maxHeight: `${(1 - desktopNavHideProgress) * DESKTOP_NAV_ROW_MAX_PX}px`,
-                opacity: 1 - desktopNavHideProgress * 0.35,
-                pointerEvents: desktopNavHideProgress >= 1 ? "none" : undefined,
-              }}
-              aria-hidden={desktopNavHideProgress >= 1}
+        <div className="grid min-h-[56px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-2">
+          <div className="flex items-center justify-start">
+            <Link
+              href="/dashboard/profile"
+              className="shrink-0 rounded-lg p-0.5 hover:bg-gray-50 dark:hover:bg-white/5"
+              aria-label={`Profile (${username})`}
             >
-              <DesktopMainNavRow />
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Match default desktop header: grid row + same logo; X replaces ☰ */}
-            <div className="grid min-h-[56px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-2">
-              <div className="flex items-center justify-start gap-2">
-                <button
-                  type="button"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-white/10"
-                  aria-label="Close navigation panel"
-                  onClick={() => setDesktopCompact(false)}
-                >
-                  <LuX className="h-6 w-6" />
-                </button>
-                <Link
-                  href="/dashboard/profile"
-                  className="shrink-0 rounded-lg p-0.5 hover:bg-gray-50 dark:hover:bg-white/5"
-                  aria-label={`Profile (${username})`}
-                >
-                  <div className="h-9 w-9 overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/10">
-                    <img
-                      src={avatarUrl}
-                      alt=""
-                      referrerPolicy="no-referrer"
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                </Link>
-              </div>
-              <Link href="/dashboard" className="justify-self-center">
+              <div className="h-9 w-9 overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/10">
                 <img
-                  src="/logo.svg"
-                  alt="Pickem Paintball"
-                  className="h-10 w-auto max-w-[min(240px,36vw)] dark:invert-0 invert"
+                  src={avatarUrl}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                  className="h-full w-full object-cover"
                 />
-              </Link>
-              <div className="flex justify-end">
-                <HeaderUtilities />
               </div>
-            </div>
-            <DesktopMainNavRow onNavigate={closeAll} />
-          </>
-        )}
+            </Link>
+          </div>
+          <Link href="/dashboard" className="justify-self-center">
+            <img
+              src="/logo.svg"
+              alt="Pickem Paintball"
+              className="h-10 w-auto max-w-[min(240px,36vw)] dark:invert-0 invert"
+            />
+          </Link>
+          <div className="flex justify-end">
+            <HeaderUtilities />
+          </div>
+        </div>
+        <div
+          className="overflow-hidden"
+          style={{
+            maxHeight: `${(1 - desktopNavHideProgress) * DESKTOP_NAV_ROW_MAX_PX}px`,
+            opacity: 1 - desktopNavHideProgress * 0.35,
+            pointerEvents: desktopNavHideProgress >= 1 ? "none" : undefined,
+          }}
+          aria-hidden={desktopNavHideProgress >= 1}
+        >
+          <DesktopMainNavRow />
+        </div>
       </div>
 
       {/* —— Mobile: full-height panel under fixed header; slides in from the left —— */}
@@ -442,7 +474,12 @@ export default function DashboardTopNav({
                   </Link>
                   <nav className="flex flex-col" aria-label="Main navigation">
                     {primaryDashboardLinks.map((item) => (
-                      <NavLinkPill key={item.href} item={item} onNavigate={closeAll} />
+                      <NavLinkPill
+                        key={item.href}
+                        item={item}
+                        onNavigate={closeAll}
+                        active={isDashboardNavActive(pathname, item.href)}
+                      />
                     ))}
                   </nav>
                 </div>
@@ -453,7 +490,12 @@ export default function DashboardTopNav({
                 >
                   <nav className="flex flex-col">
                     {cmsDashboardLinks.map((item) => (
-                      <NavLinkPill key={item.href} item={item} onNavigate={closeAll} />
+                      <NavLinkPill
+                        key={item.href}
+                        item={item}
+                        onNavigate={closeAll}
+                        active={isDashboardNavActive(pathname, item.href)}
+                      />
                     ))}
                     <button
                       type="button"

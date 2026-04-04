@@ -2,7 +2,7 @@ const MissionStatement = () => {
   return (
     <section
       id="mission"
-      className="relative scroll-mt-20 bg-background"
+      className="relative scroll-mt-20 bg-background md:scroll-mt-24"
     >
       <div className="relative z-10 py-14 md:py-20">
         <div className="container mx-auto max-w-3xl px-4 text-center md:px-6">

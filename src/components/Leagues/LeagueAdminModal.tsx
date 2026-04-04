@@ -539,7 +539,7 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Invite Code</p>
                     <div className="flex items-center justify-center gap-2">
                       <div className="bg-gray-300 dark:bg-gray-700 px-4 py-2 rounded-lg">
-                        <span className="text-xl font-mono font-bold text-gray-900 dark:text-white tracking-wider">
+                        <span className="pickem-numeric text-xl font-bold text-gray-900 dark:text-white tracking-wider">
                           {league.inviteCode}
                         </span>
                       </div>

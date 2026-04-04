@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Fragment, useMemo, useCallback } from "react";
-import { db, storage } from "@/src/lib/firebaseClient";
+import { db } from "@/src/lib/firebaseClient";
 import {
   collection,
   query,
@@ -13,14 +13,26 @@ import {
   onSnapshot,
   QueryConstraint,
 } from "firebase/firestore";
-import { getDownloadURL, ref } from "firebase/storage";
 import { motion, AnimatePresence } from "framer-motion";
-import { ProgressiveBlur } from "@/src/components/ui/progressive-blur";
+import Link from "next/link";
 import { FaChevronDown, FaChevronUp, FaUser, FaSearch, FaTimes, FaTrophy } from "react-icons/fa";
 import { getAuth } from "firebase/auth";
 import { LeaderboardSkeleton } from "@/src/components/LoadingSkeleton";
 import { ErrorBoundaryWrapper } from "@/src/components/ErrorBoundaryWrapper";
-import { getFirebaseStorageUrl } from "@/src/lib/storage";
+import {
+  invalidateProfilePictureCacheEntry,
+  resolveProfilePictureToUrl,
+  subscribeProfileImagesRefresh,
+} from "@/src/lib/resolveProfilePictureUrl";
+
+/** Same default as dashboard top bar / profile when no photo. */
+const LEADERBOARD_DEFAULT_AVATAR_URL =
+  "https://cdn-icons-png.freepik.com/256/14024/14024658.png?semt=ais_hybrid";
+import { cn } from "@/src/lib/utils";
+import { individualEventDisplayName } from "@/src/lib/eventDisplayName";
+import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanner";
+import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
+import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dashboardEventBannerShared";
 import LeagueSelector from "../../../components/Leagues/LeagueSelector";
 import CreateLeagueModal from "../../../components/Leagues/CreateLeagueModal";
 import JoinLeagueModal from "../../../components/Leagues/JoinLeagueModal";
@@ -34,6 +46,12 @@ interface LiveEvent {
   year?: string;
   lockDate?: any;
   event_logo?: string;
+  brand_color?: string | null;
+  startDate?: string;
+  endDate?: string;
+  venue?: string;
+  city?: string;
+  eventNumber?: string;
   points?: number;
   mvp?: string;
 }
@@ -68,6 +86,39 @@ interface UserDetails {
   captain: string | null;
 }
 
+/** Same labels as stats page event nav (Location - YY, uppercase). */
+function leaderboardNavLabel(event: LiveEvent): string {
+  return individualEventDisplayName(event).toUpperCase();
+}
+
+function getPickLockSeconds(ev: LiveEvent): number {
+  const ld = ev.lockDate;
+  if (ld == null) return Number.MAX_SAFE_INTEGER;
+  if (
+    typeof ld === "object" &&
+    ld !== null &&
+    "seconds" in ld &&
+    typeof (ld as { seconds: number }).seconds === "number"
+  ) {
+    return (ld as { seconds: number }).seconds;
+  }
+  if (ld instanceof Date) return Math.floor(ld.getTime() / 1000);
+  return Number.MAX_SAFE_INTEGER;
+}
+
+function navPickLockDesc(a: LiveEvent, b: LiveEvent): number {
+  const key = (ev: LiveEvent) => {
+    const s = getPickLockSeconds(ev);
+    return s === Number.MAX_SAFE_INTEGER ? Number.NEGATIVE_INFINITY : s;
+  };
+  return key(b) - key(a);
+}
+
+const STATS_NAV_BTN =
+  "shrink-0 whitespace-nowrap rounded-md border-2 border-transparent bg-white px-3 py-2 font-azonix text-[10px] font-bold uppercase tracking-wide text-neutral-900 shadow-sm transition hover:bg-neutral-50 active:scale-[0.98] dark:bg-stone-800 dark:text-white dark:hover:bg-stone-700 md:text-[11px]";
+const STATS_NAV_BTN_ACTIVE = "border-neutral-900 dark:border-white";
+const STATS_NAV_OVERALL_ACCENT_BAR =
+  "inline-block h-[1em] w-[3px] shrink-0 self-center rounded-[1px] bg-[#00f976]";
 
 // Cache for live event to avoid repeated queries
 const LIVE_EVENT_CACHE_KEY = 'leaderboard_live_event';
@@ -94,35 +145,108 @@ const setLiveEventCache = (event: LiveEvent) => {
   } catch { }
 };
 
-// Cache for profile picture download URLs to avoid repeated Storage API calls
-const profilePictureUrlCache = new Map<string, string>();
+/** Leaderboard avatars: resolve with resolveProfilePictureToUrl (multi-bucket + path variants). */
+function LeaderboardProfileAvatar({
+  storagePath,
+  userId,
+  displayName,
+  className,
+}: {
+  storagePath?: string;
+  userId?: string;
+  displayName: string;
+  className: string;
+}) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [refreshEpoch, setRefreshEpoch] = useState(0);
+  const imgErrorRetries = useRef(0);
 
-// Helper to get download URL with caching
-const getProfilePictureUrl = async (storagePath: string): Promise<string | undefined> => {
-  const normalizedPath = typeof storagePath === "string" ? storagePath.trim() : "";
-  if (!normalizedPath) return undefined;
+  useEffect(() => {
+    return subscribeProfileImagesRefresh(() => setRefreshEpoch((n) => n + 1));
+  }, []);
 
-  // If it's already a URL (including protocol-relative) or data URI, return as-is
-  if (/^(https?:)?\/\//i.test(normalizedPath) || normalizedPath.startsWith("data:")) {
-    return normalizedPath.startsWith("//") ? `https:${normalizedPath}` : normalizedPath;
+  useEffect(() => {
+    imgErrorRetries.current = 0;
+  }, [storagePath, userId]);
+
+  useEffect(() => {
+    setFailed(false);
+    setDone(false);
+    setSrc(null);
+
+    const p = storagePath?.trim();
+    if (!p && !userId) {
+      setDone(true);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const url = await resolveProfilePictureToUrl(p || null, { userId });
+        if (!cancelled) setSrc(url ?? null);
+      } catch {
+        if (!cancelled) setSrc(null);
+      } finally {
+        if (!cancelled) setDone(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [storagePath, userId, refreshEpoch]);
+
+  const showDefaultAvatar = failed || (done && !src);
+
+  if (showDefaultAvatar) {
+    return (
+      <img
+        src={LEADERBOARD_DEFAULT_AVATAR_URL}
+        alt={displayName}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        className={cn(className, "object-cover bg-gray-200 dark:bg-gray-700")}
+      />
+    );
   }
 
-  // Check cache first
-  if (profilePictureUrlCache.has(normalizedPath)) {
-    return profilePictureUrlCache.get(normalizedPath);
+  if (!done || !src) {
+    return (
+      <div
+        className={cn(
+          className,
+          "flex items-center justify-center bg-gray-300/80 dark:bg-gray-600/80 animate-pulse",
+        )}
+        aria-hidden
+      >
+        <FaUser className="shrink-0 text-gray-500 dark:text-gray-400 text-lg opacity-70" />
+      </div>
+    );
   }
 
-  try {
-    const storageRef = ref(storage, normalizedPath);
-    const url = await getDownloadURL(storageRef);
-    // Cache the URL
-    profilePictureUrlCache.set(normalizedPath, url);
-    return url;
-  } catch {
-    // Silently ignore if image doesn't exist
-    return undefined;
-  }
-};
+  return (
+    <img
+      src={src}
+      alt={displayName}
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      className={className}
+      onError={() => {
+        const p = storagePath?.trim();
+        invalidateProfilePictureCacheEntry(p || null, { userId });
+        if (imgErrorRetries.current < 2) {
+          imgErrorRetries.current += 1;
+          setRefreshEpoch((n) => n + 1);
+        } else {
+          setFailed(true);
+        }
+      }}
+    />
+  );
+}
 
 // Display name hierarchy: username → firstName+lastName → name → displayName → fallback
 const resolveDisplayName = (userDoc: { get: (field: string) => any }): string =>
@@ -179,69 +303,116 @@ function LeaderboardNewContent() {
   const PAGE_SIZES = [10, 20, 50];
   const MAX_RETRIES = 3;
 
-  // Event Card Component
-  let backgroundIndex = 0;
-  function EventCard({ event, isSelected, onClick }: { event: LiveEvent; isSelected: boolean; onClick: () => void }) {
-    const backgroundSrc = `/background${backgroundIndex}.jpg`;
-    backgroundIndex = (backgroundIndex + 1) % 3;
-
-    return (
-      <article
-        onClick={onClick}
-        className={`relative flex flex-col cursor-pointer md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${isSelected ? "border-4 rounded-xl border-blue-500 dark:border-white" : ""
-          }`}
-      >
-        <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg logographics">
-          {event.event_logo ? (
-            <>
-              <div className="absolute inset-0 bg-white dark:bg-black rounded-lg"></div>
-              <img
-                src={event.event_logo}
-                alt={`${event.name} logo`}
-                className="absolute inset-0 w-full h-full object-scale-down rounded-lg"
-              />
-            </>
-          ) : (
-            <>
-              <img
-                src={backgroundSrc}
-                alt="Event card background"
-                className="absolute inset-0 w-full h-full object-cover rounded-lg"
-              />
-              <div className="relative flex flex-col items-center justify-center p-4 text-white overflow-auto">
-                {event.name && (
-                  <div
-                    className="text-center font-azonix"
-                    style={{
-                      fontSize: "clamp(0.8rem, 2vw, 1.5rem)",
-                      lineHeight: "1.2",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "wrap",
-                    }}
-                  >
-                    {event.name}
-                  </div>
-                )}
-                {event.status && (
-                  <div
-                    className={`text-center font-azonix ${event.status === "live" ? "text-red-500" : "text-gray-300"
-                      }`}
-                    style={{
-                      fontSize: "clamp(0.5rem, 1.5vw, 1rem)",
-                      lineHeight: "1.2",
-                    }}
-                  >
-                    {event.status}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </article>
+  const years = useMemo((): string[] => {
+    const uniqueYears = new Set(
+      allEvents
+        .map((event) => event.year)
+        .filter((y): y is string => typeof y === "string" && y !== "2024"),
     );
-  }
+    return [
+      "All",
+      ...Array.from(uniqueYears).sort(
+        (a, b) => parseInt(b ? b : "1") - parseInt(a ? a : "1"),
+      ),
+    ];
+  }, [allEvents]);
+
+  const filteredEvents = useMemo(() => {
+    const filtered =
+      selectedYear === "All"
+        ? allEvents
+        : allEvents.filter((event) => event.year === selectedYear);
+    return filtered.filter((event) => event.year !== "2024");
+  }, [allEvents, selectedYear]);
+
+  const eventNavSecondRow = useMemo(() => {
+    const nonSeason = filteredEvents.filter((e) => e.status !== "season");
+
+    if (selectedYear === "All") {
+      const yearOptions = years.filter((y) => y !== "All");
+      const byYear = new Map<string, LiveEvent[]>();
+      for (const e of nonSeason) {
+        const y = e.year ?? "Unknown";
+        if (y === "2024") continue;
+        if (!byYear.has(y)) byYear.set(y, []);
+        byYear.get(y)!.push(e);
+      }
+      for (const arr of Array.from(byYear.values())) {
+        arr.sort(navPickLockDesc);
+      }
+
+      const out: (
+        | { kind: "season"; year: string; label: string }
+        | { kind: "event"; event: LiveEvent }
+      )[] = [];
+      for (const y of yearOptions) {
+        out.push({ kind: "season", year: y, label: `${y} OVERALL` });
+        for (const ev of byYear.get(y) ?? []) {
+          out.push({ kind: "event", event: ev });
+        }
+      }
+      return out;
+    }
+
+    const evs = [...nonSeason].sort(navPickLockDesc);
+    return [
+      {
+        kind: "season" as const,
+        year: selectedYear,
+        label: `${selectedYear} OVERALL`,
+      },
+      ...evs.map((e) => ({ kind: "event" as const, event: e })),
+    ];
+  }, [years, selectedYear, filteredEvents]);
+
+  const handleYearSelect = useCallback((year: string) => {
+    setSelectedYear(year);
+    setIsSeasonView(false);
+    setSelectedSeason(null);
+    if (year === "All") {
+      const ev = allEvents.find((e) => e.status === "live") ?? allEvents[0] ?? null;
+      setLiveEvent(ev);
+    } else {
+      const first = allEvents.find(
+        (e) => String(e.year) === String(year) && e.year !== "2024",
+      );
+      setLiveEvent(first ?? null);
+    }
+    setPage(1);
+    setUserEventsMap(new Map());
+  }, [allEvents]);
+
+  const handleEventSelect = useCallback(
+    (event: LiveEvent) => {
+      if (liveEvent?.id === event.id && !isSeasonView) return;
+      setLiveEvent(event);
+      setIsSeasonView(false);
+      setSelectedSeason(null);
+      setPage(1);
+      setUserEventsMap(new Map());
+    },
+    [liveEvent?.id, isSeasonView],
+  );
+
+  const selectSeasonOverall = useCallback(
+    (year: string) => {
+      if (isSeasonView && selectedSeason === year) return;
+      setLiveEvent(null);
+      setIsSeasonView(true);
+      setSelectedSeason(year);
+      setPage(1);
+      setUserEventsMap(new Map());
+    },
+    [isSeasonView, selectedSeason],
+  );
+
+  /**
+   * Countdown banner always promotes the next/live event — not the leaderboard tab selection.
+   */
+  const bannerEvent = useMemo(() => {
+    if (allEvents.length === 0) return null;
+    return allEvents.find((e) => e.status === "live") ?? allEvents[0] ?? null;
+  }, [allEvents]);
 
   const auth = getAuth();
   const currentUserId = auth.currentUser?.uid;
@@ -258,7 +429,7 @@ function LeaderboardNewContent() {
           const id = doc.id;
           const yearFromId = id.split("_").pop() ?? new Date().getFullYear().toString();
 
-          const event = {
+          const event: LiveEvent = {
             id,
             name: doc.get("name") || "Unnamed Event",
             status: doc.get("status") || "archived",
@@ -266,6 +437,13 @@ function LeaderboardNewContent() {
             year: doc.get("year") || yearFromId,
             lockDate: doc.get("lockDate") || null,
             event_logo: doc.get("event_logo") || undefined,
+            brand_color: doc.get("brand_color") ?? null,
+            startDate: doc.get("startDate") || "",
+            endDate: doc.get("endDate") || "",
+            venue: doc.get("venue") || "",
+            city: doc.get("city") || "",
+            eventNumber:
+              doc.get("eventNumber") != null ? String(doc.get("eventNumber")) : undefined,
           };
 
           return event;
@@ -530,6 +708,41 @@ function LeaderboardNewContent() {
       cancelled = true;
     };
   }, [users]);
+
+  // Merge profilePicture from users/{id} when leaderboard summary is missing or stale (patrick23-style cases).
+  const enrichAvatarIdsKey = useMemo(() => users.map((u) => u.id).join(","), [users]);
+
+  useEffect(() => {
+    if (!enrichAvatarIdsKey) return;
+    const ids = enrichAvatarIdsKey.split(",");
+    let cancelled = false;
+    Promise.all(ids.map((id) => getDoc(doc(db, "users", id))))
+      .then((docs) => {
+        if (cancelled) return;
+        setUsers((prev) => {
+          if (prev.length !== ids.length) return prev;
+          for (let i = 0; i < ids.length; i++) {
+            if (prev[i]?.id !== ids[i]) return prev;
+          }
+          let changed = false;
+          const next = prev.map((u, i) => {
+            const d = docs[i];
+            if (!d?.exists()) return u;
+            const fresh = d.get("profilePicture");
+            if (typeof fresh !== "string" || !fresh.trim()) return u;
+            const t = fresh.trim();
+            if (t === (u.profilePicture || "").trim()) return u;
+            changed = true;
+            return { ...u, profilePicture: t };
+          });
+          return changed ? next : prev;
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [enrichAvatarIdsKey]);
 
   // Fetch live league membership directly from the leagues collection.
   // This ensures the filter is always accurate regardless of when the
@@ -976,130 +1189,96 @@ function LeaderboardNewContent() {
 
   return (
     <div className="min-h-[220px] bg-gray-50 p-2 pb-10 pt-0 text-gray-900 dark:bg-gray-900 dark:text-white sm:p-4 sm:pb-4 sm:pt-0">
-      {/* Event Header */}
-      <header className="flex relative flex-col items-start px-6 pt-32 w-full text-8xl leading-none text-white min-h-[250px] max-md:px-5 max-md:pt-24 max-md:max-w-full max-md:text-4xl">
-        <div
-          className="absolute inset-0 top-0 brightness-110"
-          style={{
-            backgroundImage: "url('/stats-center.webp')",
-            backgroundSize: "cover",
-            backgroundPosition: "0 40%",
-            backgroundRepeat: "no-repeat",
-          }}
-        />
-        <div className="absolute inset-0 shadow-black shadow-[inset_0px_4px_50px_0px_] pointer-events-none"></div>
-        <ProgressiveBlur
-          className="pointer-events-none absolute bottom-0 left-0 h-[50%] w-full"
-          blurIntensity={1}
-        />
-        <div className="absolute inset-0 bg-black/45 pointer-events-none"></div>
-
-        <h1 className="relative font-azonix max-w-full m-auto md:text-7xl text-4xl">
-          Leaderboard
-        </h1>
-      </header>
-
-      {/* Year Filter */}
-      <div className="flex justify-center px-4 mt-4">
-        <div className="flex flex-wrap gap-2 justify-center">
-          {useMemo(() => {
-            const uniqueYears = new Set(allEvents.map((event) => event.year).filter(year => year !== "2024"));
-            return [
-              "All",
-              ...Array.from(uniqueYears).sort(
-                (a, b) => parseInt(b || "0") - parseInt(a || "0")
-              ),
-            ];
-          }, [allEvents]).map((year) => (
-            <button
-              key={year}
-              onClick={() => setSelectedYear(year || "All")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${selectedYear === year
-                ? "bg-gray-900 dark:bg-white text-white dark:text-black"
-                : "bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
-                }`}
+      {bannerEvent ? (
+        <EventCountdownBanner
+          variant="dashboard"
+          mobileBlackBarFullBleed
+          event={eventRecordToBannerModel(
+            bannerEvent as unknown as Record<string, unknown> & { id: string },
+          )}
+          showBudget={false}
+          desktopCta={
+            <Link
+              href="/dashboard/pick-em"
+              className={DASHBOARD_BANNER_PICK_CTA_CLASS}
+              style={{ backgroundColor: bannerEvent.brand_color || "#b91c1c" }}
             >
-              {year}
-            </button>
-          ))}
-        </div>
-      </div>
+              Pick your team &gt;
+            </Link>
+          }
+        />
+      ) : null}
 
-      {/* Events Carousel */}
-      <div className="px-4 mt-6">
-        <div className="bg-gray-100/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl p-4">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white font-azonix mb-4">Select Event</h3>
-          <div className="flex flex-row overflow-x-auto gap-4 items-center">
-            {/* Season Cards - Generate dynamically for each year based on selected year filter */}
-            {useMemo(() => {
-              // Get unique years from all events (excluding 2024)
-              const allUniqueYears = Array.from(new Set(allEvents.map((event) => event.year).filter(year => year !== "2024")));
-
-              // Filter years based on selectedYear
-              const yearsToShow = selectedYear === "All"
-                ? allUniqueYears
-                : allUniqueYears.filter(year => year === selectedYear);
-
-              return yearsToShow.sort((a, b) => parseInt(b || "0") - parseInt(a || "0")).map((year) => (
-                <article
-                  key={`season-${year}`}
-                  onClick={() => {
-                    setIsSeasonView(true);
-                    setSelectedSeason(year || '2025');
-                    setLiveEvent(null);
-                    setPage(1);
-                    setUserEventsMap(new Map());
-                  }}
-                  className={`relative flex flex-col cursor-pointer md:w-[200px] shrink-0 grow-0 basis-auto md:h-[170px] w-[120px] h-[130px] ${isSeasonView && selectedSeason === year ? "border-4 rounded-xl border-blue-500 dark:border-white" : ""
-                    }`}
-                >
-                  <div className="relative flex flex-col justify-center items-center w-full h-full overflow-hidden rounded-lg logographics">
-                    <img
-                      src="/background0.jpg"
-                      alt={`Season ${year}`}
-                      className="absolute inset-0 w-full h-full object-cover rounded-lg"
-                    />
-                    <div className="relative flex flex-col items-center justify-center p-4 text-white overflow-auto">
-                      <div
-                        className="text-center font-azonix"
-                        style={{
-                          fontSize: "clamp(0.8rem, 2vw, 1.5rem)",
-                          lineHeight: "1.2",
-                        }}
-                      >
-                        Season {year}
-                      </div>
-                      <div
-                        className="text-center font-azonix text-yellow-400"
-                        style={{
-                          fontSize: "clamp(0.5rem, 1.5vw, 1rem)",
-                          lineHeight: "1.2",
-                        }}
-                      >
-                        All Events
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              ));
-            }, [allEvents, isSeasonView, selectedSeason, selectedYear])}
-
-            {allEvents.filter(event => selectedYear === "All" || event.year === selectedYear).map((event) => (
-              <EventCard
-                key={event.id}
-                event={event}
-                isSelected={!isSeasonView && liveEvent?.id === event.id}
-                onClick={() => {
-                  setIsSeasonView(false);
-                  setSelectedSeason(null);
-                  setLiveEvent(event);
-                  setPage(1);
-                }}
-              />
+      <section
+        className="mx-auto mt-2 max-w-5xl px-4 pt-4"
+        aria-label="Leaderboard navigation"
+      >
+        <div className="rounded-xl bg-neutral-100/90 p-3 dark:bg-stone-900/90">
+          <div
+            className="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            role="toolbar"
+            aria-label="Filter by year"
+          >
+            {years.map((year) => (
+              <button
+                key={year}
+                type="button"
+                onClick={() => handleYearSelect(year)}
+                className={cn(STATS_NAV_BTN, selectedYear === year && STATS_NAV_BTN_ACTIVE)}
+              >
+                {year === "All" ? "ALL" : year}
+              </button>
             ))}
           </div>
+          <div
+            className="mt-2 flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            role="toolbar"
+            aria-label={
+              selectedYear === "All"
+                ? "Season totals and all events"
+                : `Events for ${selectedYear}`
+            }
+          >
+            {eventNavSecondRow.map((item) => {
+              if (item.kind === "season") {
+                const seasonSelected =
+                  isSeasonView && selectedSeason === item.year;
+                return (
+                  <button
+                    key={`season-${item.year}`}
+                    type="button"
+                    onClick={() => selectSeasonOverall(item.year)}
+                    className={cn(
+                      STATS_NAV_BTN,
+                      "flex items-center gap-2",
+                      seasonSelected && STATS_NAV_BTN_ACTIVE,
+                    )}
+                  >
+                    <span className={STATS_NAV_OVERALL_ACCENT_BAR} aria-hidden />
+                    {item.label}
+                  </button>
+                );
+              }
+              const ev = item.event;
+              const eventSelected =
+                liveEvent?.id === ev.id && !isSeasonView;
+              return (
+                <button
+                  key={ev.id}
+                  type="button"
+                  onClick={() => handleEventSelect(ev)}
+                  className={cn(
+                    STATS_NAV_BTN,
+                    eventSelected && STATS_NAV_BTN_ACTIVE,
+                  )}
+                >
+                  {leaderboardNavLabel(ev)}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      </section>
 
       <div className="mb-4 text-center pt-3 sm:pt-7">
         {/* {eventLoading ? (
@@ -1141,18 +1320,12 @@ function LeaderboardNewContent() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <div className="relative">
-                    {currentUserData.profilePicture ? (
-                      <img
-                        src={getFirebaseStorageUrl(currentUserData.profilePicture)}
-                        alt="Profile"
-                        referrerPolicy="no-referrer"
-                        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-yellow-400"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center border-2 border-yellow-400">
-                        <FaUser className="text-xl text-gray-500 dark:text-gray-400" />
-                      </div>
-                    )}
+                    <LeaderboardProfileAvatar
+                      userId={currentUserId}
+                      storagePath={currentUserData.profilePicture}
+                      displayName="Profile"
+                      className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-yellow-400"
+                    />
                     {liveEvent && currentUserData[`${liveEvent.id}Rank`] && (
                       <div className="absolute -top-1 -right-1 bg-yellow-500 text-black w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs">
                         #{currentUserData[`${liveEvent.id}Rank`]}
@@ -1228,7 +1401,7 @@ function LeaderboardNewContent() {
                               <div className="space-y-1">
                                 <div className="text-gray-600 dark:text-gray-400">Score: <span className="text-green-600 dark:text-green-400 font-medium">{pick.points}</span></div>
                                 <div className="text-gray-600 dark:text-gray-400">Cost: <span className="text-gray-900 dark:text-white">${pick.cost}</span></div>
-                                <div className="text-gray-600 dark:text-gray-400">ROI: <span className="text-yellow-600 dark:text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(2)}</span></div>
+                                <div className="text-gray-600 dark:text-gray-400">ROI: <span className="pickem-numeric text-yellow-600 dark:text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(2)}</span></div>
                               </div>
                             </div>
                           </div>
@@ -1393,27 +1566,12 @@ function LeaderboardNewContent() {
 
                       <td className="px-2 py-2 whitespace-nowrap">
                         <div className="flex items-center">
-                          {user.profilePicture ? (
-                            <img
-                              src={getFirebaseStorageUrl(user.profilePicture)}
-                              alt={user.displayName}
-                              loading="lazy"
-                              referrerPolicy="no-referrer"
-                              className="w-8 h-8 rounded-full object-cover mr-2"
-                              onError={(e) => {
-                                e.currentTarget.onerror = null;
-                                setUsers((prev) =>
-                                  prev.map((u) =>
-                                    u.id === user.id ? { ...u, profilePicture: undefined } : u
-                                  )
-                                );
-                              }}
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center mr-2">
-                              <FaUser className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-sm" />
-                            </div>
-                          )}
+                          <LeaderboardProfileAvatar
+                            userId={user.id}
+                            storagePath={user.profilePicture}
+                            displayName={user.displayName}
+                            className="w-8 h-8 rounded-full object-cover mr-2"
+                          />
                           <div className="flex items-center gap-0 max-w-[100px] sm:max-w-[150px]">
                             <span className="text-xs sm:text-sm truncate text-gray-900 dark:text-white">
                               {user.displayName}
@@ -1567,7 +1725,7 @@ function LeaderboardNewContent() {
                                                           <div className="space-y-1">
                                                             <div className="text-gray-600 dark:text-gray-400">Score: <span className="text-green-600 dark:text-green-400 font-medium">{pick.points}</span></div>
                                                             <div className="text-gray-600 dark:text-gray-400">Cost: <span className="text-gray-900 dark:text-white">${pick.cost}</span></div>
-                                                            <div className="text-gray-600 dark:text-gray-400">ROI: <span className="text-yellow-600 dark:text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(0)}</span></div>
+                                                            <div className="text-gray-600 dark:text-gray-400">ROI: <span className="pickem-numeric text-yellow-600 dark:text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(0)}</span></div>
                                                           </div>
                                                         </div>
                                                       </div>
@@ -1616,7 +1774,7 @@ function LeaderboardNewContent() {
                                           <div className="space-y-1">
                                             <div className="text-gray-600 dark:text-gray-400">Score: <span className="text-green-600 dark:text-green-400 font-medium">{pick.points}</span></div>
                                             <div className="text-gray-600 dark:text-gray-400">Cost: <span className="text-gray-900 dark:text-white">${pick.cost}</span></div>
-                                            <div className="text-gray-600 dark:text-gray-400">ROI: <span className="text-yellow-600 dark:text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(0)}</span></div>
+                                            <div className="text-gray-600 dark:text-gray-400">ROI: <span className="pickem-numeric text-yellow-600 dark:text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(0)}</span></div>
                                           </div>
                                         </div>
                                       </div>

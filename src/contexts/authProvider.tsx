@@ -6,6 +6,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import {
   onAuthStateChanged,
   User,
+  UserCredential,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
@@ -15,6 +16,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth, db } from "../lib/firebaseClient";
+import { devAllowUnverifiedLogin } from "../lib/firebasePublicEnv";
 import { doc, getDoc } from "firebase/firestore";
 
 interface AuthContextType {
@@ -24,7 +26,7 @@ interface AuthContextType {
   loading: boolean;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   registerWithEmail: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: () => Promise<UserCredential>;
   logout: () => Promise<void>;
 }
 
@@ -62,7 +64,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    if (!user.emailVerified) {
+    if (!user.emailVerified && !devAllowUnverifiedLogin()) {
       await signOut(auth); // Sign out unverified user
       throw new Error("Please verify your email before logging in.");
     }
@@ -124,6 +126,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (err) {
       console.error("Error syncing displayName from Firestore:", err);
     }
+    return result;
   };
 
   const logout = async () => {

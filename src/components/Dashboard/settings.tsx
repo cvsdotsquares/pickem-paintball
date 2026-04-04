@@ -5,6 +5,11 @@ import { TextField } from "../ui/TextField";
 import Alert from "../ui/Alert";
 import { auth, db } from "@/src/lib/firebaseClient";
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+import {
+  forceRefreshAllProfileImages,
+  resolveProfilePictureToUrl,
+  subscribeProfileImagesRefresh,
+} from "@/src/lib/resolveProfilePictureUrl";
 
 // Import the auth functions
 import {
@@ -16,14 +21,21 @@ import {
   updateFirestoreName,
 } from "@/src/lib/auth";
 import {
-  profileInSectionDivider,
   profileSectionBody,
   profileSectionTitle,
 } from "@/src/components/Layout/profileSectionTokens";
 
 const usernameRegex = /^[a-zA-Z0-9_]+$/;
 
+/** Same fallback as profile page / top bar when no photo is set. */
+const DEFAULT_PROFILE_PLACEHOLDER =
+  "https://cdn-icons-png.freepik.com/256/14024/14024658.png?semt=ais_hybrid";
+
 function AccountSettings() {
+  const [profilePictureUrl, setProfilePictureUrl] =
+    useState<string>(DEFAULT_PROFILE_PLACEHOLDER);
+  const [profileImageRefreshEpoch, setProfileImageRefreshEpoch] = useState(0);
+
   // States for profile info
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -52,6 +64,38 @@ function AccountSettings() {
       setIsEmailPasswordAuth(providerId === "password");
     }
   }, []);
+
+  useEffect(() => {
+    return subscribeProfileImagesRefresh(() =>
+      setProfileImageRefreshEpoch((n) => n + 1),
+    );
+  }, []);
+
+  /** Resolved display URL for the avatar (matches profile sidebar + top nav). */
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+
+    let cancelled = false;
+    (async () => {
+      const userDocRef = doc(db, "users", uid);
+      const userDoc = await getDoc(userDocRef);
+      if (!userDoc.exists() || cancelled) {
+        setProfilePictureUrl(DEFAULT_PROFILE_PLACEHOLDER);
+        return;
+      }
+      const raw = userDoc.data()?.profilePicture ?? null;
+      let url = DEFAULT_PROFILE_PLACEHOLDER;
+      const resolved = await resolveProfilePictureToUrl(raw, { userId: uid });
+      if (resolved) url = resolved;
+      if (!cancelled) setProfilePictureUrl(url);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profileImageRefreshEpoch]);
+
   useEffect(() => {
     if (auth.currentUser) {
       const fetchUserData = async () => {
@@ -133,11 +177,17 @@ function AccountSettings() {
         const storagePath = await uploadProfilePicture(file);
         // Update Firestore with the storage path
         if (auth.currentUser) {
+          const uid = auth.currentUser.uid;
           await setDoc(
-            doc(db, "users", auth.currentUser.uid),
+            doc(db, "users", uid),
             { profilePicture: storagePath },
             { merge: true }
           );
+          const resolved = await resolveProfilePictureToUrl(storagePath, {
+            userId: uid,
+          });
+          if (resolved) setProfilePictureUrl(resolved);
+          forceRefreshAllProfileImages();
         }
         setMessage("Profile picture updated!");
     
@@ -481,26 +531,6 @@ function AccountSettings() {
     }
   };
 
-  // Handle account deletion
-  const handleDeleteAccount = async () => {
-    setMessage(null);
-    setError(null);
-    if (
-      !window.confirm(
-        "Are you sure you want to delete your account? This action is irreversible."
-      )
-    ) {
-      return;
-    }
-    try {
-      await deleteUserAccount(currentPassword);
-      setMessage("Account deleted successfully!");
-      // Optionally, redirect the user after deletion
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
   return (
     <div className="max-w-none flex w-full items-start mobile:flex-col mobile:gap-0">
       <input
@@ -518,8 +548,9 @@ function AccountSettings() {
             <div className="flex items-center gap-4">
               <img
                 className="h-16 w-16 flex-none object-cover [clip-path:circle()]"
-                src="https://cdn-icons-png.freepik.com/256/14024/14024658.png?semt=ais_hybrid"
+                src={profilePictureUrl}
                 alt="Profile"
+                referrerPolicy="no-referrer"
               />
               <div className="flex flex-col items-start gap-4">
                 <Button variant="secondary" onClick={handleUploadClick}>
@@ -647,26 +678,6 @@ function AccountSettings() {
             </div>
           )}
 
-          {/* Danger Zone Section */}
-          <div className={`flex w-full flex-col items-start gap-4 ${profileInSectionDivider}`}>
-            <h3 className={profileSectionTitle}>Danger zone</h3>
-            <p className={profileSectionBody}>
-              Actions here permanently affect your account. Only continue if you intend to delete it.
-            </p>
-            <Alert
-              variant="error"
-              className="font-sans text-gray-900 dark:text-neutral-200"
-              icon={null}
-              title="Delete account"
-              description="Permanently remove your account. This action is not reversible."
-              actions={
-                <Button className="h-auto" variant="destructive" onClick={handleDeleteAccount}>
-                  Delete account
-                </Button>
-              }
-            />
-          </div>
-
           {/* Display success/error messages */}
           {message && (
             <div className="mt-4 flex flex-col gap-1 w-72 fixed top-2 right-2 z-50 pointer-events-none">
@@ -680,6 +691,84 @@ function AccountSettings() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Renders at the bottom of the profile page (after Session). Own password field for delete reauth. */
+export function ProfileDangerZone() {
+  const [deletePassword, setDeletePassword] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isEmailPasswordAuth, setIsEmailPasswordAuth] = useState(false);
+
+  useEffect(() => {
+    if (auth.currentUser) {
+      const providerId = auth.currentUser.providerData[0]?.providerId;
+      setIsEmailPasswordAuth(providerId === "password");
+    }
+  }, []);
+
+  const handleDeleteAccount = async () => {
+    setMessage(null);
+    setError(null);
+    if (isEmailPasswordAuth && !deletePassword.trim()) {
+      setError("Enter your current password to delete your account.");
+      return;
+    }
+    if (
+      !window.confirm(
+        "Are you sure you want to delete your account? This action is irreversible."
+      )
+    ) {
+      return;
+    }
+    try {
+      await deleteUserAccount(deletePassword);
+      setMessage("Account deleted successfully!");
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div className="flex w-full flex-col items-start gap-4">
+      <p className={profileSectionBody}>
+        Actions here permanently affect your account. Only continue if you intend to delete it.
+      </p>
+      {isEmailPasswordAuth && (
+        <TextField className="h-auto w-full max-w-md text-gray-900 dark:text-white" label="Current password" helpText="">
+          <TextField.Input
+            type="password"
+            className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            placeholder="Enter your password to confirm deletion"
+            value={deletePassword}
+            onChange={(e) => setDeletePassword(e.target.value)}
+          />
+        </TextField>
+      )}
+      <Alert
+        variant="error"
+        className="font-sans text-gray-900 dark:text-neutral-200"
+        icon={null}
+        title="Delete account"
+        description="Permanently remove your account. This action is not reversible."
+        actions={
+          <Button className="h-auto" variant="destructive" onClick={handleDeleteAccount}>
+            Delete account
+          </Button>
+        }
+      />
+      {message && (
+        <div className="mt-4 flex flex-col gap-1 w-72 fixed top-2 right-2 z-50 pointer-events-none">
+          <Alert variant="success" title="Success" description={message} />
+        </div>
+      )}
+      {error && (
+        <div className="mt-4 flex flex-col gap-1 w-72 fixed top-2 right-2 z-50 pointer-events-none">
+          <Alert variant="error" title="Error" description={error} />
+        </div>
+      )}
     </div>
   );
 }

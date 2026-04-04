@@ -214,7 +214,9 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
         column.render = (item: any) => formatDate(item[key]);
       }
       if (key === "Cost") {
-        column.render = (item: any) => formatCost(Number(item[key]));
+        column.render = (item: any) => (
+          <span className="pickem-numeric">{formatCost(Number(item[key]))}</span>
+        );
       }
       return column;
     });
@@ -395,12 +397,12 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
           <div className="flex flex-col text-slate-600">
             <div className="flex justify-between">
               <span className="font-medium">Remaining Budget:</span>
-              <span>{formatCost(500000 - totalCost)}</span>
+              <span className="pickem-numeric">{formatCost(500000 - totalCost)}</span>
             </div>
 
             <div className="flex justify-between">
               <span className="font-medium">Remaining Picks:</span>
-              <span>{8 - yourPicks.length}</span>
+              <span className="pickem-numeric">{8 - yourPicks.length}</span>
             </div>
             {lockDate && (
               <div className="mt-4 text-center text-sm text-red-600">

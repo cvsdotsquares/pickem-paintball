@@ -45,7 +45,7 @@ export const primaryDashboardLinks: DashboardNavItem[] = [
 
 export const faqDashboardLink: DashboardNavItem = {
   label: "FAQ",
-  href: "/pages/faq",
+  href: "/dashboard/faq",
   icon: (
     <FaQuestionCircle className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />
   ),
@@ -53,7 +53,7 @@ export const faqDashboardLink: DashboardNavItem = {
 
 export const termsDashboardLink: DashboardNavItem = {
   label: "T&Cs",
-  href: "/pages/terms-and-conditions",
+  href: "/dashboard/terms-and-conditions",
   icon: (
     <HiOutlineDocumentText className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />
   ),
