@@ -457,8 +457,8 @@ export default function DashboardTopNav({
                   <Link
                     href="/dashboard/profile"
                     onClick={closeAll}
-                    aria-label={`Profile (${username})`}
-                    className="mb-4 flex items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-white/10"
+                    aria-label={`Profile (${username?.trim() || "account"})`}
+                    className="mb-4 flex min-w-0 items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-white/10"
                   >
                     <div className="h-11 w-11 shrink-0 overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/10">
                       <img
@@ -468,8 +468,11 @@ export default function DashboardTopNav({
                         className="h-full w-full object-cover"
                       />
                     </div>
-                    <span className="font-azonix text-sm uppercase tracking-wide text-gray-900 dark:text-white">
-                      Profile
+                    <span
+                      className="min-w-0 flex-1 truncate font-azonix text-sm uppercase tracking-wide text-gray-900 dark:text-white"
+                      title={username?.trim() || undefined}
+                    >
+                      {username?.trim() || "Profile"}
                     </span>
                   </Link>
                   <nav className="flex flex-col" aria-label="Main navigation">

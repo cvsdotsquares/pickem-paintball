@@ -337,16 +337,17 @@ export default function Dashboard() {
   );
 
   const fantasySection = (
-    <div className="flex flex-col p-3 md:p-6 md:pt-5">
-      <h2 className={`${sectionColumnTitleClass} mb-3`}>Fantasy paintball</h2>
-      <div className="mb-3 flex items-center justify-between gap-4">
-        <h3 className={sectionRowHeadingClass}>Live picks</h3>
-        <Link href="/dashboard/pick-em" className={sectionActionLinkClass}>
-          Edit picks →
-        </Link>
-      </div>
+    <div className="flex flex-col gap-4 p-4 md:p-6">
+      <h2 className={sectionColumnTitleClass}>Fantasy paintball</h2>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between gap-4">
+          <h3 className={sectionRowHeadingClass}>Live picks</h3>
+          <Link href="/dashboard/pick-em" className={sectionActionLinkClass}>
+            Edit picks →
+          </Link>
+        </div>
 
-      <div className="flex flex-col rounded-2xl bg-gray-100 dark:bg-[#1a1a1a] overflow-hidden">
+        <div className="flex flex-col overflow-hidden rounded-2xl bg-gray-100 dark:bg-[#1a1a1a]">
         <div className="flex-1 py-4 px-2">
           <div className="grid grid-cols-3 gap-1.5 mb-1.5" style={{ gridTemplateRows: "minmax(130px, 1fr)" }}>
             <div className="col-span-2 bg-black rounded-lg p-2 flex flex-col justify-between">
@@ -436,6 +437,7 @@ export default function Dashboard() {
               ))}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -174,10 +174,10 @@ export default function EventCountdownBanner({
                 Event #{event.eventNumber || "1"}
               </div>
               <div className="min-w-0 space-y-0">
-                <div className="pickem-industry-ultra-emphasis text-[10px] uppercase leading-none text-gray-900 md:text-sm">
+                <div className="pickem-industry-ultra-emphasis text-sm uppercase leading-none text-gray-900">
                   NXL
                 </div>
-                <div className="pickem-industry-ultra-emphasis truncate text-[10px] uppercase leading-none text-gray-900 md:text-sm">
+                <div className="pickem-industry-ultra-emphasis truncate text-sm uppercase leading-none text-gray-900">
                   {event.name || "TAMPA BAY OPEN"}
                 </div>
               </div>

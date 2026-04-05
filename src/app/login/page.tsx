@@ -18,6 +18,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import Button from "@/src/components/ui/button";
 import { sendPasswordResetEmail } from "firebase/auth"; // Import reset function
 import LocalDevFirebaseHint from "@/src/components/Login/LocalDevFirebaseHint";
+import Navbar from "@/src/components/Landing/Navbar";
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState<string>("");
@@ -112,15 +113,23 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <img
-        src="/bg.webp"
-        alt="Paintball players"
-        className="object-cover fixed inset-0 brightness-[0.7] contrast-[110%] saturate-[120%] size-full"
-        loading="lazy"
-      />
-      <div className="flex items-center justify-center p-4 w-full max-w-md mx-auto">
-      <Card className="w-full bg-transparent backdrop-blur-md text-white">
+    <div className="relative flex min-h-screen flex-col overflow-hidden">
+      {/* Match landing hero: full-bleed image + navy fades */}
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <img
+          src="/bg.webp"
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover brightness-[0.7] contrast-[110%] saturate-[120%]"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-pickem-navy via-pickem-navy/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-pickem-navy/50 via-pickem-navy/20 to-transparent" />
+      </div>
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <Navbar hideLogin />
+        <div className="flex flex-1 items-center justify-center p-4">
+          <div className="w-full max-w-md">
+            <Card className="w-full bg-transparent backdrop-blur-md text-white">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center uppercase">
             Come Join US!
@@ -233,7 +242,9 @@ const LoginPage: React.FC = () => {
             </form>
           )}
         </CardContent>
-      </Card>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

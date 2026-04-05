@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { auth, db } from "@/src/lib/firebaseClient";
 import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/src/contexts/authProvider";
@@ -58,32 +58,6 @@ const PageHeader: React.FC = () => {
       userDataCache.clear();
       setProfileImageRefreshEpoch((n) => n + 1);
     });
-  }, []);
-
-  const getDisplayName = useCallback((userData: UserData | null): string => {
-    if (!userData) return "Guest";
-    const firstName = userData.firstName?.trim() || "";
-    const lastName = userData.lastName?.trim() || "";
-    const name = userData.name?.trim() || "";
-    if (name) {
-      return name;
-    }
-    if (firstName && lastName) {
-      return `${firstName} ${lastName}`;
-    }
-    if (firstName) {
-      return firstName;
-    }
-
-    if (lastName) {
-      return lastName;
-    }
-
-    if (userData.username?.trim()) {
-      return userData.username;
-    }
-
-    return userData.name || "Guest";
   }, []);
 
   useEffect(() => {
@@ -155,15 +129,17 @@ const PageHeader: React.FC = () => {
     fetchUserData();
   }, [user?.uid, profileImageRefreshEpoch]);
 
-  // Memoize the computed values to prevent unnecessary re-renders
-  const displayName = useMemo(() => getDisplayName(userData), [userData, getDisplayName]);
+  const usernameHandle = useMemo(
+    () => userData?.username?.trim() ?? "",
+    [userData?.username],
+  );
   const avatarUrl = useMemo(() => userData?.profilePicture, [userData?.profilePicture]);
   const userCountry = useMemo(() => userData?.country, [userData?.country]);
 
   return (
     <div className="relative z-[60] w-full">
       <DashboardTopNav
-        username={displayName}
+        username={usernameHandle}
         avatarUrl={avatarUrl}
         points={userCountry}
       />

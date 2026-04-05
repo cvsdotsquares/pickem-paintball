@@ -1082,9 +1082,16 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
             ref={tableRef}
             className={cn(
               "flex min-h-0 flex-1 items-start scroll-smooth max-h-[70vh] md:max-h-[80vh]",
-              /* overflow-hidden on the card breaks sticky; scroll + rounding live on this node */
-              "overflow-auto overscroll-x-contain rounded-lg",
+              /* Split Y/X scroll so mobile touch does not diagonal-pan; sticky thead uses this viewport */
+              "overflow-y-auto overflow-x-hidden overscroll-y-contain rounded-lg",
+              "max-md:touch-pan-y md:touch-auto",
               themeClasses.bg,
+            )}
+          >
+          <div
+            className={cn(
+              "min-w-0 overflow-x-auto overflow-y-visible",
+              "max-md:touch-pan-x md:touch-auto",
             )}
           >
           <table className="w-full min-w-[800px] table-fixed border-separate border-spacing-0 md:min-w-0">
@@ -1271,6 +1278,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
             ))}
           </tbody>
         </table>
+          </div>
           </div>
         </div>
         {totalPages > 1 ? (
