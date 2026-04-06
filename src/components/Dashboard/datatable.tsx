@@ -65,15 +65,65 @@ function formatStatHeaderDisplay(displayKey: string): string {
   return spaced;
 }
 
-/** Stacked header on small screens — shorter column min-width. Uppercase comes from th styles. */
-function getStatHeaderMobileTwoLine(displayKey: string): { line1: string; line2: string } | null {
-  if (displayKey === "Gunfights") return { line1: "Gun", line2: "fights" };
-  if (displayKey === "Breakshooting") return { line1: "Break", line2: "Shots" };
-  return null;
+type StatHeaderLayout =
+  | { kind: "two"; line1: string; line2: string; title: string }
+  | { kind: "one"; label: string; title: string };
+
+/**
+ * Per-column header layout (all breakpoints). `title` is used for tooltip / accessibility.
+ * Stat column widths: all equal except Unclassified (see `getStatColumnWidthClass`).
+ */
+function getStatHeaderLayout(displayKey: string): StatHeaderLayout {
+  switch (displayKey) {
+    case "Confirmed Kills":
+      return {
+        kind: "two",
+        line1: "Confirmed",
+        line2: "Kills",
+        title: "Confirmed Kills",
+      };
+    case "Gunfights":
+      return {
+        kind: "two",
+        line1: "Gun",
+        line2: "Fights",
+        title: "Gun Fights",
+      };
+    case "Breakshooting":
+      return {
+        kind: "two",
+        line1: "Break",
+        line2: "Shots",
+        title: "Break Shots",
+      };
+    case "Movement":
+      return { kind: "one", label: "Moves", title: "Moves" };
+    case "Zone Coverage":
+      return {
+        kind: "two",
+        line1: "Zone",
+        line2: "Coverage",
+        title: "Zone Coverage",
+      };
+    case "Pressure":
+      return { kind: "one", label: "Pressure", title: "Pressure" };
+    case "Trades":
+      return { kind: "one", label: "Trades", title: "Trades" };
+    case "Unclassified":
+      return { kind: "one", label: "Unclassified", title: "Unclassified" };
+    default: {
+      const label = formatStatHeaderDisplay(displayKey);
+      return { kind: "one", label, title: label };
+    }
+  }
 }
 
-function isNarrowTwoLineStatColumn(displayKey: string): boolean {
-  return displayKey === "Gunfights" || displayKey === "Breakshooting";
+/** Fixed width per stat column so all match; Unclassified is wider. */
+function getStatColumnWidthClass(displayKey: string): string {
+  if (displayKey === "Unclassified") {
+    return "w-[10rem] min-w-[10rem] max-w-[10rem]";
+  }
+  return "w-[7rem] min-w-[7rem] max-w-[7rem]";
 }
 
 /** First whitespace splits given name from the rest (e.g. "Mary Jane Watson" → Mary / Jane Watson). */
@@ -712,14 +762,27 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     });
   }, []);
 
+  /** Fixed box so icons match across # / Player / stats; react-icons scale with explicit h/w. */
+  const SORT_ICON_CLASS =
+    "box-border h-2.5 w-2.5 shrink-0 flex-none md:h-2.5 md:w-2.5";
+
+  const isSortActiveForKey = (columnKey: string) => {
+    if (!sortConfig) return false;
+    const a = sortConfig.key;
+    return (
+      a === columnKey ||
+      normalizeHeaderKey(a) === normalizeHeaderKey(columnKey)
+    );
+  };
+
   const getSortIcon = (key: string) => {
-    if (!sortConfig || sortConfig.key !== key) {
-      return <FaSort className="ml-1" />;
+    if (!sortConfig || !isSortActiveForKey(key)) {
+      return <FaSort className={SORT_ICON_CLASS} aria-hidden />;
     }
     return sortConfig.direction === "ascending" ? (
-      <FaSortUp className="ml-1" />
+      <FaSortUp className={SORT_ICON_CLASS} aria-hidden />
     ) : (
-      <FaSortDown className="ml-1" />
+      <FaSortDown className={SORT_ICON_CLASS} aria-hidden />
     );
   };
   // Update the headers mapping to ensure proper column display
@@ -1160,7 +1223,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
             ref={tableHeaderScrollRef}
             className="min-w-0 w-full overflow-x-auto overflow-y-hidden overscroll-x-contain"
           >
-          <table className="w-full min-w-[800px] table-fixed border-separate border-spacing-0 md:min-w-0">
+          <table className="w-full min-w-[960px] table-fixed border-separate border-spacing-0 md:min-w-0">
             {/*
               Lock column 1 width so sticky `left` on column 2 matches the real Rank width.
               Otherwise `table-layout: auto` can shrink column 1 below `w-5` (mobile), leaving a gap where
@@ -1171,7 +1234,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               <col className="max-md:w-[min(20vw,5.75rem)] md:w-[200px]" />
             </colgroup>
           <thead>
-            <tr className={`min-h-[2.75rem] md:h-10 ${themeClasses.headerBg}`}>
+            <tr className={`min-h-[3.25rem] md:min-h-[3.25rem] ${themeClasses.headerBg}`}>
               {/* Rank Column - Smaller on mobile */}
               <th
                 scope="col"
@@ -1183,11 +1246,11 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                   }`}
               >
                 <div
-                  className="flex items-center justify-center"
+                  className="flex items-center justify-center gap-0.5"
                   onClick={() => requestSort("Rank")}
                 >
-                  #
-                  {getSortIcon("Rank")}
+                  <span className="leading-none">#</span>
+                  <span className="inline-flex shrink-0 leading-none">{getSortIcon("Rank")}</span>
                 </div>
               </th>
 
@@ -1202,29 +1265,24 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                   }`}
               >
                 <div
-                  className="flex items-center"
+                  className="flex min-w-0 items-center gap-1"
                   onClick={() => requestSort("Player")}
                 >
-                  Player
-                  {getSortIcon("Player")}
+                  <span className="min-w-0 truncate">Player</span>
+                  <span className="inline-flex shrink-0 leading-none">{getSortIcon("Player")}</span>
                 </div>
               </th>
 
               {/* Dynamic stats columns — order from `headers` (season: kills → events → categories) */}
               {dynamicHeaders.map(({ originalKey, displayKey }) => {
-                const headerLabel = formatStatHeaderDisplay(displayKey);
-                const mobileTwoLine = getStatHeaderMobileTwoLine(displayKey);
-                const narrowMobile = isNarrowTwoLineStatColumn(displayKey);
+                const layout = getStatHeaderLayout(displayKey);
+                const statWidthClass = getStatColumnWidthClass(displayKey);
                 return (
                 <th
                   key={originalKey}
                   scope="col"
-                  title={headerLabel}
-                  className={`relative z-[10] box-border p-0.5 px-0.5 text-center text-[10px] font-medium font-azonix uppercase tracking-wider md:p-1 md:px-2 md:text-[12px] border-b border-gray-300/80 shadow-[0_1px_0_0_rgba(0,0,0,0.06)] dark:border-white/10 md:w-24 md:min-w-[80px] ${
-                    narrowMobile
-                      ? "max-md:w-11 max-md:min-w-[2.5rem] max-md:max-w-[2.75rem] max-md:px-0"
-                      : "w-14 min-w-[52px]"
-                  } ${sortConfig?.key === originalKey
+                  title={layout.title}
+                  className={`relative z-[10] box-border p-0.5 px-0.5 text-center text-[10px] font-medium font-azonix uppercase tracking-wider md:p-1 md:px-1.5 md:text-[12px] border-b border-gray-300/80 shadow-[0_1px_0_0_rgba(0,0,0,0.06)] dark:border-white/10 ${statWidthClass} ${isSortActiveForKey(originalKey)
                     ? darkMode
                       ? "cursor-pointer bg-blue-800 text-blue-100"
                       : "cursor-pointer bg-blue-600 text-white"
@@ -1232,25 +1290,22 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                     }`}
                 >
                   <div
-                    className="flex items-center justify-center gap-0.5"
+                    className="grid min-w-0 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1 gap-y-0 px-0.5"
                     onClick={() => requestSort(displayKey)}
                   >
-                    {mobileTwoLine ? (
-                      <>
-                        <span className="hidden whitespace-normal text-center leading-tight md:inline">
-                          {headerLabel}
+                    <div className="min-w-0 w-full text-center leading-tight">
+                      {layout.kind === "two" ? (
+                        <span className="flex flex-col items-center gap-0 leading-[1.05]">
+                          <span>{layout.line1}</span>
+                          <span>{layout.line2}</span>
                         </span>
-                        <span className="flex flex-col items-center gap-0 leading-[1.05] md:hidden">
-                          <span>{mobileTwoLine.line1}</span>
-                          <span>{mobileTwoLine.line2}</span>
-                        </span>
-                      </>
-                    ) : (
-                      <span className="whitespace-normal text-center leading-tight">
-                        {headerLabel}
-                      </span>
-                    )}
-                    {getSortIcon(originalKey)}
+                      ) : (
+                        <span className="whitespace-nowrap leading-tight">{layout.label}</span>
+                      )}
+                    </div>
+                    <span className="inline-flex w-2.5 shrink-0 justify-self-end self-center leading-none md:w-2.5">
+                      {getSortIcon(originalKey)}
+                    </span>
                   </div>
                 </th>
                 );
@@ -1265,7 +1320,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
             ref={tableBodyScrollRef}
             className="min-w-0 w-full overflow-x-auto overflow-y-clip overscroll-x-contain"
           >
-          <table className="w-full min-w-[800px] table-fixed border-separate border-spacing-0 md:min-w-0">
+          <table className="w-full min-w-[960px] table-fixed border-separate border-spacing-0 md:min-w-0">
             <colgroup>
               <col className="w-5 md:w-10" />
               <col className="max-md:w-[min(20vw,5.75rem)] md:w-[200px]" />
@@ -1388,11 +1443,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                     key={originalKey}
                     className={`relative z-[10] px-0.5 py-2 md:px-2 md:py-3 whitespace-nowrap text-[9px] md:text-[12px] font-bold ${themeClasses.border
                       } text-center ${darkMode ? "text-gray-300" : "text-gray-900"
-                      } md:w-24 md:min-w-[80px] ${
-                        isNarrowTwoLineStatColumn(displayKey)
-                          ? "max-md:w-11 max-md:min-w-[2.5rem]"
-                          : "w-14 min-w-[52px]"
-                      }`}
+                      } ${getStatColumnWidthClass(displayKey)}`}
                   >
                     <span className="pickem-numeric">
                       {(row[originalKey] ?? "") as React.ReactNode}
