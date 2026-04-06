@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/src/lib/utils";
+import { getBannerAccentColor, getBannerPhase, type BannerPhase } from "@/src/lib/bannerPhase";
 
 export type EventCountdownBannerModel = {
   id: string;
@@ -13,6 +14,26 @@ export type EventCountdownBannerModel = {
   startDate?: string;
   endDate?: string;
   lockDate: Date | null;
+  /** When live competition ends; after lock — drives hide → event break. */
+  eventEndsAt?: Date | null;
+  /** Countdown target during Event Break until next picks window. */
+  nextPicksOpenAt?: Date | null;
+  /** Left art during Event Break (next event). */
+  nextEventImage?: string | null;
+  /** Shown in the middle column during Event Break (current doc is still the prior event). */
+  nextEventName?: string | null;
+  /** Firestore id of the next event (e.g. for CTAs / deep links). */
+  nextEventId?: string | null;
+  /** During Event Break: CTA + left panel accent when set (else `brandColor`). */
+  nextBrandColor?: string | null;
+  /** Display string for current event dates (e.g. "APR 30 — MAY 3, 2026"); overrides start/end when set. */
+  eventDate?: string | null;
+  /** Display string for next event dates during Event Break. */
+  nextEventDate?: string | null;
+  /** Single-line location override for current event; else venue + city. */
+  eventLocation?: string | null;
+  /** Single-line location for next event during Event Break. */
+  nextEventLocation?: string | null;
   venue?: string;
   city?: string;
 };
@@ -79,10 +100,25 @@ export default function EventCountdownBanner({
     return () => ro.disconnect();
   }, [variant, event?.id, desktopCta, ctaHref, ctaLabel]);
 
+  const phase: BannerPhase | null = event?.id
+    ? getBannerPhase(Date.now(), {
+        lockDate: event.lockDate,
+        eventEndsAt: event.eventEndsAt ?? null,
+        nextPicksOpenAt: event.nextPicksOpenAt ?? null,
+      })
+    : null;
+
+  const countdownTarget: Date | null =
+    event?.id && phase && phase !== "event_live"
+      ? phase === "event_break" && event.nextPicksOpenAt
+        ? event.nextPicksOpenAt
+        : event.lockDate
+      : null;
+
   useEffect(() => {
-    if (!event?.lockDate) return;
+    if (!countdownTarget) return;
     const run = () => {
-      const diff = new Date(event.lockDate!).getTime() - Date.now();
+      const diff = new Date(countdownTarget).getTime() - Date.now();
       if (diff <= 0) {
         setTick({ _days: 0, _hours: 0, _minutes: 0, _seconds: 0 });
         return;
@@ -97,13 +133,45 @@ export default function EventCountdownBanner({
     run();
     const id = setInterval(run, 1000);
     return () => clearInterval(id);
-  }, [event?.lockDate]);
+  }, [countdownTarget]);
 
   if (!event?.id) return null;
 
-  const brand = event.brandColor || "#b91c1c";
+  /** While competition runs — no banner. */
+  if (phase === "event_live") {
+    return null;
+  }
+
+  const brand = getBannerAccentColor({
+    lockDate: event.lockDate,
+    eventEndsAt: event.eventEndsAt ?? null,
+    nextPicksOpenAt: event.nextPicksOpenAt ?? null,
+    brandColor: event.brandColor,
+    nextBrandColor: event.nextBrandColor,
+  });
   const budgetPct = Math.min(100, ((totalBudget - remainingBudget) / totalBudget) * 100);
-  const eventTitle = (event.name || "EVENT").trim();
+
+  const isEventBreak = phase === "event_break";
+  /** During Event Break the live doc is still the finished event; headline uses next event fields. */
+  const displayName =
+    isEventBreak && event.nextEventName?.trim()
+      ? event.nextEventName.trim()
+      : (event.name || "EVENT").trim();
+  const eventSubtitleLabel = isEventBreak ? "Next event" : `Event #${event.eventNumber || "1"}`;
+
+  const venueLine = [event.venue, event.city].filter(Boolean).join(", ");
+  const currentLocationLine = event.eventLocation?.trim() || venueLine;
+  const currentDateLine =
+    event.eventDate?.trim() || `${event.startDate || "MAR 19"} — ${event.endDate || "22"}`;
+  const breakDateLine = event.nextEventDate?.trim();
+  const breakLocationLine = event.nextEventLocation?.trim();
+
+  const leftImageUrl =
+    isEventBreak && event.nextEventImage?.trim()
+      ? event.nextEventImage.trim()
+      : event.logoUrl ?? null;
+  const deadlineLabelDashboard = isEventBreak ? "PICKS ARE LIVE" : "Team lock deadline:";
+  const deadlineLabelCaps = isEventBreak ? "PICKS ARE LIVE:" : "Team Lock Deadline:";
 
   const defaultDesktopCta =
     ctaHref != null ? (
@@ -119,7 +187,6 @@ export default function EventCountdownBanner({
   /** Dashboard home: horizontal CTA strip — same row at all breakpoints; compact height on desktop */
   if (variant === "dashboard") {
     const ctaNode = desktopCta ?? defaultDesktopCta;
-    const venueLine = [event.venue, event.city].filter(Boolean).join(", ");
 
     const blackBarClass = cn(
       "min-w-0 shrink-0 bg-black pb-2 pt-2 md:pb-3 md:pt-2.5",
@@ -147,9 +214,9 @@ export default function EventCountdownBanner({
               }}
             >
               <div className="flex min-h-0 flex-1 items-center justify-center px-1 py-2 md:px-2 md:py-2">
-                {event.logoUrl ? (
+                {leftImageUrl ? (
                   <img
-                    src={event.logoUrl}
+                    src={leftImageUrl}
                     alt=""
                     className="h-auto max-h-full w-full object-contain"
                     onError={(e) => {
@@ -158,7 +225,7 @@ export default function EventCountdownBanner({
                   />
                 ) : (
                   <span className="px-0.5 text-center font-azonix text-[7px] font-black uppercase leading-tight text-white md:text-[8px]">
-                    {eventTitle}
+                    {displayName}
                   </span>
                 )}
               </div>
@@ -172,24 +239,41 @@ export default function EventCountdownBanner({
           <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center border-r border-gray-100 px-2 py-px text-left md:px-4 md:py-0.5">
             <div className="flex min-h-0 w-full flex-col gap-0.5 md:gap-1">
               <div className="font-azonix text-[7px] font-bold uppercase leading-none tracking-widest text-gray-500 md:text-[8px]">
-                Event #{event.eventNumber || "1"}
+                {eventSubtitleLabel}
               </div>
               <div className="min-w-0 space-y-0">
                 <div className="pickem-industry-ultra-emphasis text-sm uppercase leading-none text-gray-900">
                   NXL
                 </div>
                 <div className="pickem-industry-ultra-emphasis truncate text-sm uppercase leading-none text-gray-900">
-                  {event.name || "TAMPA BAY OPEN"}
+                  {displayName}
                 </div>
               </div>
-              {venueLine ? (
-                <div className="hidden truncate font-azonix text-[7px] font-bold uppercase leading-none text-gray-700 md:block md:text-[9px]">
-                  {venueLine}
-                </div>
-              ) : null}
-              <div className="font-azonix text-[9px] font-black uppercase leading-none text-gray-900 md:text-xs">
-                {event.startDate || "MAR 19"} — {event.endDate || "22"}
-              </div>
+              {isEventBreak ? (
+                <>
+                  {breakDateLine ? (
+                    <div className="font-azonix text-[9px] font-black uppercase leading-none text-gray-900 md:text-xs">
+                      {breakDateLine}
+                    </div>
+                  ) : null}
+                  {breakLocationLine ? (
+                    <div className="truncate font-azonix text-[7px] font-bold uppercase leading-none text-gray-700 md:text-[9px]">
+                      {breakLocationLine}
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  {currentLocationLine ? (
+                    <div className="hidden truncate font-azonix text-[7px] font-bold uppercase leading-none text-gray-700 md:block md:text-[9px]">
+                      {currentLocationLine}
+                    </div>
+                  ) : null}
+                  <div className="font-azonix text-[9px] font-black uppercase leading-none text-gray-900 md:text-xs">
+                    {currentDateLine}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -198,7 +282,7 @@ export default function EventCountdownBanner({
             <div ref={rightStackRef} className="flex w-full flex-col gap-1 md:gap-1.5">
               <div className="flex flex-col rounded-lg bg-neutral-950 px-1.5 pb-2 text-white md:rounded-xl md:px-2.5 md:pb-2.5">
                 <div className="pickem-industry-ultra-emphasis block pt-2 text-center text-[11px] uppercase leading-none text-white md:pt-2.5 md:text-[15px]">
-                  Team lock deadline:
+                  {deadlineLabelDashboard}
                 </div>
                 {/* Slight negative margin offsets title line-box; tuned between “too loose” (gap only) and “too tight” (-mt-1.5/-mt-2) */}
                 <div className="-mt-0.5 flex min-w-0 items-center justify-center gap-0.5 pt-0.5 md:-mt-1 md:gap-1 md:pt-1">
@@ -261,7 +345,7 @@ export default function EventCountdownBanner({
           <div style={isTouchDevice ? { height: "12px", flexShrink: 0 } : { flex: 1, minHeight: 0 }} />
           <div style={{ display: "flex", gap: "8px" }}>
             <span className="whitespace-nowrap text-[11px] font-black uppercase tracking-widest text-white">
-              Team Lock Deadline:
+              {deadlineLabelCaps}
             </span>
             <span className="whitespace-nowrap text-[11px] font-black text-white">
               <span className="pickem-numeric">{pad(tick._days)}</span>d :{" "}
@@ -273,10 +357,12 @@ export default function EventCountdownBanner({
         </div>
         <div className={cn("px-3 py-2", showBudget ? "flex items-center justify-between" : "")}>
           <div className="min-w-0">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-white/70">Event {event.eventNumber || "1"}</div>
-            <div className="text-lg font-black uppercase leading-tight text-white">NXL {event.name || "TAMPA BAY OPEN"}</div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-white/70">{eventSubtitleLabel}</div>
+            <div className="text-lg font-black uppercase leading-tight text-white">NXL {displayName}</div>
             <div className="text-[11px] font-bold text-white/70">
-              {event.startDate || "MAR 19"} — {event.endDate || "22"}
+              {isEventBreak
+                ? [breakDateLine, breakLocationLine].filter(Boolean).join(" · ") || currentDateLine
+                : currentDateLine}
             </div>
           </div>
           {showBudget ? (
@@ -306,9 +392,9 @@ export default function EventCountdownBanner({
               position: "relative",
             }}
           >
-            {event.logoUrl ? (
+            {leftImageUrl ? (
               <img
-                src={event.logoUrl}
+                src={leftImageUrl}
                 alt="Event Logo"
                 style={{ position: "absolute", inset: 0, width: "90%", height: "90%", top: "5%", left: "5%", objectFit: "contain" }}
                 onError={(e) => {
@@ -332,30 +418,47 @@ export default function EventCountdownBanner({
                   lineHeight: 1.2,
                 }}
               >
-                {event.name || "NXL EVENT"}
+                {displayName}
               </span>
             )}
           </div>
 
           <div className="flex flex-1 flex-col justify-center border-l border-gray-100 px-5">
-            <div className="text-[8px] font-bold uppercase tracking-widest text-gray-400">Event #{event.eventNumber || "1"}</div>
+            <div className="text-[8px] font-bold uppercase tracking-widest text-gray-400">{eventSubtitleLabel}</div>
             <div className="mt-0.5 text-base font-black uppercase leading-tight text-gray-900" style={{ fontWeight: 900, letterSpacing: "-0.02em" }}>
               NXL
               <br />
-              {event.name || "TAMPA BAY OPEN"}
+              {displayName}
             </div>
-            <div className="mt-1 text-[9px] uppercase leading-snug text-gray-500">
-              {event.venue || "RAYMOND JAMES STADIUM"}
-              <br />
-              {event.city || "TAMPA , FLORIDA"}
-            </div>
-            <div className="mt-0.5 text-[10px] font-bold text-gray-700">
-              {event.startDate || "MAR 19"} — {event.endDate || "22"}
-            </div>
+            {isEventBreak ? (
+              <>
+                {breakDateLine ? (
+                  <div className="mt-1 text-[10px] font-bold text-gray-700">{breakDateLine}</div>
+                ) : null}
+                {breakLocationLine ? (
+                  <div className="mt-1 text-[9px] uppercase leading-snug text-gray-500">{breakLocationLine}</div>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <div className="mt-1 text-[9px] uppercase leading-snug text-gray-500">
+                  {event.eventLocation?.trim() ? (
+                    event.eventLocation.trim()
+                  ) : (
+                    <>
+                      {event.venue || "RAYMOND JAMES STADIUM"}
+                      <br />
+                      {event.city || "TAMPA , FLORIDA"}
+                    </>
+                  )}
+                </div>
+                <div className="mt-0.5 text-[10px] font-bold text-gray-700">{currentDateLine}</div>
+              </>
+            )}
           </div>
 
           <div className="flex min-w-[240px] flex-shrink-0 flex-col items-start justify-center gap-1.5 border-l border-gray-100 px-5">
-            <div className="text-[8px] font-bold uppercase tracking-widest text-gray-500">Team Lock Deadline:</div>
+            <div className="text-[8px] font-bold uppercase tracking-widest text-gray-500">{deadlineLabelCaps}</div>
             <div className="flex items-end gap-1">
               {[
                 { v: pad(tick._days), l: "DAYS" },

@@ -19,6 +19,18 @@ export type PromoBannerEventDoc = {
   venue?: string;
   city?: string;
   eventNumber?: string;
+  eventEndsAt?: unknown;
+  nextPicksOpenAt?: unknown;
+  nextEventImage?: string;
+  nextEventName?: string;
+  next_event_id?: string;
+  next_brand_color?: string | null;
+  eventDate?: string;
+  nextEventDate?: string;
+  eventLocation?: string;
+  event_location?: string;
+  nextEventLocation?: string;
+  next_event_location?: string;
 };
 
 function sortEventsLikeLeaderboard(events: PromoBannerEventDoc[]): PromoBannerEventDoc[] {
@@ -82,6 +94,16 @@ export function usePromoBannerEvent() {
             city: doc.get("city") || "",
             eventNumber:
               doc.get("eventNumber") != null ? String(doc.get("eventNumber")) : undefined,
+            eventEndsAt: doc.get("eventEndsAt") ?? undefined,
+            nextPicksOpenAt: doc.get("nextPicksOpenAt") ?? undefined,
+            nextEventImage: doc.get("nextEventImage") || undefined,
+            nextEventName: doc.get("nextEventName") || undefined,
+            next_event_id: doc.get("next_event_id") || undefined,
+            next_brand_color: doc.get("next_brand_color") ?? undefined,
+            eventDate: doc.get("eventDate") || undefined,
+            nextEventDate: doc.get("nextEventDate") || undefined,
+            eventLocation: doc.get("eventLocation") || doc.get("event_location") || undefined,
+            nextEventLocation: doc.get("nextEventLocation") || doc.get("next_event_location") || undefined,
           };
         });
         const sorted = sortEventsLikeLeaderboard(events);

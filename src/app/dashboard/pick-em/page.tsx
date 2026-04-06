@@ -21,6 +21,7 @@ import { useDashboardNestedScrollHandler } from "@/src/contexts/DashboardMainScr
 import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanner";
 import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dashboardEventBannerShared";
 import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
+import { getBannerAccentColor } from "@/src/lib/bannerPhase";
 
 export interface Player {
   player_id: string;
@@ -179,23 +180,14 @@ export default function Pickems() {
         const events = await fetchFromFirestore("events");
         const live = events.find((e: any) => e.status === "live") as any;
         if (live) {
-          const logoUrl = live.event_logo || live.logoUrl || null;
           const yearFromId = typeof live.id === "string" ? live.id.match(/(\d{4})/)?.[1] : undefined;
           const year = live.year != null ? String(live.year) : yearFromId || undefined;
-          console.log("[PickEm] live event:", live.id, "logo:", logoUrl);
+          const banner = eventRecordToBannerModel({ id: live.id, ...live });
+          console.log("[PickEm] live event:", live.id, "logo:", banner.logoUrl);
           setLiveEvent({
-            id: live.id,
+            ...banner,
             year,
-            lockDate: live.lockDate?.toDate ? live.lockDate.toDate() : null,
             timeLeft: "",
-            name: live.name || "TAMPA BAY OPEN",
-            venue: live.venue || "RAYMOND JAMES STADIUM",
-            city: live.city || "TAMPA, FLORIDA",
-            startDate: live.startDate || "MAR 19",
-            endDate: live.endDate || "22",
-            eventNumber: live.eventNumber || "1",
-            logoUrl,
-            brandColor: live.brand_color || null,
           });
         }
       } catch (e) { console.error(e); }
@@ -659,33 +651,35 @@ export default function Pickems() {
     </div>
   ));
 
+  const pickEmBannerModel = useMemo(() => {
+    if (!liveEvent?.id) return null;
+    return eventRecordToBannerModel({ id: liveEvent.id, ...liveEvent } as Record<string, unknown> & { id: string });
+  }, [liveEvent]);
+
   return (
     <div className="flex flex-col w-full overflow-hidden bg-[#f0f0f0] dark:bg-[#111] h-[calc(100dvh-106px)] md:h-[calc(100dvh-48px)]">
 
       {/* ── EVENT BANNER (shared component) ───────────────────────────────────── */}
-      {liveEvent?.id ? (
+      {pickEmBannerModel ? (
         <EventCountdownBanner
           variant="dashboard"
           mobileBlackBarFullBleed
-          event={eventRecordToBannerModel({
-            id: liveEvent.id,
-            name: liveEvent.name || "TAMPA BAY OPEN",
-            brand_color: liveEvent.brandColor ?? "#b91c1c",
-            event_logo: liveEvent.logoUrl ?? null,
-            eventNumber: liveEvent.eventNumber || "1",
-            startDate: liveEvent.startDate || "MAR 19",
-            endDate: liveEvent.endDate || "22",
-            lockDate: liveEvent.lockDate ?? null,
-            venue: liveEvent.venue,
-            city: liveEvent.city,
-          } as Record<string, unknown> & { id: string })}
+          event={pickEmBannerModel}
           showBudget={false}
           desktopCta={
             <button
               type="button"
               onClick={confirmPicks}
               className={DASHBOARD_BANNER_PICK_CTA_CLASS}
-              style={{ backgroundColor: liveEvent.brandColor || "#b91c1c" }}
+              style={{
+                backgroundColor: getBannerAccentColor({
+                  lockDate: pickEmBannerModel.lockDate,
+                  eventEndsAt: pickEmBannerModel.eventEndsAt ?? null,
+                  nextPicksOpenAt: pickEmBannerModel.nextPicksOpenAt ?? null,
+                  brandColor: pickEmBannerModel.brandColor,
+                  nextBrandColor: pickEmBannerModel.nextBrandColor,
+                }),
+              }}
             >
               Pick your team &gt;
             </button>

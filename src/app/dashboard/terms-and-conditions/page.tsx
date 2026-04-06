@@ -4,7 +4,7 @@ import Link from "next/link";
 import CmsPageFromFirestore from "@/src/components/Cms/CmsPageFromFirestore";
 import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanner";
 import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dashboardEventBannerShared";
-import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
+import { eventRecordToBannerModel, getBannerAccentFromRecord } from "@/src/lib/eventCountdownBannerModel";
 import { usePromoBannerEvent } from "@/src/hooks/usePromoBannerEvent";
 
 export default function DashboardTermsPage() {
@@ -24,7 +24,11 @@ export default function DashboardTermsPage() {
             <Link
               href="/dashboard/pick-em"
               className={DASHBOARD_BANNER_PICK_CTA_CLASS}
-              style={{ backgroundColor: bannerEvent.brand_color || "#b91c1c" }}
+              style={{
+                backgroundColor: getBannerAccentFromRecord(
+                  bannerEvent as unknown as Record<string, unknown> & { id: string },
+                ),
+              }}
             >
               Pick your team &gt;
             </Link>

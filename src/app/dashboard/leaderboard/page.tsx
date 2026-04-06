@@ -40,7 +40,7 @@ const LEADERBOARD_DEFAULT_AVATAR_URL =
 import { cn } from "@/src/lib/utils";
 import { individualEventDisplayName } from "@/src/lib/eventDisplayName";
 import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanner";
-import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
+import { eventRecordToBannerModel, getBannerAccentFromRecord } from "@/src/lib/eventCountdownBannerModel";
 import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dashboardEventBannerShared";
 import LeagueSelector from "../../../components/Leagues/LeagueSelector";
 import CreateLeagueModal from "../../../components/Leagues/CreateLeagueModal";
@@ -61,6 +61,16 @@ interface LiveEvent {
   venue?: string;
   city?: string;
   eventNumber?: string;
+  eventEndsAt?: unknown;
+  nextPicksOpenAt?: unknown;
+  nextEventImage?: string;
+  nextEventName?: string;
+  next_event_id?: string;
+  next_brand_color?: string | null;
+  eventDate?: string;
+  nextEventDate?: string;
+  eventLocation?: string;
+  nextEventLocation?: string;
   points?: number;
   mvp?: string;
 }
@@ -526,6 +536,16 @@ function LeaderboardNewContent() {
             city: doc.get("city") || "",
             eventNumber:
               doc.get("eventNumber") != null ? String(doc.get("eventNumber")) : undefined,
+            eventEndsAt: doc.get("eventEndsAt") ?? undefined,
+            nextPicksOpenAt: doc.get("nextPicksOpenAt") ?? undefined,
+            nextEventImage: doc.get("nextEventImage") || undefined,
+            nextEventName: doc.get("nextEventName") || undefined,
+            next_event_id: doc.get("next_event_id") || undefined,
+            next_brand_color: doc.get("next_brand_color") ?? undefined,
+            eventDate: doc.get("eventDate") || undefined,
+            nextEventDate: doc.get("nextEventDate") || undefined,
+            eventLocation: doc.get("eventLocation") || doc.get("event_location") || undefined,
+            nextEventLocation: doc.get("nextEventLocation") || doc.get("next_event_location") || undefined,
           };
 
           return event;
@@ -1390,7 +1410,11 @@ function LeaderboardNewContent() {
             <Link
               href="/dashboard/pick-em"
               className={DASHBOARD_BANNER_PICK_CTA_CLASS}
-              style={{ backgroundColor: bannerEvent.brand_color || "#b91c1c" }}
+              style={{
+                backgroundColor: getBannerAccentFromRecord(
+                  bannerEvent as unknown as Record<string, unknown> & { id: string },
+                ),
+              }}
             >
               Pick your team &gt;
             </Link>

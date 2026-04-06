@@ -8,7 +8,7 @@ import { MatchupTable } from "../../../components/Dashboard/datatable";
 import { Player } from "../pick-em/page";
 import { useAuth } from "@/src/contexts/authProvider";
 import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanner";
-import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
+import { eventRecordToBannerModel, getBannerAccentFromRecord } from "@/src/lib/eventCountdownBannerModel";
 import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dashboardEventBannerShared";
 import { cn } from "@/src/lib/utils";
 import {
@@ -30,6 +30,16 @@ export interface Event {
   venue?: string;
   city?: string;
   eventNumber?: string;
+  eventEndsAt?: unknown;
+  nextPicksOpenAt?: unknown;
+  nextEventImage?: string;
+  nextEventName?: string;
+  next_event_id?: string;
+  next_brand_color?: string | null;
+  eventDate?: string;
+  nextEventDate?: string;
+  eventLocation?: string;
+  nextEventLocation?: string;
 }
 // sort type definitions
 interface SortConfig {
@@ -108,6 +118,16 @@ export default function Statistics() {
             city: doc.get("city") || "",
             eventNumber:
               doc.get("eventNumber") != null ? String(doc.get("eventNumber")) : undefined,
+            eventEndsAt: doc.get("eventEndsAt") ?? undefined,
+            nextPicksOpenAt: doc.get("nextPicksOpenAt") ?? undefined,
+            nextEventImage: doc.get("nextEventImage") || undefined,
+            nextEventName: doc.get("nextEventName") || undefined,
+            next_event_id: doc.get("next_event_id") || undefined,
+            next_brand_color: doc.get("next_brand_color") ?? undefined,
+            eventDate: doc.get("eventDate") || undefined,
+            nextEventDate: doc.get("nextEventDate") || undefined,
+            eventLocation: doc.get("eventLocation") || doc.get("event_location") || undefined,
+            nextEventLocation: doc.get("nextEventLocation") || doc.get("next_event_location") || undefined,
           };
         });
 
@@ -605,7 +625,11 @@ export default function Statistics() {
                 <Link
                   href="/dashboard/pick-em"
                   className={DASHBOARD_BANNER_PICK_CTA_CLASS}
-                  style={{ backgroundColor: liveEvent.brand_color || "#b91c1c" }}
+                  style={{
+                    backgroundColor: getBannerAccentFromRecord(
+                      liveEvent as unknown as Record<string, unknown> & { id: string },
+                    ),
+                  }}
                 >
                   Pick your team &gt;
                 </Link>
