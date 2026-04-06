@@ -10,6 +10,7 @@ import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firesto
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '@/src/hooks/useToast';
 import Toast from '../ui/Toast';
+import { containsProfanity, LEAGUE_NAME_PROFANITY_ERROR } from '@/src/lib/profanity';
 
 interface LeagueAdminModalProps {
   isOpen: boolean;
@@ -190,6 +191,11 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
       return;
     }
 
+    if (containsProfanity(editData.name.trim())) {
+      showToast(LEAGUE_NAME_PROFANITY_ERROR, 'error');
+      return;
+    }
+
     setEditLoading(true);
     try {
       const response = await fetch(`/api/leagues/${league.id}`, {
@@ -203,7 +209,8 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
         await refreshUserLeagues();
         setEditMode(false);
       } else {
-        showToast('Failed to update league', 'error');
+        const data = await response.json().catch(() => ({} as { error?: string }));
+        showToast(data.error || 'Failed to update league', 'error');
       }
     } catch (error) {
       console.error('Error updating league:', error);
@@ -470,14 +477,14 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
         />
       ))}
       {actionLoading && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60]">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70">
           <div className="bg-gray-200 dark:bg-gray-800 rounded-lg p-6 flex flex-col items-center gap-3">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
             <p className="text-gray-900 dark:text-white">Processing...</p>
           </div>
         </div>
       )}
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
         <div className="bg-white dark:bg-gray-900 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-300 dark:border-gray-700">
@@ -924,7 +931,7 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
 
       {/* Transfer Admin Confirmation */}
       {showTransferConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl max-w-md w-full p-6 border border-gray-300 dark:border-gray-700">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Transfer Admin Rights</h3>
             <p className="text-gray-700 dark:text-gray-300 mb-4">

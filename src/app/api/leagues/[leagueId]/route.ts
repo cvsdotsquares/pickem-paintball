@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '../../../../lib/firebaseClient';
 import { doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { containsProfanity, LEAGUE_NAME_PROFANITY_ERROR } from '@/src/lib/profanity';
 
 export async function GET(
   request: NextRequest,
@@ -38,6 +39,11 @@ export async function PATCH(
     if (!leagueId) {
       return NextResponse.json({ error: 'League ID is required' }, { status: 400 });
     }
+
+    if (typeof body.name === 'string' && containsProfanity(body.name.trim())) {
+      return NextResponse.json({ error: LEAGUE_NAME_PROFANITY_ERROR }, { status: 400 });
+    }
+
     const leagueRef = doc(db, 'leagues', leagueId);
     await updateDoc(leagueRef, body);
 

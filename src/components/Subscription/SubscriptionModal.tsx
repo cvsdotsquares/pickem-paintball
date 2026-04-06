@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { FaTimes, FaCheck } from 'react-icons/fa';
 import { useAuth } from '../../contexts/authProvider';
 
@@ -138,8 +139,9 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+  /** Portal + z above `DashboardTopNav` (`z-[60]`) so the overlay is not trapped in a lower stacking context. */
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4">
       <div className="bg-gray-900 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="relative p-6 border-b border-gray-700">
           {/* Brand Logo */}
@@ -180,7 +182,6 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
                   </div>
                   {plan.savings && <div className="text-green-400 text-sm mt-1">{plan.savings}</div>}
                 </div>
-                {console.log(plan)}
                 <ul className="space-y-2">
                   {plan.features.map((feature: any, i: number) => {
                     const text = typeof feature === 'string' ? feature : (feature?.name || feature?.toString() || '');
@@ -222,6 +223,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

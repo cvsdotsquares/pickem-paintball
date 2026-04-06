@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/src/lib/firebaseClient';
 import { collection, addDoc, doc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
+import { containsProfanity, LEAGUE_NAME_PROFANITY_ERROR } from '@/src/lib/profanity';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,6 +10,10 @@ export async function POST(request: NextRequest) {
     // Validate input
     if (!name || name.trim().length === 0) {
       return NextResponse.json({ error: 'League name is required' }, { status: 400 });
+    }
+
+    if (containsProfanity(name.trim())) {
+      return NextResponse.json({ error: LEAGUE_NAME_PROFANITY_ERROR }, { status: 400 });
     }
 
     if (!userId) {

@@ -118,22 +118,21 @@ function getStatHeaderLayout(displayKey: string): StatHeaderLayout {
   }
 }
 
-/** Fixed width per stat column so all match; Unclassified is wider. */
-function getStatColumnWidthClass(displayKey: string): string {
-  if (displayKey === "Unclassified") {
-    return "w-[10rem] min-w-[10rem] max-w-[10rem]";
-  }
-  return "w-[7rem] min-w-[7rem] max-w-[7rem]";
-}
-
-/** First whitespace splits given name from the rest (e.g. "Mary Jane Watson" → Mary / Jane Watson). */
-function splitPlayerDisplayName(name: string): { first: string; rest?: string } {
+/** First token vs remainder — two-line mobile layout (reads as first / last for typical names). */
+function splitPlayerFirstLast(name: string): { first: string; last?: string } {
   const trimmed = name.trim();
   const m = /^(\S+)\s+(.+)$/.exec(trimmed);
   if (!m) return { first: trimmed };
-  return { first: m[1], rest: m[2].trim() };
+  return { first: m[1], last: m[2].trim() };
 }
 
+/** Fixed width per stat column so all match; Unclassified is wider. On mobile, columns are slightly tighter so the Player column can use more width. */
+function getStatColumnWidthClass(displayKey: string): string {
+  if (displayKey === "Unclassified") {
+    return "w-[10rem] min-w-[10rem] max-w-[10rem] max-md:w-[6.5rem] max-md:min-w-[6.5rem] max-md:max-w-[6.5rem]";
+  }
+  return "w-[7rem] min-w-[7rem] max-w-[7rem] max-md:w-[5.5rem] max-md:min-w-[5.5rem] max-md:max-w-[5.5rem]";
+}
 
 const lightThemeClasses: ThemeClasses = {
   bg: "bg-white", // Changed from bg-gray-100 to bg-white
@@ -1231,7 +1230,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
             */}
             <colgroup>
               <col className="w-5 md:w-10" />
-              <col className="max-md:w-[min(20vw,5.75rem)] md:w-[200px]" />
+              <col className="max-md:w-[min(25vw,6rem)] md:w-[200px]" />
             </colgroup>
           <thead>
             <tr className={`min-h-[3.25rem] md:min-h-[3.25rem] ${themeClasses.headerBg}`}>
@@ -1257,7 +1256,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               {/* Player Column - Optimized for mobile */}
               <th
                 scope="col"
-                className={`sticky left-5 z-[52] box-border min-w-0 max-w-[min(20vw,5.75rem)] w-[min(20vw,5.75rem)] border-b border-gray-300/80 pl-1.5 pr-0.5 text-left text-[10px] font-medium font-azonix uppercase tracking-wider shadow-[0_1px_0_0_rgba(0,0,0,0.06)] dark:border-white/10 md:left-10 md:max-w-none md:min-w-[200px] md:w-[200px] md:pl-4 md:pr-1 md:text-[12px] ${sortConfig?.key === "Player"
+                className={`sticky left-5 z-[52] box-border min-w-0 max-w-[min(25vw,6rem)] w-[min(25vw,6rem)] border-b border-gray-300/80 pl-1.5 pr-0.5 text-left text-[10px] font-medium font-azonix uppercase tracking-wider shadow-[0_1px_0_0_rgba(0,0,0,0.06)] dark:border-white/10 md:left-10 md:max-w-none md:min-w-[200px] md:w-[200px] md:pl-4 md:pr-1 md:text-[12px] ${sortConfig?.key === "Player"
                   ? darkMode
                     ? "cursor-pointer bg-blue-800 text-blue-100"
                     : "cursor-pointer bg-blue-600 text-white"
@@ -1323,11 +1322,13 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
           <table className="w-full min-w-[960px] table-fixed border-separate border-spacing-0 md:min-w-0">
             <colgroup>
               <col className="w-5 md:w-10" />
-              <col className="max-md:w-[min(20vw,5.75rem)] md:w-[200px]" />
+              <col className="max-md:w-[min(25vw,6rem)] md:w-[200px]" />
             </colgroup>
           <tbody className={` divide-y ${themeClasses.border}`}>
             {(VisibleData.length > 0 ? VisibleData : paginatedData).map((row, rowIndex) => {
-              const playerNameParts = splitPlayerDisplayName(row.Player);
+              const { first: firstName, last: lastName } = splitPlayerFirstLast(
+                String(row.Player ?? ""),
+              );
               return (
               <tr
                 key={rowIndex}
@@ -1344,7 +1345,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
 
                 {/* Player Column - Compact mobile layout */}
                 <td
-                  className={`sticky left-5 z-[21] box-border min-w-0 max-w-[min(20vw,5.75rem)] w-[min(20vw,5.75rem)] p-1 md:max-w-none md:whitespace-nowrap shadow-[2px_0_6px_rgba(0,0,0,0.12)] md:left-10 md:min-w-[200px] md:w-[200px] md:p-2 md:shadow-[2px_0_8px_rgba(0,0,0,0.15)] ${themeClasses.bg}`}
+                  className={`sticky left-5 z-[21] box-border min-w-0 max-w-[min(25vw,6rem)] w-[min(25vw,6rem)] p-1 md:max-w-none md:whitespace-nowrap shadow-[2px_0_6px_rgba(0,0,0,0.12)] md:left-10 md:min-w-[200px] md:w-[200px] md:p-2 md:shadow-[2px_0_8px_rgba(0,0,0,0.15)] ${themeClasses.bg}`}
                 >
                   <div className="flex min-w-0 items-center gap-1.5 md:gap-0">
                     <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-600 md:mr-4">
@@ -1407,15 +1408,15 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                             }`}
                           title={row.Player}
                         >
-                          {playerNameParts.first}
+                          {firstName}
                         </div>
-                        {playerNameParts.rest ? (
+                        {lastName ? (
                           <div
                             className={`truncate text-[10px] font-azonix font-medium leading-tight ${darkMode ? "text-white" : "text-gray-900"
                               }`}
                             title={row.Player}
                           >
-                            {playerNameParts.rest}
+                            {lastName}
                           </div>
                         ) : null}
                       </div>

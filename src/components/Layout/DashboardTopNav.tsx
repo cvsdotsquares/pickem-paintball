@@ -101,7 +101,7 @@ function MobileSubscriptionBanner() {
   if (loading) {
     return (
       <div
-        className="h-[30px] w-full shrink-0 animate-pulse bg-[#00f976]/35"
+        className="h-[30px] w-full shrink-0 overflow-hidden animate-pulse bg-[#00f976]/35"
         aria-hidden
       />
     );
@@ -110,7 +110,7 @@ function MobileSubscriptionBanner() {
   if (isSubscribed) {
     return (
       <div
-        className="flex w-full items-center justify-center px-3 py-2"
+        className="flex w-full shrink-0 items-center justify-center overflow-hidden px-3 py-2"
         style={barStyle}
       >
         <p className={`${textClass} text-center text-balance`}>
@@ -124,7 +124,7 @@ function MobileSubscriptionBanner() {
     <button
       type="button"
       onClick={() => showModal("passive")}
-      className="m-0 w-full px-3 py-2 text-center transition hover:brightness-[0.97] active:brightness-[0.93]"
+      className="m-0 w-full shrink-0 overflow-hidden px-3 py-2 text-center transition hover:brightness-[0.97] active:brightness-[0.93]"
       style={barStyle}
     >
       <span className="sr-only">
@@ -347,14 +347,20 @@ export default function DashboardTopNav({
       <div className="flex flex-col md:hidden">
         <div
           className="w-full shrink-0 bg-white dark:bg-[#101010]"
-          /* Extra height: Safari often samples a band *above* the first content row */
+          /* Extra height below status bar / notch; too little caused the green strip to sit under the menu chrome on some devices. */
           style={{
-            minHeight: "calc(env(safe-area-inset-top, 0px) + 20px)",
+            minHeight: "calc(env(safe-area-inset-top, 0px) + 32px)",
           }}
           aria-hidden
         />
-        <MobileSubscriptionBanner />
-        <div className="flex items-center gap-x-2 border-t border-[#00f976] bg-white px-3 py-2 dark:bg-[#101010]">
+        <div className="relative z-0 shrink-0">
+          <MobileSubscriptionBanner />
+        </div>
+        {/*
+          z-10 keeps the toolbar above the green strip in the stacking order so promo text/anti-aliasing
+          cannot paint over the menu row (Safari compositing).
+        */}
+        <div className="relative z-10 flex items-center gap-x-2 border-t border-[#00f976] bg-white px-3 pb-2 pt-3 dark:bg-[#101010]">
           <button
             type="button"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-white/10"

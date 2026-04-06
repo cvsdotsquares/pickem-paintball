@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@/src/contexts/authProvider';
 import { useSubscription } from '@/src/contexts/SubscriptionContext';
 import { FaCrown, FaCalendar, FaCreditCard, FaTimes, FaCheck } from 'react-icons/fa';
@@ -252,37 +253,39 @@ export default function SubscriptionManager() {
         </div>
       )}
 
-      {/* Cancel Modal */}
-      {showCancelModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Cancel Subscription?</h3>
-              <button onClick={() => setShowCancelModal(false)} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                <FaTimes />
-              </button>
+      {/* Cancel Modal — portaled above fixed dashboard header */}
+      {showCancelModal &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-xl max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Cancel Subscription?</h3>
+                <button onClick={() => setShowCancelModal(false)} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                  <FaTimes />
+                </button>
+              </div>
+              <p className="text-gray-700 dark:text-gray-300 mb-6">
+                Are you sure you want to cancel? You&apos;ll lose access to premium features at the end of your billing period.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg"
+                >
+                  Keep Subscription
+                </button>
+                <button
+                  onClick={handleCancelSubscription}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg"
+                >
+                  {loading ? 'Cancelling...' : 'Yes, Cancel'}
+                </button>
+              </div>
             </div>
-            <p className="text-gray-700 dark:text-gray-300 mb-6">
-              Are you sure you want to cancel? You&apos;ll lose access to premium features at the end of your billing period.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowCancelModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg"
-              >
-                Keep Subscription
-              </button>
-              <button
-                onClick={handleCancelSubscription}
-                disabled={loading}
-                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg"
-              >
-                {loading ? 'Cancelling...' : 'Yes, Cancel'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

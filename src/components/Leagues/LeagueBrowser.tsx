@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@/src/contexts/authProvider';
 import { League } from '@/src/lib/league-types';
 import { FaSearch, FaUsers, FaLock, FaGlobe, FaUserPlus, FaTimes } from 'react-icons/fa';
@@ -11,9 +12,15 @@ import Toast from '../ui/Toast';
 interface LeagueBrowserProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Pre-fill search when opening (e.g. leaderboard carousel tile) */
+  initialSearch?: string;
 }
 
-export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
+export default function LeagueBrowser({
+  isOpen,
+  onClose,
+  initialSearch,
+}: LeagueBrowserProps) {
   const { user } = useAuth();
   const { toasts, showToast, hideToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,7 +28,7 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [requestingLeagueId, setRequestingLeagueId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'public' | 'my-leagues'>('all');
+  const [filter, setFilter] = useState<"all" | "my-leagues">("all");
 
   const getLeagueIconUrl = (league: League): string | null => {
     if (!league.icon) return null;
@@ -34,6 +41,15 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
     }
   }, [isOpen, filter]);
 
+  useEffect(() => {
+    if (isOpen && initialSearch !== undefined && initialSearch !== "") {
+      setSearchTerm(initialSearch);
+    }
+    if (!isOpen) {
+      setSearchTerm("");
+    }
+  }, [isOpen, initialSearch]);
+
   const fetchLeagues = async () => {
     setLoading(true);
     try {
@@ -44,13 +60,7 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
       const response = await fetch(endpoint);
       const data = await response.json();
   
-      let filteredLeagues = data.leagues || [];
-      
-      // Filter for public leagues only if public filter is selected
-      if (filter === 'public') {
-        filteredLeagues = filteredLeagues.filter((league: League) => league.settings.isPublic);
-      }
-      
+      const filteredLeagues = data.leagues || [];
       setLeagues(filteredLeagues);
     } catch (error) {
       console.error('Error fetching leagues:', error);
@@ -139,10 +149,14 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
           onClose={() => hideToast(toast.id)}
         />
       ))}
-      {/* Remove global loader - only show button loader */}
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-300 dark:border-gray-700">
+      {/* Portal + top inset: avoid stacking under fixed nav; align below measured header on mobile */}
+      {createPortal(
+        <div
+          className="fixed inset-0 z-[100] flex bg-black/50 max-md:items-start max-md:justify-center max-md:overflow-y-auto max-md:p-3 max-md:pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] max-md:pt-[calc(var(--pickem-dashboard-header-bottom)+var(--pickem-dashboard-header-content-gap))] md:items-center md:justify-center md:overflow-visible md:p-4"
+          role="presentation"
+        >
+          <div className="bg-white dark:bg-gray-900 rounded-xl max-w-2xl w-full max-h-[min(80vh,calc(100dvh-var(--pickem-dashboard-header-bottom)-2rem))] overflow-y-auto shadow-xl md:max-h-[80vh]">
+        <div className="p-4 border-b border-gray-300 dark:border-gray-700 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Browse Leagues</h2>
             <button
@@ -153,27 +167,19 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
             </button>
           </div>
           
-          {/* Filter Tabs */}
-          <div className="flex gap-2 mb-4">
+          {/* Filter Tabs — wrap on narrow screens */}
+          <div className="mb-4 flex flex-wrap gap-2">
             <button
-              onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+              onClick={() => setFilter("all")}
+              className={`rounded-lg px-3 py-1.5 text-sm transition-colors sm:px-4 sm:py-2 ${
+                filter === "all" ? "bg-blue-600 text-white" : "bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
               }`}
             >
               All Leagues
             </button>
             <button
-              onClick={() => setFilter('public')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                filter === 'public' ? 'bg-blue-600 text-white' : 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              Public Leagues
-            </button>
-            <button
-              onClick={() => setFilter('my-leagues')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
+              onClick={() => setFilter("my-leagues")}
+              className={`rounded-lg px-3 py-1.5 text-sm transition-colors sm:px-4 sm:py-2 ${
                 filter === 'my-leagues' ? 'bg-blue-600 text-white' : 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
               }`}
             >
@@ -194,39 +200,47 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {loading ? (
             <div className="text-center py-8 text-gray-600 dark:text-gray-400">Loading leagues...</div>
           ) : (
             <div className="space-y-3">
-              {filteredLeagues.map((league) => (
-                <div key={league.id} className="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 border border-gray-300 dark:border-gray-700">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 flex-1">
+              {filteredLeagues.map((league) => {
+                const uid = user?.uid ?? "";
+                const isMember = uid ? league.members.includes(uid) : false;
+                const hasPendingRequest =
+                  Boolean(uid) &&
+                  Array.isArray(league.pendingRequests) &&
+                  league.pendingRequests.includes(uid);
+
+                return (
+                <div key={league.id} className="rounded-lg border border-gray-300 bg-gray-200 p-3 dark:border-gray-700 dark:bg-gray-800 sm:p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
                       {getLeagueIconUrl(league) ? (
                         <img
                           src={getLeagueIconUrl(league) as string}
                           alt={league.name}
-                          className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                          className="h-12 w-12 shrink-0 rounded-lg object-cover"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-lg bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-gray-900 dark:text-white font-bold">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gray-300 font-bold text-gray-900 dark:bg-gray-700 dark:text-white">
                           {league.name.charAt(0)}
                         </div>
                       )}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-gray-900 dark:text-white font-medium">{league.name}</h3>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                          <h3 className="font-medium text-gray-900 dark:text-white">{league.name}</h3>
                           {league.settings.isPublic ? (
-                            <FaGlobe className="text-green-400 text-sm" />
+                            <FaGlobe className="shrink-0 text-sm text-green-400" />
                           ) : (
-                            <FaLock className="text-yellow-400 text-sm" />
+                            <FaLock className="shrink-0 text-sm text-yellow-400" />
                           )}
                         </div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">{league.description}</p>
-                        <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-500">
+                        <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">{league.description}</p>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-500">
                           <span className="flex items-center gap-1">
-                            <FaUsers />
+                            <FaUsers className="shrink-0" />
                             {league.memberCount} members
                           </span>
                           <span>{league.settings.isPublic ? 'Public' : 'Private'}</span>
@@ -234,29 +248,40 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
                         </div>
                       </div>
                     </div>
-                    
-                    {filter === 'all' && !league.members.includes(user?.uid || '') && (
-                      <button
-                        onClick={() => requestToJoin(league.id)}
-                        disabled={requestingLeagueId === league.id}
-                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-gray-900 dark:text-white rounded-lg transition-colors flex items-center gap-1"
-                      >
-                        {requestingLeagueId === league.id ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                            Requesting...
-                          </>
-                        ) : (
-                          <>
-                            <FaUserPlus />
-                            Request Join
-                          </>
-                        )}
-                      </button>
+
+                    {filter === "all" && !isMember && (
+                      hasPendingRequest ? (
+                        <span
+                          className="inline-flex h-9 shrink-0 items-center justify-center self-end rounded-lg border border-emerald-600/40 bg-emerald-100 px-3 text-xs font-medium text-emerald-900 dark:border-emerald-500/35 dark:bg-emerald-950/60 dark:text-emerald-200 sm:self-center sm:text-sm"
+                          role="status"
+                        >
+                          Request sent
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => requestToJoin(league.id)}
+                          disabled={requestingLeagueId === league.id}
+                          className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 self-end rounded-lg bg-blue-600 px-3 py-0 text-xs font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50 sm:self-center sm:text-sm"
+                        >
+                          {requestingLeagueId === league.id ? (
+                            <>
+                              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-b-transparent" />
+                              Requesting...
+                            </>
+                          ) : (
+                            <>
+                              <FaUserPlus className="shrink-0 text-sm" />
+                              Request Join
+                            </>
+                          )}
+                        </button>
+                      )
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
               
               {filteredLeagues.length === 0 && (
                 <div className="text-center py-8 text-gray-600 dark:text-gray-400">
@@ -267,16 +292,19 @@ export default function LeagueBrowser({ isOpen, onClose }: LeagueBrowserProps) {
           )}
         </div>
 
-        <div className="p-6 border-t border-gray-300 dark:border-gray-700">
+        <div className="border-t border-gray-300 p-4 dark:border-gray-700 sm:p-6">
           <button
+            type="button"
             onClick={onClose}
-            className="w-full px-4 py-2 bg-gray-300 dark:bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors"
+            className="w-full rounded-lg bg-gray-300 px-4 py-2 text-gray-900 transition-colors hover:bg-gray-400 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
           >
             Close
           </button>
         </div>
-      </div>
-      </div>
+          </div>
+        </div>,
+        document.body,
+      )}
     </>
   );
 }

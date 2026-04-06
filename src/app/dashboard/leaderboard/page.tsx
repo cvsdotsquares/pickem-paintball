@@ -15,7 +15,16 @@ import {
 } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { FaChevronDown, FaChevronUp, FaUser, FaSearch, FaTimes, FaTrophy } from "react-icons/fa";
+import {
+  FaAngleLeft,
+  FaAngleRight,
+  FaChevronDown,
+  FaChevronUp,
+  FaUser,
+  FaSearch,
+  FaTimes,
+  FaTrophy,
+} from "react-icons/fa";
 import { getAuth } from "firebase/auth";
 import { LeaderboardSkeleton } from "@/src/components/LoadingSkeleton";
 import { ErrorBoundaryWrapper } from "@/src/components/ErrorBoundaryWrapper";
@@ -114,11 +123,84 @@ function navPickLockDesc(a: LiveEvent, b: LiveEvent): number {
   return key(b) - key(a);
 }
 
+/**
+ * Within a filtered league subset, recompute event ranks by PTS (desc).
+ * Same PTS ⇒ same rank (1,1,3…); tie-breaker uses stored global rank when PTS equal.
+ */
+function assignLeagueLocalRanksForEvent(users: User[], eventId: string): User[] {
+  const ptsKey = `${eventId}PTS`;
+  const rankKey = `${eventId}Rank`;
+  const sorted = [...users].sort((a, b) => {
+    const ap = parseFloat(String((a as Record<string, unknown>)[ptsKey] ?? 0)) || 0;
+    const bp = parseFloat(String((b as Record<string, unknown>)[ptsKey] ?? 0)) || 0;
+    if (bp !== ap) return bp - ap;
+    const ar =
+      parseInt(String((a as Record<string, unknown>)[rankKey] ?? 999999), 10) ||
+      999999;
+    const br =
+      parseInt(String((b as Record<string, unknown>)[rankKey] ?? 999999), 10) ||
+      999999;
+    return ar - br;
+  });
+  let lastPts: number | null = null;
+  let currentRank = 0;
+  return sorted.map((u, i) => {
+    const pts =
+      parseFloat(String((u as Record<string, unknown>)[ptsKey] ?? 0)) || 0;
+    const next = { ...u };
+    if (lastPts === null || pts !== lastPts) {
+      currentRank = i + 1;
+      lastPts = pts;
+    }
+    (next as Record<string, unknown>)[rankKey] = currentRank;
+    return next;
+  });
+}
+
+/** Season leaderboard: recompute ranks within a league subset by season total PTS. */
+function assignLeagueLocalRanksForSeason(users: User[]): User[] {
+  const sorted = [...users].sort((a, b) => {
+    const ap = parseFloat(String(a.seasonTotalPoints ?? 0)) || 0;
+    const bp = parseFloat(String(b.seasonTotalPoints ?? 0)) || 0;
+    return bp - ap;
+  });
+  let lastPts: number | null = null;
+  let currentRank = 0;
+  return sorted.map((u, i) => {
+    const pts = parseFloat(String(u.seasonTotalPoints ?? 0)) || 0;
+    const next = { ...u };
+    if (lastPts === null || pts !== lastPts) {
+      currentRank = i + 1;
+      lastPts = pts;
+    }
+    next.seasonRank = currentRank;
+    return next;
+  });
+}
+
+/** Shared focus ring for filters + toolbar (pickem brand green). */
+const LEADERBOARD_FOCUS_RING =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pickem-green/80 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50 dark:focus-visible:ring-offset-gray-900";
+
 const STATS_NAV_BTN =
-  "shrink-0 whitespace-nowrap rounded-md border-2 border-transparent bg-white px-3 py-2 font-azonix text-[10px] font-bold uppercase tracking-wide text-neutral-900 shadow-sm transition hover:bg-neutral-50 active:scale-[0.98] dark:bg-stone-800 dark:text-white dark:hover:bg-stone-700 md:text-[11px]";
-const STATS_NAV_BTN_ACTIVE = "border-neutral-900 dark:border-white";
+  "shrink-0 whitespace-nowrap rounded-md border-2 border-transparent bg-white px-3 py-2 font-azonix text-[10px] font-bold uppercase tracking-wide text-neutral-900 shadow-sm transition hover:bg-neutral-50 active:scale-[0.98] dark:bg-stone-800 dark:text-white dark:hover:bg-stone-700 md:text-[11px] " +
+  LEADERBOARD_FOCUS_RING;
+/** Active chip — pickem brand green (same as stats / league nav). */
+const STATS_NAV_BTN_ACTIVE = "border-pickem-green";
+
+/** YOU / current-user badges: solid pickem green, dark text for contrast (matches dashboard CTAs). */
+const LEADERBOARD_YOU_BADGE_CLASS =
+  "bg-pickem-green px-1.5 py-0.5 font-semibold text-neutral-950";
+
+/** Highlight row for the signed-in user. */
+const LEADERBOARD_YOU_ROW_CLASS =
+  "bg-pickem-green/12 dark:bg-pickem-green/16";
 const STATS_NAV_OVERALL_ACCENT_BAR =
   "inline-block h-[1em] w-[3px] shrink-0 self-center rounded-[1px] bg-[#00f976]";
+
+/** Neutral ring + explicit pickem green arc (#00f976) — reliable vs `border-pickem-green` on partial borders. */
+const LEADERBOARD_SPINNER_BASE =
+  "inline-block shrink-0 animate-spin rounded-full border-2 border-solid border-gray-300/90 border-t-[#00f976] dark:border-gray-600 dark:border-t-[#00f976]";
 
 // Cache for live event to avoid repeated queries
 const LIVE_EVENT_CACHE_KEY = 'leaderboard_live_event';
@@ -271,7 +353,7 @@ function LeaderboardNewContent() {
   const [currentUserLoading, setCurrentUserLoading] = useState<boolean>(true);
   const [pageLoading, setPageLoading] = useState<boolean>(false);
   const [page, setPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(100);
   const [hasMorePages, setHasMorePages] = useState(true);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [expandedUserEventId, setExpandedUserEventId] = useState<string | null>(null);
@@ -300,7 +382,7 @@ function LeaderboardNewContent() {
   const [showCreateLeague, setShowCreateLeague] = useState(false);
   const [showJoinLeague, setShowJoinLeague] = useState(false);
 
-  const PAGE_SIZES = [10, 20, 50];
+  const PAGE_SIZES = [100, 200, 300, 400, 500];
   const MAX_RETRIES = 3;
 
   const years = useMemo((): string[] => {
@@ -543,9 +625,17 @@ function LeaderboardNewContent() {
           });
 
           fallback.sort((a, b) => (b.seasonTotalPoints || 0) - (a.seasonTotalPoints || 0));
+          let seasonList = fallback;
+          if (leagueMemberIds?.size) {
+            seasonList = fallback.filter((u) => leagueMemberIds.has(u.id));
+          }
+          const rankedSeason =
+            leagueMemberIds?.size && seasonList.length > 0
+              ? assignLeagueLocalRanksForSeason(seasonList)
+              : seasonList;
           const start = (page - 1) * itemsPerPage;
-          setUsers(fallback.slice(start, start + itemsPerPage));
-          setHasMorePages(fallback.length > start + itemsPerPage);
+          setUsers(rankedSeason.slice(start, start + itemsPerPage));
+          setHasMorePages(rankedSeason.length > start + itemsPerPage);
         } catch {
           setUsers([]);
         }
@@ -555,11 +645,25 @@ function LeaderboardNewContent() {
 
       const allUsers: any[] = snap.data()?.users || [];
       const filtered = leagueMemberIds
-        ? allUsers.filter(u => leagueMemberIds.has(u.id))
+        ? allUsers.filter((u) => leagueMemberIds.has(u.id))
         : allUsers;
+      const mapped: User[] = filtered.map((u) => ({
+        id: u.id,
+        displayName: u.displayName,
+        profilePicture: u.profilePicture || undefined,
+        isSubscribed: u.isSubscribed || false,
+        seasonTotalPoints: u.seasonTotalPoints,
+        seasonmvpname: u.seasonmvpname,
+        seasonmvppts: u.seasonmvppts,
+        seasonRank: u.seasonRank,
+      }));
+      const rankedSeason =
+        leagueMemberIds?.size && mapped.length > 0
+          ? assignLeagueLocalRanksForSeason(mapped)
+          : mapped;
       const start = (page - 1) * itemsPerPage;
-      setUsers(filtered.slice(start, start + itemsPerPage));
-      setHasMorePages(filtered.length > start + itemsPerPage);
+      setUsers(rankedSeason.slice(start, start + itemsPerPage));
+      setHasMorePages(rankedSeason.length > start + itemsPerPage);
       setUsersLoading(false);
     });
 
@@ -604,11 +708,32 @@ function LeaderboardNewContent() {
           const bRank = parseInt(b[`${liveEvent.id}Rank`]) || 999999;
           return aRank - bRank;
         });
+        let list = fallback;
+        if (leagueMemberIds?.size) {
+          list = fallback.filter((u) => leagueMemberIds.has(u.id));
+        }
+        const ranked =
+          leagueMemberIds?.size && list.length > 0
+            ? assignLeagueLocalRanksForEvent(list, liveEvent.id)
+            : list;
         if (cancelled || hasSummaryData.current) return;
-        setTotalParticipants(fallback.length);
+        setTotalParticipants(ranked.length);
         const start = (page - 1) * itemsPerPage;
-        setUsers(fallback.slice(start, start + itemsPerPage));
-        setHasMorePages(fallback.length > start + itemsPerPage);
+        setUsers(ranked.slice(start, start + itemsPerPage));
+        setHasMorePages(ranked.length > start + itemsPerPage);
+
+        if (currentUserId && liveEvent) {
+          const me = ranked.find((u) => u.id === currentUserId);
+          if (me) {
+            const rk = me[`${liveEvent.id}Rank`];
+            setCurrentUserData((prev) => {
+              if (!prev || prev.id !== currentUserId) return prev;
+              if (prev[`${liveEvent.id}Rank`] === rk) return prev;
+              return { ...prev, [`${liveEvent.id}Rank`]: rk };
+            });
+          }
+        }
+
         setPageLoading(false);
         setUsersLoading(false);
       } catch {
@@ -619,7 +744,7 @@ function LeaderboardNewContent() {
     };
     runFallback();
     return () => { cancelled = true; };
-  }, [liveEvent?.id, isSearchMode, isSeasonView]);
+  }, [liveEvent?.id, isSearchMode, isSeasonView, leagueMemberIds, page, itemsPerPage, currentUserId]);
 
   // ── Live leaderboard: onSnapshot on summary doc written by Cloud Function ────
   useEffect(() => {
@@ -636,16 +761,15 @@ function LeaderboardNewContent() {
       hasSummaryData.current = true;
 
       const allUsers: any[] = snap.data()?.users || [];
-      setTotalParticipants(snap.data()?.totalParticipants || allUsers.length);
 
       // Apply league filter using live membership from leagues doc,
       // not the stale leagues field cached in the leaderboard summary.
       const filtered = leagueMemberIds
-        ? allUsers.filter(u => leagueMemberIds.has(u.id))
+        ? allUsers.filter((u) => leagueMemberIds.has(u.id))
         : allUsers;
 
       // Normalise to the shape the rest of the page expects
-      const normalised: User[] = filtered.map(u => ({
+      let normalised: User[] = filtered.map((u) => ({
         id: u.id,
         displayName: u.displayName,
         profilePicture: u.profilePicture || undefined,
@@ -656,16 +780,49 @@ function LeaderboardNewContent() {
         [`${liveEvent.id}MVP`]: u.mvp,
       }));
 
+      // Within a custom league, ranks must be recomputed for the subset only.
+      if (leagueMemberIds && leagueMemberIds.size > 0) {
+        normalised = assignLeagueLocalRanksForEvent(normalised, liveEvent.id);
+      }
+
+      setTotalParticipants(
+        leagueMemberIds && leagueMemberIds.size > 0
+          ? filtered.length
+          : snap.data()?.totalParticipants || allUsers.length,
+      );
+
       // Paginate client-side
       const start = (page - 1) * itemsPerPage;
       setUsers(normalised.slice(start, start + itemsPerPage));
-      setHasMorePages(filtered.length > start + itemsPerPage);
+      setHasMorePages(normalised.length > start + itemsPerPage);
+
+      if (currentUserId && liveEvent) {
+        const me = normalised.find((u) => u.id === currentUserId);
+        if (me) {
+          const rk = me[`${liveEvent.id}Rank`];
+          setCurrentUserData((prev) => {
+            if (!prev || prev.id !== currentUserId) return prev;
+            if (prev[`${liveEvent.id}Rank`] === rk) return prev;
+            return { ...prev, [`${liveEvent.id}Rank`]: rk };
+          });
+        }
+      }
+
       setPageLoading(false);
       setUsersLoading(false);
     });
 
     return () => unsub();
-  }, [liveEvent?.id, isSearchMode, isSeasonView, selectedLeague?.id, leagueMemberIds, page, itemsPerPage]);
+  }, [
+    liveEvent?.id,
+    isSearchMode,
+    isSeasonView,
+    selectedLeague?.id,
+    leagueMemberIds,
+    page,
+    itemsPerPage,
+    currentUserId,
+  ]);
 
   // Reset pagination when event or league changes
   useEffect(() => {
@@ -1011,8 +1168,40 @@ function LeaderboardNewContent() {
       setIsSearchMode(true);
       setShowSuggestions(false);
 
-      const usersCollection = collection(db, "users");
       const searchTermLower = searchTerm.toLowerCase();
+
+      // Custom league: search must use the same ranked subset as the table (not global ranks).
+      if (leagueMemberIds && leagueMemberIds.size > 0) {
+        const snap = await getDoc(doc(db, "leaderboards", liveEvent.id));
+        if (!snap.exists()) {
+          setUsers([]);
+          setHasMorePages(false);
+          setPageLoading(false);
+          return;
+        }
+        const allUsers: any[] = snap.data()?.users || [];
+        const filtered = allUsers.filter((u) => leagueMemberIds.has(u.id));
+        let ranked: User[] = filtered.map((u) => ({
+          id: u.id,
+          displayName: u.displayName,
+          profilePicture: u.profilePicture || undefined,
+          isSubscribed: u.isSubscribed || false,
+          leagues: u.leagues,
+          [`${liveEvent.id}Rank`]: u.eventRank,
+          [`${liveEvent.id}PTS`]: u.eventPTS,
+          [`${liveEvent.id}MVP`]: u.mvp,
+        }));
+        ranked = assignLeagueLocalRanksForEvent(ranked, liveEvent.id);
+        const nameMatches = ranked.filter((u) =>
+          u.displayName.toLowerCase().includes(searchTermLower),
+        );
+        setUsers(nameMatches.slice(0, itemsPerPage));
+        setHasMorePages(false);
+        setPageLoading(false);
+        return;
+      }
+
+      const usersCollection = collection(db, "users");
 
       const constraints: QueryConstraint[] = [
         where(`pickems.${liveEvent.id}`, "!=", null),
@@ -1058,7 +1247,7 @@ function LeaderboardNewContent() {
 
         // If both have rank data, sort by rank (ascending)
         if (aRank && bRank) {
-          return parseInt(aRank) - parseInt(bRank);
+          return parseInt(String(aRank)) - parseInt(String(bRank));
         }
 
         // If neither has rank data, sort alphabetically
@@ -1209,13 +1398,24 @@ function LeaderboardNewContent() {
         />
       ) : null}
 
+      <main className="mx-auto max-w-5xl px-4 pt-4">
+      {/* Custom leagues — above event/year filtering */}
+      {!eventLoading && (liveEvent || isSeasonView) && (
+        <div className="mb-4">
+          <LeagueSelector
+            onCreateLeague={() => setShowCreateLeague(true)}
+            onJoinLeague={() => setShowJoinLeague(true)}
+          />
+        </div>
+      )}
+
       <section
-        className="mx-auto mt-2 max-w-5xl px-4 pt-4"
+        className="mt-0"
         aria-label="Leaderboard navigation"
       >
-        <div className="rounded-xl bg-neutral-100/90 p-3 dark:bg-stone-900/90">
+        <div className="rounded-xl bg-neutral-50/70 p-2 ring-1 ring-black/[0.06] dark:bg-stone-950/50 dark:ring-white/10">
           <div
-            className="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex items-center gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             role="toolbar"
             aria-label="Filter by year"
           >
@@ -1231,7 +1431,7 @@ function LeaderboardNewContent() {
             ))}
           </div>
           <div
-            className="mt-2 flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="mt-2 flex items-center gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             role="toolbar"
             aria-label={
               selectedYear === "All"
@@ -1254,7 +1454,7 @@ function LeaderboardNewContent() {
                       seasonSelected && STATS_NAV_BTN_ACTIVE,
                     )}
                   >
-                    <span className={STATS_NAV_OVERALL_ACCENT_BAR} aria-hidden />
+                    <span className={STATS_NAV_OVERALL_ACCENT_BAR} aria-hidden={true} />
                     {item.label}
                   </button>
                 );
@@ -1280,21 +1480,31 @@ function LeaderboardNewContent() {
         </div>
       </section>
 
-      <div className="mb-4 text-center pt-3 sm:pt-7">
-        {/* {eventLoading ? (
-          <div className="h-8 bg-gray-700 rounded w-48 mx-auto animate-pulse"></div>
+      <h2
+        id="leaderboard-standings-heading"
+        className="text-xs font-medium text-gray-600 dark:text-gray-400 mt-2 mb-1 min-h-[1.125rem]"
+      >
+        {eventLoading ? (
+          <span
+            className="inline-block h-3 w-32 max-w-full rounded bg-gray-300 dark:bg-gray-700 animate-pulse"
+            aria-hidden
+          />
+        ) : !isSeasonView && totalParticipants > 0 ? (
+          <>
+            {totalParticipants} team{totalParticipants !== 1 ? "s" : ""} entered
+          </>
         ) : (
-          <h1 className="text-xl sm:text-2xl font-bold mb-1">{liveEvent?.name}</h1>
-        )} */}
-      </div>
+          <span className="sr-only">Standings</span>
+        )}
+      </h2>
 
       {/* Current User Card */}
       {currentUserLoading ? (
-        <div className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 pt-4 pb-4 mb-4">
-          <div className="bg-gray-200/100 dark:bg-gray-800/100 rounded-lg shadow border border-gray-300 dark:border-gray-700 p-3">
+        <div className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 pt-2 pb-2 mb-2 sm:pt-3 sm:pb-3">
+          <div className="bg-gray-200/100 dark:bg-gray-800/100 rounded-lg shadow border border-gray-300 dark:border-gray-700 p-2 sm:p-3">
             <div className="flex items-center">
-              <div className="w-14 h-14 rounded-full bg-gray-700 animate-pulse mr-3"></div>
-              <div className="flex-1">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-full bg-gray-700 animate-pulse mr-3"></div>
+              <div className="flex-1 min-w-0">
                 <div className="h-4 bg-gray-700 rounded w-32 mb-2 animate-pulse"></div>
                 <div className="h-3 bg-gray-700 rounded w-24 animate-pulse"></div>
               </div>
@@ -1302,7 +1512,7 @@ function LeaderboardNewContent() {
           </div>
         </div>
       ) : currentUserData && liveEvent && (
-        <div className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 pt-4 pb-4 mb-4">
+        <div className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 pt-2 pb-2 mb-2 sm:pt-3 sm:pb-3">
           <div className="bg-gray-200/100 dark:bg-gray-800/100 rounded-lg shadow border border-gray-300 dark:border-gray-700">
             <div
               className="p-2 sm:p-3 cursor-pointer"
@@ -1317,37 +1527,50 @@ function LeaderboardNewContent() {
                 }
               }}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="relative">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-center">
+                  <div className="relative shrink-0">
                     <LeaderboardProfileAvatar
                       userId={currentUserId}
                       storagePath={currentUserData.profilePicture}
                       displayName="Profile"
-                      className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-yellow-400"
+                      className="w-11 h-11 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-yellow-400"
                     />
                     {liveEvent && currentUserData[`${liveEvent.id}Rank`] && (
-                      <div className="absolute -top-1 -right-1 bg-yellow-500 text-black w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs">
+                      <div
+                        className={cn(
+                          "absolute -top-1 -right-1 flex items-center justify-center rounded-full bg-yellow-500 font-bold tabular-nums leading-none text-black",
+                          String(currentUserData[`${liveEvent.id}Rank`]).length >= 3
+                            ? "h-6 min-w-[1.75rem] max-w-[3rem] shrink-0 px-1 text-[8px] sm:h-7 sm:min-w-[2rem] sm:max-w-none sm:px-1.5 sm:text-[11px]"
+                            : "h-6 w-6 text-[10px] sm:h-7 sm:w-7 sm:text-xs",
+                        )}
+                      >
                         #{currentUserData[`${liveEvent.id}Rank`]}
                       </div>
                     )}
                   </div>
-                  <div className="ml-3">
-                    <h3 className="font-bold text-sm sm:text-base flex items-center">
-                      {currentUserData.displayName}
-                      <span className="ml-1 text-xs bg-blue-600 px-1.5 py-0.5 rounded">
-                        You
-                      </span>
-                    </h3>
-                    <div className="flex items-center mt-0.5">
-                      <FaTrophy className="text-yellow-400 mr-1 text-sm" />
-                      <span className="font-medium text-sm">
-                        Points: {liveEvent && currentUserData[`${liveEvent.id}PTS`] !== undefined
+                  <div className="ml-2 min-w-0 sm:ml-3">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <h3 className="font-bold text-sm sm:text-base flex min-w-0 items-center">
+                        <span className="truncate">{currentUserData.displayName}</span>
+                        <span
+                          className={cn(
+                            "ml-1 shrink-0 rounded text-xs",
+                            LEADERBOARD_YOU_BADGE_CLASS,
+                          )}
+                        >
+                          You
+                        </span>
+                      </h3>
+                      <span className="inline-flex items-center gap-1 font-medium text-xs sm:text-sm tabular-nums">
+                        <FaTrophy className="text-yellow-400 shrink-0 text-sm" aria-hidden={true} />
+                        {liveEvent && currentUserData[`${liveEvent.id}PTS`] !== undefined
                           ? currentUserData[`${liveEvent.id}PTS`]
                           : 0}
+                        <span className="font-normal text-gray-500 dark:text-gray-400">pts</span>
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <p className="hidden text-xs text-gray-600 dark:text-gray-400 sm:block">
                       MVP: {liveEvent && currentUserData[`${liveEvent.id}MVP`] !== undefined
                         ? currentUserData[`${liveEvent.id}MVP`] || "None"
                         : "None"}
@@ -1355,7 +1578,7 @@ function LeaderboardNewContent() {
                   </div>
                 </div>
                 {currentUserCardLoading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
+                  <div className={cn(LEADERBOARD_SPINNER_BASE, "h-4 w-4")} aria-hidden={true} />
                 ) : expandCurrentUser ? (
                   <FaChevronUp className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-sm" />
                 ) : (
@@ -1399,7 +1622,7 @@ function LeaderboardNewContent() {
                                 <div className="text-gray-600 dark:text-gray-400">Rank: <span className="text-gray-900 dark:text-white">{pick.rank ?? 0}</span></div>
                               </div>
                               <div className="space-y-1">
-                                <div className="text-gray-600 dark:text-gray-400">Score: <span className="text-green-600 dark:text-green-400 font-medium">{pick.points}</span></div>
+                                <div className="text-gray-600 dark:text-gray-400">Score: <span className="font-medium text-gray-900 dark:text-white">{pick.points}</span></div>
                                 <div className="text-gray-600 dark:text-gray-400">Cost: <span className="text-gray-900 dark:text-white">${pick.cost}</span></div>
                                 <div className="text-gray-600 dark:text-gray-400">ROI: <span className="pickem-numeric text-yellow-600 dark:text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(2)}</span></div>
                               </div>
@@ -1415,23 +1638,21 @@ function LeaderboardNewContent() {
         </div>
       )}
 
-      {/* League Selector */}
-      {!eventLoading && (liveEvent || isSeasonView) && (
-        <LeagueSelector
-          onCreateLeague={() => setShowCreateLeague(true)}
-          onJoinLeague={() => setShowJoinLeague(true)}
-        />
-      )}
-
-      {/* Search Bar */}
+      {/* Search + rows + pagination — single row */}
       {eventLoading ? (
-        <div className="relative mt-4 mb-4">
-          <div className="h-10 bg-gray-700 rounded-lg animate-pulse"></div>
+        <div className="mb-2 mt-2 flex min-h-9 flex-nowrap items-center gap-2">
+          <div
+            className="h-9 min-w-0 flex-1 rounded-lg bg-gray-700 animate-pulse"
+            aria-hidden
+          />
         </div>
       ) : (
-        <div className="relative mt-4 mb-4">
-          <form onSubmit={handleSearchSubmit} className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <div className="mb-2 mt-2 flex min-w-0 flex-nowrap items-center gap-4 sm:gap-6">
+          <form
+            onSubmit={handleSearchSubmit}
+            className="relative min-h-9 min-w-0 flex-1"
+          >
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <FaSearch className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-sm" />
             </div>
             <input
@@ -1439,93 +1660,120 @@ function LeaderboardNewContent() {
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search players..."
-              className="w-full pl-9 pr-10 py-2 text-sm bg-gray-200 dark:bg-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900 dark:text-white"
+              aria-label="Search players"
+              className={cn(
+                "h-9 w-full min-w-0 pl-9 pr-10 py-1.5 text-sm bg-gray-200 dark:bg-gray-800 rounded-lg text-gray-900 dark:text-white sm:py-2",
+                LEADERBOARD_FOCUS_RING,
+              )}
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={handleClearSearch}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                className="absolute inset-y-0 right-0 flex items-center pr-3"
               >
                 <FaTimes className="text-gray-400 hover:text-white text-sm" />
               </button>
             )}
           </form>
-
-        </div>
-      )}
-
-      {/* Participant count */}
-      {!eventLoading && !isSearchMode && !isSeasonView && totalParticipants > 0 && (
-        <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-          {totalParticipants} team{totalParticipants !== 1 ? 's' : ''} entered
-        </div>
-      )}
-
-      {/* Pagination */}
-      {!eventLoading && !isSearchMode && users.length > 0 && (
-        <div className="flex flex-row items-center justify-between my-4 gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-600 dark:text-gray-300">Rows:</span>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-              disabled={pageLoading}
-              className="bg-gray-800 text-white text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {PAGE_SIZES.map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-row items-center gap-2">
-            <span className="text-xs text-gray-600 dark:text-gray-300">Page {page}</span>
-            <button
-              onClick={handlePreviousPage}
-              disabled={page === 1 || pageLoading}
-              className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors"
-            >
-              Prev
-            </button>
-            <button
-              onClick={handleNextPage}
-              disabled={!hasMorePages || pageLoading || usersLoading}
-              className="px-3 py-1 rounded bg-gray-800 text-white text-xs disabled:opacity-50 hover:bg-gray-700 transition-colors"
-            >
-              Next
-            </button>
-          </div>
+          {!isSearchMode && users.length > 0 && (
+            <>
+              <div className="flex shrink-0 items-center gap-2 border-l border-gray-200 pl-4 dark:border-gray-700 sm:pl-6">
+                <span className="whitespace-nowrap text-xs text-gray-600 dark:text-gray-300">
+                  Rows
+                </span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) =>
+                    handlePageSizeChange(Number(e.target.value))
+                  }
+                  disabled={pageLoading}
+                  aria-label="Rows per page"
+                  className={cn(
+                    "h-9 rounded bg-gray-800 px-2 text-xs text-white disabled:opacity-50",
+                    LEADERBOARD_FOCUS_RING,
+                  )}
+                >
+                  {PAGE_SIZES.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div
+                className="flex shrink-0 items-center gap-2 border-l border-gray-200 pl-4 dark:border-gray-700 sm:pl-6"
+                role="navigation"
+                aria-label="Table pages"
+              >
+                <span className="sr-only">
+                  Page {page}
+                </span>
+                <button
+                  type="button"
+                  onClick={handlePreviousPage}
+                  disabled={page === 1 || pageLoading}
+                  aria-label="Previous page"
+                  className={cn(
+                    "box-border flex h-9 w-9 shrink-0 items-center justify-center rounded bg-gray-200 text-gray-700 transition-colors hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700",
+                    LEADERBOARD_FOCUS_RING,
+                  )}
+                >
+                  <FaAngleLeft className="h-3.5 w-3.5" aria-hidden={true} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextPage}
+                  disabled={!hasMorePages || pageLoading || usersLoading}
+                  aria-label="Next page"
+                  className={cn(
+                    "box-border flex h-9 w-9 shrink-0 items-center justify-center rounded bg-gray-200 text-gray-700 transition-colors hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700",
+                    LEADERBOARD_FOCUS_RING,
+                  )}
+                >
+                  <FaAngleRight className="h-3.5 w-3.5" aria-hidden={true} />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
       {/* Leaderboard Table */}
-      <div className="overflow-x-auto rounded-lg shadow bg-gray-200/50 dark:bg-gray-800/50 backdrop-blur-sm">
-        <table className="w-full">
+      <section aria-labelledby="leaderboard-standings-heading">
+      <div className="overflow-x-auto rounded-lg pr-2 shadow bg-gray-200/50 dark:bg-gray-800/50 backdrop-blur-sm [-webkit-overflow-scrolling:touch]">
+        <table className="w-full table-fixed">
+          <colgroup>
+            <col className="w-14 sm:w-16" />
+            <col />
+            <col className="w-24 sm:w-28" />
+            <col className="hidden min-w-0 sm:table-column sm:w-[28%]" />
+            <col className="w-16" />
+          </colgroup>
           <thead>
             <tr className="bg-gray-300/80 dark:bg-gray-700/80">
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider sticky left-0 z-20">
+              <th className="sticky left-0 z-20 bg-gray-300/80 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-gray-700 shadow-[2px_0_0_0_rgb(209_213_219_/_0.5)] dark:bg-gray-700/80 dark:text-gray-300 dark:shadow-[2px_0_0_0_rgb(75_85_99_/_0.5)]">
                 Rank
               </th>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              <th className="min-w-0 px-3 py-2.5 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                 Player
               </th>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              <th className="px-3 py-2.5 text-right text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider tabular-nums">
                 Pts
               </th>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider hidden sm:table-cell">
+              <th className="hidden min-w-0 px-3 py-2.5 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider sm:table-cell">
                 MVP
               </th>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              <th className="w-16 max-w-16 px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-tight text-gray-700 dark:text-gray-300 sm:text-xs sm:tracking-wide">
                 Details
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-300/50 dark:divide-gray-700/50">
             {(eventLoading || usersLoading || (pageLoading && page === 1)) ? (
-              <LeaderboardSkeleton rows={itemsPerPage} />
+              <LeaderboardSkeleton
+                rows={Math.min(itemsPerPage, 25)}
+              />
             ) : users.length > 0 ? (
               users.map((user, index) => {
                 const userEvents = userEventsMap.get(user.id) || [];
@@ -1548,32 +1796,42 @@ function LeaderboardNewContent() {
                 return (
                   <Fragment key={user.id}>
                     <tr
-                      className={`hover:bg-gray-400/60 dark:hover:bg-gray-600/60 transition-all duration-300 cursor-pointer ${currentUserId === user.id ? "bg-blue-200/40 dark:bg-blue-900/40" : "bg-gray-200/60 dark:bg-gray-800/60"
-                        } ${updatingRows.has(user.id) ? "bg-blue-300/30 dark:bg-blue-500/30 scale-[1.02]" : ""
+                      className={`hover:bg-gray-400/60 dark:hover:bg-gray-600/60 transition-all duration-300 cursor-pointer ${currentUserId === user.id ? LEADERBOARD_YOU_ROW_CLASS : "bg-gray-200/60 dark:bg-gray-800/60"
+                        } ${updatingRows.has(user.id) ? "scale-[1.02] bg-pickem-green/20 dark:bg-pickem-green/25" : ""
                         }`}
                       onClick={() => toggleExpand(user.id)}
                     >
-                      <td className="px-2 py-2 whitespace-nowrap text-sm sticky left-0 z-10 bg-inherit">
+                      <td className="px-3 py-2.5 text-sm sticky left-0 z-10 bg-inherit whitespace-nowrap align-middle shadow-[2px_0_0_0_rgb(209_213_219_/_0.35)] dark:shadow-[2px_0_0_0_rgb(75_85_99_/_0.35)]">
                         <div className="flex items-center">
-                          <span className="font-medium text-gray-900 dark:text-white">{displayRank}</span>
+                          <span className="font-medium text-gray-900 dark:text-white tabular-nums">
+                            {displayRank}
+                          </span>
                           {currentUserId === user.id && (
-                            <span className="ml-1 text-xs bg-blue-600 px-1 py-0.5 rounded">
+                            <span
+                              className={cn(
+                                "ml-1 rounded text-xs",
+                                LEADERBOARD_YOU_BADGE_CLASS,
+                              )}
+                            >
                               YOU
                             </span>
                           )}
                         </div>
                       </td>
 
-                      <td className="px-2 py-2 whitespace-nowrap">
-                        <div className="flex items-center">
+                      <td className="min-w-0 px-3 py-2.5 align-middle">
+                        <div className="flex min-w-0 items-center">
                           <LeaderboardProfileAvatar
                             userId={user.id}
                             storagePath={user.profilePicture}
                             displayName={user.displayName}
-                            className="w-8 h-8 rounded-full object-cover mr-2"
+                            className="h-8 w-8 shrink-0 rounded-full object-cover mr-2"
                           />
-                          <div className="flex items-center gap-0 max-w-[100px] sm:max-w-[150px]">
-                            <span className="text-xs sm:text-sm truncate text-gray-900 dark:text-white">
+                          <div className="flex min-w-0 items-center gap-0">
+                            <span
+                              className="truncate text-xs text-gray-900 dark:text-white sm:text-sm"
+                              title={user.displayName}
+                            >
                               {user.displayName}
                             </span>
                             {user.isSubscribed && <SubscriberBadge displayName={user.displayName} />}
@@ -1581,7 +1839,7 @@ function LeaderboardNewContent() {
                         </div>
                       </td>
 
-                      <td className="px-2 py-2 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
+                      <td className="px-3 py-2.5 text-right text-xs font-medium tabular-nums text-gray-900 dark:text-white sm:text-sm align-middle whitespace-nowrap">
                         {isSeasonView ? (
                           user.seasonTotalPoints || 0
                         ) : (
@@ -1591,20 +1849,35 @@ function LeaderboardNewContent() {
                         )}
                       </td>
 
-                      <td className="px-2 py-2 whitespace-nowrap text-xs sm:text-sm text-gray-900 dark:text-gray-300 hidden sm:table-cell">
-                        {isSeasonView ? (
-                          user.seasonmvpname || "N/A"
-                        ) : (
-                          liveEvent && user[`${liveEvent.id}MVP`] !== undefined && user[`${liveEvent.id}MVP`] !== null
-                            ? user[`${liveEvent.id}MVP`] || "None"
-                            : "None"
-                        )}
+                      <td className="hidden min-w-0 px-3 py-2.5 text-left text-xs text-gray-900 dark:text-gray-300 sm:table-cell sm:text-sm align-middle">
+                        <span
+                          className="block truncate"
+                          title={
+                            isSeasonView
+                              ? (user.seasonmvpname || undefined)
+                              : liveEvent && user[`${liveEvent.id}MVP`]
+                                ? String(user[`${liveEvent.id}MVP`] || "None")
+                                : undefined
+                          }
+                        >
+                          {isSeasonView ? (
+                            user.seasonmvpname || "N/A"
+                          ) : (
+                            liveEvent && user[`${liveEvent.id}MVP`] !== undefined && user[`${liveEvent.id}MVP`] !== null
+                              ? user[`${liveEvent.id}MVP`] || "None"
+                              : "None"
+                          )}
+                        </span>
                       </td>
 
-                      <td className="px-2 py-2 whitespace-nowrap">
-                        <button className="flex items-center justify-center w-full">
+                      <td className="w-16 max-w-16 px-2 py-2.5 text-left align-middle whitespace-nowrap">
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center"
+                          aria-label={isExpanded ? "Collapse row" : "Expand row"}
+                        >
                           {isLoading ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
+                            <div className={cn(LEADERBOARD_SPINNER_BASE, "h-4 w-4")} aria-hidden={true} />
                           ) : isExpanded ? (
                             <FaChevronUp className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-sm" />
                           ) : (
@@ -1674,7 +1947,7 @@ function LeaderboardNewContent() {
                                               </div>
                                               <div className="flex items-center gap-3">
                                                 <div className="text-xs text-gray-600 dark:text-gray-400 ml-2">
-                                                  <span className="text-green-600 dark:text-green-400 font-medium">{event.points} pts</span>
+                                                  <span className="font-medium text-gray-900 dark:text-white">{event.points} pts</span>
                                                   {mvpName !== "None" && (
                                                     <span className="ml-2 text-yellow-600 dark:text-yellow-400">
                                                       • MVP: {mvpName}
@@ -1682,7 +1955,7 @@ function LeaderboardNewContent() {
                                                   )}
                                                 </div>
                                                 {isEventLoading ? (
-                                                  <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-blue-500"></div>
+                                                  <div className={cn(LEADERBOARD_SPINNER_BASE, "h-3 w-3")} aria-hidden={true} />
                                                 ) : isEventExpanded ? (
                                                   <FaChevronUp className="text-gray-500 dark:text-gray-400 text-xs" />
                                                 ) : (
@@ -1723,7 +1996,7 @@ function LeaderboardNewContent() {
                                                             <div className="text-gray-600 dark:text-gray-400">Rank: <span className="text-gray-900 dark:text-white">{pick.rank ?? 0}</span></div>
                                                           </div>
                                                           <div className="space-y-1">
-                                                            <div className="text-gray-600 dark:text-gray-400">Score: <span className="text-green-600 dark:text-green-400 font-medium">{pick.points}</span></div>
+                                                            <div className="text-gray-600 dark:text-gray-400">Score: <span className="font-medium text-gray-900 dark:text-white">{pick.points}</span></div>
                                                             <div className="text-gray-600 dark:text-gray-400">Cost: <span className="text-gray-900 dark:text-white">${pick.cost}</span></div>
                                                             <div className="text-gray-600 dark:text-gray-400">ROI: <span className="pickem-numeric text-yellow-600 dark:text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(0)}</span></div>
                                                           </div>
@@ -1742,7 +2015,7 @@ function LeaderboardNewContent() {
                               </div>
                             ) : isLoading ? (
                               <div className="flex items-center justify-center py-4">
-                                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+                                <div className={cn(LEADERBOARD_SPINNER_BASE, "h-6 w-6")} aria-hidden={true} />
                               </div>
                             ) : userDetailsMap.has(liveEvent ? `${user.id}:${liveEvent.id}` : user.id) ? (
                               <div className="pb-2">
@@ -1772,7 +2045,7 @@ function LeaderboardNewContent() {
                                             <div className="text-gray-600 dark:text-gray-400">Rank: <span className="text-gray-900 dark:text-white">{pick.rank ?? 0}</span></div>
                                           </div>
                                           <div className="space-y-1">
-                                            <div className="text-gray-600 dark:text-gray-400">Score: <span className="text-green-600 dark:text-green-400 font-medium">{pick.points}</span></div>
+                                            <div className="text-gray-600 dark:text-gray-400">Score: <span className="font-medium text-gray-900 dark:text-white">{pick.points}</span></div>
                                             <div className="text-gray-600 dark:text-gray-400">Cost: <span className="text-gray-900 dark:text-white">${pick.cost}</span></div>
                                             <div className="text-gray-600 dark:text-gray-400">ROI: <span className="pickem-numeric text-yellow-600 dark:text-yellow-400">${pick.kills === 0 || pick.cost === 0 ? 0 : (pick.cost / pick.kills).toFixed(0)}</span></div>
                                           </div>
@@ -1803,6 +2076,7 @@ function LeaderboardNewContent() {
           </tbody>
         </table>
       </div>
+      </section>
 
       {/* Pagination - Bottom */}
       {
@@ -1844,6 +2118,7 @@ function LeaderboardNewContent() {
         //   </div>
         // )
       }
+      </main>
       {/* League Modals */}
       <CreateLeagueModal
         isOpen={showCreateLeague}

@@ -36,6 +36,7 @@ import Button from "@/src/components/ui/button";
 import { FaGoogle, FaEye, FaEyeSlash } from "react-icons/fa6";
 import Image from "next/image";
 import Navbar from "@/src/components/Landing/Navbar";
+import { containsProfanity } from "@/src/lib/profanity";
 
 const RegisterPageClient: React.FC = () => {
   const router = useRouter();
@@ -70,7 +71,6 @@ const RegisterPageClient: React.FC = () => {
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const nameRegex = /^[a-zA-Z\s]+$/;
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  const badWords = ["badword1", "badword2"]; // Add actual bad words here
   const [usernameDebounceTimer, setUsernameDebounceTimer] =
     useState<NodeJS.Timeout | null>(null);
 
@@ -179,11 +179,6 @@ const RegisterPageClient: React.FC = () => {
     } else {
       setPasswordStrength("Strong");
     }
-  };
-
-  const containsProfanity = (text: string) => {
-    const lowercasedText = text.toLowerCase();
-    return badWords.some((word) => lowercasedText.includes(word));
   };
 
   const handleUploadClick = () => {

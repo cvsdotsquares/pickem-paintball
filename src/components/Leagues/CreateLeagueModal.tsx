@@ -9,6 +9,7 @@ import { FaTimes, FaLock, FaGlobe, FaEye, FaEyeSlash, FaUpload } from 'react-ico
 import LeagueSuccessModal from './LeagueSuccessModal';
 import { useToast } from '@/src/hooks/useToast';
 import Toast from '../ui/Toast';
+import { containsProfanity, LEAGUE_NAME_PROFANITY_ERROR } from '@/src/lib/profanity';
 
 interface CreateLeagueModalProps {
   isOpen: boolean;
@@ -79,6 +80,12 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
         return;
       }
 
+      if (containsProfanity(formData.name.trim())) {
+        showToast(LEAGUE_NAME_PROFANITY_ERROR, 'error');
+        setLoading(false);
+        return;
+      }
+
       const settings = {
         isPublic: formData.isPublic,
         requiresApproval: formData.requiresApproval,
@@ -126,7 +133,9 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
       });
     } catch (error) {
       console.error('Error creating league:', error);
-      showToast('Failed to create league. Please try again', 'error');
+      const message =
+        error instanceof Error ? error.message : 'Failed to create league. Please try again';
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -149,7 +158,7 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
           onClose={() => hideToast(toast.id)}
         />
       ))}
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white dark:bg-gray-900 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-300 dark:border-gray-700">
