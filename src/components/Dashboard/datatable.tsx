@@ -9,15 +9,12 @@ import {
   FaUserCheck,
 } from "react-icons/fa6";
 import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
-import { useScroll, useTransform, motion } from "framer-motion";
 import { useTheme } from "../../contexts/ThemeContext";
 import {
   resolveProfilePictureToUrl,
   subscribeProfileImagesRefresh,
 } from "@/src/lib/resolveProfilePictureUrl";
 import { cn } from "@/src/lib/utils";
-import { useDashboardMainScrollTop } from "@/src/contexts/DashboardMainScrollContext";
-import { MOBILE_DASHBOARD_HEADER_BODY_PX } from "@/src/components/Layout/dashboardMobileHeader";
 
 type ThemeClasses = {
   bg: string;
@@ -55,6 +52,38 @@ const FIXED_IDENTITY_DISPLAY_KEYS = new Set([
   "Team",
   "Number",
 ]);
+
+/** Canonical labels shown in table headers (data keys unchanged). */
+const STAT_HEADER_DISPLAY_OVERRIDES: Record<string, string> = {
+  Breakshooting: "Break Shots",
+};
+
+function formatStatHeaderDisplay(displayKey: string): string {
+  const spaced = displayKey.replace(/_/g, " ");
+  if (STAT_HEADER_DISPLAY_OVERRIDES[displayKey]) return STAT_HEADER_DISPLAY_OVERRIDES[displayKey];
+  if (STAT_HEADER_DISPLAY_OVERRIDES[spaced]) return STAT_HEADER_DISPLAY_OVERRIDES[spaced];
+  return spaced;
+}
+
+/** Stacked header on small screens — shorter column min-width. Uppercase comes from th styles. */
+function getStatHeaderMobileTwoLine(displayKey: string): { line1: string; line2: string } | null {
+  if (displayKey === "Gunfights") return { line1: "Gun", line2: "fights" };
+  if (displayKey === "Breakshooting") return { line1: "Break", line2: "Shots" };
+  return null;
+}
+
+function isNarrowTwoLineStatColumn(displayKey: string): boolean {
+  return displayKey === "Gunfights" || displayKey === "Breakshooting";
+}
+
+/** First whitespace splits given name from the rest (e.g. "Mary Jane Watson" → Mary / Jane Watson). */
+function splitPlayerDisplayName(name: string): { first: string; rest?: string } {
+  const trimmed = name.trim();
+  const m = /^(\S+)\s+(.+)$/.exec(trimmed);
+  if (!m) return { first: trimmed };
+  return { first: m[1], rest: m[2].trim() };
+}
+
 
 const lightThemeClasses: ThemeClasses = {
   bg: "bg-white", // Changed from bg-gray-100 to bg-white
@@ -242,13 +271,13 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   const [paginatedData, setPaginatedData] = useState<Player[]>([]);
   const [VisibleData, setVisibleData] = useState<Player[]>([]);
   const tableRef = useRef<HTMLDivElement | null>(null);
+  /** Horizontal scroll for header table — kept in sync with `tableBodyScrollRef` (see STATS_TABLE_SCROLL_ARCHITECTURE). */
+  const tableHeaderScrollRef = useRef<HTMLDivElement | null>(null);
+  /** Horizontal scroll for body table — kept in sync with `tableHeaderScrollRef`. */
+  const tableBodyScrollRef = useRef<HTMLDivElement | null>(null);
   const tableBlockRef = useRef<HTMLDivElement | null>(null);
-  const mainColumnScrollTop = useDashboardMainScrollTop();
-  const [theadStickyTopPx, setTheadStickyTopPx] = useState(0);
-  const { scrollYProgress } = useScroll({ container: tableRef });
-
-  // Map scroll progress to opacity values
-  const opacity = useTransform(scrollYProgress, [0.5, 1], [1, 0]);
+  /** True when the table body has been scrolled down — header row shows a subtle Excel-like separator. */
+  const [tableBodyScrolled, setTableBodyScrolled] = useState(false);
 
   const skipPageScrollIntoViewRef = useRef(true);
 
@@ -258,6 +287,10 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     if (viewport) {
       viewport.scrollTop = 0;
     }
+    const h = tableHeaderScrollRef.current;
+    const b = tableBodyScrollRef.current;
+    if (h) h.scrollLeft = 0;
+    if (b) b.scrollLeft = 0;
     if (skipPageScrollIntoViewRef.current) {
       skipPageScrollIntoViewRef.current = false;
       return;
@@ -268,107 +301,79 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     });
   }, [currentPage]);
 
-  /**
-   * Fixed/sticky dashboard header + inner table scroll: sticky `th` use `top` relative to the table
-   * viewport. When the main column scrolls, the table can move under the header; offset =
-   * max(0, headerBottomPx − tableViewportTop) keeps the header row below the nav on all breakpoints.
-   */
-  useLayoutEffect(() => {
+  /** Excel-style frozen header: pin thead to top of table scrollport; shadow when body scrolled. */
+  useEffect(() => {
     const el = tableRef.current;
     if (!el) return;
+    const sync = () => setTableBodyScrolled(el.scrollTop > 1);
+    sync();
+    el.addEventListener("scroll", sync, { passive: true });
+    return () => el.removeEventListener("scroll", sync);
+  }, [currentPage]);
 
-    const update = () => {
-      const raw = getComputedStyle(document.documentElement)
-        .getPropertyValue("--pickem-dashboard-header-bottom")
-        .trim();
-      let headerBottom = parseFloat(raw);
-      if (!Number.isFinite(headerBottom)) {
-        headerBottom = MOBILE_DASHBOARD_HEADER_BODY_PX;
-      }
-      const tableTop = el.getBoundingClientRect().top;
-      setTheadStickyTopPx(Math.max(0, Math.round(headerBottom - tableTop)));
-    };
-
-    update();
-    const ro = new ResizeObserver(() => update());
-    ro.observe(el);
-    window.addEventListener("resize", update);
-    window.addEventListener("orientationchange", update);
-    const vv = typeof window !== "undefined" ? window.visualViewport : null;
-    vv?.addEventListener("resize", update);
-    vv?.addEventListener("scroll", update);
-
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", update);
-      window.removeEventListener("orientationchange", update);
-      vv?.removeEventListener("resize", update);
-      vv?.removeEventListener("scroll", update);
-    };
-  }, [mainColumnScrollTop]);
-
-  /** When table viewport is scrolled to top/bottom, pass wheel delta to the page scroll parent (scroll chaining). */
+  /**
+   * Stats table scroll — user-focused outcomes (how it should feel):
+   * - One continuous gesture: table scroll → reach top/bottom → same gesture continues into the page.
+   * - Same motion family as the rest of the dashboard (native compositor scroll, not a “second” scroll).
+   * - Freeze panes: vertical scroll on `tableRef`; horizontal scroll on **synced** `tableHeaderScrollRef` +
+   *   `tableBodyScrollRef` (two `<table>` elements — see STATS_TABLE_SCROLL_ARCHITECTURE in JSX). Do not
+   *   collapse to one table inside a single horizontal scroller: that breaks the frozen header row in browsers.
+   * - Forgiving edges: CSS scroll chaining to the dashboard column; wheel forwarding at vertical edges.
+   *
+   * Touch: outer `overscroll-y-auto`; inner `overscroll-x-contain` for horizontal stats strip.
+   * Trackpad / mouse: `wheel` forwarding at vertical edges where the browser does not chain.
+   */
   useEffect(() => {
     const el = tableRef.current;
     if (!el) return;
 
+    /** Prefer an ancestor that actually overflows; else first overflow-y scrollport (helps iOS rounding). */
     const findVerticalScrollParent = (start: HTMLElement | null): HTMLElement | null => {
       let node: HTMLElement | null = start?.parentElement ?? null;
+      let firstScrollport: HTMLElement | null = null;
       while (node) {
         const { overflowY } = getComputedStyle(node);
-        if (
-          (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay") &&
-          node.scrollHeight > node.clientHeight + 2
-        ) {
-          return node;
+        if (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay") {
+          if (!firstScrollport) firstScrollport = node;
+          if (node.scrollHeight > node.clientHeight + 2) return node;
         }
         node = node.parentElement;
       }
-      return null;
+      return firstScrollport;
     };
+
+    const wheelDeltaYPixels = (e: WheelEvent) => {
+      if (e.deltaMode === 1) return e.deltaY * 16;
+      if (e.deltaMode === 2) return e.deltaY * (typeof window !== "undefined" ? window.innerHeight : 600);
+      return e.deltaY;
+    };
+
+    /** Cached for wheel bursts; cleared when not chaining at an edge. */
+    let wheelChainParent: HTMLElement | null = null;
 
     const onWheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
+      const dy = wheelDeltaYPixels(e);
       const { scrollTop, scrollHeight, clientHeight } = el;
       const atTop = scrollTop <= 0;
       const atBottom = scrollTop + clientHeight >= scrollHeight - 2;
-      if ((atTop && e.deltaY < 0) || (atBottom && e.deltaY > 0)) {
-        const parent = findVerticalScrollParent(el);
-        if (parent) {
-          parent.scrollTop += e.deltaY;
+      const chain = (atTop && dy < 0) || (atBottom && dy > 0);
+      if (chain) {
+        if (!wheelChainParent || !wheelChainParent.isConnected) {
+          wheelChainParent = findVerticalScrollParent(el);
+        }
+        if (wheelChainParent) {
+          wheelChainParent.scrollTop += dy;
           e.preventDefault();
         }
+      } else {
+        wheelChainParent = null;
       }
     };
 
     el.addEventListener("wheel", onWheel, { passive: false });
-
-    let lastTouchY = 0;
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 1) lastTouchY = e.touches[0].clientY;
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
-      const y = e.touches[0].clientY;
-      const dy = lastTouchY - y;
-      lastTouchY = y;
-      const { scrollTop, scrollHeight, clientHeight } = el;
-      const atTop = scrollTop <= 0;
-      const atBottom = scrollTop + clientHeight >= scrollHeight - 2;
-      if ((atTop && dy < 0) || (atBottom && dy > 0)) {
-        const parent = findVerticalScrollParent(el);
-        if (parent) {
-          parent.scrollTop += dy;
-          e.preventDefault();
-        }
-      }
-    };
-    el.addEventListener("touchstart", onTouchStart, { passive: true });
-    el.addEventListener("touchmove", onTouchMove, { passive: false });
     return () => {
       el.removeEventListener("wheel", onWheel);
-      el.removeEventListener("touchstart", onTouchStart);
-      el.removeEventListener("touchmove", onTouchMove);
     };
   }, []);
 
@@ -865,6 +870,51 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     [headers],
   );
 
+  /**
+   * Keep header/body horizontal scrollLeft aligned. ignoreHead/ignoreBody stop programmatic mirrors from
+   * echoing back. Mirror synchronously (no rAF batching): deferring one frame let header/body drift and the
+   * frozen Rank/Player columns looked like they slid during horizontal scroll.
+   * Math.round avoids subpixel scrollLeft mismatch between the two scrollports.
+   * See STATS_TABLE_SCROLL_ARCHITECTURE in JSX.
+   */
+  useEffect(() => {
+    const body = tableBodyScrollRef.current;
+    const head = tableHeaderScrollRef.current;
+    if (!body || !head) return;
+
+    let ignoreHead = false;
+    let ignoreBody = false;
+
+    const onBodyScroll = () => {
+      if (ignoreBody) {
+        ignoreBody = false;
+        return;
+      }
+      const x = Math.round(body.scrollLeft);
+      if (Math.abs(head.scrollLeft - x) < 0.5) return;
+      ignoreHead = true;
+      head.scrollLeft = x;
+    };
+
+    const onHeadScroll = () => {
+      if (ignoreHead) {
+        ignoreHead = false;
+        return;
+      }
+      const x = Math.round(head.scrollLeft);
+      if (Math.abs(body.scrollLeft - x) < 0.5) return;
+      ignoreBody = true;
+      body.scrollLeft = x;
+    };
+
+    body.addEventListener("scroll", onBodyScroll, { passive: true });
+    head.addEventListener("scroll", onHeadScroll, { passive: true });
+    return () => {
+      body.removeEventListener("scroll", onBodyScroll);
+      head.removeEventListener("scroll", onHeadScroll);
+    };
+  }, [currentPage, dynamicHeaders.length]);
+
   const renderPageArrows = (align: "end" | "center" = "end") => (
     <div
       className={`flex min-w-0 shrink items-center gap-1 max-md:gap-0.5 ${align === "center" ? "justify-center" : "justify-end"} ${darkMode ? "text-[rgba(255,255,255,0.66)]" : "text-gray-700"}`}
@@ -1078,38 +1128,54 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
           ref={tableBlockRef}
           className={`rounded-lg border ${themeClasses.border} ${themeClasses.bg}`}
         >
+          {/*
+            STATS_TABLE_SCROLL_ARCHITECTURE (do not collapse without revisiting all three):
+            1) Vertical scroll: tableRef — overflow-y-auto, overflow-x-hidden, max-h. Use block stacking for
+               header + body (not flex-col + flex-1 on the body) or vertical scrolling breaks.
+            2) Horizontal scroll: two synced divs (tableHeaderScrollRef + tableBodyScrollRef) so diagonal touch
+               panning stays sane vs one overflow-auto on both axes.
+            3) Frozen header row: thead lives in its own <table> inside position:sticky;top:0 — NOT inside the
+               body’s horizontal scroller. A single <table> inside overflow-x makes position:sticky on thead
+               fail in browsers (sticky is tied to the wrong scrollport). Sync scrollLeft between the two
+               tables; keep colgroup + column classes aligned on both.
+          */}
           <div
             ref={tableRef}
             className={cn(
-              "flex min-h-0 flex-1 items-start scroll-smooth max-h-[70vh] md:max-h-[80vh]",
-              /* Split Y/X scroll so mobile touch does not diagonal-pan; sticky thead uses this viewport */
-              "overflow-y-auto overflow-x-hidden overscroll-y-contain rounded-lg",
-              "max-md:touch-pan-y md:touch-auto",
+              /* Block layout (not flex-col): header + body must stack at natural height so scrollHeight > clientHeight when rows exceed max-h. flex-1 on the body had collapsed / prevented vertical overflow. */
+              "max-h-[70vh] min-h-0 md:max-h-[80vh]",
+              "min-w-0 overflow-y-auto overflow-x-hidden overscroll-y-auto rounded-lg",
               themeClasses.bg,
             )}
           >
           <div
             className={cn(
-              "min-w-0 overflow-x-auto overflow-y-visible",
-              "max-md:touch-pan-x md:touch-auto",
+              "sticky top-0 z-[49] w-full shrink-0",
+              themeClasses.bg,
+              tableBodyScrolled &&
+                "shadow-[0_4px_8px_-2px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_8px_-2px_rgba(0,0,0,0.45)]",
             )}
+          >
+          <div
+            ref={tableHeaderScrollRef}
+            className="min-w-0 w-full overflow-x-auto overflow-y-hidden overscroll-x-contain"
           >
           <table className="w-full min-w-[800px] table-fixed border-separate border-spacing-0 md:min-w-0">
             {/*
               Lock column 1 width so sticky `left` on column 2 matches the real Rank width.
-              Otherwise `table-layout: auto` can shrink column 1 below `w-12`, leaving a gap where
+              Otherwise `table-layout: auto` can shrink column 1 below `w-5` (mobile), leaving a gap where
               horizontally scrolled stats show between Rank and Player.
             */}
             <colgroup>
-              <col className="w-12 md:w-20" />
+              <col className="w-5 md:w-10" />
+              <col className="max-md:w-[min(20vw,5.75rem)] md:w-[200px]" />
             </colgroup>
           <thead>
-            <tr className={`h-10 ${themeClasses.headerBg}`}>
+            <tr className={`min-h-[2.75rem] md:h-10 ${themeClasses.headerBg}`}>
               {/* Rank Column - Smaller on mobile */}
               <th
                 scope="col"
-                style={{ top: theadStickyTopPx }}
-                className={`sticky left-0 z-[50] box-border px-1 py-2 text-center text-[10px] font-medium font-azonix uppercase tracking-wider md:px-2 md:text-[12px] md:border-r w-12 min-w-12 max-w-12 border-b border-gray-300/80 shadow-[0_1px_0_0_rgba(0,0,0,0.06)] md:w-20 md:min-w-20 md:max-w-20 dark:border-white/10 ${sortConfig?.key === "Rank"
+                className={`sticky left-0 z-[50] box-border px-0 py-2 text-center text-[10px] font-medium font-azonix uppercase tracking-wider md:px-2 md:text-[12px] md:border-r w-5 min-w-5 max-w-5 border-b border-gray-300/80 shadow-[0_1px_0_0_rgba(0,0,0,0.06)] md:w-10 md:min-w-10 md:max-w-10 dark:border-white/10 ${sortConfig?.key === "Rank"
                   ? darkMode
                     ? "cursor-pointer bg-blue-800 text-blue-100"
                     : "cursor-pointer bg-blue-600 text-white"
@@ -1128,8 +1194,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               {/* Player Column - Optimized for mobile */}
               <th
                 scope="col"
-                style={{ top: theadStickyTopPx }}
-                className={`sticky left-12 z-[52] box-border min-w-[107px] w-[min(31.5vw,8.25rem)] border-b border-gray-300/80 pl-2 pr-1 text-left text-[10px] font-medium font-azonix uppercase tracking-wider shadow-[0_1px_0_0_rgba(0,0,0,0.06)] dark:border-white/10 md:left-20 md:min-w-[200px] md:w-[200px] md:pl-4 md:text-[12px] ${sortConfig?.key === "Player"
+                className={`sticky left-5 z-[52] box-border min-w-0 max-w-[min(20vw,5.75rem)] w-[min(20vw,5.75rem)] border-b border-gray-300/80 pl-1.5 pr-0.5 text-left text-[10px] font-medium font-azonix uppercase tracking-wider shadow-[0_1px_0_0_rgba(0,0,0,0.06)] dark:border-white/10 md:left-10 md:max-w-none md:min-w-[200px] md:w-[200px] md:pl-4 md:pr-1 md:text-[12px] ${sortConfig?.key === "Player"
                   ? darkMode
                     ? "cursor-pointer bg-blue-800 text-blue-100"
                     : "cursor-pointer bg-blue-600 text-white"
@@ -1146,12 +1211,20 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               </th>
 
               {/* Dynamic stats columns — order from `headers` (season: kills → events → categories) */}
-              {dynamicHeaders.map(({ originalKey, displayKey }) => (
+              {dynamicHeaders.map(({ originalKey, displayKey }) => {
+                const headerLabel = formatStatHeaderDisplay(displayKey);
+                const mobileTwoLine = getStatHeaderMobileTwoLine(displayKey);
+                const narrowMobile = isNarrowTwoLineStatColumn(displayKey);
+                return (
                 <th
                   key={originalKey}
                   scope="col"
-                  style={{ top: theadStickyTopPx }}
-                  className={`sticky z-[48] box-border p-1 px-1 text-center text-[9px] font-medium font-azonix uppercase md:px-2 md:text-[12px] w-16 min-w-[60px] border-b border-gray-300/80 shadow-[0_1px_0_0_rgba(0,0,0,0.06)] dark:border-white/10 md:w-24 md:min-w-[80px] ${sortConfig?.key === originalKey
+                  title={headerLabel}
+                  className={`relative z-[10] box-border p-0.5 px-0.5 text-center text-[10px] font-medium font-azonix uppercase tracking-wider md:p-1 md:px-2 md:text-[12px] border-b border-gray-300/80 shadow-[0_1px_0_0_rgba(0,0,0,0.06)] dark:border-white/10 md:w-24 md:min-w-[80px] ${
+                    narrowMobile
+                      ? "max-md:w-11 max-md:min-w-[2.5rem] max-md:max-w-[2.75rem] max-md:px-0"
+                      : "w-14 min-w-[52px]"
+                  } ${sortConfig?.key === originalKey
                     ? darkMode
                       ? "cursor-pointer bg-blue-800 text-blue-100"
                       : "cursor-pointer bg-blue-600 text-white"
@@ -1159,27 +1232,55 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                     }`}
                 >
                   <div
-                    className="flex items-center justify-center"
+                    className="flex items-center justify-center gap-0.5"
                     onClick={() => requestSort(displayKey)}
                   >
-                    <span className="whitespace-normal text-center leading-tight">
-                      {displayKey.replace(/_/g, " ")}
-                    </span>
+                    {mobileTwoLine ? (
+                      <>
+                        <span className="hidden whitespace-normal text-center leading-tight md:inline">
+                          {headerLabel}
+                        </span>
+                        <span className="flex flex-col items-center gap-0 leading-[1.05] md:hidden">
+                          <span>{mobileTwoLine.line1}</span>
+                          <span>{mobileTwoLine.line2}</span>
+                        </span>
+                      </>
+                    ) : (
+                      <span className="whitespace-normal text-center leading-tight">
+                        {headerLabel}
+                      </span>
+                    )}
                     {getSortIcon(originalKey)}
                   </div>
                 </th>
-              ))}
+                );
+              })}
             </tr>
           </thead>
+          </table>
+          </div>
+          </div>
+
+          <div
+            ref={tableBodyScrollRef}
+            className="min-w-0 w-full overflow-x-auto overflow-y-clip overscroll-x-contain"
+          >
+          <table className="w-full min-w-[800px] table-fixed border-separate border-spacing-0 md:min-w-0">
+            <colgroup>
+              <col className="w-5 md:w-10" />
+              <col className="max-md:w-[min(20vw,5.75rem)] md:w-[200px]" />
+            </colgroup>
           <tbody className={` divide-y ${themeClasses.border}`}>
-            {(VisibleData.length > 0 ? VisibleData : paginatedData).map((row, rowIndex) => (
+            {(VisibleData.length > 0 ? VisibleData : paginatedData).map((row, rowIndex) => {
+              const playerNameParts = splitPlayerDisplayName(row.Player);
+              return (
               <tr
                 key={rowIndex}
                 className={`${themeClasses.hover} ${themeClasses.bg} ${themeClasses.text} `}
               >
                 {/* Rank Column - Smaller on mobile */}
                 <td
-                  className={`sticky left-0 z-[20] box-border px-1 py-2 whitespace-nowrap md:border-r ${themeClasses.border} ${themeClasses.bg} w-12 min-w-12 max-w-12 md:w-20 md:min-w-20 md:max-w-20`}
+                  className={`sticky left-0 z-[20] box-border px-0 py-2 whitespace-nowrap md:border-r ${themeClasses.border} ${themeClasses.bg} w-5 min-w-5 max-w-5 md:w-10 md:min-w-10 md:max-w-10`}
                 >
                   <div className="pickem-numeric text-center text-[10px] md:text-[12px] font-medium">
                     {row.Rank}
@@ -1188,15 +1289,15 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
 
                 {/* Player Column - Compact mobile layout */}
                 <td
-                  className={`sticky left-12 z-[21] box-border min-w-[107px] w-[min(31.5vw,8.25rem)] p-1 whitespace-nowrap shadow-[2px_0_6px_rgba(0,0,0,0.12)] md:left-20 md:min-w-[200px] md:w-[200px] md:p-2 md:shadow-[2px_0_8px_rgba(0,0,0,0.15)] ${themeClasses.bg}`}
+                  className={`sticky left-5 z-[21] box-border min-w-0 max-w-[min(20vw,5.75rem)] w-[min(20vw,5.75rem)] p-1 md:max-w-none md:whitespace-nowrap shadow-[2px_0_6px_rgba(0,0,0,0.12)] md:left-10 md:min-w-[200px] md:w-[200px] md:p-2 md:shadow-[2px_0_8px_rgba(0,0,0,0.15)] ${themeClasses.bg}`}
                 >
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-8 w-8 md:h-10 md:w-10 flex items-center justify-center rounded-full overflow-hidden bg-gray-600 mr-1 md:mr-4 relative">
+                  <div className="flex min-w-0 items-center gap-1.5 md:gap-0">
+                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-600 md:mr-4">
                       {/* Loading state */}
                       {row.pictureLoading && (
                         <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse">
                           <svg
-                            className="h-4 w-4 md:h-5 md:w-5 text-gray-400 animate-spin"
+                            className="h-5 w-5 text-gray-400 animate-spin md:h-5 md:w-5"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
                             viewBox="0 0 24 24"
@@ -1244,16 +1345,36 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                       )}
                     </div>
 
-                    <div className="max-w-[min(100%,5.625rem)] md:max-w-[140px] whitespace-normal">
+                    <div className="min-w-0 flex-1 md:max-w-[140px]">
+                      <div className="md:hidden">
+                        <div
+                          className={`truncate text-[10px] font-azonix font-medium leading-tight ${darkMode ? "text-white" : "text-gray-900"
+                            }`}
+                          title={row.Player}
+                        >
+                          {playerNameParts.first}
+                        </div>
+                        {playerNameParts.rest ? (
+                          <div
+                            className={`truncate text-[10px] font-azonix font-medium leading-tight ${darkMode ? "text-white" : "text-gray-900"
+                              }`}
+                            title={row.Player}
+                          >
+                            {playerNameParts.rest}
+                          </div>
+                        ) : null}
+                      </div>
                       <div
-                        className={`text-[9px] md:text-[12px] font-azonix font-medium ${darkMode ? "text-white" : "text-gray-900"
-                          } whitespace-normal break-words leading-tight`}
+                        className={`hidden md:block truncate text-[12px] font-azonix font-medium md:whitespace-normal md:break-words ${darkMode ? "text-white" : "text-gray-900"
+                          } leading-tight`}
+                        title={row.Player}
                       >
                         {row.Player}
                       </div>
                       <div
-                        className={`text-[8px] md:text-[12px] font-azonix ${darkMode ? "text-gray-400" : "text-gray-700"
-                          } whitespace-normal break-words leading-tight`}
+                        className={`truncate text-[8px] font-azonix md:whitespace-normal md:break-words md:text-[12px] ${darkMode ? "text-gray-400" : "text-gray-700"
+                          } leading-tight`}
+                        title={row.Team}
                       >
                         {row.Team}
                       </div>
@@ -1262,12 +1383,16 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                 </td>
 
                 {/* Stats columns — same order as header row */}
-                {dynamicHeaders.map(({ originalKey }) => (
+                {dynamicHeaders.map(({ originalKey, displayKey }) => (
                   <td
                     key={originalKey}
-                    className={`relative z-[10] px-1 md:px-2 py-2 md:py-3 whitespace-nowrap text-[9px] md:text-[12px] font-bold ${themeClasses.border
+                    className={`relative z-[10] px-0.5 py-2 md:px-2 md:py-3 whitespace-nowrap text-[9px] md:text-[12px] font-bold ${themeClasses.border
                       } text-center ${darkMode ? "text-gray-300" : "text-gray-900"
-                      } w-16 md:w-24 min-w-[60px] md:min-w-[80px]`}
+                      } md:w-24 md:min-w-[80px] ${
+                        isNarrowTwoLineStatColumn(displayKey)
+                          ? "max-md:w-11 max-md:min-w-[2.5rem]"
+                          : "w-14 min-w-[52px]"
+                      }`}
                   >
                     <span className="pickem-numeric">
                       {(row[originalKey] ?? "") as React.ReactNode}
@@ -1275,11 +1400,12 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                   </td>
                 ))}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
           </div>
-          </div>
+        </div>
         </div>
         {totalPages > 1 ? (
           <div className="flex justify-center pt-2 pb-0">

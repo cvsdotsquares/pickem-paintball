@@ -5,7 +5,6 @@ import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { MatchupTable } from "../../../components/Dashboard/datatable";
-import { motion } from "framer-motion";
 import { Player } from "../pick-em/page";
 import { useAuth } from "@/src/contexts/authProvider";
 import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanner";
@@ -682,7 +681,7 @@ export default function Statistics() {
         </section>
 
         {/* Individual Event Table or Season Table */}
-        <motion.section className="mt-2 px-4 pb-0 md:mt-3">
+        <section className="mt-2 px-4 pb-0 md:mt-3">
           {showSeasonTable ? (
             // Season Table
             <>
@@ -723,7 +722,7 @@ export default function Statistics() {
               currentEventId={selectedEvent?.id}
             />
           )}
-        </motion.section>
+        </section>
       </div>
     </div>
   );

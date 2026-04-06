@@ -1,6 +1,6 @@
 "use client";
 
-import React, { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/src/lib/utils";
@@ -40,11 +40,41 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const pathname = usePathname();
   const [mainColumnScrollTop, setMainColumnScrollTop] = useState(0);
   const [nestedScrollTops, setNestedScrollTops] = useState<Record<string, number>>({});
+  const mainScrollPendingRef = useRef(0);
+  const mainScrollRafRef = useRef<number | null>(null);
+
+  /** Batch scroll position into React state once per frame so scroll feels smooth (avoids setState per raw scroll event). */
+  const flushMainColumnScrollTop = useCallback(() => {
+    mainScrollRafRef.current = null;
+    setMainColumnScrollTop(mainScrollPendingRef.current);
+  }, []);
+
+  const onMainColumnScroll = useCallback(
+    (e: React.UIEvent<HTMLElement>) => {
+      mainScrollPendingRef.current = e.currentTarget.scrollTop;
+      if (mainScrollRafRef.current == null) {
+        mainScrollRafRef.current = requestAnimationFrame(flushMainColumnScrollTop);
+      }
+    },
+    [flushMainColumnScrollTop],
+  );
 
   useEffect(() => {
+    if (mainScrollRafRef.current != null) {
+      cancelAnimationFrame(mainScrollRafRef.current);
+      mainScrollRafRef.current = null;
+    }
     setMainColumnScrollTop(0);
     setNestedScrollTops({});
   }, [pathname]);
+
+  useEffect(() => {
+    return () => {
+      if (mainScrollRafRef.current != null) {
+        cancelAnimationFrame(mainScrollRafRef.current);
+      }
+    };
+  }, []);
 
   const setNestedScrollTop = useCallback((regionId: string, top: number) => {
     setNestedScrollTops((prev) => {
@@ -94,7 +124,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           />
           <div
             className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain max-md:pt-[calc(var(--pickem-dashboard-header-bottom)+var(--pickem-dashboard-header-content-gap))] md:pt-0"
-            onScroll={(e) => setMainColumnScrollTop(e.currentTarget.scrollTop)}
+            onScroll={onMainColumnScroll}
           >
             <div className="flex min-h-full flex-col">
               <div className="w-full shrink-0">{children}</div>
