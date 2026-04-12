@@ -38,7 +38,7 @@ interface PlayerSlot {
   player: Player | null;
 }
 
-type MobileHomeTab = "all" | "stats" | "fantasy";
+type MobileHomeTab = "all" | "stats" | "pickem";
 
 type KillRow = { id: string; player: string; team: string; kills: number };
 
@@ -46,7 +46,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const db = getFirestore();
   const reportStatsScroll = useDashboardNestedScrollHandler("dashboard-home-stats");
-  const reportFantasyScroll = useDashboardNestedScrollHandler("dashboard-home-fantasy");
+  const reportPickemScroll = useDashboardNestedScrollHandler("dashboard-home-pickem");
 
   const [mobileTab, setMobileTab] = useState<MobileHomeTab>("all");
 
@@ -337,9 +337,9 @@ export default function Dashboard() {
     </div>
   );
 
-  const fantasySection = (
+  const pickemSection = (
     <div className="flex flex-col gap-4 p-4 md:p-6">
-      <h2 className={sectionColumnTitleClass}>Fantasy paintball</h2>
+      <h2 className={sectionColumnTitleClass}>Pick&apos;Em paintball</h2>
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-4">
           <h3 className={sectionRowHeadingClass}>Live picks</h3>
@@ -477,11 +477,11 @@ export default function Dashboard() {
         tabs={[
           { value: "all", label: "All" },
           { value: "stats", label: "Stats" },
-          { value: "fantasy", label: "Fantasy" },
+          { value: "pickem", label: "Pick'Em" },
         ]}
       />
 
-      {/* Desktop: stats | fantasy */}
+      {/* Desktop: stats | pickem */}
       <div className="hidden md:grid md:grid-cols-2 md:flex-1 md:min-h-0 md:gap-0">
         <div
           className="min-h-0 overflow-y-auto border-r border-gray-200 dark:border-white/10"
@@ -489,8 +489,8 @@ export default function Dashboard() {
         >
           {statsSection}
         </div>
-        <div className="min-h-0 overflow-y-auto" onScroll={reportFantasyScroll}>
-          {fantasySection}
+        <div className="min-h-0 overflow-y-auto" onScroll={reportPickemScroll}>
+          {pickemSection}
         </div>
       </div>
 
@@ -499,11 +499,11 @@ export default function Dashboard() {
         {mobileTab === "all" && (
           <>
             {statsSection}
-            <div className="border-t border-gray-100 dark:border-white/5">{fantasySection}</div>
+            <div className="border-t border-gray-100 dark:border-white/5">{pickemSection}</div>
           </>
         )}
         {mobileTab === "stats" && statsSection}
-        {mobileTab === "fantasy" && fantasySection}
+        {mobileTab === "pickem" && pickemSection}
       </div>
     </div>
   );

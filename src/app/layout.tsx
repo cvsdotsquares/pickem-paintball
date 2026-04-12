@@ -6,7 +6,7 @@ import "@twallpaper/react/css";
 
 export const metadata: Metadata = {
   title: "PickEm Paintball Website",
-  description: "Play Fantasy Paintball and support your player",
+  description: "Play Pick'Em Paintball and support your player",
 };
 
 export const viewport: Viewport = {

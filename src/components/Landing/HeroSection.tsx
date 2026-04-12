@@ -27,7 +27,7 @@ const HeroSection = () => {
 
         <ul className="mb-10 max-w-lg space-y-2 font-body text-lg text-primary-foreground/70 md:text-xl">
           <li>✓ Live player stats</li>
-          <li>✓ Free to play Fantasy Paintball</li>
+          <li>✓ Free to play Pick&apos;Em Paintball</li>
           <li>✓ Built by fans, for the fans</li>
         </ul>
 
