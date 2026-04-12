@@ -1,6 +1,7 @@
 "use client";
 
 import Navbar from "@/src/components/Landing/Navbar";
+import LandingCountdown from "@/src/components/Landing/LandingCountdown";
 import HeroSection from "@/src/components/Landing/HeroSection";
 import MissionStatement from "@/src/components/Landing/MissionStatement";
 import ProductPreview from "@/src/components/Landing/ProductPreview";
@@ -15,6 +16,7 @@ export default function LandingHome() {
       <HeroSection />
       <MissionStatement />
       <ProductPreview />
+      <LandingCountdown />
       <WhoWeAre />
       <JoinSupport />
       <Footer />

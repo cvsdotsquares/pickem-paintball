@@ -170,8 +170,8 @@ export default function EventCountdownBanner({
     isEventBreak && event.nextEventImage?.trim()
       ? event.nextEventImage.trim()
       : event.logoUrl ?? null;
-  const deadlineLabelDashboard = isEventBreak ? "PICKS ARE LIVE" : "Team lock deadline:";
-  const deadlineLabelCaps = isEventBreak ? "PICKS ARE LIVE:" : "Team Lock Deadline:";
+  const deadlineLabelDashboard = isEventBreak ? "PICKS GO LIVE IN:" : "Team lock deadline:";
+  const deadlineLabelCaps = isEventBreak ? "PICKS GO LIVE IN:" : "Team Lock Deadline:";
 
   const defaultDesktopCta =
     ctaHref != null ? (
@@ -245,7 +245,7 @@ export default function EventCountdownBanner({
                 <div className="pickem-industry-ultra-emphasis text-sm uppercase leading-none text-gray-900">
                   NXL
                 </div>
-                <div className="pickem-industry-ultra-emphasis truncate text-sm uppercase leading-none text-gray-900">
+                <div className="pickem-industry-ultra-emphasis text-sm uppercase leading-tight text-gray-900 md:truncate">
                   {displayName}
                 </div>
               </div>
@@ -292,7 +292,7 @@ export default function EventCountdownBanner({
                     { v: pad(tick._minutes), l: "Mins" },
                     { v: pad(tick._seconds), l: "Secs" },
                   ].map(({ v, l }, i) => (
-                    <div key={l} className="flex min-w-0 items-center gap-0.5 md:gap-1">
+                    <div key={l} className="flex min-w-0 items-start gap-0.5 md:gap-1">
                       <div className="flex min-w-0 flex-col items-center gap-0.5 md:gap-1">
                         <span className="pickem-numeric text-sm font-black leading-none text-white md:text-base">
                           {v}
@@ -302,7 +302,7 @@ export default function EventCountdownBanner({
                         </span>
                       </div>
                       {i < 3 ? (
-                        <span className="shrink-0 font-black leading-none text-white md:text-sm">:</span>
+                        <span className="shrink-0 text-sm font-black leading-none text-white md:text-base">:</span>
                       ) : null}
                     </div>
                   ))}

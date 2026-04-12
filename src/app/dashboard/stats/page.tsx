@@ -604,7 +604,7 @@ export default function Statistics() {
 
   const statsNavBtn =
     "shrink-0 whitespace-nowrap rounded-md border-2 border-transparent bg-white px-3 py-2 font-azonix text-[10px] font-bold uppercase tracking-wide text-neutral-900 shadow-sm transition hover:bg-neutral-50 active:scale-[0.98] dark:bg-stone-800 dark:text-white dark:hover:bg-stone-700 md:text-[11px]";
-  const statsNavBtnActive = "border-neutral-900 dark:border-white";
+  const statsNavBtnActive = "!bg-pickem-green !text-neutral-900 border-pickem-green dark:!text-neutral-900";
   /** Matches dashboard `sectionRowHeadingClass` accent — season OVERALL row-2 buttons only */
   const statsNavOverallAccentBar =
     "inline-block h-[1em] w-[3px] shrink-0 self-center rounded-[1px] bg-[#00f976]";

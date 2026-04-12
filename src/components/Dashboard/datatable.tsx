@@ -350,11 +350,20 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     });
   }, [currentPage]);
 
-  /** Excel-style frozen header: pin thead to top of table scrollport; shadow when body scrolled. */
+  /** Excel-style frozen header: pin thead to top of table scrollport; shadow when body scrolled.
+   *  Use a ref to track last value and only update state when it actually changes to avoid re-renders.
+   */
   useEffect(() => {
     const el = tableRef.current;
     if (!el) return;
-    const sync = () => setTableBodyScrolled(el.scrollTop > 1);
+    let lastScrolled: boolean | null = null;
+    const sync = () => {
+      const scrolled = el.scrollTop > 1;
+      if (scrolled !== lastScrolled) {
+        lastScrolled = scrolled;
+        setTableBodyScrolled(scrolled);
+      }
+    };
     sync();
     el.addEventListener("scroll", sync, { passive: true });
     return () => el.removeEventListener("scroll", sync);
@@ -372,59 +381,10 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
    * Touch: outer `overscroll-y-auto`; inner `overscroll-x-contain` for horizontal stats strip.
    * Trackpad / mouse: `wheel` forwarding at vertical edges where the browser does not chain.
    */
-  useEffect(() => {
-    const el = tableRef.current;
-    if (!el) return;
-
-    /** Prefer an ancestor that actually overflows; else first overflow-y scrollport (helps iOS rounding). */
-    const findVerticalScrollParent = (start: HTMLElement | null): HTMLElement | null => {
-      let node: HTMLElement | null = start?.parentElement ?? null;
-      let firstScrollport: HTMLElement | null = null;
-      while (node) {
-        const { overflowY } = getComputedStyle(node);
-        if (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay") {
-          if (!firstScrollport) firstScrollport = node;
-          if (node.scrollHeight > node.clientHeight + 2) return node;
-        }
-        node = node.parentElement;
-      }
-      return firstScrollport;
-    };
-
-    const wheelDeltaYPixels = (e: WheelEvent) => {
-      if (e.deltaMode === 1) return e.deltaY * 16;
-      if (e.deltaMode === 2) return e.deltaY * (typeof window !== "undefined" ? window.innerHeight : 600);
-      return e.deltaY;
-    };
-
-    /** Cached for wheel bursts; cleared when not chaining at an edge. */
-    let wheelChainParent: HTMLElement | null = null;
-
-    const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
-      const dy = wheelDeltaYPixels(e);
-      const { scrollTop, scrollHeight, clientHeight } = el;
-      const atTop = scrollTop <= 0;
-      const atBottom = scrollTop + clientHeight >= scrollHeight - 2;
-      const chain = (atTop && dy < 0) || (atBottom && dy > 0);
-      if (chain) {
-        if (!wheelChainParent || !wheelChainParent.isConnected) {
-          wheelChainParent = findVerticalScrollParent(el);
-        }
-        if (wheelChainParent) {
-          wheelChainParent.scrollTop += dy;
-          e.preventDefault();
-        }
-      } else {
-        wheelChainParent = null;
-      }
-    };
-
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => {
-      el.removeEventListener("wheel", onWheel);
-    };
-  }, []);
+  /**
+   * Wheel chaining removed for performance - relying on native CSS overscroll-behavior.
+   * The container uses overscroll-y-auto which should chain to parent when at edges.
+   */
 
   // Reset "My Picks" toggle when switching events
   useEffect(() => {
@@ -1220,7 +1180,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
           >
           <div
             ref={tableHeaderScrollRef}
-            className="min-w-0 w-full overflow-x-auto overflow-y-hidden overscroll-x-contain"
+            className="min-w-0 w-full overflow-x-auto overflow-y-hidden overscroll-x-contain [scroll-behavior:auto] [-webkit-overflow-scrolling:touch] [will-change:scroll-position] [transform:translateZ(0)] [touch-action:pan-x]"
           >
           <table className="w-full min-w-[960px] table-fixed border-separate border-spacing-0 md:min-w-0">
             {/*
@@ -1256,7 +1216,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               {/* Player Column - Optimized for mobile */}
               <th
                 scope="col"
-                className={`sticky left-5 z-[52] box-border min-w-0 max-w-[min(25vw,6rem)] w-[min(25vw,6rem)] border-b border-gray-300/80 pl-1.5 pr-0.5 text-left text-[10px] font-medium font-azonix uppercase tracking-wider shadow-[0_1px_0_0_rgba(0,0,0,0.06)] dark:border-white/10 md:left-10 md:max-w-none md:min-w-[200px] md:w-[200px] md:pl-4 md:pr-1 md:text-[12px] ${sortConfig?.key === "Player"
+                className={`sticky left-5 z-[52] box-border min-w-0 max-w-[min(25vw,6rem)] w-[min(25vw,6rem)] border-b border-r border-gray-300/80 border-r-black/10 dark:border-r-white/10 pl-1.5 pr-0.5 text-left text-[10px] font-medium font-azonix uppercase tracking-wider [will-change:transform] [transform:translateZ(0)] dark:border-b-white/10 md:left-10 md:max-w-none md:min-w-[200px] md:w-[200px] md:pl-4 md:pr-1 md:text-[12px] ${sortConfig?.key === "Player"
                   ? darkMode
                     ? "cursor-pointer bg-blue-800 text-blue-100"
                     : "cursor-pointer bg-blue-600 text-white"
@@ -1317,7 +1277,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
 
           <div
             ref={tableBodyScrollRef}
-            className="min-w-0 w-full overflow-x-auto overflow-y-clip overscroll-x-contain"
+            className="min-w-0 w-full overflow-x-auto overflow-y-clip overscroll-x-contain [scroll-behavior:auto] [-webkit-overflow-scrolling:touch] [will-change:scroll-position] [transform:translateZ(0)] [touch-action:pan-x_pan-y]"
           >
           <table className="w-full min-w-[960px] table-fixed border-separate border-spacing-0 md:min-w-0">
             <colgroup>
@@ -1345,7 +1305,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
 
                 {/* Player Column - Compact mobile layout */}
                 <td
-                  className={`sticky left-5 z-[21] box-border min-w-0 max-w-[min(25vw,6rem)] w-[min(25vw,6rem)] p-1 md:max-w-none md:whitespace-nowrap shadow-[2px_0_6px_rgba(0,0,0,0.12)] md:left-10 md:min-w-[200px] md:w-[200px] md:p-2 md:shadow-[2px_0_8px_rgba(0,0,0,0.15)] ${themeClasses.bg}`}
+                  className={`sticky left-5 z-[21] box-border min-w-0 max-w-[min(25vw,6rem)] w-[min(25vw,6rem)] p-1 md:max-w-none md:whitespace-nowrap md:left-10 md:min-w-[200px] md:w-[200px] md:p-2 [will-change:transform] [transform:translateZ(0)] border-r border-black/10 dark:border-white/10 ${themeClasses.bg}`}
                 >
                   <div className="flex min-w-0 items-center gap-1.5 md:gap-0">
                     <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-600 md:mr-4">

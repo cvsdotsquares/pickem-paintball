@@ -195,8 +195,8 @@ const LEADERBOARD_FOCUS_RING =
 const STATS_NAV_BTN =
   "shrink-0 whitespace-nowrap rounded-md border-2 border-transparent bg-white px-3 py-2 font-azonix text-[10px] font-bold uppercase tracking-wide text-neutral-900 shadow-sm transition hover:bg-neutral-50 active:scale-[0.98] dark:bg-stone-800 dark:text-white dark:hover:bg-stone-700 md:text-[11px] " +
   LEADERBOARD_FOCUS_RING;
-/** Active chip — pickem brand green (same as stats / league nav). */
-const STATS_NAV_BTN_ACTIVE = "border-pickem-green";
+/** Active chip — pickem brand green filled background. */
+const STATS_NAV_BTN_ACTIVE = "!bg-pickem-green !text-neutral-900 border-pickem-green dark:!text-neutral-900";
 
 /** YOU / current-user badges: solid pickem green, dark text for contrast (matches dashboard CTAs). */
 const LEADERBOARD_YOU_BADGE_CLASS =
