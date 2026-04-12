@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import TermsAndConditionsContent from "@/src/components/Legal/TermsAndConditionsContent";
+import PrivacyPolicyContent from "@/src/components/Legal/PrivacyPolicyContent";
 import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanner";
 import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dashboardEventBannerShared";
 import { eventRecordToBannerModel, getBannerAccentFromRecord } from "@/src/lib/eventCountdownBannerModel";
 import { usePromoBannerEvent } from "@/src/hooks/usePromoBannerEvent";
 
-export default function DashboardTermsPage() {
+export default function DashboardPrivacyPolicyPage() {
   const { bannerEvent } = usePromoBannerEvent();
 
   return (
@@ -36,7 +36,7 @@ export default function DashboardTermsPage() {
         />
       ) : null}
       <div className="mx-auto w-full max-w-5xl px-4 pb-10 pt-4 text-gray-900 dark:text-white">
-        <TermsAndConditionsContent variant="dashboard" />
+        <PrivacyPolicyContent variant="dashboard" />
       </div>
     </div>
   );

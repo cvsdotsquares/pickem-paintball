@@ -9,12 +9,20 @@ const Footer = () => {
           alt="Pick&apos;Em Paintball"
           className="h-14 w-auto"
         />
-        <Link
-          href="/terms&conditions"
-          className="absolute right-4 font-body text-xs text-white/40 hover:text-white/70 md:right-6"
+        <nav
+          className="absolute right-4 flex flex-wrap items-center gap-x-2 gap-y-1 font-body text-xs text-white/40 md:right-6"
+          aria-label="Legal"
         >
-          Terms
-        </Link>
+          <Link href="/pages/terms-and-conditions" className="hover:text-white/70">
+            Terms &amp; Conditions
+          </Link>
+          <span aria-hidden className="text-white/25">
+            ·
+          </span>
+          <Link href="/pages/privacy-policy" className="hover:text-white/70">
+            Privacy Policy
+          </Link>
+        </nav>
       </div>
     </footer>
   );

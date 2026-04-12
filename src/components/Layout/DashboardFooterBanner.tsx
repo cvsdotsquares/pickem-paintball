@@ -50,7 +50,13 @@ export default function DashboardFooterBanner({ className }: { className?: strin
             ·
           </span>
           <Link href="/dashboard/terms-and-conditions" className={linkClass}>
-            T&amp;Cs
+            Terms &amp; Conditions
+          </Link>
+          <span className="hidden text-gray-300 dark:text-white/15 sm:inline" aria-hidden>
+            ·
+          </span>
+          <Link href="/dashboard/privacy-policy" className={linkClass}>
+            Privacy Policy
           </Link>
         </nav>
 

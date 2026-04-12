@@ -190,7 +190,7 @@ function NavLinkInline({
   );
 }
 
-/** Desktop second row: primary routes + FAQ inline (T&Cs stay in ☰ / mobile footer). */
+/** Desktop second row: primary routes + FAQ inline (Terms & Conditions stay in ☰ / mobile footer). */
 function DesktopMainNavRow({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   return (

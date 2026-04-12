@@ -4,7 +4,7 @@ import { PiRankingThin } from "react-icons/pi";
 import { FaTableList } from "react-icons/fa6";
 import { ImStatsBars } from "react-icons/im";
 import { FaQuestionCircle } from "react-icons/fa";
-import { HiOutlineDocumentText } from "react-icons/hi";
+import { HiOutlineDocumentText, HiOutlineShieldCheck } from "react-icons/hi";
 
 export type DashboardNavItem = {
   label: string;
@@ -52,15 +52,24 @@ export const faqDashboardLink: DashboardNavItem = {
 };
 
 export const termsDashboardLink: DashboardNavItem = {
-  label: "T&Cs",
+  label: "Terms & Conditions",
   href: "/dashboard/terms-and-conditions",
   icon: (
     <HiOutlineDocumentText className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />
   ),
 };
 
-/** Mobile footer: FAQ + T&Cs (desktop also shows FAQ on the second nav row). */
+export const privacyDashboardLink: DashboardNavItem = {
+  label: "Privacy Policy",
+  href: "/dashboard/privacy-policy",
+  icon: (
+    <HiOutlineShieldCheck className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />
+  ),
+};
+
+/** Mobile footer: FAQ + Terms & Conditions + Privacy Policy (desktop also shows FAQ on the second nav row). */
 export const cmsDashboardLinks: DashboardNavItem[] = [
   faqDashboardLink,
   termsDashboardLink,
+  privacyDashboardLink,
 ];
