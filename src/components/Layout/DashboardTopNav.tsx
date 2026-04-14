@@ -22,6 +22,96 @@ import {
 } from "./dashboardNavLinks";
 import { PICKEM_DASHBOARD_HEADER_BOTTOM_VAR } from "./dashboardMobileHeader";
 
+/** Sensible color palette for avatar backgrounds. */
+const AVATAR_COLORS = [
+  "bg-red-500",
+  "bg-orange-500",
+  "bg-amber-500",
+  "bg-yellow-500",
+  "bg-lime-500",
+  "bg-green-500",
+  "bg-emerald-500",
+  "bg-teal-500",
+  "bg-cyan-500",
+  "bg-sky-500",
+  "bg-blue-500",
+  "bg-indigo-500",
+  "bg-violet-500",
+  "bg-purple-500",
+  "bg-fuchsia-500",
+  "bg-pink-500",
+  "bg-rose-500",
+];
+
+/** Generate a consistent color for a username using a simple hash. */
+function getAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+/** Get first two letters of a name for avatar initials. */
+function getInitials(name: string): string {
+  const cleaned = name.trim();
+  if (!cleaned) return "??";
+  return cleaned.slice(0, 2).toUpperCase();
+}
+
+/** Check if avatar URL is valid (not placeholder/default). */
+function isValidAvatarUrl(url?: string): boolean {
+  if (!url) return false;
+  // Check for common placeholder patterns
+  if (url.includes("placehold.co")) return false;
+  if (url.includes("14024658.png")) return false; // default icon
+  return true;
+}
+
+/** Avatar with colored initials fallback. */
+function TopNavAvatar({
+  avatarUrl,
+  username,
+  size = "sm",
+}: {
+  avatarUrl?: string;
+  username: string;
+  size?: "sm" | "md";
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const hasValidUrl = isValidAvatarUrl(avatarUrl) && !imgFailed;
+  const sizeClasses = size === "sm" ? "h-9 w-9" : "h-11 w-11";
+  const textSize = size === "sm" ? "text-xs" : "text-sm";
+
+  // Reset imgFailed when avatarUrl changes
+  useEffect(() => {
+    setImgFailed(false);
+  }, [avatarUrl]);
+
+  return (
+    <div className={cn(sizeClasses, "overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/10")}>
+      {hasValidUrl ? (
+        <img
+          src={avatarUrl}
+          alt=""
+          referrerPolicy="no-referrer"
+          className="h-full w-full object-cover"
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <div
+          className={cn(
+            "h-full w-full flex items-center justify-center text-white font-semibold select-none",
+            getAvatarColor(username)
+          )}
+        >
+          <span className={textSize}>{getInitials(username)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Strip search/hash and trailing slash so active nav matches reliably (e.g. `/dashboard/faq`). */
 function normalizePathname(pathname: string | null): string {
   if (!pathname) return "/";
@@ -395,14 +485,7 @@ export default function DashboardTopNav({
               className="shrink-0 rounded-lg p-0.5 hover:bg-gray-50 dark:hover:bg-white/5"
               aria-label={`Profile (${username})`}
             >
-              <div className="h-9 w-9 overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/10">
-                <img
-                  src={avatarUrl}
-                  alt=""
-                  referrerPolicy="no-referrer"
-                  className="h-full w-full object-cover"
-                />
-              </div>
+              <TopNavAvatar avatarUrl={avatarUrl} username={username} size="sm" />
             </Link>
           </div>
           <Link href="/dashboard" className="justify-self-center">
@@ -466,13 +549,8 @@ export default function DashboardTopNav({
                     aria-label={`Profile (${username?.trim() || "account"})`}
                     className="mb-4 flex min-w-0 items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-white/10"
                   >
-                    <div className="h-11 w-11 shrink-0 overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/10">
-                      <img
-                        src={avatarUrl}
-                        alt=""
-                        referrerPolicy="no-referrer"
-                        className="h-full w-full object-cover"
-                      />
+                    <div className="shrink-0">
+                      <TopNavAvatar avatarUrl={avatarUrl} username={username} size="md" />
                     </div>
                     <span
                       className="min-w-0 flex-1 truncate font-azonix text-sm uppercase tracking-wide text-gray-900 dark:text-white"

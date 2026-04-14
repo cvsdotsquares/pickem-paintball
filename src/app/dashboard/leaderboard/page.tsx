@@ -34,9 +34,42 @@ import {
   subscribeProfileImagesRefresh,
 } from "@/src/lib/resolveProfilePictureUrl";
 
-/** Same default as dashboard top bar / profile when no photo. */
-const LEADERBOARD_DEFAULT_AVATAR_URL =
-  "https://cdn-icons-png.freepik.com/256/14024/14024658.png?semt=ais_hybrid";
+/** Sensible color palette for avatar backgrounds. */
+const AVATAR_COLORS = [
+  "bg-red-500",
+  "bg-orange-500",
+  "bg-amber-500",
+  "bg-yellow-500",
+  "bg-lime-500",
+  "bg-green-500",
+  "bg-emerald-500",
+  "bg-teal-500",
+  "bg-cyan-500",
+  "bg-sky-500",
+  "bg-blue-500",
+  "bg-indigo-500",
+  "bg-violet-500",
+  "bg-purple-500",
+  "bg-fuchsia-500",
+  "bg-pink-500",
+  "bg-rose-500",
+];
+
+/** Generate a consistent color for a username using a simple hash. */
+function getAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+/** Get first two letters of a name for avatar initials. */
+function getInitials(name: string): string {
+  const cleaned = name.trim();
+  if (!cleaned) return "??";
+  return cleaned.slice(0, 2).toUpperCase();
+}
 import { cn } from "@/src/lib/utils";
 import { individualEventDisplayName } from "@/src/lib/eventDisplayName";
 import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanner";
@@ -237,6 +270,30 @@ const setLiveEventCache = (event: LiveEvent) => {
   } catch { }
 };
 
+/** Check if a URL/path is a default/placeholder avatar that should be treated as "no picture". */
+function isDefaultAvatarUrl(url?: string | null): boolean {
+  if (!url) return true;
+  // Check for common default avatar patterns
+  if (url.includes("14024658.png")) return true;
+  if (url.includes("placehold.co")) return true;
+  if (url.includes("placeholder")) return true;
+  if (url.includes("freepik.com")) return true;
+  if (url.includes("cdn-icons-png")) return true;
+  return false;
+}
+
+/**
+ * Check if loaded image dimensions match the known default avatar (256x256 freepik icon).
+ * This catches cases where the default was saved to user storage.
+ * Real profile pictures are typically resized to 200x200 by the Firebase extension.
+ */
+function checkIfDefaultAvatarImage(img: HTMLImageElement): boolean {
+  // The freepik default avatar is 256x256
+  // Real profile pictures are resized to 200x200 or other common sizes
+  // Only flag as default if it's exactly 256x256 (the freepik icon dimensions)
+  return img.naturalWidth === 256 && img.naturalHeight === 256;
+}
+
 /** Leaderboard avatars: resolve with resolveProfilePictureToUrl (multi-bucket + path variants). */
 function LeaderboardProfileAvatar({
   storagePath,
@@ -269,6 +326,13 @@ function LeaderboardProfileAvatar({
     setSrc(null);
 
     const p = storagePath?.trim();
+
+    // If storagePath is a default avatar URL, treat as no picture
+    if (isDefaultAvatarUrl(p)) {
+      setDone(true);
+      return;
+    }
+
     if (!p && !userId) {
       setDone(true);
       return;
@@ -278,7 +342,8 @@ function LeaderboardProfileAvatar({
     void (async () => {
       try {
         const url = await resolveProfilePictureToUrl(p || null, { userId });
-        if (!cancelled) setSrc(url ?? null);
+        // Also check if resolved URL is a default avatar
+        if (!cancelled) setSrc(isDefaultAvatarUrl(url) ? null : (url ?? null));
       } catch {
         if (!cancelled) setSrc(null);
       } finally {
@@ -295,13 +360,16 @@ function LeaderboardProfileAvatar({
 
   if (showDefaultAvatar) {
     return (
-      <img
-        src={LEADERBOARD_DEFAULT_AVATAR_URL}
-        alt={displayName}
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        className={cn(className, "object-cover bg-gray-200 dark:bg-gray-700")}
-      />
+      <div
+        className={cn(
+          className,
+          getAvatarColor(displayName),
+          "flex items-center justify-center text-white font-semibold select-none"
+        )}
+        aria-label={displayName}
+      >
+        <span className="text-[0.6em]">{getInitials(displayName)}</span>
+      </div>
     );
   }
 
@@ -326,6 +394,13 @@ function LeaderboardProfileAvatar({
       loading="lazy"
       referrerPolicy="no-referrer"
       className={className}
+      onLoad={(e) => {
+        // Check if this is the default avatar saved to storage (256x256)
+        const img = e.currentTarget;
+        if (checkIfDefaultAvatarImage(img)) {
+          setFailed(true); // Trigger fallback to initials
+        }
+      }}
       onError={() => {
         const p = storagePath?.trim();
         invalidateProfilePictureCacheEntry(p || null, { userId });
@@ -1397,7 +1472,7 @@ function LeaderboardNewContent() {
   }
 
   return (
-    <div className="min-h-[220px] bg-gray-50 p-2 pb-10 pt-0 text-gray-900 dark:bg-gray-900 dark:text-white sm:p-4 sm:pb-4 sm:pt-0">
+    <div className="min-h-[220px] bg-gray-50 pb-10 pt-0 text-gray-900 dark:bg-gray-900 dark:text-white sm:pb-4 sm:pt-0">
       {bannerEvent ? (
         <EventCountdownBanner
           variant="dashboard"
@@ -1557,7 +1632,7 @@ function LeaderboardNewContent() {
                     <LeaderboardProfileAvatar
                       userId={currentUserId}
                       storagePath={currentUserData.profilePicture}
-                      displayName="Profile"
+                      displayName={currentUserData.displayName || "User"}
                       className="w-11 h-11 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-yellow-400"
                     />
                     {liveEvent && currentUserData[`${liveEvent.id}Rank`] && (

@@ -1,147 +1,62 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { auth, db } from "@/src/lib/firebaseClient";
 import { doc, getDoc } from "firebase/firestore";
-import { useAuth } from "@/src/contexts/authProvider";
 import DashboardTopNav from "@/src/components/Layout/DashboardTopNav";
 import {
   resolveProfilePictureToUrl,
   subscribeProfileImagesRefresh,
 } from "@/src/lib/resolveProfilePictureUrl";
 
-// Cache for user data to prevent refetching
-const userDataCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const DEFAULT_PROFILE_PICTURE =
+  "https://cdn-icons-png.freepik.com/256/14024/14024658.png?semt=ais_hybrid";
 
 const PageHeader: React.FC = () => {
-  interface UserData {
-    name: string;
-    firstName: string;
-    profilePicture: string;
-    isPro: boolean;
-    badges: string[];
-    country: string;
-    lastName: string;
-    username: string;
-  }
-
-  const defaultUserData: UserData = {
-    name: "Guest",
-    firstName: "",
-    lastName: "",
-    profilePicture:
-      "https://cdn-icons-png.freepik.com/256/14024/14024658.png?semt=ais_hybrid",
-    isPro: false,
-    badges: [],
-    country: "",
-    username: "",
-  };
-
-  const { user } = useAuth();
-
-  // Initialize state from cache if available
-  const [userData, setUserData] = useState<UserData | null>(() => {
-    if (user?.uid) {
-      const cached = userDataCache.get(user.uid);
-      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-        return cached.data;
-      }
-    }
-    return null;
-  });
-  const [loading, setLoading] = useState<boolean>(true);
-  const [profileImageRefreshEpoch, setProfileImageRefreshEpoch] = useState(0);
+  const [username, setUsername] = useState("");
+  const [profilePicture, setProfilePicture] = useState(DEFAULT_PROFILE_PICTURE);
+  const [country, setCountry] = useState("");
+  const [refreshEpoch, setRefreshEpoch] = useState(0);
 
   useEffect(() => {
-    return subscribeProfileImagesRefresh(() => {
-      userDataCache.clear();
-      setProfileImageRefreshEpoch((n) => n + 1);
-    });
+    return subscribeProfileImagesRefresh(() => setRefreshEpoch((n) => n + 1));
   }, []);
 
+  // Fetch user data - same pattern as settings.tsx
   useEffect(() => {
-    async function fetchUserData() {
-      try {
-        if (!user) {
-          setUserData(defaultUserData);
-          setLoading(false);
-          return;
+    if (auth.currentUser) {
+      const fetchUserData = async () => {
+        if (auth.currentUser) {
+          const uid = auth.currentUser.uid;
+          const userDocRef = doc(db, "users", uid);
+          const userDoc = await getDoc(userDocRef);
+
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setUsername(data?.username?.trim() || "");
+            setCountry(data?.country?.trim() || "");
+
+            // Resolve profile picture
+            const resolved = await resolveProfilePictureToUrl(
+              data?.profilePicture ?? null,
+              { userId: uid }
+            );
+            if (resolved) {
+              setProfilePicture(resolved);
+            }
+          }
         }
-
-        const currentUserId = user.uid;
-
-        // Check cache first
-        const cached = userDataCache.get(currentUserId);
-        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-          setUserData(cached.data);
-          setLoading(false);
-          return;
-        }
-
-        const userDocRef = doc(db, "users", currentUserId);
-        const userDoc = await getDoc(userDocRef);
-
-        if (!userDoc.exists()) {
-          setUserData(defaultUserData);
-          setLoading(false);
-          return;
-        }
-
-        const rawData = userDoc.data();
-        let profilePicture = defaultUserData.profilePicture;
-        const resolved = await resolveProfilePictureToUrl(
-          rawData?.profilePicture ?? null,
-          { userId: currentUserId },
-        );
-        if (resolved) {
-          profilePicture = resolved;
-        }
-
-        const validatedUserData: UserData = {
-          name: rawData?.name?.trim() || defaultUserData.name,
-          username: rawData?.username?.trim() || "",
-          profilePicture,
-          isPro: rawData?.isPro ?? defaultUserData.isPro,
-          badges: Array.isArray(rawData?.badges)
-            ? rawData.badges
-            : defaultUserData.badges,
-          country: rawData?.country?.trim() || "",
-          firstName: rawData?.firstName?.trim() || "",
-          lastName: rawData?.lastName?.trim() || "",
-        };
-
-        // Cache the data
-        userDataCache.set(currentUserId, {
-          data: validatedUserData,
-          timestamp: Date.now(),
-        });
-
-        setUserData(validatedUserData);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        setUserData(defaultUserData);
-      } finally {
-        setLoading(false);
-      }
+      };
+      fetchUserData();
     }
-
-    fetchUserData();
-  }, [user?.uid, profileImageRefreshEpoch]);
-
-  const usernameHandle = useMemo(
-    () => userData?.username?.trim() ?? "",
-    [userData?.username],
-  );
-  const avatarUrl = useMemo(() => userData?.profilePicture, [userData?.profilePicture]);
-  const userCountry = useMemo(() => userData?.country, [userData?.country]);
+  }, [refreshEpoch]);
 
   return (
     <div className="relative z-[60] w-full">
       <DashboardTopNav
-        username={usernameHandle}
-        avatarUrl={avatarUrl}
-        points={userCountry}
+        username={username}
+        avatarUrl={profilePicture}
+        points={country}
       />
     </div>
   );

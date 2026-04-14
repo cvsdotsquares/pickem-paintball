@@ -21,6 +21,43 @@ import Link from "next/link";
 import { MonochromePillTabs } from "@/src/components/ui/monochrome-pill-tabs";
 import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dashboardEventBannerShared";
 
+/** Sensible color palette for avatar backgrounds. */
+const AVATAR_COLORS = [
+  "bg-red-500",
+  "bg-orange-500",
+  "bg-amber-500",
+  "bg-yellow-500",
+  "bg-lime-500",
+  "bg-green-500",
+  "bg-emerald-500",
+  "bg-teal-500",
+  "bg-cyan-500",
+  "bg-sky-500",
+  "bg-blue-500",
+  "bg-indigo-500",
+  "bg-violet-500",
+  "bg-purple-500",
+  "bg-fuchsia-500",
+  "bg-pink-500",
+  "bg-rose-500",
+];
+
+/** Generate a consistent color for a username using a simple hash. */
+function getAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+/** Get first two letters of a name for avatar initials. */
+function getInitials(name: string): string {
+  const cleaned = name.trim();
+  if (!cleaned) return "??";
+  return cleaned.slice(0, 2).toUpperCase();
+}
+
 export interface Player {
   player_id: string;
   Player: string;
@@ -354,13 +391,15 @@ export default function Dashboard() {
             <div className="col-span-2 bg-black rounded-lg p-2 flex flex-col justify-between">
               <div className="flex items-start gap-2">
                 <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                  <div className="w-11 h-11 rounded-full bg-white/10 border-2 border-white/20 overflow-hidden flex items-center justify-center">
+                  <div className="w-11 h-11 rounded-full border-2 border-white/20 overflow-hidden flex items-center justify-center">
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-white/50 font-black text-lg">
-                        {displayName?.[0]?.toUpperCase() || "?"}
-                      </span>
+                      <div className={`w-full h-full flex items-center justify-center ${getAvatarColor(displayName || "User")}`}>
+                        <span className="text-white font-bold text-sm">
+                          {getInitials(displayName || "User")}
+                        </span>
+                      </div>
                     )}
                   </div>
                   <div className="flex gap-0.5">
