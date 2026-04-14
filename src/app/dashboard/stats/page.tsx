@@ -637,7 +637,7 @@ export default function Statistics() {
             />
           ) : null}
           <section
-            className="mx-auto mt-2 max-w-5xl px-4"
+            className="mx-auto mt-2 max-w-6xl px-4 md:px-6"
             aria-label="Statistics navigation"
           >
             <div className="rounded-xl bg-neutral-100/90 p-3 dark:bg-stone-900/90">
@@ -705,7 +705,7 @@ export default function Statistics() {
         </section>
 
         {/* Individual Event Table or Season Table */}
-        <section className="mt-2 px-4 pb-0 md:mt-3">
+        <section className="mx-auto mt-2 max-w-6xl px-4 md:px-6 pb-0 md:mt-3">
           {showSeasonTable ? (
             // Season Table
             <>

@@ -471,39 +471,41 @@ export default function Dashboard() {
         />
       ) : null}
 
-      <MonochromePillTabs
-        value={mobileTab}
-        onChange={setMobileTab}
-        tabs={[
-          { value: "all", label: "All" },
-          { value: "stats", label: "Stats" },
-          { value: "pickem", label: "Pick'Em" },
-        ]}
-      />
+      <div className="mx-auto w-full max-w-7xl flex min-h-0 flex-1 flex-col">
+        <MonochromePillTabs
+          value={mobileTab}
+          onChange={setMobileTab}
+          tabs={[
+            { value: "all", label: "All" },
+            { value: "stats", label: "Stats" },
+            { value: "pickem", label: "Pick'Em" },
+          ]}
+        />
 
-      {/* Desktop: stats | pickem */}
-      <div className="hidden md:grid md:grid-cols-2 md:flex-1 md:min-h-0 md:gap-0">
-        <div
-          className="min-h-0 overflow-y-auto border-r border-gray-200 dark:border-white/10"
-          onScroll={reportStatsScroll}
-        >
-          {statsSection}
-        </div>
-        <div className="min-h-0 overflow-y-auto" onScroll={reportPickemScroll}>
-          {pickemSection}
-        </div>
-      </div>
-
-      {/* Mobile: tab panels */}
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-y-contain md:hidden">
-        {mobileTab === "all" && (
-          <>
+        {/* Desktop: stats | pickem */}
+        <div className="hidden md:grid md:grid-cols-2 md:flex-1 md:min-h-0 md:gap-0">
+          <div
+            className="min-h-0 overflow-y-auto border-r border-gray-200 dark:border-white/10"
+            onScroll={reportStatsScroll}
+          >
             {statsSection}
-            <div className="border-t border-gray-100 dark:border-white/5">{pickemSection}</div>
-          </>
-        )}
-        {mobileTab === "stats" && statsSection}
-        {mobileTab === "pickem" && pickemSection}
+          </div>
+          <div className="min-h-0 overflow-y-auto" onScroll={reportPickemScroll}>
+            {pickemSection}
+          </div>
+        </div>
+
+        {/* Mobile: tab panels */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-y-contain md:hidden">
+          {mobileTab === "all" && (
+            <>
+              {statsSection}
+              <div className="border-t border-gray-100 dark:border-white/5">{pickemSection}</div>
+            </>
+          )}
+          {mobileTab === "stats" && statsSection}
+          {mobileTab === "pickem" && pickemSection}
+        </div>
       </div>
     </div>
   );

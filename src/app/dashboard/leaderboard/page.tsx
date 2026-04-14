@@ -1422,7 +1422,7 @@ function LeaderboardNewContent() {
         />
       ) : null}
 
-      <main className="mx-auto max-w-5xl px-4 pt-4">
+      <main className="mx-auto max-w-6xl px-4 md:px-6 pt-4">
       {/* Custom leagues — above event/year filtering */}
       {!eventLoading && (liveEvent || isSeasonView) && (
         <div className="mb-4">

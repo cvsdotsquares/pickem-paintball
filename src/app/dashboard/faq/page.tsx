@@ -35,7 +35,7 @@ export default function DashboardFaqPage() {
           }
         />
       ) : null}
-      <div className="mx-auto w-full max-w-5xl px-4 pb-10 pt-1 text-gray-900 dark:text-white [&_h2:first-of-type]:!mt-2 [&_h3:first-of-type]:!mt-2">
+      <div className="mx-auto w-full max-w-6xl px-4 md:px-6 pb-10 pt-1 text-gray-900 dark:text-white [&_h2:first-of-type]:!mt-2 [&_h3:first-of-type]:!mt-2">
         <CmsPageFromFirestore slug="faq" variant="dashboard" />
       </div>
     </div>

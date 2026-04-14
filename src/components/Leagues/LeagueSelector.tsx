@@ -201,7 +201,7 @@ export default function LeagueSelector({
         />
       ))}
       <section
-        className="relative z-20 mx-auto mt-2 w-full max-w-5xl px-0"
+        className="relative z-20 mx-auto mt-2 w-full max-w-6xl px-0"
         aria-labelledby="custom-leagues-heading"
       >
         <div className="overflow-hidden rounded-2xl border border-emerald-500/35 bg-gradient-to-br from-emerald-50/95 via-white to-neutral-50 shadow-md ring-1 ring-black/[0.04] dark:border-emerald-500/25 dark:from-stone-900 dark:via-stone-900 dark:to-stone-950 dark:ring-white/10">

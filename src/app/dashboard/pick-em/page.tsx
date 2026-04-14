@@ -688,7 +688,7 @@ export default function Pickems() {
       ) : null}
 
       {/* ── MAIN SPLIT ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="mx-auto w-full max-w-7xl flex flex-1 overflow-hidden">
 
         {/* LEFT: Unified Grid */}
         <div className="flex flex-col w-full md:w-[45%] border-r border-gray-200 dark:border-white/10 overflow-hidden bg-[#f0f0f0] dark:bg-[#111]">
@@ -818,7 +818,8 @@ export default function Pickems() {
         </div>
 
         {/* RIGHT: Player Table */}
-        <div className="hidden md:flex flex-col flex-1 overflow-hidden bg-white dark:bg-[#0d0d0d]">
+        <div className="hidden md:flex flex-col flex-1 overflow-hidden p-2">
+          <div className="flex flex-col flex-1 overflow-hidden rounded-xl bg-white dark:bg-[#0d0d0d] ring-1 ring-black/10 dark:ring-white/10">
           {/* Search */}
           <div className="flex-shrink-0 px-3 py-3 border-b border-gray-100 dark:border-white/5">
             <div className="flex gap-2">
@@ -892,6 +893,7 @@ export default function Pickems() {
                   {isLoadingMore && <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-300 dark:border-white/30" /></div>}
                 </>
             }
+          </div>
           </div>
         </div>
       </div>
