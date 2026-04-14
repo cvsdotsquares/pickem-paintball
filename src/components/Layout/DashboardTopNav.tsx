@@ -101,11 +101,12 @@ function TopNavAvatar({
       ) : (
         <div
           className={cn(
-            "h-full w-full flex items-center justify-center text-white font-semibold select-none",
+            "h-full w-full flex items-center justify-center text-white font-bold select-none",
+            textSize,
             getAvatarColor(username)
           )}
         >
-          <span className={textSize}>{getInitials(username)}</span>
+          {getInitials(username)}
         </div>
       )}
     </div>

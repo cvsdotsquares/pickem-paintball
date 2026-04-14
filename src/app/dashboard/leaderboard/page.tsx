@@ -339,36 +339,60 @@ function LeaderboardProfileAvatar({
     }
 
     let cancelled = false;
+
+    // Timeout to prevent hanging - show initials after 3 seconds
+    const timeout = setTimeout(() => {
+      if (!cancelled) {
+        setSrc(null);
+        setDone(true);
+      }
+    }, 3000);
+
     void (async () => {
       try {
         const url = await resolveProfilePictureToUrl(p || null, { userId });
         // Also check if resolved URL is a default avatar
-        if (!cancelled) setSrc(isDefaultAvatarUrl(url) ? null : (url ?? null));
-      } catch {
-        if (!cancelled) setSrc(null);
+        if (!cancelled) {
+          clearTimeout(timeout);
+          setSrc(isDefaultAvatarUrl(url) ? null : (url ?? null));
+        }
+      } catch (e) {
+        if (!cancelled) {
+          clearTimeout(timeout);
+          setSrc(null);
+        }
       } finally {
-        if (!cancelled) setDone(true);
+        if (!cancelled) {
+          clearTimeout(timeout);
+          setDone(true);
+        }
       }
     })();
 
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
     };
   }, [storagePath, userId, refreshEpoch]);
 
   const showDefaultAvatar = failed || (done && !src);
 
   if (showDefaultAvatar) {
+    const initials = getInitials(displayName);
+    // Debug single-letter cases
+    if (initials.length < 2) {
+      console.log(`[Avatar] Single letter: displayName="${displayName}" initials="${initials}"`);
+    }
     return (
       <div
         className={cn(
           className,
           getAvatarColor(displayName),
-          "flex items-center justify-center text-white font-semibold select-none"
+          "flex items-center justify-center text-white font-bold select-none text-xs"
         )}
         aria-label={displayName}
       >
-        <span className="text-[0.6em]">{getInitials(displayName)}</span>
+        {initials}
       </div>
     );
   }
@@ -415,12 +439,13 @@ function LeaderboardProfileAvatar({
   );
 }
 
-// Display name hierarchy: username → firstName+lastName → name → displayName → fallback
+// Display name hierarchy: username → firstName+lastName → firstName → name → displayName → fallback
 const resolveDisplayName = (userDoc: { get: (field: string) => any }): string =>
   userDoc.get("username") ||
   (userDoc.get("firstName") && userDoc.get("lastName")
     ? `${userDoc.get("firstName")} ${userDoc.get("lastName")}`
     : null) ||
+  userDoc.get("firstName") ||
   userDoc.get("name") ||
   userDoc.get("displayName") ||
   "Unknown User";
@@ -961,7 +986,7 @@ function LeaderboardNewContent() {
     };
   }, [users]);
 
-  // Merge profilePicture from users/{id} when leaderboard summary is missing or stale (patrick23-style cases).
+  // Merge profilePicture and displayName from users/{id} when leaderboard summary is missing or stale.
   const enrichAvatarIdsKey = useMemo(() => users.map((u) => u.id).join(","), [users]);
 
   useEffect(() => {
@@ -980,12 +1005,32 @@ function LeaderboardNewContent() {
           const next = prev.map((u, i) => {
             const d = docs[i];
             if (!d?.exists()) return u;
-            const fresh = d.get("profilePicture");
-            if (typeof fresh !== "string" || !fresh.trim()) return u;
-            const t = fresh.trim();
-            if (t === (u.profilePicture || "").trim()) return u;
-            changed = true;
-            return { ...u, profilePicture: t };
+
+            let updates: Partial<User> = {};
+
+            // Enrich profilePicture
+            const freshPic = d.get("profilePicture");
+            if (typeof freshPic === "string" && freshPic.trim()) {
+              const t = freshPic.trim();
+              if (t !== (u.profilePicture || "").trim()) {
+                updates.profilePicture = t;
+              }
+            }
+
+            // Enrich displayName if current one is too short (< 2 chars)
+            if (u.displayName.length < 2) {
+              const freshName = resolveDisplayName(d);
+              console.log(`[Enrich] ${u.id}: displayName "${u.displayName}" -> "${freshName}"`);
+              if (freshName !== u.displayName && freshName.length >= 2) {
+                updates.displayName = freshName;
+              }
+            }
+
+            if (Object.keys(updates).length > 0) {
+              changed = true;
+              return { ...u, ...updates };
+            }
+            return u;
           });
           return changed ? next : prev;
         });
