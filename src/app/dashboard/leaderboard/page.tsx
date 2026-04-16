@@ -1945,7 +1945,7 @@ function LeaderboardNewContent() {
                         }`}
                       onClick={() => toggleExpand(user.id)}
                     >
-                      <td className={cn("px-3 py-2.5 text-sm sticky left-0 z-10 bg-inherit whitespace-nowrap align-middle shadow-[2px_0_0_0_rgb(209_213_219_/_0.35)] dark:shadow-[2px_0_0_0_rgb(75_85_99_/_0.35)]", currentUserId === user.id && "border-l-[24px] border-pickem-green")}>
+                      <td className={cn("px-3 py-2.5 text-sm sticky left-0 z-10 bg-inherit whitespace-nowrap align-middle shadow-[2px_0_0_0_rgb(209_213_219_/_0.35)] dark:shadow-[2px_0_0_0_rgb(75_85_99_/_0.35)]", currentUserId === user.id && "border-l-[24px] sm:border-l-4 border-pickem-green")}>
                         <span className="font-medium text-gray-900 dark:text-white tabular-nums">
                             {displayRank}
                           </span>
