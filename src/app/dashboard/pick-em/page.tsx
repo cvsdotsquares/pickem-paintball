@@ -15,6 +15,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode
 import { IoMdClose } from "react-icons/io";
 import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
 import { PiPlusBold } from "react-icons/pi";
+import { MdShuffle, MdFavorite, MdFavoriteBorder, MdTune } from "react-icons/md";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useDashboardNestedScrollHandler } from "@/src/contexts/DashboardMainScrollContext";
@@ -22,6 +23,7 @@ import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanne
 import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dashboardEventBannerShared";
 import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
 import { getBannerAccentColor } from "@/src/lib/bannerPhase";
+import { individualEventDisplayName } from "@/src/lib/eventDisplayName";
 
 export interface Player {
   player_id: string;
@@ -34,9 +36,7 @@ export interface Player {
   picture?: string;
   pictureLoading?: boolean;
   img_url?: string;
-  totalElims?: number;
-  lonestarElims?: number;
-  midwestElims?: number;
+  elimsByEvent?: Record<string, number>;
 }
 
 interface PlayerSlot {
@@ -76,6 +76,16 @@ export default function Pickems() {
   }, []);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [sortOption, setSortOption] = useState<{ field: string; direction: "asc" | "desc" }>({ field: "name", direction: "asc" });
+  const [shuffledIds, setShuffledIds] = useState<string[] | null>(null);
+  const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
+  const [showFavourites, setShowFavourites] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("pickem_favourites");
+      if (stored) setFavouriteIds(new Set(JSON.parse(stored)));
+    } catch {}
+  }, []);
   const [teamLogos, setTeamLogos] = useState<Record<string, string>>({});
   const reportPickEmDesktopListScroll = useDashboardNestedScrollHandler("pick-em-desktop-rows");
 
@@ -118,18 +128,26 @@ export default function Pickems() {
     }
     result = result.filter((p) => p.Cost >= costRange[0] && p.Cost <= costRange[1]);
     if (selectedTeams.length > 0) result = result.filter((p) => selectedTeams.includes(p.Team));
-    result.sort((a, b) => {
-      let cmp = 0;
-      if (sortOption.field === "name") cmp = a.Player.localeCompare(b.Player);
-      else if (sortOption.field === "team") cmp = a.Team.localeCompare(b.Team);
-      else if (sortOption.field === "cost") cmp = a.Cost - b.Cost;
-      else if (sortOption.field === "elim") cmp = (a.totalElims ?? 0) - (b.totalElims ?? 0);
-      else if (sortOption.field === "lonestar") cmp = (a.lonestarElims ?? 0) - (b.lonestarElims ?? 0);
-      else if (sortOption.field === "midwest") cmp = (a.midwestElims ?? 0) - (b.midwestElims ?? 0);
-      return sortOption.direction === "asc" ? cmp : -cmp;
-    });
+    if (showFavourites) result = result.filter((p) => favouriteIds.has(p.player_id));
+    if (shuffledIds) {
+      const idToIdx = Object.fromEntries(shuffledIds.map((id, i) => [id, i]));
+      result.sort((a, b) => (idToIdx[a.player_id] ?? Infinity) - (idToIdx[b.player_id] ?? Infinity));
+    } else {
+      result.sort((a, b) => {
+        let cmp = 0;
+        if (sortOption.field === "name") cmp = a.Player.localeCompare(b.Player);
+        else if (sortOption.field === "team") cmp = a.Team.localeCompare(b.Team);
+        else if (sortOption.field === "cost") cmp = a.Cost - b.Cost;
+        else if (sortOption.field.startsWith("event_")) {
+          const idx = parseInt(sortOption.field.slice(6), 10);
+          const eventId = recentEvents[idx]?.id ?? "";
+          cmp = (a.elimsByEvent?.[eventId] ?? 0) - (b.elimsByEvent?.[eventId] ?? 0);
+        }
+        return sortOption.direction === "asc" ? cmp : -cmp;
+      });
+    }
     return result;
-  }, [rowData, searchTerm, costRange, selectedTeams, sortOption]);
+  }, [rowData, searchTerm, costRange, selectedTeams, sortOption, shuffledIds, showFavourites, favouriteIds]);
 
   const { selectedPlayers, availablePlayers } = useMemo(() => ({
     selected: filteredPlayers.filter((p) => temporaryPicks.some((tp) => tp.player_id === p.player_id)),
@@ -183,51 +201,55 @@ export default function Pickems() {
           const yearFromId = typeof live.id === "string" ? live.id.match(/(\d{4})/)?.[1] : undefined;
           const year = live.year != null ? String(live.year) : yearFromId || undefined;
           const banner = eventRecordToBannerModel({ id: live.id, ...live });
-          console.log("[PickEm] live event:", live.id, "logo:", banner.logoUrl);
-          setLiveEvent({
-            ...banner,
-            year,
-            timeLeft: "",
-          });
+          setLiveEvent({ ...banner, year, timeLeft: "" });
         }
+        // Compute 3 most recent past events (sorted by lockDate descending)
+        const past = events
+          .filter((e: any) => e.id !== live?.id && e.lockDate != null)
+          .sort((a: any, b: any) => {
+            const aTime = a.lockDate?.toDate?.()?.getTime() ?? 0;
+            const bTime = b.lockDate?.toDate?.()?.getTime() ?? 0;
+            return bTime - aTime;
+          })
+          .slice(0, 3)
+          .map((e: any) => {
+            const yearFromId = typeof e.id === "string" ? e.id.match(/(\d{4})/)?.[1] : undefined;
+            const year = e.year != null ? String(e.year) : yearFromId;
+            const label = individualEventDisplayName({ id: e.id, name: e.name, year });
+            const location = label.split(" - ")[0];
+            const abbrev = location.split(/\s+/).map((w: string) => w[0]).join("").toUpperCase();
+            return { id: e.id, label, abbrev };
+          });
+        setRecentEvents(past);
+        recentEventsRef.current = past;
       } catch (e) { console.error(e); }
     };
     fetchLiveEvent();
   }, []);
 
-  const [seasonElims, setSeasonElims] = useState<Record<string, number>>({});
-  const seasonElimsRef = useRef<Record<string, number>>({});
-  const lonestarElimsRef = useRef<Record<string, number>>({});
-  const midwestElimsRef = useRef<Record<string, number>>({});
+  const [recentEvents, setRecentEvents] = useState<{id: string, label: string, abbrev: string}[]>([]);
+  const recentEventsRef = useRef<{id: string, label: string, abbrev: string}[]>([]);
+  const eventElimsRef = useRef<Record<string, Record<string, number>>>({});
+  const [elimsVersion, setElimsVersion] = useState(0);
 
   useEffect(() => {
-    const fetchSeasonElims = async () => {
-      try {
-        const snap = await getDocs(collection(db, "events/world_cup_2025/players"));
-        const map: Record<string, number> = {};
-        snap.docs.forEach((d) => {
-          const data = d.data();
-          map[d.id] = data["Confirmed Kills"] ?? undefined;
-        });
-        console.log("[SeasonElims] sample keys:", Object.keys(map).slice(0, 5));
-        console.log("[SeasonElims] sample values:", Object.entries(map).slice(0, 5));
-        setSeasonElims(map);
-        seasonElimsRef.current = map;
-      } catch (e) { console.error("Failed to fetch season elims:", e); }
+    if (recentEvents.length === 0) return;
+    const fetchAll = async () => {
+      await Promise.all(recentEvents.map(async ({ id }) => {
+        try {
+          const snap = await getDocs(collection(db, `events/${id}/players`));
+          const map: Record<string, number> = {};
+          snap.docs.forEach((d) => {
+            const v = d.data()["Confirmed Kills"];
+            if (v != null) map[d.id] = v;
+          });
+          eventElimsRef.current = { ...eventElimsRef.current, [id]: map };
+        } catch (e) { console.error(`Failed to fetch elims for ${id}:`, e); }
+      }));
+      setElimsVersion((v) => v + 1);
     };
-    fetchSeasonElims();
-
-    const fetchEventElims = async (eventId: string, ref: React.MutableRefObject<Record<string, number>>) => {
-      try {
-        const snap = await getDocs(collection(db, `events/${eventId}/players`));
-        const map: Record<string, number> = {};
-        snap.docs.forEach((d) => { map[d.id] = d.data()["Confirmed Kills"] ?? undefined; });
-        ref.current = map;
-      } catch (e) { console.error(`Failed to fetch elims for ${eventId}:`, e); }
-    };
-    fetchEventElims("lonestar_open_2025", lonestarElimsRef);
-    fetchEventElims("midwest_open_2025", midwestElimsRef);
-  }, []);
+    fetchAll();
+  }, [recentEvents]);
 
   useEffect(() => {
     let mounted = true;
@@ -241,9 +263,11 @@ export default function Pickems() {
           Rank: r.Rank, team_id: r.team_id, Cost: r.Cost, img_url: r.img_url,
           picture: r.img_url?.trim() ? r.img_url : undefined,
           pictureLoading: !r.img_url?.trim(),
-          totalElims: seasonElimsRef.current[String(r.player_id)] ?? undefined,
-          lonestarElims: lonestarElimsRef.current[String(r.player_id)] ?? undefined,
-          midwestElims: midwestElimsRef.current[String(r.player_id)] ?? undefined,
+          elimsByEvent: Object.fromEntries(
+            Object.entries(eventElimsRef.current)
+              .map(([eventId, elims]) => [eventId, elims[String(r.player_id)]] as [string, number])
+              .filter(([, v]) => v != null)
+          ),
         }));
         const uniqueTeams = Array.from(new Set(raw.map((p: any) => p.Team).filter(Boolean))) as string[];
         if (mounted) { setRowData(players); setTeams(uniqueTeams); setIsLoadingMore(false); }
@@ -253,19 +277,17 @@ export default function Pickems() {
     return () => { mounted = false; };
   }, [liveEvent.id]);
 
-  // Merge season elims into player rows whenever either dataset updates
   useEffect(() => {
-    if (!Object.keys(seasonElims).length || !rowData.length) return;
-    console.log("[Merge] first player:", { player_id: rowData[0]?.player_id, typeof_pid: typeof rowData[0]?.player_id });
-    console.log("[Merge] first seasonElims key:", Object.keys(seasonElims)[0], "typeof:", typeof Object.keys(seasonElims)[0]);
-    console.log("[Merge] direct lookup test:", seasonElims[String(rowData[0]?.player_id)]);
+    if (!elimsVersion || !rowData.length) return;
     setRowData((prev) => prev.map((p) => ({
       ...p,
-      totalElims: seasonElimsRef.current[String(p.player_id)] ?? p.totalElims,
-      lonestarElims: lonestarElimsRef.current[String(p.player_id)] ?? p.lonestarElims,
-      midwestElims: midwestElimsRef.current[String(p.player_id)] ?? p.midwestElims,
+      elimsByEvent: Object.fromEntries(
+        Object.entries(eventElimsRef.current)
+          .map(([eventId, elims]) => [eventId, elims[String(p.player_id)]] as [string, number])
+          .filter(([, v]) => v != null)
+      ),
     })));
-  }, [seasonElims]);
+  }, [elimsVersion]);
 
   useEffect(() => {
     const fetchPics = async () => {
@@ -314,14 +336,13 @@ export default function Pickems() {
           resolvedPhoto = user?.photoURL || undefined;
         }
 
-        setUserProfile({
+        setUserProfile((prev) => ({
+          ...prev,
           displayName: resolvedName,
           photoURL: resolvedPhoto,
           eventRank: data[`${liveEvent.id}Rank`] ?? undefined,
-          seasonRank: undefined,
           eventElims: data[`${liveEvent.id}PTS`] ?? undefined,
-          seasonElims: undefined,
-        });
+        }));
 
         // Use official picks if present, otherwise fall back to saved draft
         const officialIds = data.pickems?.[liveEvent.id];
@@ -384,6 +405,25 @@ export default function Pickems() {
     };
     fetchLogos();
   }, []);
+
+  const toggleFavourite = useCallback((playerId: string) => {
+    setFavouriteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(playerId)) next.delete(playerId);
+      else next.add(playerId);
+      try { localStorage.setItem("pickem_favourites", JSON.stringify(Array.from(next))); } catch {}
+      return next;
+    });
+  }, []);
+
+  const handleShuffle = useCallback(() => {
+    const ids = filteredPlayers.map((p) => p.player_id);
+    for (let i = ids.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+    }
+    setShuffledIds(ids);
+  }, [filteredPlayers]);
 
   const isBeforeLockDate = (lockDate: any) => lockDate && Date.now() < new Date(lockDate).getTime();
 
@@ -586,13 +626,13 @@ export default function Pickems() {
   );
 
   const formatCostShort = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v);
-  const MOBILE_GRID_COLS = "32px minmax(80px,1fr) 40px 26px 26px 26px 28px";
+  const MOBILE_GRID_COLS = "32px minmax(80px,1fr) 40px 26px 26px 26px 28px 28px";
 
   const MobilePlayerRow = memo(({ player, isSelected }: { player: Player; isSelected: boolean }) => (
     <div onClick={() => handlePlayerAction(player)}
       className={`border-b border-black/5 dark:border-white/5 cursor-pointer transition-colors ${isSelected ? "bg-black/5 dark:bg-white/10" : ""}`}
       style={{ display: "grid", gridTemplateColumns: MOBILE_GRID_COLS, alignItems: "center", gap: "8px", padding: "8px 12px" }}>
-      <div className="relative w-8 h-8 rounded overflow-hidden bg-[#1a1a1a]">
+      <div className="relative w-8 h-8 rounded overflow-hidden bg-[#1a1a1a] flex-shrink-0">
         <div className="absolute inset-0 bg-cover bg-top" style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }} />
       </div>
       <div className="min-w-0">
@@ -600,22 +640,29 @@ export default function Pickems() {
         <div className="text-gray-400 dark:text-white/40 text-[9px] truncate">{player.Team}</div>
       </div>
       <div className="pickem-numeric text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">{formatCostShort(player.Cost)}</div>
-      <div className="text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">
-        {player.totalElims != null ? <span className="pickem-numeric">{player.totalElims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
-      </div>
-      <div className="text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">
-        {player.lonestarElims != null ? <span className="pickem-numeric">{player.lonestarElims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
-      </div>
-      <div className="text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">
-        {player.midwestElims != null ? <span className="pickem-numeric">{player.midwestElims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
-      </div>
+      {Array.from({ length: 3 }).map((_, i) => {
+        const e = recentEvents[i];
+        const elims = e ? player.elimsByEvent?.[e.id] : undefined;
+        return (
+          <div key={i} className="text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">
+            {elims != null ? <span className="pickem-numeric">{elims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
+          </div>
+        );
+      })}
       <div className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors justify-self-center
         ${isSelected ? "bg-gray-900 dark:bg-white border-gray-900 dark:border-white" : "border-gray-300 dark:border-white/20 bg-transparent"}`}>
         {isSelected ? <IoMdClose className="text-white dark:text-black text-[10px]" /> : <PiPlusBold className="text-gray-500 dark:text-white/60 text-[10px]" />}
       </div>
+      <button onClick={(e) => { e.stopPropagation(); toggleFavourite(player.player_id); }}
+        className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors justify-self-center
+          ${favouriteIds.has(player.player_id) ? "border-red-400 bg-red-400/10" : "border-gray-300 dark:border-white/20 bg-transparent hover:border-red-400/50"}`}>
+        {favouriteIds.has(player.player_id)
+          ? <MdFavorite className="text-red-400 text-[10px]" />
+          : <MdFavoriteBorder className="text-gray-400 dark:text-white/40 text-[10px]" />}
+      </button>
     </div>
   ));
-  const GRID_COLS = "36px minmax(120px,1fr) 64px 60px 60px 60px 28px";
+  const GRID_COLS = "36px minmax(120px,1fr) 64px 60px 60px 60px 28px 28px";
 
   const PlayerRow = memo(({ player, isSelected }: { player: Player; isSelected: boolean }) => (
     <div onClick={() => handlePlayerAction(player)}
@@ -629,15 +676,15 @@ export default function Pickems() {
         <div className="text-gray-400 dark:text-white/40 text-[10px] truncate">{player.Team}</div>
       </div>
       <div className="pickem-numeric text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">{formatCost(player.Cost)}</div>
-      <div className="text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">
-        {player.totalElims != null ? <span className="pickem-numeric">{player.totalElims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
-      </div>
-      <div className="text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">
-        {player.lonestarElims != null ? <span className="pickem-numeric">{player.lonestarElims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
-      </div>
-      <div className="text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">
-        {player.midwestElims != null ? <span className="pickem-numeric">{player.midwestElims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
-      </div>
+      {Array.from({ length: 3 }).map((_, i) => {
+        const e = recentEvents[i];
+        const elims = e ? player.elimsByEvent?.[e.id] : undefined;
+        return (
+          <div key={i} className="text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">
+            {elims != null ? <span className="pickem-numeric">{elims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
+          </div>
+        );
+      })}
       <div className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors justify-self-center
         ${isSelected
           ? "bg-gray-900 dark:bg-white border-gray-900 dark:border-white"
@@ -648,6 +695,13 @@ export default function Pickems() {
           : <PiPlusBold className="text-gray-500 dark:text-white/60 text-[10px]" />
         }
       </div>
+      <button onClick={(e) => { e.stopPropagation(); toggleFavourite(player.player_id); }}
+        className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors justify-self-center
+          ${favouriteIds.has(player.player_id) ? "border-red-400 bg-red-400/10" : "border-gray-300 dark:border-white/20 bg-transparent hover:border-red-400/50"}`}>
+        {favouriteIds.has(player.player_id)
+          ? <MdFavorite className="text-red-400 text-[10px]" />
+          : <MdFavoriteBorder className="text-gray-400 dark:text-white/40 text-[10px]" />}
+      </button>
     </div>
   ));
 
@@ -827,6 +881,17 @@ export default function Pickems() {
                 onChange={(e) => { setSearchTerm(e.target.value); setVisiblePlayersCount(20); }}
                 className="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full px-4 py-2 text-xs text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 outline-none focus:border-gray-400 dark:focus:border-white/30" />
               <button
+                onClick={() => setShowFavourites((v) => !v)}
+                className={`px-3 py-2 border rounded-full text-xs font-bold transition-colors flex items-center gap-1 ${showFavourites ? "border-red-400 text-red-400 bg-red-50 dark:bg-red-400/10" : "border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/50 hover:border-gray-400"}`}>
+                <MdFavorite className="text-sm" />
+                {favouriteIds.size > 0 && <span className="pickem-numeric text-[8px]">{favouriteIds.size}</span>}
+              </button>
+              <button
+                onClick={handleShuffle}
+                className={`px-3 py-2 border rounded-full text-xs font-bold transition-colors flex items-center gap-1 ${shuffledIds ? "border-gray-800 dark:border-white/60 text-gray-900 dark:text-white bg-gray-100 dark:bg-white/10" : "border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/50 hover:border-gray-400"}`}>
+                <MdShuffle className="text-sm" />
+              </button>
+              <button
                 onClick={() => setIsFilterOpen((v) => !v)}
                 className={`px-4 py-2 border rounded-full text-xs font-bold transition-colors ${isFilterOpen ? "border-gray-800 dark:border-white/60 text-gray-900 dark:text-white bg-gray-100 dark:bg-white/10" : "border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/50 hover:border-gray-400"}`}>
                 Filter {(selectedTeams.length > 0) && <span className="ml-1 bg-black dark:bg-white text-white dark:text-black rounded-full px-1.5 py-0.5 text-[8px]"><span className="pickem-numeric">{selectedTeams.length}</span></span>}
@@ -861,18 +926,21 @@ export default function Pickems() {
             <div />
             {[
               { label: "Cost", sub: null, field: "cost" },
-              { label: "ELIMS", sub: "Worldcup 25", field: "elim" },
-              { label: "ELIMS", sub: "Lonestar 25", field: "lonestar" },
-              { label: "ELIMS", sub: "Midwest 25", field: "midwest" },
+              ...Array.from({ length: 3 }).map((_, i) => ({
+                label: "ELIMS",
+                sub: recentEvents[i]?.label ?? null,
+                field: `event_${i}`,
+              })),
             ].map(({ label, sub, field }) => (
               <div key={field} className="text-center cursor-pointer select-none"
-                onClick={() => setSortOption((prev) => ({ field, direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc" }))}>
+                onClick={() => { setShuffledIds(null); setSortOption((prev) => ({ field, direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc" })); }}>
                 <div className={`text-[8px] uppercase tracking-widest font-bold ${sortOption.field === field ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/60"}`}>
                   {label}{sortOption.field === field && <span className="ml-0.5 text-[6px]">{sortOption.direction === "asc" ? "↑" : "↓"}</span>}
                 </div>
                 {sub && <div className={`text-[8px] font-bold opacity-70 ${sortOption.field === field ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-white/30"}`}>{sub}</div>}
               </div>
             ))}
+            <div />
             <div />
           </div>
           {/* Rows */}
@@ -930,10 +998,21 @@ export default function Pickems() {
                   <input type="text" placeholder="Search Players" value={searchTerm}
                     onChange={(e) => { setSearchTerm(e.target.value); setVisiblePlayersCount(20); }}
                     className="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full px-4 py-2 text-xs text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 outline-none" />
+                  <button onClick={() => setShowFavourites((v) => !v)}
+                    className={`flex-shrink-0 px-3 py-2 rounded-full border transition-colors flex items-center gap-1 relative
+                      ${showFavourites ? "border-red-400 text-red-400 bg-red-50 dark:bg-red-400/10" : "border-gray-200 dark:border-white/15 text-gray-600 dark:text-white/60"}`}>
+                    <MdFavorite className="text-base" />
+                    {favouriteIds.size > 0 && <span className="pickem-numeric text-[8px]">{favouriteIds.size}</span>}
+                  </button>
+                  <button onClick={handleShuffle}
+                    className={`flex-shrink-0 px-3 py-2 rounded-full border transition-colors flex items-center justify-center
+                      ${shuffledIds ? "bg-gray-900 dark:bg-white text-white dark:text-black border-transparent" : "border-gray-200 dark:border-white/15 text-gray-600 dark:text-white/60"}`}>
+                    <MdShuffle className="text-base" />
+                  </button>
                   <button onClick={() => setIsFilterOpen((p) => !p)}
-                    className={`flex-shrink-0 px-4 py-2 rounded-full border text-[10px] font-black uppercase tracking-widest transition-colors relative
+                    className={`flex-shrink-0 px-3 py-2 rounded-full border transition-colors flex items-center justify-center relative
                       ${isFilterOpen ? "bg-gray-900 dark:bg-white text-white dark:text-black border-transparent" : "border-gray-200 dark:border-white/15 text-gray-600 dark:text-white/60"}`}>
-                    Filter
+                    <MdTune className="text-base" />
                     {selectedTeams.length > 0 && (
                       <span className="absolute -top-1 -right-1 bg-gray-900 dark:bg-white text-white dark:text-black text-[8px] font-black rounded-full w-4 h-4 flex items-center justify-center"><span className="pickem-numeric">{selectedTeams.length}</span></span>
                     )}
@@ -964,25 +1043,28 @@ export default function Pickems() {
                 style={{ display: "grid", gridTemplateColumns: MOBILE_GRID_COLS, alignItems: "center", gap: "8px", padding: "6px 12px" }}>
                 <div />
                 {/* Player name — sortable */}
-                <div className="cursor-pointer select-none" onClick={() => setSortOption((prev) => ({ field: "name", direction: prev.field === "name" && prev.direction === "asc" ? "desc" : "asc" }))}>
+                <div className="cursor-pointer select-none" onClick={() => { setShuffledIds(null); setSortOption((prev) => ({ field: "name", direction: prev.field === "name" && prev.direction === "asc" ? "desc" : "asc" })); }}>
                   <span className={`text-[7px] uppercase tracking-widest font-bold leading-none ${sortOption.field === "name" ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-white/30"}`}>
                     Player{sortOption.field === "name" && <span className="ml-0.5 text-[6px]">{sortOption.direction === "asc" ? "↑" : "↓"}</span>}
                   </span>
                 </div>
                 {[
                   { label: "Cost", sub: null, field: "cost" },
-                  { label: "Elims", sub: "WC", field: "elim" },
-                  { label: "Elims", sub: "LS", field: "lonestar" },
-                  { label: "Elims", sub: "MW", field: "midwest" },
+                  ...Array.from({ length: 3 }).map((_, i) => ({
+                    label: "Elims",
+                    sub: recentEvents[i]?.abbrev ?? null,
+                    field: `event_${i}`,
+                  })),
                 ].map(({ label, sub, field }) => (
                   <div key={field} className="text-center cursor-pointer select-none"
-                    onClick={() => setSortOption((prev) => ({ field, direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc" }))}>
+                    onClick={() => { setShuffledIds(null); setSortOption((prev) => ({ field, direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc" })); }}>
                     <div className={`text-[7px] uppercase tracking-widest font-bold leading-none ${sortOption.field === field ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-white/30"}`}>
                       {label}{sortOption.field === field && <span className="ml-0.5 text-[6px]">{sortOption.direction === "asc" ? "↑" : "↓"}</span>}
                     </div>
                     {sub && <div className={`text-[7px] font-bold opacity-70 ${sortOption.field === field ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-white/30"}`}>{sub}</div>}
                   </div>
                 ))}
+                <div />
                 <div />
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto touch-pan-y" ref={mobileScrollRef} style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", scrollbarGutter: "stable" }}>

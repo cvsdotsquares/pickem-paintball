@@ -218,11 +218,24 @@ export default function Dashboard() {
       const rank = data[`${liveEvent.id}Rank`] ?? undefined;
       const pts = data[`${liveEvent.id}PTS`] ?? undefined;
       setEventRank(rank);
-      setSeasonRank(rank);
       if (pts !== undefined && pts > 0) {
         setEventPoints(pts);
-        setSeasonPoints(pts);
       }
+    });
+    return () => unsub();
+  }, [user?.uid, liveEvent?.id]);
+
+  useEffect(() => {
+    if (!user?.uid || !liveEvent?.id) return;
+    const seasonYear = typeof liveEvent.id === "string" ? liveEvent.id.match(/(\d{4})/)?.[1] : null;
+    if (!seasonYear) return;
+    const unsub = onSnapshot(doc(db, "leaderboards", `season_${seasonYear}`), (snap) => {
+      if (!snap.exists()) return;
+      const usersArr = snap.data()?.users || [];
+      const row = usersArr.find((u: { id: string }) => u.id === user.uid);
+      if (!row) return;
+      setSeasonRank(row.seasonRank ?? undefined);
+      if (row.seasonTotalPoints != null) setSeasonPoints(row.seasonTotalPoints);
     });
     return () => unsub();
   }, [user?.uid, liveEvent?.id]);
