@@ -1885,7 +1885,7 @@ function LeaderboardNewContent() {
 
       {/* Leaderboard Table */}
       <section aria-labelledby="leaderboard-standings-heading">
-      <div className="overflow-x-auto rounded-lg pr-2 shadow bg-gray-200/50 dark:bg-gray-800/50 backdrop-blur-sm [-webkit-overflow-scrolling:touch]">
+      <div className="overflow-x-auto rounded-lg shadow bg-gray-200/50 dark:bg-gray-800/50 backdrop-blur-sm [-webkit-overflow-scrolling:touch]">
         <table className="w-full table-fixed">
           <colgroup>
             <col className="w-14 sm:w-16" />
@@ -1945,7 +1945,7 @@ function LeaderboardNewContent() {
                         }`}
                       onClick={() => toggleExpand(user.id)}
                     >
-                      <td className={cn("px-3 py-2.5 text-sm sticky left-0 z-10 bg-inherit whitespace-nowrap align-middle shadow-[2px_0_0_0_rgb(209_213_219_/_0.35)] dark:shadow-[2px_0_0_0_rgb(75_85_99_/_0.35)]", currentUserId === user.id && "border-l-[24px] sm:border-l-4 border-pickem-green")}>
+                      <td className={cn("px-3 py-2.5 text-sm sticky left-0 z-10 bg-inherit whitespace-nowrap align-middle shadow-[2px_0_0_0_rgb(209_213_219_/_0.35)] dark:shadow-[2px_0_0_0_rgb(75_85_99_/_0.35)]", currentUserId === user.id && "[box-shadow:inset_24px_0_0_0_#00f976] sm:[box-shadow:inset_4px_0_0_0_#00f976]")}>
                         <span className="font-medium text-gray-900 dark:text-white tabular-nums">
                             {displayRank}
                           </span>
