@@ -287,7 +287,6 @@ export default function Dashboard() {
         }, 0);
         if (livePoints > 0) {
           setEventPoints(livePoints);
-          setSeasonPoints(livePoints);
         }
       } catch (e) {
         console.error(e);
