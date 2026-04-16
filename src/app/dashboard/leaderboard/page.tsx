@@ -1542,7 +1542,7 @@ function LeaderboardNewContent() {
         />
       ) : null}
 
-      <main className="mx-auto max-w-6xl px-4 md:px-6 pt-4">
+      <main className="mx-auto max-w-7xl px-4 md:px-6 pt-4">
       {/* Custom leagues — above event/year filtering */}
       {!eventLoading && (liveEvent || isSeasonView) && (
         <div className="mb-4">
@@ -1945,22 +1945,10 @@ function LeaderboardNewContent() {
                         }`}
                       onClick={() => toggleExpand(user.id)}
                     >
-                      <td className="px-3 py-2.5 text-sm sticky left-0 z-10 bg-inherit whitespace-nowrap align-middle shadow-[2px_0_0_0_rgb(209_213_219_/_0.35)] dark:shadow-[2px_0_0_0_rgb(75_85_99_/_0.35)]">
-                        <div className="flex items-center">
-                          <span className="font-medium text-gray-900 dark:text-white tabular-nums">
+                      <td className={cn("px-3 py-2.5 text-sm sticky left-0 z-10 bg-inherit whitespace-nowrap align-middle shadow-[2px_0_0_0_rgb(209_213_219_/_0.35)] dark:shadow-[2px_0_0_0_rgb(75_85_99_/_0.35)]", currentUserId === user.id && "border-l-[24px] border-pickem-green")}>
+                        <span className="font-medium text-gray-900 dark:text-white tabular-nums">
                             {displayRank}
                           </span>
-                          {currentUserId === user.id && (
-                            <span
-                              className={cn(
-                                "ml-1 rounded text-xs",
-                                LEADERBOARD_YOU_BADGE_CLASS,
-                              )}
-                            >
-                              YOU
-                            </span>
-                          )}
-                        </div>
                       </td>
 
                       <td className="min-w-0 px-3 py-2.5 align-middle">
@@ -1971,7 +1959,7 @@ function LeaderboardNewContent() {
                             displayName={user.displayName}
                             className="h-8 w-8 shrink-0 rounded-full object-cover mr-2"
                           />
-                          <div className="flex min-w-0 items-center gap-0">
+                          <div className="flex min-w-0 items-center gap-1.5">
                             <span
                               className="truncate text-xs text-gray-900 dark:text-white sm:text-sm"
                               title={user.displayName}

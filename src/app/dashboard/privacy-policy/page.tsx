@@ -35,7 +35,7 @@ export default function DashboardPrivacyPolicyPage() {
           }
         />
       ) : null}
-      <div className="mx-auto w-full max-w-5xl px-4 pb-10 pt-4 text-gray-900 dark:text-white">
+      <div className="mx-auto w-full max-w-7xl px-4 pb-10 pt-4 text-gray-900 dark:text-white">
         <PrivacyPolicyContent variant="dashboard" />
       </div>
     </div>

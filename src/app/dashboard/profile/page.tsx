@@ -23,7 +23,7 @@ function ProfilePage() {
       className="flex flex-col font-inter font-medium items-start h-auto overflow-auto bg-white dark:bg-black"
       onScroll={reportProfileScroll}
     >
-      <div className="relative flex w-full max-w-3xl flex-col px-5 pb-10 pt-1 font-sans text-gray-900 dark:text-white md:mx-auto md:px-3 md:pb-5 md:pt-5">
+      <div className="relative flex w-full max-w-7xl flex-col px-5 pb-10 pt-1 font-sans text-gray-900 dark:text-white md:mx-auto md:px-3 md:pb-5 md:pt-5">
         <section className={cn("w-full", profileSectionDivider)}>
           <h1 className={profileSectionTitle}>Account settings</h1>
           <p className={profileSectionBody}>
