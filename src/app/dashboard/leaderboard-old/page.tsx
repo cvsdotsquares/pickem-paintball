@@ -322,6 +322,7 @@ export default function Leaderboard() {
           Event Leaderboard
         </h1>
       </header>
+      <div className="mx-auto w-full max-w-7xl px-4 md:px-6">
       <div className="mb-4 text-center pt-3 sm:pt-7">
         <h1 className="text-xl sm:text-2xl font-bold mb-1">{liveEvent.name}</h1>
       </div>
@@ -704,6 +705,7 @@ export default function Leaderboard() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -245,9 +245,10 @@ export default function SeasonTotalsPage() {
         </div>
       </section>
 
+      <div className="mx-auto w-full max-w-7xl px-4 md:px-6">
       {/* Season Stats Card */}
-      <motion.div 
-        className="mx-4 mt-8 bg-gray-900/95 backdrop-blur-sm rounded-2xl p-6 shadow-2xl"
+      <motion.div
+        className="mt-8 bg-gray-900/95 backdrop-blur-sm rounded-2xl p-6 shadow-2xl"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -635,6 +636,7 @@ export default function SeasonTotalsPage() {
           </div>
         )}
       </motion.div>
+      </div>
     </div>
   );
 }

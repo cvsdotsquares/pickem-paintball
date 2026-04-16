@@ -113,6 +113,29 @@ function getStatHeaderLayout(displayKey: string): StatHeaderLayout {
       return { kind: "one", label: "Unclassified", title: "Unclassified" };
     default: {
       const label = formatStatHeaderDisplay(displayKey);
+      const words = label.split(" ");
+      if (words.length > 1) {
+        // Put a 4-digit year on its own line; otherwise split at midpoint
+        const yearIdx = words.reduce(
+          (found, w, i) => (found === -1 && /^\d{4}$/.test(w) ? i : found),
+          -1,
+        );
+        if (yearIdx > 0) {
+          return {
+            kind: "two",
+            line1: words.slice(0, yearIdx).join(" "),
+            line2: words.slice(yearIdx).join(" "),
+            title: label,
+          };
+        }
+        const mid = Math.ceil(words.length / 2);
+        return {
+          kind: "two",
+          line1: words.slice(0, mid).join(" "),
+          line2: words.slice(mid).join(" "),
+          title: label,
+        };
+      }
       return { kind: "one", label, title: label };
     }
   }

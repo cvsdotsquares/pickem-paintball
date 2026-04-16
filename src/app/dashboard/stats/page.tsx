@@ -707,37 +707,16 @@ export default function Statistics() {
         {/* Individual Event Table or Season Table */}
         <section className="mx-auto mt-2 max-w-7xl px-4 md:px-6 pb-0 md:mt-3">
           {showSeasonTable ? (
-            // Season Table
-            <>
-              <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:mb-4">
-                <div className="max-w-3xl">
-                  <h3 className="font-azonix text-lg font-bold text-gray-900 dark:text-white md:text-xl">
-                    Season{" "}
-                    {selectedYear === "All"
-                      ? selectedSeasonYear || "2025"
-                      : selectedYear}{" "}
-                    — player rankings
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-white/55">
-                    Totals and per-event columns for everyone in this season. Sort any column to re-rank the table.
-                  </p>
-                </div>
-                <span className="shrink-0 rounded-full bg-blue-500 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white md:text-sm">
-                  Season totals
-                </span>
-              </div>
-              <MatchupTable
-                data={sortedRowData}
-                sortConfig={sortConfig}
-                onSortChange={handleSortChange}
-                myPicks={livePicks}
-                currentEventId={selectedEvent?.id}
-                isSeasonView={true}
-                seasonEventColumnOrder={seasonEventColumnOrder}
-              />
-            </>
+            <MatchupTable
+              data={sortedRowData}
+              sortConfig={sortConfig}
+              onSortChange={handleSortChange}
+              myPicks={livePicks}
+              currentEventId={selectedEvent?.id}
+              isSeasonView={true}
+              seasonEventColumnOrder={seasonEventColumnOrder}
+            />
           ) : (
-            // Individual Event Table
             <MatchupTable
               data={sortedRowData}
               sortConfig={sortConfig}

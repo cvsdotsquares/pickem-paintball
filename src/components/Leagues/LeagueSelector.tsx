@@ -288,21 +288,14 @@ export default function LeagueSelector({
                 role="group"
                 aria-label="Your leagues, public leagues, and create a league"
               >
-                {/* Grid: headings align with tile columns; green bars only in tile row (row 2) */}
-                <div className="inline-grid w-max min-w-0 [grid-template-columns:auto_auto_auto_auto_auto] gap-x-2 gap-y-1.5">
-                  <h3
-                    className={`col-start-1 row-start-1 ${DASHBOARD_LEAGUE_SUBHEADING}`}
-                  >
+                <div className="inline-grid w-max min-w-0 grid-cols-[auto_auto_auto] gap-x-4 gap-y-1.5">
+                  <h3 className={`col-start-1 row-start-1 ${DASHBOARD_LEAGUE_SUBHEADING}`}>
                     Your leagues
                   </h3>
-                  <h3
-                    className={`col-start-3 row-start-1 ${DASHBOARD_LEAGUE_SUBHEADING}`}
-                  >
+                  <h3 className={`col-start-2 row-start-1 ${DASHBOARD_LEAGUE_SUBHEADING}`}>
                     Public leagues
                   </h3>
-                  <h3
-                    className={`col-start-5 row-start-1 ${DASHBOARD_LEAGUE_SUBHEADING}`}
-                  >
+                  <h3 className={`col-start-3 row-start-1 ${DASHBOARD_LEAGUE_SUBHEADING}`}>
                     Create
                   </h3>
 
@@ -338,23 +331,13 @@ export default function LeagueSelector({
                   </div>
 
                   <div
-                    className="col-start-2 row-start-2 flex h-16 items-start justify-center self-start"
-                    aria-hidden
-                  >
-                    <div className="h-16 w-[3px] shrink-0 rounded-sm bg-[#00f976]" />
-                  </div>
-
-                  <div
-                    className="col-start-3 row-start-2 flex min-w-0 flex-nowrap items-start gap-2"
+                    className="relative col-start-2 row-start-2 flex min-w-0 flex-nowrap items-start gap-2 pl-3 before:absolute before:left-0 before:top-0 before:h-16 before:w-[3px] before:rounded-sm before:bg-[#00f976] before:content-['']"
                     role="group"
                     aria-label="Public leagues"
                   >
                     {publicLeaguesLoading ? (
                       Array.from({ length: 8 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="flex w-16 shrink-0 flex-col gap-0.5"
-                        >
+                        <div key={i} className="flex w-16 shrink-0 flex-col gap-0.5">
                           <div className="h-16 w-16 shrink-0 snap-start animate-pulse rounded-2xl bg-gray-200 dark:bg-stone-700" />
                           <div className="mx-auto h-2 w-10 animate-pulse rounded bg-gray-200 dark:bg-stone-700" />
                         </div>
@@ -388,14 +371,7 @@ export default function LeagueSelector({
                     </LeagueTileColumn>
                   </div>
 
-                  <div
-                    className="col-start-4 row-start-2 flex h-16 items-start justify-center self-start"
-                    aria-hidden
-                  >
-                    <div className="h-16 w-[3px] shrink-0 rounded-sm bg-[#00f976]" />
-                  </div>
-
-                  <div className="col-start-5 row-start-2 flex w-max min-w-0 shrink-0 flex-col items-start gap-0.5">
+                  <div className="relative col-start-3 row-start-2 flex w-max min-w-0 shrink-0 flex-col items-start gap-0.5 pl-3 before:absolute before:left-0 before:top-0 before:h-16 before:w-[3px] before:rounded-sm before:bg-[#00f976] before:content-['']">
                     <button
                       type="button"
                       onClick={onCreateLeague}
