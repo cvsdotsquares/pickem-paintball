@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Next.js Dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "Next.js Dev (Turbopack)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:turbo"],
+      "port": 3000
+    },
+    {
+      "name": "Next.js Dev LAN",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:lan"],
+      "port": 3001
+    },
+    {
+      "name": "Firebase Functions Emulator",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "serve"],
+      "port": 5001
+    }
+  ]
+}
