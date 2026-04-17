@@ -192,7 +192,8 @@ function MobileSubscriptionBanner() {
   if (loading) {
     return (
       <div
-        className="h-[30px] w-full shrink-0 overflow-hidden animate-pulse bg-[#00f976]/35"
+        className="h-[30px] w-full shrink-0 animate-pulse"
+        style={barStyle}
         aria-hidden
       />
     );
@@ -431,10 +432,11 @@ export default function DashboardTopNav({
         "relative md:sticky md:top-0",
         scrolled && "shadow-sm dark:shadow-black/40",
       )}
-      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       {/* —— Mobile: promo banner + toolbar (logo + bell + theme; CTA is the banner) —— */}
       <div className="flex flex-col md:hidden">
+        {/* Fills the iOS safe-area zone with brand green so status bar region matches the CTA bar */}
+        <div style={{ height: "env(safe-area-inset-top, 0px)", backgroundColor: PICKEM_BRAND_GREEN }} aria-hidden />
         <div className="relative z-0 shrink-0">
           <MobileSubscriptionBanner />
         </div>
