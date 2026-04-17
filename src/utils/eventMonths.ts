@@ -19,10 +19,9 @@ export function getNextEventMonth(fromDate: Date = new Date()): Date {
 }
 
 export function shouldPauseSubscription(date: Date = new Date()): boolean {
-  const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
-  return !isEventMonth(nextMonth);
+  return !isEventMonth(date) && date.getDate() === 1;
 }
 
 export function shouldResumeSubscription(date: Date = new Date()): boolean {
-  return isEventMonth(date) && date.getDate() === 1;
+  return isEventMonth(date);
 }

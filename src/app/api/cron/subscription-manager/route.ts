@@ -15,6 +15,12 @@ export async function GET(request: NextRequest) {
 
   try {
     const now = new Date();
+    const quarterlyPriceIds = (process.env.STRIPE_QUARTERLY_PRICE_ID ?? '').split('|').filter(Boolean);
+
+    if (quarterlyPriceIds.length === 0) {
+      console.warn('STRIPE_QUARTERLY_PRICE_ID is not set — no subscriptions will be managed');
+    }
+
     let hasMore = true;
     let startingAfter: string | undefined;
     let pausedCount = 0;
@@ -28,6 +34,13 @@ export async function GET(request: NextRequest) {
       });
 
       for (const subscription of subscriptions.data) {
+        const priceId = subscription.items.data[0]?.price?.id;
+
+        // Only manage pause/resume for event-based subscriptions
+        if (!priceId || !quarterlyPriceIds.includes(priceId)) {
+          continue;
+        }
+
         // Pause logic
         if (shouldPauseSubscription(now) && subscription.pause_collection === null) {
           await stripe.subscriptions.update(subscription.id, {
