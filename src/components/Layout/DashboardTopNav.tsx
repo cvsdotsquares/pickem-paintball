@@ -428,22 +428,13 @@ export default function DashboardTopNav({
       className={cn(
         "z-[60] w-full border-b-0 bg-white dark:bg-[#101010]",
         "md:border-b md:border-gray-200 dark:md:border-white/30",
-        /* Mobile: safe area is a real block (not padding) so Safari samples neutral chrome above the green bar */
-        "max-md:pt-0 fixed inset-x-0 top-0 md:relative md:pt-0",
-        "md:sticky md:top-0",
+        "relative md:sticky md:top-0",
         scrolled && "shadow-sm dark:shadow-black/40",
       )}
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       {/* —— Mobile: promo banner + toolbar (logo + bell + theme; CTA is the banner) —— */}
       <div className="flex flex-col md:hidden">
-        <div
-          className="w-full shrink-0 bg-white dark:bg-[#101010]"
-          /* Extra height below status bar / notch; too little caused the green strip to sit under the menu chrome on some devices. */
-          style={{
-            minHeight: "env(safe-area-inset-top, 0px)",
-          }}
-          aria-hidden
-        />
         <div className="relative z-0 shrink-0">
           <MobileSubscriptionBanner />
         </div>
