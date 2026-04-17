@@ -201,10 +201,10 @@ function MobileSubscriptionBanner() {
   if (isSubscribed) {
     return (
       <div
-        className="flex w-full shrink-0 items-center justify-center overflow-hidden px-3 py-2"
+        className="flex h-[30px] w-full shrink-0 items-center justify-center overflow-hidden px-3"
         style={barStyle}
       >
-        <p className={`${textClass} text-center text-balance`}>
+        <p className={`${textClass} text-center truncate`}>
           {MOBILE_PROMO_SUBSCRIBED_LINE}
         </p>
       </div>
@@ -215,13 +215,13 @@ function MobileSubscriptionBanner() {
     <button
       type="button"
       onClick={() => showModal("passive")}
-      className="m-0 w-full shrink-0 overflow-hidden px-3 py-2 text-center transition hover:brightness-[0.97] active:brightness-[0.93]"
+      className="m-0 flex h-[30px] w-full shrink-0 items-center justify-center overflow-hidden px-3 text-center transition hover:brightness-[0.97] active:brightness-[0.93]"
       style={barStyle}
     >
       <span className="sr-only">
         {MOBILE_PROMO_CTA_LINE}. Opens subscription options.
       </span>
-      <span className={`${textClass} text-balance leading-tight`}>
+      <span className={`${textClass} truncate`}>
         {MOBILE_PROMO_CTA_LINE}
       </span>
     </button>
