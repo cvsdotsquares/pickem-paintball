@@ -192,8 +192,7 @@ export default function EventCountdownBanner({
       "min-w-0 shrink-0 bg-black pb-2 pt-2 md:pb-3 md:pt-2.5",
       mobileBlackBarFullBleed
         ? // Black strip edge-to-edge; inner wrapper holds the white pill. max-md:py-* keeps top/bottom black bands equal.
-          // max-md:mt-* clears the fixed dashboard header so the black strip is not flush under the white nav row.
-          "relative z-0 ml-[calc(50%-50vw)] w-screen max-w-[100vw] pl-0 pr-0 max-md:mt-4 max-md:py-3"
+          "relative z-0 ml-[calc(50%-50vw)] w-screen max-w-[100vw] pl-0 pr-0 max-md:py-3"
         : "w-full pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] md:pl-[max(1.25rem,env(safe-area-inset-left))] md:pr-[max(1.25rem,env(safe-area-inset-right))]",
     );
 

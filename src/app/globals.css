@@ -64,9 +64,8 @@
   --scrollbar-thumb: #a0a0a0;
   /* SSR / pre-hydration fallback; `DashboardTopNav` sets the real value from measured header bottom. */
   /* +12px vs prior: mobile safe-area spacer under notch increased (see DashboardTopNav). */
-  --pickem-dashboard-header-bottom: calc(164px + env(safe-area-inset-top, 0px));
-  /* Extra scroll padding below fixed header (mobile). Clears first content (e.g. NXL event CTA) from fixed nav. */
-  --pickem-dashboard-header-content-gap: 24px;
+  --pickem-dashboard-header-bottom: calc(114px + env(safe-area-inset-top, 0px));
+  --pickem-dashboard-header-content-gap: 0px;
   scroll-behavior: smooth;
 }
 

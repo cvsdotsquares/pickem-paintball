@@ -440,7 +440,7 @@ export default function DashboardTopNav({
           className="w-full shrink-0 bg-white dark:bg-[#101010]"
           /* Extra height below status bar / notch; too little caused the green strip to sit under the menu chrome on some devices. */
           style={{
-            minHeight: "calc(env(safe-area-inset-top, 0px) + 32px)",
+            minHeight: "env(safe-area-inset-top, 0px)",
           }}
           aria-hidden
         />
@@ -451,7 +451,7 @@ export default function DashboardTopNav({
           z-10 keeps the toolbar above the green strip in the stacking order so promo text/anti-aliasing
           cannot paint over the menu row (Safari compositing).
         */}
-        <div className="relative z-10 flex items-center gap-x-2 border-t border-[#00f976] bg-white px-3 pb-2 pt-3 dark:bg-[#101010]">
+        <div className="relative z-10 flex items-center gap-x-2 border-t border-[#00f976] bg-white px-3 py-3 dark:bg-[#101010]">
           <button
             type="button"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-white/10"
@@ -469,7 +469,7 @@ export default function DashboardTopNav({
             <img
               src="/landing/logo.png"
               alt="Pickem Paintball"
-              className="h-auto w-auto max-h-12 max-w-[min(133px,35vw)] object-contain object-center"
+              className="h-auto w-auto max-h-[55px] max-w-[min(153px,40vw)] object-contain object-center"
             />
           </Link>
 
