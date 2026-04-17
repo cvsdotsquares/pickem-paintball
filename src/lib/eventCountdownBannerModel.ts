@@ -42,7 +42,7 @@ export function eventRecordToBannerModel(
     name: (e.name as string) || "EVENT",
     brandColor,
     logoUrl,
-    eventNumber: String(e.eventNumber ?? "1"),
+    eventNumber: String(e.eventNumber ?? "2"),
     startDate: (e.startDate as string) || "",
     endDate: (e.endDate as string) || "",
     lockDate: toDateOrNull(e.lockDate),

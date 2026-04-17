@@ -149,10 +149,10 @@ export default function LeagueBrowser({
           onClose={() => hideToast(toast.id)}
         />
       ))}
-      {/* Portal + top inset: avoid stacking under fixed nav; align below measured header on mobile */}
+      {/* Portal + top inset: align below measured header on mobile */}
       {createPortal(
         <div
-          className="fixed inset-0 z-[100] flex bg-black/50 max-md:items-start max-md:justify-center max-md:overflow-y-auto max-md:p-3 max-md:pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] max-md:pt-[calc(var(--pickem-dashboard-header-bottom)+var(--pickem-dashboard-header-content-gap))] md:items-center md:justify-center md:overflow-visible md:p-4"
+          className="fixed inset-0 z-[100] flex bg-black/50 max-md:items-start max-md:justify-center max-md:overflow-y-auto max-md:p-3 max-md:pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] max-md:pt-[var(--pickem-dashboard-header-bottom)] md:items-center md:justify-center md:overflow-visible md:p-4"
           role="presentation"
         >
           <div className="bg-white dark:bg-gray-900 rounded-xl max-w-2xl w-full max-h-[min(80vh,calc(100dvh-var(--pickem-dashboard-header-bottom)-2rem))] overflow-y-auto shadow-xl md:max-h-[80vh]">

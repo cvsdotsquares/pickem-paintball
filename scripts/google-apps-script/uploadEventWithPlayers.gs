@@ -13,6 +13,7 @@
 const EVENT_DETAILS = {
   // Sort order in lists; bump by 1 each new event
   event_place: "10",
+  eventNumber: "2",
 
   // Current event (writes to Firestore: events/{id})
   name: "Tampa Bay Open",
