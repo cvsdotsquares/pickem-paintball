@@ -123,7 +123,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             pauseOnHover
           />
           <div
-            className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain max-md:pt-[calc(var(--pickem-dashboard-header-bottom)+var(--pickem-dashboard-header-content-gap))] md:pt-0"
+            className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain max-md:pt-[calc(110px+env(safe-area-inset-top,0px))] md:pt-0"
             onScroll={onMainColumnScroll}
           >
             <div className="flex min-h-full flex-col">
