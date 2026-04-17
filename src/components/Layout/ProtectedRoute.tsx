@@ -37,7 +37,7 @@ export const CutoutTextLoader = ({
   imgUrl,
 }: any) => {
   return (
-    <div className="relative h-screen w-full">
+    <div className="relative h-dvh w-full">
       <div
         className="absolute inset-0 z-0 brightness-125"
         style={{
