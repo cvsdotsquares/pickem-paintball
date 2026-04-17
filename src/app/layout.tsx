@@ -8,6 +8,13 @@ export const metadata: Metadata = {
   title: "PickEm Paintball Website",
   description:
     "Live player stats. Free to play Pick'Em Paintball. Built by fans, for the fans.",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: "/icon.svg",
+  },
 };
 
 export const viewport: Viewport = {
