@@ -469,7 +469,7 @@ export default function DashboardTopNav({
             <img
               src="/landing/logo.png"
               alt="Pickem Paintball"
-              className="h-auto w-auto max-h-9 max-w-[min(100px,26vw)] object-contain object-center"
+              className="h-auto w-auto max-h-12 max-w-[min(133px,35vw)] object-contain object-center"
             />
           </Link>
 
@@ -493,7 +493,7 @@ export default function DashboardTopNav({
             <img
               src="/landing/logo.png"
               alt="Pickem Paintball"
-              className="h-10 w-auto max-w-[min(240px,36vw)]"
+              className="h-[50px] w-auto max-w-[min(300px,45vw)]"
             />
           </Link>
           <div className="flex justify-end">
