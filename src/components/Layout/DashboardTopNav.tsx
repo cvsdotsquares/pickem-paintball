@@ -467,9 +467,9 @@ export default function DashboardTopNav({
             className="flex min-w-0 flex-1 items-center justify-center px-1"
           >
             <img
-              src="/logo.svg"
+              src="/landing/logo.png"
               alt="Pickem Paintball"
-              className="h-auto w-auto max-h-9 max-w-[min(100px,26vw)] object-contain object-center dark:invert-0 invert"
+              className="h-auto w-auto max-h-9 max-w-[min(100px,26vw)] object-contain object-center"
             />
           </Link>
 
@@ -491,9 +491,9 @@ export default function DashboardTopNav({
           </div>
           <Link href="/dashboard" className="justify-self-center">
             <img
-              src="/logo.svg"
+              src="/landing/logo.png"
               alt="Pickem Paintball"
-              className="h-10 w-auto max-w-[min(240px,36vw)] dark:invert-0 invert"
+              className="h-10 w-auto max-w-[min(240px,36vw)]"
             />
           </Link>
           <div className="flex justify-end">
