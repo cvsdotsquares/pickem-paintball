@@ -1959,14 +1959,17 @@ function LeaderboardNewContent() {
                             displayName={user.displayName}
                             className="h-8 w-8 shrink-0 rounded-full object-cover mr-2"
                           />
-                          <div className="flex min-w-0 items-center gap-1.5">
+                          <div className="flex min-w-0 flex-col sm:flex-row sm:items-center sm:gap-1.5">
                             <span
                               className="truncate text-xs text-gray-900 dark:text-white sm:text-sm"
                               title={user.displayName}
                             >
                               {user.displayName}
                             </span>
-                            {user.isSubscribed && <SubscriberBadge displayName={user.displayName} />}
+                            <div className="h-[18px] flex items-center sm:hidden">
+                              {user.isSubscribed && <SubscriberBadge displayName={user.displayName} />}
+                            </div>
+                            {user.isSubscribed && <div className="hidden sm:block"><SubscriberBadge displayName={user.displayName} /></div>}
                           </div>
                         </div>
                       </td>
