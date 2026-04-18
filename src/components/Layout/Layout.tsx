@@ -25,13 +25,8 @@ export const Logo = () => {
       href="/dashboard"
       className="relative z-20 flex w-[80px] items-center space-x-2 py-1 text-sm font-normal text-black"
     >
-      <img
-        loading="lazy"
-        src="/logo.svg"
-        alt="logo"
-        width="130"
-        className="invert dark:invert-0"
-      />
+      <img loading="lazy" src="/logo.svg" alt="logo" width="130" className="dark:hidden" />
+      <img loading="lazy" src="/logo-dark.svg" alt="logo" width="130" className="hidden dark:block" />
     </Link>
   );
 };

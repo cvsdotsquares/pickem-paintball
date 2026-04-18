@@ -459,11 +459,8 @@ export default function DashboardTopNav({
             href="/dashboard"
             className="flex min-w-0 flex-1 items-center justify-center px-1"
           >
-            <img
-              src="/landing/logo.png"
-              alt="Pickem Paintball"
-              className="h-auto w-auto max-h-[55px] max-w-[min(153px,40vw)] object-contain object-center"
-            />
+            <img src="/logo.svg" alt="Pickem Paintball" className="h-auto w-auto max-h-[55px] max-w-[min(153px,40vw)] object-contain object-center dark:hidden" />
+            <img src="/logo-dark.svg" alt="Pickem Paintball" className="h-auto w-auto max-h-[55px] max-w-[min(153px,40vw)] object-contain object-center hidden dark:block" />
           </Link>
 
           <HeaderNotificationsAndTheme className="shrink-0" />
@@ -483,11 +480,8 @@ export default function DashboardTopNav({
             </Link>
           </div>
           <Link href="/dashboard" className="justify-self-center">
-            <img
-              src="/landing/logo.png"
-              alt="Pickem Paintball"
-              className="h-[50px] w-auto max-w-[min(300px,45vw)]"
-            />
+            <img src="/logo.svg" alt="Pickem Paintball" className="h-[50px] w-auto max-w-[min(300px,45vw)] dark:hidden" />
+            <img src="/logo-dark.svg" alt="Pickem Paintball" className="h-[50px] w-auto max-w-[min(300px,45vw)] hidden dark:block" />
           </Link>
           <div className="flex justify-end">
             <HeaderUtilities />

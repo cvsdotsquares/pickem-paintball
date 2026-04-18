@@ -1506,7 +1506,7 @@ function LeaderboardNewContent() {
   // Show "No active event" only after loading is complete and no event found
   if (!eventLoading && !liveEvent && !isSeasonView) {
     return (
-      <div className="min-h-[220px] bg-gray-50 p-2 pb-10 pt-0 text-gray-900 dark:bg-gray-900 dark:text-white sm:p-4 sm:pb-4 sm:pt-0">
+      <div className="min-h-[220px] bg-gray-50 p-2 pb-10 pt-0 text-gray-900 dark:bg-[#111] dark:text-white sm:p-4 sm:pb-4 sm:pt-0">
         <div className="flex items-center justify-center min-h-screen">
           <p className="text-center text-white text-lg">
             No active event currently running.
@@ -1517,7 +1517,7 @@ function LeaderboardNewContent() {
   }
 
   return (
-    <div className="min-h-[220px] bg-gray-50 pb-10 pt-0 text-gray-900 dark:bg-gray-900 dark:text-white sm:pb-4 sm:pt-0">
+    <div className="min-h-[220px] bg-gray-50 pb-10 pt-0 text-gray-900 dark:bg-[#111] dark:text-white sm:pb-4 sm:pt-0">
       {bannerEvent ? (
         <EventCountdownBanner
           variant="dashboard"
@@ -1644,7 +1644,7 @@ function LeaderboardNewContent() {
 
       {/* Current User Card */}
       {currentUserLoading ? (
-        <div className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 pt-2 pb-2 mb-2 sm:pt-3 sm:pb-3">
+        <div className="sticky top-0 z-10 bg-gray-50 dark:bg-[#111] pt-2 pb-2 mb-2 sm:pt-3 sm:pb-3">
           <div className="bg-gray-200/100 dark:bg-gray-800/100 rounded-lg shadow border border-gray-300 dark:border-gray-700 p-2 sm:p-3">
             <div className="flex items-center">
               <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-full bg-gray-700 animate-pulse mr-3"></div>
@@ -1656,7 +1656,7 @@ function LeaderboardNewContent() {
           </div>
         </div>
       ) : currentUserData && liveEvent && (
-        <div className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 pt-2 pb-2 mb-2 sm:pt-3 sm:pb-3">
+        <div className="sticky top-0 z-10 bg-gray-50 dark:bg-[#111] pt-2 pb-2 mb-2 sm:pt-3 sm:pb-3">
           <div className="bg-gray-200/100 dark:bg-gray-800/100 rounded-lg shadow border border-gray-300 dark:border-gray-700">
             <div
               className="p-2 sm:p-3 cursor-pointer"
