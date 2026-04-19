@@ -46,6 +46,98 @@ interface PlayerSlot {
   player: Player | null;
 }
 
+const formatCost = (v: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
+const formatCostShort = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v);
+const GRID_COLS = "36px minmax(120px,1fr) 64px 60px 60px 60px 28px 28px";
+const MOBILE_GRID_COLS = "32px minmax(80px,1fr) 40px 26px 26px 26px 28px 28px";
+
+type RecentEvent = { id: string; label: string; abbrev: string };
+
+interface PlayerRowProps {
+  player: Player;
+  isSelected: boolean;
+  isFavourite: boolean;
+  onToggleFavourite: (id: string) => void;
+  onPlayerAction: (player: Player) => void;
+  recentEvents: RecentEvent[];
+}
+
+const PlayerRow = memo(({ player, isSelected, isFavourite, onToggleFavourite, onPlayerAction, recentEvents }: PlayerRowProps) => (
+  <div onClick={() => onPlayerAction(player)}
+    className={`border-b border-black/5 dark:border-white/5 cursor-pointer transition-colors ${isSelected ? "bg-black/5 dark:bg-white/10" : "hover:bg-black/3 dark:hover:bg-white/5"}`}
+    style={{ display: "grid", gridTemplateColumns: GRID_COLS, alignItems: "center", gap: "12px", padding: "8px 12px" }}>
+    <div className="relative w-9 h-9 rounded overflow-hidden bg-[#1a1a1a] flex-shrink-0">
+      <div className="absolute inset-0 bg-cover bg-top" style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }} />
+    </div>
+    <div className="min-w-0">
+      <div className="text-gray-900 dark:text-white font-bold text-[11px] truncate">{player.Player}</div>
+      <div className="text-gray-400 dark:text-white/40 text-[10px] truncate">{player.Team}</div>
+    </div>
+    <div className="pickem-numeric text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">{formatCost(player.Cost)}</div>
+    {Array.from({ length: 3 }).map((_, i) => {
+      const e = recentEvents[i];
+      const elims = e ? player.elimsByEvent?.[e.id] : undefined;
+      return (
+        <div key={i} className="text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">
+          {elims != null ? <span className="pickem-numeric">{elims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
+        </div>
+      );
+    })}
+    <div className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors justify-self-center
+      ${isSelected
+        ? "bg-gray-900 dark:bg-white border-gray-900 dark:border-white"
+        : "border-gray-300 dark:border-white/20 hover:border-gray-500 dark:hover:border-white/50 bg-transparent"
+      }`}>
+      {isSelected
+        ? <IoMdClose className="text-white dark:text-black text-[10px]" />
+        : <PiPlusBold className="text-gray-500 dark:text-white/60 text-[10px]" />
+      }
+    </div>
+    <button onClick={(e) => { e.stopPropagation(); onToggleFavourite(player.player_id); }}
+      className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors justify-self-center
+        ${isFavourite ? "border-red-400 bg-red-400/10" : "border-gray-300 dark:border-white/20 bg-transparent hover:border-red-400/50"}`}>
+      {isFavourite
+        ? <MdFavorite className="text-red-400 text-[10px]" />
+        : <MdFavoriteBorder className="text-gray-400 dark:text-white/40 text-[10px]" />}
+    </button>
+  </div>
+));
+
+const MobilePlayerRow = memo(({ player, isSelected, isFavourite, onToggleFavourite, onPlayerAction, recentEvents }: PlayerRowProps) => (
+  <div onClick={() => onPlayerAction(player)}
+    className={`border-b border-black/5 dark:border-white/5 cursor-pointer transition-colors ${isSelected ? "bg-black/5 dark:bg-white/10" : ""}`}
+    style={{ display: "grid", gridTemplateColumns: MOBILE_GRID_COLS, alignItems: "center", gap: "8px", padding: "8px 12px" }}>
+    <div className="relative w-8 h-8 rounded overflow-hidden bg-[#1a1a1a] flex-shrink-0">
+      <div className="absolute inset-0 bg-cover bg-top" style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }} />
+    </div>
+    <div className="min-w-0">
+      <div className="text-gray-900 dark:text-white font-bold text-[11px] truncate">{player.Player}</div>
+      <div className="text-gray-400 dark:text-white/40 text-[9px] truncate">{player.Team}</div>
+    </div>
+    <div className="pickem-numeric text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">{formatCostShort(player.Cost)}</div>
+    {Array.from({ length: 3 }).map((_, i) => {
+      const e = recentEvents[i];
+      const elims = e ? player.elimsByEvent?.[e.id] : undefined;
+      return (
+        <div key={i} className="text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">
+          {elims != null ? <span className="pickem-numeric">{elims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
+        </div>
+      );
+    })}
+    <div className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors justify-self-center
+      ${isSelected ? "bg-gray-900 dark:bg-white border-gray-900 dark:border-white" : "border-gray-300 dark:border-white/20 bg-transparent"}`}>
+      {isSelected ? <IoMdClose className="text-white dark:text-black text-[10px]" /> : <PiPlusBold className="text-gray-500 dark:text-white/60 text-[10px]" />}
+    </div>
+    <button onClick={(e) => { e.stopPropagation(); onToggleFavourite(player.player_id); }}
+      className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors justify-self-center
+        ${isFavourite ? "border-red-400 bg-red-400/10" : "border-gray-300 dark:border-white/20 bg-transparent hover:border-red-400/50"}`}>
+      {isFavourite
+        ? <MdFavorite className="text-red-400 text-[10px]" />
+        : <MdFavoriteBorder className="text-gray-400 dark:text-white/40 text-[10px]" />}
+    </button>
+  </div>
+));
+
 export default function Pickems() {
   const [playerSlots, setPlayerSlots] = useState<PlayerSlot[]>(
     Array.from({ length: 10 }, (_, i) => ({
@@ -60,6 +152,7 @@ export default function Pickems() {
   const [liveEvent, setLiveEvent] = useState<any>({ id: null, lockDate: null, timeLeft: "" });
   const TOTAL_BUDGET = 1000000;
   const [remainingBudget, setRemainingBudget] = useState(TOTAL_BUDGET);
+  const remainingBudgetRef = useRef(TOTAL_BUDGET);
   const [visiblePlayersCount, setVisiblePlayersCount] = useState(20);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -79,18 +172,27 @@ export default function Pickems() {
   const [shuffledIds, setShuffledIds] = useState<string[] | null>(null);
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
   const [showFavourites, setShowFavourites] = useState(false);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("pickem_favourites");
-      if (stored) setFavouriteIds(new Set(JSON.parse(stored)));
-    } catch {}
-  }, []);
   const [teamLogos, setTeamLogos] = useState<Record<string, string>>({});
   const reportPickEmDesktopListScroll = useDashboardNestedScrollHandler("pick-em-desktop-rows");
 
   const db = getFirestore();
   const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user) {
+      try {
+        const stored = localStorage.getItem("pickem_favourites");
+        if (stored) setFavouriteIds(new Set(JSON.parse(stored)));
+      } catch {}
+      return;
+    }
+    getDoc(doc(db, "users", user.uid)).then((snap) => {
+      if (!snap.exists()) return;
+      const ids: string[] = snap.data().pickem_favourites ?? [];
+      if (ids.length > 0) setFavouriteIds(new Set(ids));
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
   const { isSubscribed, showModal } = useSubscription();
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [userProfile, setUserProfile] = useState<{
@@ -149,16 +251,9 @@ export default function Pickems() {
     return result;
   }, [rowData, searchTerm, costRange, selectedTeams, sortOption, shuffledIds, showFavourites, favouriteIds]);
 
-  const { selectedPlayers, availablePlayers } = useMemo(() => ({
-    selected: filteredPlayers.filter((p) => temporaryPicks.some((tp) => tp.player_id === p.player_id)),
-    available: filteredPlayers.filter((p) => !temporaryPicks.some((tp) => tp.player_id === p.player_id)),
-  } as any), [filteredPlayers, temporaryPicks]);
-
   const visiblePlayers = useMemo(() => {
-    const sel = filteredPlayers.filter((p) => temporaryPicks.some((tp) => tp.player_id === p.player_id));
-    const avail = filteredPlayers.filter((p) => !temporaryPicks.some((tp) => tp.player_id === p.player_id));
-    return [...sel, ...avail.slice(0, Math.max(0, visiblePlayersCount - sel.length))];
-  }, [filteredPlayers, temporaryPicks, visiblePlayersCount]);
+    return filteredPlayers.slice(0, visiblePlayersCount);
+  }, [filteredPlayers, visiblePlayersCount]);
 
   const handleScroll = useCallback(() => {
     if (isLoadingMore || visiblePlayers.length >= filteredPlayers.length) return;
@@ -392,7 +487,9 @@ export default function Pickems() {
   }, [user, liveEvent.id]);
 
   useEffect(() => {
-    setRemainingBudget(TOTAL_BUDGET - temporaryPicks.reduce((s, p) => s + Math.round(p.Cost), 0));
+    const budget = TOTAL_BUDGET - temporaryPicks.reduce((s, p) => s + Math.round(p.Cost), 0);
+    setRemainingBudget(budget);
+    remainingBudgetRef.current = budget;
   }, [temporaryPicks]);
 
   useEffect(() => {
@@ -411,10 +508,15 @@ export default function Pickems() {
       const next = new Set(prev);
       if (next.has(playerId)) next.delete(playerId);
       else next.add(playerId);
-      try { localStorage.setItem("pickem_favourites", JSON.stringify(Array.from(next))); } catch {}
+      const arr = Array.from(next);
+      try { localStorage.setItem("pickem_favourites", JSON.stringify(arr)); } catch {}
+      if (user?.uid) {
+        updateDoc(doc(db, "users", user.uid), { pickem_favourites: arr }).catch(() => {});
+      }
       return next;
     });
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 
   const handleShuffle = useCallback(() => {
     const ids = filteredPlayers.map((p) => p.player_id);
@@ -427,28 +529,32 @@ export default function Pickems() {
 
   const isBeforeLockDate = (lockDate: any) => lockDate && Date.now() < new Date(lockDate).getTime();
 
-  const handlePlayerAction = (player: Player) => {
+  const handlePlayerAction = useCallback((player: Player) => {
     if (!isBeforeLockDate(liveEvent.lockDate)) {
       toast.error("Picks are locked!"); return;
     }
-    const isSelected = temporaryPicks.some((p) => p.player_id === player.player_id);
-    if (isSelected) {
-      setTemporaryPicks(temporaryPicks.filter((p) => p.player_id !== player.player_id));
-      if (captainId === player.player_id) setCaptainId(null);
-      setPlayerSlots((prev) => prev.map((s) => s.player?.player_id === player.player_id ? { ...s, player: null } : s));
-      toast.success(`${player.Player} removed`);
-    } else {
-      if (remainingBudget - player.Cost < 0) { toast.error("Budget exceeded!"); return; }
-      if (temporaryPicks.length >= 10) { toast.error("Team is full — remove a player first."); return; }
-      const newPicks = [...temporaryPicks, player];
-      setTemporaryPicks(newPicks);
-      const emptyIdx = playerSlots.findIndex((s) => !s.player);
-      if (emptyIdx !== -1) setPlayerSlots((prev) => prev.map((s, i) => i === emptyIdx ? { ...s, player, isSelected: false } : s));
-      // Auto-set as captain if no captain selected yet
-      if (!captainId) setCaptainId(player.player_id);
-      toast.success(`${player.Player} added`);
-    }
-  };
+    setTemporaryPicks((prev) => {
+      const isSelected = prev.some((p) => p.player_id === player.player_id);
+      if (isSelected) {
+        setCaptainId((c) => c === player.player_id ? null : c);
+        setPlayerSlots((slots) => slots.map((s) => s.player?.player_id === player.player_id ? { ...s, player: null } : s));
+        toast.success(`${player.Player} removed`);
+        return prev.filter((p) => p.player_id !== player.player_id);
+      } else {
+        if (remainingBudgetRef.current - player.Cost < 0) { toast.error("Budget exceeded!"); return prev; }
+        if (prev.length >= 10) { toast.error("Team is full — remove a player first."); return prev; }
+        setPlayerSlots((slots) => {
+          const emptyIdx = slots.findIndex((s) => !s.player);
+          if (emptyIdx !== -1) return slots.map((s, i) => i === emptyIdx ? { ...s, player, isSelected: false } : s);
+          return slots;
+        });
+        setCaptainId((c) => c ?? player.player_id);
+        toast.success(`${player.Player} added`);
+        return [...prev, player];
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveEvent.lockDate]);
 
   const handleCaptainSelection = (playerId: string) => {
     if (!isBeforeLockDate(liveEvent.lockDate)) { toast.error("Picks are locked!"); return; }
@@ -582,7 +688,6 @@ export default function Pickems() {
     return () => unsub();
   }, [user?.uid, seasonLeaderboardYear]);
 
-  const formatCost = (v: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
   const budgetPct = Math.min(100, ((TOTAL_BUDGET - remainingBudget) / TOTAL_BUDGET) * 100);
 
   // ── SLOT CARD ────────────────────────────────────────────────────────────────
@@ -625,85 +730,6 @@ export default function Pickems() {
     </button>
   );
 
-  const formatCostShort = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v);
-  const MOBILE_GRID_COLS = "32px minmax(80px,1fr) 40px 26px 26px 26px 28px 28px";
-
-  const MobilePlayerRow = memo(({ player, isSelected }: { player: Player; isSelected: boolean }) => (
-    <div onClick={() => handlePlayerAction(player)}
-      className={`border-b border-black/5 dark:border-white/5 cursor-pointer transition-colors ${isSelected ? "bg-black/5 dark:bg-white/10" : ""}`}
-      style={{ display: "grid", gridTemplateColumns: MOBILE_GRID_COLS, alignItems: "center", gap: "8px", padding: "8px 12px" }}>
-      <div className="relative w-8 h-8 rounded overflow-hidden bg-[#1a1a1a] flex-shrink-0">
-        <div className="absolute inset-0 bg-cover bg-top" style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }} />
-      </div>
-      <div className="min-w-0">
-        <div className="text-gray-900 dark:text-white font-bold text-[11px] truncate">{player.Player}</div>
-        <div className="text-gray-400 dark:text-white/40 text-[9px] truncate">{player.Team}</div>
-      </div>
-      <div className="pickem-numeric text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">{formatCostShort(player.Cost)}</div>
-      {Array.from({ length: 3 }).map((_, i) => {
-        const e = recentEvents[i];
-        const elims = e ? player.elimsByEvent?.[e.id] : undefined;
-        return (
-          <div key={i} className="text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">
-            {elims != null ? <span className="pickem-numeric">{elims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
-          </div>
-        );
-      })}
-      <div className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors justify-self-center
-        ${isSelected ? "bg-gray-900 dark:bg-white border-gray-900 dark:border-white" : "border-gray-300 dark:border-white/20 bg-transparent"}`}>
-        {isSelected ? <IoMdClose className="text-white dark:text-black text-[10px]" /> : <PiPlusBold className="text-gray-500 dark:text-white/60 text-[10px]" />}
-      </div>
-      <button onClick={(e) => { e.stopPropagation(); toggleFavourite(player.player_id); }}
-        className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors justify-self-center
-          ${favouriteIds.has(player.player_id) ? "border-red-400 bg-red-400/10" : "border-gray-300 dark:border-white/20 bg-transparent hover:border-red-400/50"}`}>
-        {favouriteIds.has(player.player_id)
-          ? <MdFavorite className="text-red-400 text-[10px]" />
-          : <MdFavoriteBorder className="text-gray-400 dark:text-white/40 text-[10px]" />}
-      </button>
-    </div>
-  ));
-  const GRID_COLS = "36px minmax(120px,1fr) 64px 60px 60px 60px 28px 28px";
-
-  const PlayerRow = memo(({ player, isSelected }: { player: Player; isSelected: boolean }) => (
-    <div onClick={() => handlePlayerAction(player)}
-      className={`border-b border-black/5 dark:border-white/5 cursor-pointer transition-colors ${isSelected ? "bg-black/5 dark:bg-white/10" : "hover:bg-black/3 dark:hover:bg-white/5"}`}
-      style={{ display: "grid", gridTemplateColumns: GRID_COLS, alignItems: "center", gap: "12px", padding: "8px 12px" }}>
-      <div className="relative w-9 h-9 rounded overflow-hidden bg-[#1a1a1a] flex-shrink-0">
-        <div className="absolute inset-0 bg-cover bg-top" style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }} />
-      </div>
-      <div className="min-w-0">
-        <div className="text-gray-900 dark:text-white font-bold text-[11px] truncate">{player.Player}</div>
-        <div className="text-gray-400 dark:text-white/40 text-[10px] truncate">{player.Team}</div>
-      </div>
-      <div className="pickem-numeric text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">{formatCost(player.Cost)}</div>
-      {Array.from({ length: 3 }).map((_, i) => {
-        const e = recentEvents[i];
-        const elims = e ? player.elimsByEvent?.[e.id] : undefined;
-        return (
-          <div key={i} className="text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">
-            {elims != null ? <span className="pickem-numeric">{elims}</span> : <span className="text-gray-300 dark:text-white/25">—</span>}
-          </div>
-        );
-      })}
-      <div className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors justify-self-center
-        ${isSelected
-          ? "bg-gray-900 dark:bg-white border-gray-900 dark:border-white"
-          : "border-gray-300 dark:border-white/20 hover:border-gray-500 dark:hover:border-white/50 bg-transparent"
-        }`}>
-        {isSelected
-          ? <IoMdClose className="text-white dark:text-black text-[10px]" />
-          : <PiPlusBold className="text-gray-500 dark:text-white/60 text-[10px]" />
-        }
-      </div>
-      <button onClick={(e) => { e.stopPropagation(); toggleFavourite(player.player_id); }}
-        className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors justify-self-center
-          ${favouriteIds.has(player.player_id) ? "border-red-400 bg-red-400/10" : "border-gray-300 dark:border-white/20 bg-transparent hover:border-red-400/50"}`}>
-        {favouriteIds.has(player.player_id)
-          ? <MdFavorite className="text-red-400 text-[10px]" />
-          : <MdFavoriteBorder className="text-gray-400 dark:text-white/40 text-[10px]" />}
-      </button>
-    </div>
-  ));
 
   const pickEmBannerModel = useMemo(() => {
     if (!liveEvent?.id) return null;
@@ -956,7 +982,7 @@ export default function Pickems() {
                 ? <div className="text-center py-12 text-gray-400 dark:text-white/30 text-[10px] uppercase tracking-widest">No players match</div>
                 : <>
                   {visiblePlayers.map((player) => (
-                    <PlayerRow key={player.player_id} player={player} isSelected={temporaryPicks.some((p) => String(p.player_id) === String(player.player_id))} />
+                    <PlayerRow key={player.player_id} player={player} isSelected={temporaryPicks.some((p) => String(p.player_id) === String(player.player_id))} isFavourite={favouriteIds.has(player.player_id)} onToggleFavourite={toggleFavourite} onPlayerAction={handlePlayerAction} recentEvents={recentEvents} />
                   ))}
                   {isLoadingMore && <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-300 dark:border-white/30" /></div>}
                 </>
@@ -1069,7 +1095,7 @@ export default function Pickems() {
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto touch-pan-y" ref={mobileScrollRef} style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", scrollbarGutter: "stable" }}>
                 {visiblePlayers.map((player) => (
-                  <MobilePlayerRow key={`m-${player.player_id}`} player={player} isSelected={temporaryPicks.some((p) => String(p.player_id) === String(player.player_id))} />
+                  <MobilePlayerRow key={`m-${player.player_id}`} player={player} isSelected={temporaryPicks.some((p) => String(p.player_id) === String(player.player_id))} isFavourite={favouriteIds.has(player.player_id)} onToggleFavourite={toggleFavourite} onPlayerAction={handlePlayerAction} recentEvents={recentEvents} />
                 ))}
                 {isLoadingMore && <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white/30" /></div>}
               </div>
