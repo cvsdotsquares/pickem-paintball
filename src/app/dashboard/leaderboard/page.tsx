@@ -1753,7 +1753,7 @@ function LeaderboardNewContent() {
                             className={`bg-gray-300/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/70 dark:hover:bg-gray-700/70 transition-colors ${pick.isCaptain ? "border-2 border-yellow-600 dark:border-yellow-400" : ""
                               }`}
                           >
-                            <div className="grid grid-cols-2 gap-x-4 text-xs">
+                            <div className="grid grid-cols-2 gap-x-4 text-xs [&>*]:min-w-0">
                               <div>
                                 <div className="text-gray-900 dark:text-white font-medium truncate mb-1 flex items-center gap-1">
                                   {pick.name}
@@ -2023,16 +2023,18 @@ function LeaderboardNewContent() {
                     </tr>
 
                     {/* Expanded row for current event details or season events */}
-                    <AnimatePresence>
-                      {isExpanded && (
-                        <motion.tr
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.3 }}
-                          className="bg-gray-200/70 dark:bg-gray-800/70"
-                        >
-                          <td colSpan={5} className="px-2 py-2">
+                    {isExpanded && (
+                      <tr className="bg-gray-200/70 dark:bg-gray-800/70">
+                        <td colSpan={5} className="overflow-hidden min-w-0 p-0">
+                          <AnimatePresence>
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.3 }}
+                              style={{ overflow: "hidden" }}
+                            >
+                          <div className="px-2 py-2">
                             {isSeasonView ? (
                               <div className="pb-2">
                                 <h3 className="text-xs font-medium text-gray-900 dark:text-white mb-2 border-b border-gray-300 dark:border-gray-700 pb-1">
@@ -2118,7 +2120,7 @@ function LeaderboardNewContent() {
                                                         className={`bg-gray-300/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/80 dark:hover:bg-gray-700/70 transition-colors ${pick.isCaptain ? "border-2 border-yellow-600 dark:border-yellow-400" : ""
                                                           }`}
                                                       >
-                                                        <div className="grid grid-cols-2 gap-x-4 text-xs">
+                                                        <div className="grid grid-cols-2 gap-x-4 text-xs [&>*]:min-w-0">
                                                           <div>
                                                             <div className="text-gray-900 dark:text-white font-medium truncate mb-1 flex items-center gap-1">
                                                               {pick.name}
@@ -2167,7 +2169,7 @@ function LeaderboardNewContent() {
                                         className={`bg-gray-300/50 dark:bg-gray-700/50 p-2 rounded hover:bg-gray-300/80 dark:hover:bg-gray-700/70 transition-colors ${pick.isCaptain ? "border-2 border-yellow-600 dark:border-yellow-400" : ""
                                           }`}
                                       >
-                                        <div className="grid grid-cols-2 gap-x-4 text-xs">
+                                        <div className="grid grid-cols-2 gap-x-4 text-xs [&>*]:min-w-0">
                                           <div>
                                             <div className="text-gray-900 dark:text-white font-medium truncate mb-1 flex items-center gap-1">
                                               {pick.name}
@@ -2192,10 +2194,12 @@ function LeaderboardNewContent() {
                             ) : (
                               <p className="text-xs text-gray-400 py-2">No team data available</p>
                             )}
-                          </td>
-                        </motion.tr>
-                      )}
-                    </AnimatePresence>
+                          </div>
+                            </motion.div>
+                          </AnimatePresence>
+                        </td>
+                      </tr>
+                    )}
                   </Fragment>
                 );
               })
