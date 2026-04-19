@@ -393,7 +393,7 @@ const RegisterPageClient: React.FC = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-pickem-navy/50 via-pickem-navy/20 to-transparent" />
       </div>
       <div className="relative z-10 flex min-h-screen flex-col">
-        <Navbar hideRegister />
+        <Navbar hideRegister forceLightMode />
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4">
           <div className="w-full max-w-md">
             <Card className="w-full bg-transparent backdrop-blur-md text-white">

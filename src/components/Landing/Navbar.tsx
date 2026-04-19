@@ -8,11 +8,13 @@ export type LandingNavbarProps = {
   hideLogin?: boolean;
   /** Hide Join Now when already on `/register` (auth pages). */
   hideRegister?: boolean;
+  /** Force light mode styling regardless of user theme preference. */
+  forceLightMode?: boolean;
 };
 
-const Navbar = ({ hideLogin = false, hideRegister = false }: LandingNavbarProps) => {
+const Navbar = ({ hideLogin = false, hideRegister = false, forceLightMode = false }: LandingNavbarProps) => {
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <nav className={`sticky top-0 z-50 border-b backdrop-blur ${forceLightMode ? "border-gray-200 bg-white/95 supports-[backdrop-filter]:bg-white/80" : "border-border bg-background/95 supports-[backdrop-filter]:bg-background/80"}`}>
       <div className="container relative mx-auto flex h-16 w-full max-w-[100vw] items-center justify-between gap-2 px-4 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center md:justify-normal md:gap-4 md:px-6">
         {/* Desktop only: balances center logo */}
         <div className="hidden min-w-0 md:block" aria-hidden="true" />
@@ -29,7 +31,7 @@ const Navbar = ({ hideLogin = false, hideRegister = false }: LandingNavbarProps)
           {!hideLogin && (
             <Link
               href="/login"
-              className="shrink-0 font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+              className={`shrink-0 font-heading text-sm font-semibold uppercase tracking-wide transition-colors ${forceLightMode ? "text-gray-500 hover:text-gray-900" : "text-muted-foreground hover:text-foreground"}`}
             >
               Login
             </Link>

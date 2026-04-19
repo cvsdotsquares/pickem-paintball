@@ -126,7 +126,7 @@ const LoginPage: React.FC = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-pickem-navy/50 via-pickem-navy/20 to-transparent" />
       </div>
       <div className="relative z-10 flex min-h-screen flex-col">
-        <Navbar hideLogin />
+        <Navbar hideLogin forceLightMode />
         <div className="flex flex-1 items-center justify-center p-4">
           <div className="w-full max-w-md">
             <Card className="w-full bg-transparent backdrop-blur-md text-white">
