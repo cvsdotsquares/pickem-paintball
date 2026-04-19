@@ -1891,7 +1891,7 @@ function LeaderboardNewContent() {
             <col className="w-14 sm:w-16" />
             <col />
             <col className="w-24 sm:w-28" />
-            <col className="w-0 sm:w-[28%]" />
+            <col className="hidden min-w-0 sm:table-column sm:w-[28%]" />
             <col className="w-16" />
           </colgroup>
           <thead>
@@ -2025,7 +2025,7 @@ function LeaderboardNewContent() {
                     {/* Expanded row for current event details or season events */}
                     {isExpanded && (
                       <tr className="bg-gray-200/70 dark:bg-gray-800/70">
-                        <td colSpan={5} className="overflow-hidden min-w-0 p-0">
+                        <td colSpan={4} className="overflow-hidden min-w-0 p-0">
                           <AnimatePresence>
                             <motion.div
                               initial={{ opacity: 0, height: 0 }}
@@ -2198,6 +2198,8 @@ function LeaderboardNewContent() {
                             </motion.div>
                           </AnimatePresence>
                         </td>
+                        {/* placeholder so colSpan=4 + this cell = 5 cols on desktop */}
+                        <td className="hidden sm:table-cell p-0" />
                       </tr>
                     )}
                   </Fragment>
