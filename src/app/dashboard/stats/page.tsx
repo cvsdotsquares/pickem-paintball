@@ -315,7 +315,7 @@ export default function Statistics() {
             playerData["Lone Star"] = data.lonestar_open_2025?.confirmedKills || 0;
             playerData["Mid West"] = data.midwest_open_2025?.confirmedKills || 0;
             playerData["Atlantic City"] = data.atlantic_city_2025?.confirmedKills || 0;
-            playerData["Tampa Bay"] = data.tampa_bay_2025?.confirmedKills || 0;
+            playerData["Tampa Bay"] = data.tampa_bay_open_2025?.confirmedKills || 0;
           } else if (yearToFetch === "2024") {
             playerData["World Cup"] = data.world_cup_2024?.confirmedKills || 0;
             playerData["Lone Star"] = data.lonestar_open_2024?.confirmedKills || 0;
