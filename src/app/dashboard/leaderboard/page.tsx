@@ -1891,7 +1891,7 @@ function LeaderboardNewContent() {
             <col className="w-14 sm:w-16" />
             <col />
             <col className="w-24 sm:w-28" />
-            <col className="hidden min-w-0 sm:table-column sm:w-[28%]" />
+            <col className="w-0 sm:w-[28%]" />
             <col className="w-16" />
           </colgroup>
           <thead>
