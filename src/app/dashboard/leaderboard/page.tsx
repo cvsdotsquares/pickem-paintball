@@ -1885,7 +1885,7 @@ function LeaderboardNewContent() {
 
       {/* Leaderboard Table */}
       <section aria-labelledby="leaderboard-standings-heading">
-      <div className="overflow-x-auto rounded-lg shadow bg-gray-200/50 dark:bg-gray-800/50 backdrop-blur-sm [-webkit-overflow-scrolling:touch]">
+      <div className="overflow-x-hidden rounded-lg shadow bg-gray-200/50 dark:bg-gray-800/50 backdrop-blur-sm">
         <table className="w-full table-fixed">
           <colgroup>
             <col className="w-14 sm:w-16" />
