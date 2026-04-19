@@ -20,8 +20,7 @@ const Navbar = ({ hideLogin = false, hideRegister = false }: LandingNavbarProps)
         {/* Mobile: far left · md+: centered column */}
         <div className="flex shrink-0 justify-start md:justify-center">
           <Link href="/" className="flex items-center">
-            <img src="/logo.svg" alt="PickEm Paintball" className="h-12 w-auto md:h-14 dark:hidden" />
-            <img src="/logo-dark.svg" alt="PickEm Paintball" className="h-12 w-auto md:h-14 hidden dark:block" />
+            <img src="/logo.svg" alt="PickEm Paintball" className="h-12 w-auto md:h-14" />
           </Link>
         </div>
 
