@@ -5,6 +5,7 @@ import AccountSettings, {
   ProfileDangerZone,
 } from "@/src/components/Dashboard/settings";
 import SubscriptionManager from "@/src/components/Subscription/SubscriptionManager";
+import ProfileBadgesSection from "@/src/components/Badges/ProfileBadgesSection";
 import { handleLogout } from "@/src/components/Dashboard/sidebar/sidebar1";
 import { LuLogOut } from "react-icons/lu";
 import { useDashboardNestedScrollHandler } from "@/src/contexts/DashboardMainScrollContext";
@@ -31,6 +32,16 @@ function ProfilePage() {
           </p>
           <div className="mt-6">
             <AccountSettings />
+          </div>
+        </section>
+
+        <section className={cn("w-full", profileSectionDivider, "pt-10")}>
+          <h2 className={profileSectionTitle}>Badges</h2>
+          <p className={profileSectionBody}>
+            Your Pick&apos;em achievements. Earned badges are in colour, unearned are greyed out.
+          </p>
+          <div className="mt-6">
+            <ProfileBadgesSection />
           </div>
         </section>
 
