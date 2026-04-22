@@ -5,6 +5,8 @@ import ProtectedRoute from "../../components/Layout/ProtectedRoute";
 import Layout from "../../components/Layout/Layout";
 import { LeagueProvider } from "../../contexts/LeagueContext";
 import { NotificationProvider } from "../../contexts/NotificationContext";
+import BadgesAnnouncementController from "../../components/Badges/BadgesAnnouncementController";
+import BadgesModalsController from "../../components/Badges/BadgesModalsController";
 import { ReactNode } from "react";
 
 interface DashboardLayoutProps {
@@ -17,6 +19,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       <LeagueProvider>
         <NotificationProvider>
           <Layout>{children}</Layout>
+          <BadgesAnnouncementController />
+          <BadgesModalsController />
         </NotificationProvider>
       </LeagueProvider>
     </ProtectedRoute>

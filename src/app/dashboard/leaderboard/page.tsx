@@ -28,6 +28,9 @@ import {
 import { getAuth } from "firebase/auth";
 import { LeaderboardSkeleton } from "@/src/components/LoadingSkeleton";
 import { ErrorBoundaryWrapper } from "@/src/components/ErrorBoundaryWrapper";
+import UserAchievementBadges from "@/src/components/Badges/UserAchievementBadges";
+import { useSubscription } from "@/src/contexts/SubscriptionContext";
+import type { UserBadges } from "@/src/lib/badges";
 import {
   invalidateProfilePictureCacheEntry,
   resolveProfilePictureToUrl,
@@ -609,6 +612,8 @@ function LeaderboardNewContent() {
   const auth = getAuth();
   const currentUserId = auth.currentUser?.uid;
   const currentUserDetails = currentUserId && liveEvent ? userDetailsMap.get(`${currentUserId}:${liveEvent.id}`) : undefined;
+  const { isSubscribed: currentUserIsSubscribed, showModal: showSubscriptionModal } = useSubscription();
+  const [userBadgesMap, setUserBadgesMap] = useState<Record<string, UserBadges | null>>({});
 
   // Fetch all events
   useEffect(() => {
@@ -865,6 +870,33 @@ function LeaderboardNewContent() {
     runFallback();
     return () => { cancelled = true; };
   }, [liveEvent?.id, isSearchMode, isSeasonView, leagueMemberIds, page, itemsPerPage, currentUserId]);
+
+  // ── Fetch badges for currently visible subscribed users ─────────────────────
+  useEffect(() => {
+    const targets = users.filter((u) => u.isSubscribed && userBadgesMap[u.id] === undefined);
+    if (targets.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(
+        targets.map(async (u) => {
+          try {
+            const snap = await getDoc(doc(db, "users", u.id));
+            const badges = (snap.get("badges") ?? null) as UserBadges | null;
+            return [u.id, badges] as const;
+          } catch {
+            return [u.id, null] as const;
+          }
+        }),
+      );
+      if (cancelled) return;
+      setUserBadgesMap((prev) => {
+        const next = { ...prev };
+        for (const [id, badges] of entries) next[id] = badges;
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [users, userBadgesMap]);
 
   // ── Live leaderboard: onSnapshot on summary doc written by Cloud Function ────
   useEffect(() => {
@@ -1966,10 +1998,16 @@ function LeaderboardNewContent() {
                             >
                               {user.displayName}
                             </span>
-                            <div className="h-[18px] flex items-center sm:hidden">
+                            <div className="h-[18px] flex items-center gap-1 sm:hidden">
                               {user.isSubscribed && <SubscriberBadge displayName={user.displayName} />}
+                              {user.isSubscribed && <UserAchievementBadges badges={userBadgesMap[user.id] ?? null} size={14} maxVisible={5} playerName={user.displayName} />}
                             </div>
-                            {user.isSubscribed && <div className="hidden sm:block"><SubscriberBadge displayName={user.displayName} /></div>}
+                            {user.isSubscribed && (
+                              <div className="hidden sm:flex sm:items-center sm:gap-1">
+                                <SubscriberBadge displayName={user.displayName} />
+                                <UserAchievementBadges badges={userBadgesMap[user.id] ?? null} playerName={user.displayName} />
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
