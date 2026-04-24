@@ -293,9 +293,9 @@ export default function PostEventModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 20 }}
         transition={{ duration: 0.2 }}
-        className="relative w-full max-w-lg bg-white dark:bg-[#0d0d0d] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-lg max-h-[90dvh] bg-white dark:bg-[#0d0d0d] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
       >
-        <div className="px-6 pt-8 pb-6 min-h-[420px] flex flex-col justify-between">
+        <div className="px-6 pt-8 pb-6 flex flex-col justify-between flex-1 min-h-0 overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div
               key={pages[page].key}
@@ -303,13 +303,13 @@ export default function PostEventModal({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
-              className="flex-1 flex items-center justify-center"
+              className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center py-2"
             >
               {pages[page].content}
             </motion.div>
           </AnimatePresence>
 
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100 dark:border-white/5">
+          <div className="flex-shrink-0 flex items-center justify-between mt-6 pt-4 border-t border-gray-100 dark:border-white/5">
             <button
               type="button"
               onClick={() => setPage((p) => Math.max(0, p - 1))}

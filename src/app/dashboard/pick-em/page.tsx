@@ -217,6 +217,11 @@ export default function Pickems() {
   const desktopScrollRef = useRef<HTMLDivElement>(null);
   const mobileScrollRef = useRef<HTMLDivElement>(null);
 
+  const [recentEvents, setRecentEvents] = useState<{id: string, label: string, abbrev: string}[]>([]);
+  const recentEventsRef = useRef<{id: string, label: string, abbrev: string}[]>([]);
+  const eventElimsRef = useRef<Record<string, Record<string, number>>>({});
+  const [elimsVersion, setElimsVersion] = useState(0);
+
   const filteredPlayers = useMemo(() => {
     if (rowData.length === 0) return [];
     let result = [...rowData];
@@ -249,7 +254,7 @@ export default function Pickems() {
       });
     }
     return result;
-  }, [rowData, searchTerm, costRange, selectedTeams, sortOption, shuffledIds, showFavourites, favouriteIds]);
+  }, [rowData, searchTerm, costRange, selectedTeams, sortOption, shuffledIds, showFavourites, favouriteIds, recentEvents]);
 
   const visiblePlayers = useMemo(() => {
     return filteredPlayers.slice(0, visiblePlayersCount);
@@ -321,11 +326,6 @@ export default function Pickems() {
     };
     fetchLiveEvent();
   }, []);
-
-  const [recentEvents, setRecentEvents] = useState<{id: string, label: string, abbrev: string}[]>([]);
-  const recentEventsRef = useRef<{id: string, label: string, abbrev: string}[]>([]);
-  const eventElimsRef = useRef<Record<string, Record<string, number>>>({});
-  const [elimsVersion, setElimsVersion] = useState(0);
 
   useEffect(() => {
     if (recentEvents.length === 0) return;
