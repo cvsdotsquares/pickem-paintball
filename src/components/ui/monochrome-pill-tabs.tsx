@@ -36,7 +36,7 @@ export function MonochromePillTabs<T extends string>({ value, onChange, tabs, cl
             className={cn(
               "font-azonix text-[11px] font-bold uppercase tracking-wide rounded-md px-4 py-2 transition-colors min-h-[40px] outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-white dark:focus-visible:ring-offset-stone-950",
               active
-                ? "bg-black text-white dark:bg-white dark:text-black"
+                ? "bg-[#00f976] text-black dark:bg-[#00f976] dark:text-black"
                 : "border border-transparent bg-transparent text-neutral-950 hover:border-black dark:text-neutral-100 dark:hover:border-white/60",
             )}
           >

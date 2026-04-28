@@ -24,6 +24,14 @@ import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dash
 import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
 import { getBannerAccentColor } from "@/src/lib/bannerPhase";
 import { individualEventDisplayName } from "@/src/lib/eventDisplayName";
+import {
+  PlayerStatus,
+  STATUS_META,
+  STATUS_BUTTON_BASE_CLASS,
+  STATUS_TICK_BASE_CLASS,
+  isPlayerStatus,
+  shouldShowStatusPill,
+} from "@/src/lib/player-status";
 
 export interface Player {
   player_id: string;
@@ -37,7 +45,34 @@ export interface Player {
   pictureLoading?: boolean;
   img_url?: string;
   elimsByEvent?: Record<string, number>;
+  Status?: PlayerStatus;
+  StatusUpdatedAt?: any;
 }
+
+const PlayerStatusPill = ({ status }: { status?: PlayerStatus }) => {
+  if (!shouldShowStatusPill(status)) return null;
+  const meta = STATUS_META[status];
+  return (
+    <span className={`${STATUS_BUTTON_BASE_CLASS} ${meta.buttonClass}`}>
+      {meta.label}
+    </span>
+  );
+};
+
+const PlayerStatusTick = ({ status, size = 16 }: { status?: PlayerStatus; size?: number }) => {
+  const meta = status ? STATUS_META[status] : null;
+  if (!meta) return null;
+  return (
+    <span
+      className={`${STATUS_TICK_BASE_CLASS} ${meta.tickClass}`}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.7) }}
+      aria-label={meta.label}
+      title={meta.label}
+    >
+      {meta.tickGlyph}
+    </span>
+  );
+};
 
 interface PlayerSlot {
   id: number;
@@ -48,8 +83,8 @@ interface PlayerSlot {
 
 const formatCost = (v: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
 const formatCostShort = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v);
-const GRID_COLS = "36px minmax(120px,1fr) 64px 60px 60px 60px 28px 28px";
-const MOBILE_GRID_COLS = "32px minmax(80px,1fr) 40px 26px 26px 26px 28px 28px";
+const GRID_COLS = "48px minmax(120px,1fr) 64px 60px 60px 60px 28px 28px";
+const MOBILE_GRID_COLS = "40px minmax(80px,1fr) 40px 26px 26px 26px 28px 28px";
 
 type RecentEvent = { id: string; label: string; abbrev: string };
 
@@ -66,12 +101,13 @@ const PlayerRow = memo(({ player, isSelected, isFavourite, onToggleFavourite, on
   <div onClick={() => onPlayerAction(player)}
     className={`border-b border-black/5 dark:border-white/5 cursor-pointer transition-colors ${isSelected ? "bg-black/5 dark:bg-white/10" : "hover:bg-black/3 dark:hover:bg-white/5"}`}
     style={{ display: "grid", gridTemplateColumns: GRID_COLS, alignItems: "center", gap: "12px", padding: "8px 12px" }}>
-    <div className="relative w-9 h-9 rounded overflow-hidden bg-[#1a1a1a] flex-shrink-0">
+    <div className="relative w-12 h-12 rounded overflow-hidden bg-[#1a1a1a] flex-shrink-0">
       <div className="absolute inset-0 bg-cover bg-top" style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }} />
     </div>
-    <div className="min-w-0">
-      <div className="text-gray-900 dark:text-white font-bold text-[11px] truncate">{player.Player}</div>
-      <div className="text-gray-400 dark:text-white/40 text-[10px] truncate">{player.Team}</div>
+    <div className="min-w-0 flex flex-col items-start leading-none gap-[2px]">
+      <div className="text-gray-900 dark:text-white font-bold text-[11px] truncate max-w-full">{player.Player}</div>
+      <div className="text-gray-400 dark:text-white/40 text-[10px] truncate max-w-full">{player.Team}</div>
+      <PlayerStatusPill status={player.Status} />
     </div>
     <div className="pickem-numeric text-gray-600 dark:text-white/60 text-[11px] font-bold text-center">{formatCost(player.Cost)}</div>
     {Array.from({ length: 3 }).map((_, i) => {
@@ -107,12 +143,13 @@ const MobilePlayerRow = memo(({ player, isSelected, isFavourite, onToggleFavouri
   <div onClick={() => onPlayerAction(player)}
     className={`border-b border-black/5 dark:border-white/5 cursor-pointer transition-colors ${isSelected ? "bg-black/5 dark:bg-white/10" : ""}`}
     style={{ display: "grid", gridTemplateColumns: MOBILE_GRID_COLS, alignItems: "center", gap: "8px", padding: "8px 12px" }}>
-    <div className="relative w-8 h-8 rounded overflow-hidden bg-[#1a1a1a] flex-shrink-0">
+    <div className="relative w-10 h-10 rounded overflow-hidden bg-[#1a1a1a] flex-shrink-0">
       <div className="absolute inset-0 bg-cover bg-top" style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }} />
     </div>
-    <div className="min-w-0">
-      <div className="text-gray-900 dark:text-white font-bold text-[11px] truncate">{player.Player}</div>
-      <div className="text-gray-400 dark:text-white/40 text-[9px] truncate">{player.Team}</div>
+    <div className="min-w-0 flex flex-col items-start leading-none gap-[2px]">
+      <div className="text-gray-900 dark:text-white font-bold text-[11px] truncate max-w-full">{player.Player}</div>
+      <div className="text-gray-400 dark:text-white/40 text-[9px] truncate max-w-full">{player.Team}</div>
+      <PlayerStatusPill status={player.Status} />
     </div>
     <div className="pickem-numeric text-gray-600 dark:text-white/60 text-[10px] font-bold text-center">{formatCostShort(player.Cost)}</div>
     {Array.from({ length: 3 }).map((_, i) => {
@@ -358,6 +395,8 @@ export default function Pickems() {
           Rank: r.Rank, team_id: r.team_id, Cost: r.Cost, img_url: r.img_url,
           picture: r.img_url?.trim() ? r.img_url : undefined,
           pictureLoading: !r.img_url?.trim(),
+          Status: isPlayerStatus(r.Status) ? r.Status : undefined,
+          StatusUpdatedAt: r.StatusUpdatedAt,
           elimsByEvent: Object.fromEntries(
             Object.entries(eventElimsRef.current)
               .map(([eventId, elims]) => [eventId, elims[String(r.player_id)]] as [string, number])
@@ -697,9 +736,15 @@ export default function Pickems() {
     <div className={`relative rounded-lg overflow-hidden group cursor-pointer h-full w-full ${isCaptain ? "ring-2 ring-yellow-400" : "ring-1 ring-black/10 dark:ring-white/10"}`}>
       <div className="absolute inset-0 bg-cover bg-top bg-[#1a1a1a]" style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }} />
       <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 to-transparent" />
-      {/* Remove button top-right — hidden when locked */}
+      {/* Status tick top-right — always visible when player has a status */}
+      {player.Status && (
+        <div className="absolute top-1.5 right-1.5 z-10 flex leading-none">
+          <PlayerStatusTick status={player.Status} size={14} />
+        </div>
+      )}
+      {/* Remove button top-left — hidden when locked */}
       {!isLocked && (
-        <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="absolute top-1 right-1 z-10 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="absolute top-1 left-1 z-20 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
           <IoMdClose className="text-white text-[8px]" />
         </button>
       )}

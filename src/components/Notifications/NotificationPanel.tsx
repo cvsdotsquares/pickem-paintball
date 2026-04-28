@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { LeagueNotification } from '@/src/lib/league-types';
-import { FaTimes, FaTrash, FaUsers } from 'react-icons/fa';
+import { FaTimes, FaTrash, FaUsers, FaUserInjured } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/src/hooks/useToast';
 import Toast from '../ui/Toast';
@@ -21,9 +21,12 @@ export default function NotificationPanel({ notifications, onClose, onMarkAsRead
 
   const handleNotificationClick = (notification: LeagueNotification) => {
     onMarkAsRead(notification.id);
-    
+
     if (notification.type === 'league_approved') {
       router.push('/dashboard/leaderboard');
+      onClose();
+    } else if (notification.type === 'player_status_changed') {
+      router.push('/dashboard/pick-em');
       onClose();
     }
   };
@@ -178,9 +181,15 @@ export default function NotificationPanel({ notifications, onClose, onMarkAsRead
                 <div className="flex items-start justify-between">
                   <div className="flex-1 cursor-pointer" onClick={() => handleNotificationClick(notification)}>
                     <div className="flex items-center gap-2 mb-1">
-                      <FaUsers className="text-blue-400 text-sm" />
+                      {notification.type === 'player_status_changed' ? (
+                        <FaUserInjured className="text-amber-500 text-sm" />
+                      ) : (
+                        <FaUsers className="text-blue-400 text-sm" />
+                      )}
                       <span className="text-gray-900 dark:text-white font-medium text-sm">
-                        {notification.leagueName}
+                        {notification.type === 'player_status_changed'
+                          ? notification.playerName || 'Player update'
+                          : notification.leagueName}
                       </span>
                     </div>
                     <p className="text-sm text-gray-700 dark:text-gray-300">{notification.message}</p>

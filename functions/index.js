@@ -530,13 +530,21 @@ exports.onEventChange = functions.firestore
   });
 
 // Firestore Trigger: Runs when players subcollection changes
+const NOTIFY_STATUSES = ['Out', 'Dropped', 'Injured', 'Questionable', 'Addition'];
+
 exports.onPlayerChange = functions.firestore
   .document('events/{eventId}/players/{playerId}')
   .onWrite(async (change, context) => {
     const { eventId, playerId } = context.params;
-    
+
     console.log(`🔔 Player changed: ${playerId} in event ${eventId}`);
-    
+
+    try {
+      await handlePlayerStatusChange(eventId, playerId, change);
+    } catch (error) {
+      console.error(`❌ Failed to process player status change:`, error);
+    }
+
     try {
       await migrateSingleEvent(eventId);
       return null;
@@ -545,3 +553,80 @@ exports.onPlayerChange = functions.firestore
       return null;
     }
   });
+
+async function handlePlayerStatusChange(eventId, playerId, change) {
+  if (!change.after.exists) return;
+  const after = change.after.data() || {};
+  const before = change.before.exists ? change.before.data() || {} : {};
+  const newStatus = after.Status;
+  const oldStatus = before.Status;
+
+  if (!newStatus || newStatus === oldStatus) return;
+
+  // Stamp StatusUpdatedAt if missing/unchanged on this write.
+  const beforeTs = before.StatusUpdatedAt;
+  const afterTs = after.StatusUpdatedAt;
+  const tsUnchanged =
+    (beforeTs && afterTs && beforeTs.isEqual && beforeTs.isEqual(afterTs)) ||
+    (!beforeTs && !afterTs);
+  if (tsUnchanged) {
+    try {
+      await change.after.ref.update({
+        StatusUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      console.error('Failed to stamp StatusUpdatedAt:', e);
+    }
+  }
+
+  if (!NOTIFY_STATUSES.includes(newStatus)) return;
+
+  // Find users who picked this player for this event.
+  const usersSnap = await db
+    .collection('users')
+    .where(`pickems.${eventId}`, '!=', null)
+    .get();
+
+  const playerName = String(after.Player || 'Player');
+
+  // Resolve a friendly event name.
+  let eventName = eventId;
+  try {
+    const eventDoc = await db.doc(`events/${eventId}`).get();
+    if (eventDoc.exists) {
+      const ed = eventDoc.data() || {};
+      eventName = ed.name || ed.displayName || eventId;
+    }
+  } catch (_) {}
+
+  const batch = db.batch();
+  let count = 0;
+  usersSnap.docs.forEach((userDoc) => {
+    const pickems = userDoc.data().pickems || {};
+    const ids = Array.isArray(pickems[eventId]) ? pickems[eventId] : [];
+    const matched = ids.some((id) => String(id) === String(playerId));
+    if (!matched) return;
+    const ref = db.collection('notifications').doc();
+    batch.set(ref, {
+      userId: userDoc.id,
+      type: 'player_status_changed',
+      playerId: String(playerId),
+      playerName,
+      eventId,
+      eventName,
+      oldStatus: oldStatus || null,
+      newStatus,
+      message: `${playerName} is now ${newStatus} for ${eventName}`,
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    count += 1;
+  });
+
+  if (count > 0) {
+    await batch.commit();
+    console.log(
+      `📨 Sent ${count} player_status_changed notification(s) for ${playerName} (${oldStatus || 'none'} → ${newStatus})`,
+    );
+  }
+}

@@ -20,6 +20,13 @@ import { useDashboardNestedScrollHandler } from "@/src/contexts/DashboardMainScr
 import Link from "next/link";
 import { MonochromePillTabs } from "@/src/components/ui/monochrome-pill-tabs";
 import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dashboardEventBannerShared";
+import {
+  PlayerStatus,
+  STATUS_META,
+  STATUS_BUTTON_BASE_CLASS,
+  STATUSES_FOR_DASHBOARD_TABLE,
+  isPlayerStatus,
+} from "@/src/lib/player-status";
 
 /** Sensible color palette for avatar backgrounds. */
 const AVATAR_COLORS = [
@@ -68,7 +75,11 @@ export interface Player {
   league_id: string;
   picture?: string;
   img_url?: string;
+  Status?: PlayerStatus;
 }
+
+const STATUS_TICK_BASE =
+  "inline-flex items-center justify-center rounded-full font-black leading-none shadow-sm pt-[1px]";
 
 interface PlayerSlot {
   id: number;
@@ -78,6 +89,8 @@ interface PlayerSlot {
 type MobileHomeTab = "all" | "stats" | "pickem";
 
 type KillRow = { id: string; player: string; team: string; kills: number };
+
+type StatusRow = { id: string; player: string; team: string; status: PlayerStatus; updatedAt: Date | null };
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -99,6 +112,8 @@ export default function Dashboard() {
   const [seasonPoints, setSeasonPoints] = useState<number | undefined>();
   const [liveEvent, setLiveEvent] = useState<EventCountdownBannerModel | null>(null);
   const [topKills, setTopKills] = useState<KillRow[]>([]);
+  const [statusRows, setStatusRows] = useState<StatusRow[]>([]);
+  const [statusFilter, setStatusFilter] = useState<PlayerStatus | "All">("All");
   const [remainingBudget, setRemainingBudget] = useState(1000000);
   const TOTAL_BUDGET = 1000000;
 
@@ -182,6 +197,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!liveEvent?.id) {
       setTopKills([]);
+      setStatusRows([]);
       return;
     }
     let cancelled = false;
@@ -189,20 +205,44 @@ export default function Dashboard() {
       try {
         const snap = await getDocs(collection(db, `events/${liveEvent.id}/players`));
         if (cancelled) return;
-        const rows: KillRow[] = snap.docs.map((d) => {
+        const killRows: KillRow[] = [];
+        const statusList: StatusRow[] = [];
+        snap.docs.forEach((d) => {
           const data = d.data();
-          return {
+          killRows.push({
             id: d.id,
             player: String(data.Player ?? "—"),
             team: String(data.Team ?? "—"),
             kills: Number(data["Confirmed Kills"]) || 0,
-          };
+          });
+          if (
+            isPlayerStatus(data.Status) &&
+            STATUSES_FOR_DASHBOARD_TABLE.includes(data.Status)
+          ) {
+            const ts = data.StatusUpdatedAt;
+            const updatedAt: Date | null =
+              ts?.toDate?.() instanceof Date ? ts.toDate() : null;
+            statusList.push({
+              id: d.id,
+              player: String(data.Player ?? "—"),
+              team: String(data.Team ?? "—"),
+              status: data.Status,
+              updatedAt,
+            });
+          }
         });
-        rows.sort((a, b) => b.kills - a.kills);
-        setTopKills(rows.slice(0, 10));
+        killRows.sort((a, b) => b.kills - a.kills);
+        statusList.sort((a, b) => {
+          const aTime = a.updatedAt?.getTime() ?? 0;
+          const bTime = b.updatedAt?.getTime() ?? 0;
+          return bTime - aTime;
+        });
+        setTopKills(killRows.slice(0, 10));
+        setStatusRows(statusList);
       } catch (e) {
         console.error(e);
         setTopKills([]);
+        setStatusRows([]);
       }
     })();
     return () => {
@@ -304,6 +344,18 @@ export default function Dashboard() {
         style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }}
       />
       <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 to-transparent" />
+      {isPlayerStatus(player.Status) && (() => {
+        const meta = STATUS_META[player.Status];
+        return (
+          <span
+            className={`absolute top-1.5 right-1.5 z-10 leading-none align-top ${STATUS_TICK_BASE} ${meta.tickClass}`}
+            style={{ width: 14, height: 14, fontSize: 10 }}
+            title={meta.label}
+          >
+            {meta.tickGlyph}
+          </span>
+        );
+      })()}
       <div className="absolute bottom-0 inset-x-0 p-1">
         <div className="text-white font-bold text-[8px] truncate">{player.Player}</div>
         <div className="text-white/40 text-[7px] truncate">{player.Team}</div>
@@ -331,9 +383,6 @@ export default function Dashboard() {
 
   const picks = playerSlots.map((s) => s.player).filter(Boolean) as Player[];
 
-  const sectionColumnTitleClass =
-    "font-azonix text-sm font-black uppercase tracking-widest text-gray-900 dark:text-white";
-
   /** Sub-section titles beside action buttons — green guidance bar + standard light/dark body text (no filled background). */
   const sectionRowHeadingClass =
     "relative min-w-0 flex-1 pl-3 font-azonix text-xs font-black uppercase leading-snug tracking-[0.14em] text-gray-900 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#00f976] before:content-[''] dark:text-white sm:text-sm sm:tracking-[0.16em]";
@@ -342,16 +391,14 @@ export default function Dashboard() {
   const sectionActionLinkClass =
     "inline-flex shrink-0 items-center justify-center rounded-full border border-[#00f976] bg-[#00f976]/10 px-3 py-1.5 font-azonix text-[10px] font-bold uppercase tracking-wide text-neutral-800 shadow-sm transition hover:bg-[#00f976]/18 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00f976] focus-visible:ring-offset-2 dark:text-[#00e689] dark:ring-offset-stone-950 dark:hover:bg-[#00f976]/22";
 
-  const statsSection = (
-    <div className="flex flex-col gap-4 p-4 md:p-6">
-      <h2 className={sectionColumnTitleClass}>Live stats</h2>
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between gap-4">
-          <h3 className={sectionRowHeadingClass}>Confirmed kills - top 10</h3>
-          <Link href="/dashboard/stats" className={sectionActionLinkClass}>
-            See all stats →
-          </Link>
-        </div>
+  const confirmedKillsBlock = (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-4">
+        <h3 className={sectionRowHeadingClass}>Live stats - confirmed kills</h3>
+        <Link href="/dashboard/stats" className={sectionActionLinkClass}>
+          See all stats →
+        </Link>
+      </div>
       <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-white/10">
         <table className="w-full text-left text-sm font-azonix">
           <thead className="bg-gray-100 dark:bg-white/5 text-[10px] uppercase tracking-widest text-gray-600 dark:text-gray-400">
@@ -382,22 +429,118 @@ export default function Dashboard() {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+
+  const rosterUpdatesBlock = (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-4">
+        <h3 className={sectionRowHeadingClass}>Roster updates</h3>
+        <Link href="/dashboard/pick-em" className={`${sectionActionLinkClass} md:hidden`}>
+          Edit picks →
+        </Link>
+      </div>
+      {statusRows.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {(["All", ...STATUSES_FOR_DASHBOARD_TABLE] as const).map((opt) => {
+            const isActive = statusFilter === opt;
+            const count = opt === "All" ? statusRows.length : statusRows.filter((r) => r.status === opt).length;
+            if (opt !== "All" && count === 0) return null;
+            return (
+              <button
+                key={opt}
+                onClick={() => setStatusFilter(opt)}
+                className={`font-azonix text-[10px] uppercase tracking-wide rounded-full px-2.5 py-1 border transition-colors ${
+                  isActive
+                    ? "border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-black"
+                    : "border-gray-300 dark:border-white/15 text-gray-700 dark:text-gray-300 hover:border-gray-500 dark:hover:border-white/40"
+                }`}
+              >
+                {opt} <span className="opacity-60">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-white/10">
+        <table className="w-full text-left text-sm font-azonix table-fixed">
+          <thead className="bg-gray-100 dark:bg-white/5 text-[10px] uppercase tracking-widest text-gray-600 dark:text-gray-400">
+            <tr>
+              <th className="px-3 py-2 w-6"></th>
+              <th className="px-3 py-2">Player</th>
+              <th className="px-3 py-2">Team</th>
+              <th className="px-3 py-2 w-24">Status</th>
+              <th className="px-3 py-2 text-right w-20">Updated</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-white/10 text-gray-900 dark:text-white">
+            {(() => {
+              const visible = statusFilter === "All" ? statusRows : statusRows.filter((r) => r.status === statusFilter);
+              if (visible.length === 0) {
+                return (
+                  <tr>
+                    <td colSpan={5} className="px-3 py-8 text-center text-gray-500 dark:text-gray-400 text-xs">
+                      No player status changes for this event.
+                    </td>
+                  </tr>
+                );
+              }
+              return visible.map((row) => {
+                const meta = STATUS_META[row.status];
+                const updatedLabel = row.updatedAt
+                  ? row.updatedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                  : null;
+                return (
+                  <tr key={row.id}>
+                    <td className="pl-3 pr-0 py-1.5 align-middle">
+                      <span
+                        className={`inline-flex leading-none align-top ${STATUS_TICK_BASE} ${meta.tickClass}`}
+                        style={{ width: 14, height: 14, fontSize: 10 }}
+                        title={meta.label}
+                      >
+                        {meta.tickGlyph}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5 font-bold truncate">{row.player}</td>
+                    <td className="px-3 py-1.5 text-gray-600 dark:text-gray-300 truncate">{row.team}</td>
+                    <td className="px-3 py-1.5">
+                      <span className={`${STATUS_BUTTON_BASE_CLASS} ${meta.buttonClass}`}>
+                        {meta.label}
+                      </span>
+                    </td>
+                    <td className="pickem-numeric px-3 py-1.5 text-right text-gray-600 dark:text-gray-300">
+                      {updatedLabel ?? "—"}
+                    </td>
+                  </tr>
+                );
+              });
+            })()}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 
-  const pickemSection = (
-    <div className="flex flex-col gap-4 p-4 md:p-6">
-      <h2 className={sectionColumnTitleClass}>Pick&apos;Em paintball</h2>
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between gap-4">
-          <h3 className={sectionRowHeadingClass}>Live picks</h3>
-          <Link href="/dashboard/pick-em" className={sectionActionLinkClass}>
-            Edit picks →
-          </Link>
-        </div>
+  const sectionColumnTitleClass =
+    "hidden md:block font-azonix text-sm font-black uppercase tracking-widest text-gray-900 dark:text-white";
 
-        <div className="flex flex-col overflow-hidden rounded-2xl bg-gray-100 dark:bg-[#1a1a1a]">
+  const statsSection = (
+    <div className="flex flex-col gap-4 p-4 md:p-6">
+      <h2 className={sectionColumnTitleClass}>Live stats</h2>
+      {confirmedKillsBlock}
+    </div>
+  );
+
+  const livePicksBlock = (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-4">
+        <h3 className={sectionRowHeadingClass}>Live picks</h3>
+        <Link href="/dashboard/pick-em" className={sectionActionLinkClass}>
+          Edit picks →
+        </Link>
+      </div>
+
+      <div className="flex flex-col overflow-hidden rounded-2xl bg-gray-100 dark:bg-[#1a1a1a]">
         <div className="flex-1 py-4 px-2">
           <div className="grid grid-cols-3 gap-1.5 mb-1.5" style={{ gridTemplateRows: "minmax(130px, 1fr)" }}>
             <div className="col-span-2 bg-black rounded-lg p-2 flex flex-col justify-between">
@@ -490,7 +633,14 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-      </div>
+    </div>
+  );
+
+  const pickemSection = (
+    <div className="flex flex-col gap-4 p-4 md:p-6">
+      <h2 className={sectionColumnTitleClass}>Pick&apos;Em paintball</h2>
+      {livePicksBlock}
+      {rosterUpdatesBlock}
     </div>
   );
 
@@ -528,8 +678,8 @@ export default function Dashboard() {
           onChange={setMobileTab}
           tabs={[
             { value: "all", label: "All" },
-            { value: "stats", label: "Stats" },
             { value: "pickem", label: "Pick'Em" },
+            { value: "stats", label: "Stats" },
           ]}
         />
 
@@ -549,10 +699,11 @@ export default function Dashboard() {
         {/* Mobile: tab panels */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-y-contain md:hidden">
           {mobileTab === "all" && (
-            <>
-              {statsSection}
-              <div className="border-t border-gray-100 dark:border-white/5">{pickemSection}</div>
-            </>
+            <div className="flex flex-col gap-4 p-4 md:p-6">
+              {livePicksBlock}
+              {confirmedKillsBlock}
+              {rosterUpdatesBlock}
+            </div>
           )}
           {mobileTab === "stats" && statsSection}
           {mobileTab === "pickem" && pickemSection}

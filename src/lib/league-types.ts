@@ -40,13 +40,24 @@ export interface LeagueInvite {
 export interface LeagueNotification {
   id: string;
   userId: string;
-  type: 'league_invite' | 'league_request' | 'league_approved' | 'league_rejected';
-  leagueId: string;
-  leagueName: string;
+  type:
+    | 'league_invite'
+    | 'league_request'
+    | 'league_approved'
+    | 'league_rejected'
+    | 'player_status_changed';
+  leagueId?: string;
+  leagueName?: string;
   fromUser?: string;
   fromUserName?: string;
   requestUserId?: string;
   message: string;
   read: boolean;
   createdAt: any;
+  playerId?: string;
+  playerName?: string;
+  eventId?: string;
+  eventName?: string;
+  oldStatus?: string | null;
+  newStatus?: string;
 }
