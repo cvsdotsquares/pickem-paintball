@@ -530,8 +530,6 @@ exports.onEventChange = functions.firestore
   });
 
 // Firestore Trigger: Runs when players subcollection changes
-const NOTIFY_STATUSES = ['Out', 'Dropped', 'Injured', 'Questionable', 'Addition'];
-
 exports.onPlayerChange = functions.firestore
   .document('events/{eventId}/players/{playerId}')
   .onWrite(async (change, context) => {
@@ -578,8 +576,6 @@ async function handlePlayerStatusChange(eventId, playerId, change) {
       console.error('Failed to stamp StatusUpdatedAt:', e);
     }
   }
-
-  if (!NOTIFY_STATUSES.includes(newStatus)) return;
 
   // Find users who picked this player for this event.
   const usersSnap = await db

@@ -65,14 +65,6 @@ export function shouldShowStatusPill(status: unknown): status is PlayerStatus {
 export const STATUS_TICK_BASE_CLASS =
   "inline-flex items-center justify-center rounded-full font-black leading-none shadow-sm pt-[1px]";
 
-export const STATUSES_TRIGGERING_NOTIFICATION: PlayerStatus[] = [
-  "Out",
-  "Dropped",
-  "Injured",
-  "Questionable",
-  "Addition",
-];
-
 export const STATUSES_FOR_DASHBOARD_TABLE: PlayerStatus[] = [
   "Out",
   "Dropped",

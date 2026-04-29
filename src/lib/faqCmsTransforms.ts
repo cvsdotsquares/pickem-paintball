@@ -4,6 +4,36 @@
  */
 
 const KILL_TYPES_SENTINEL = "What are the different types of kills";
+const ROSTER_UPDATES_SENTINEL = "Roster Confirmation &amp; Updates";
+
+const FAQ_ROSTER_UPDATES_HTML = `
+<h3 class="mt-4 font-bold text-black dark:text-white">Q: Roster Confirmation &amp; Updates</h3>
+<p class="text-base">Pick&apos;Em relies on knowing who is playing so you can make your picks. Currently, there is no official NXL requirement for teams to release or confirm their rosters until the day before the event, when they check in.</p>
+<h4 class="mt-4 font-bold text-black dark:text-white">Confirming Rosters</h4>
+<p class="text-base">To ensure that we have the right players available for selection, with enough time for everyone to make their picks, we do our best to confirm rosters. We do this using three methods:</p>
+<ol class="mt-2 list-decimal space-y-1 pl-5 text-base">
+<li>~1 week out, we contact each team directly and ask for up-to-date roster information and update player statuses based on their feedback.</li>
+<li>Monitor news and feedback from users on any confirmed roster development.</li>
+<li>Day before the event, we check the official team rosters on pbleagues and update statuses to match.</li>
+</ol>
+<h4 class="mt-4 font-bold text-black dark:text-white">How do we see roster updates?</h4>
+<p class="text-base">With this information, we can give each player a status displayed both in the Pick&apos;Em view and in the Roster Updates table on the Dashboard.</p>
+<p class="text-base">If the status of any player you&apos;ve picked changes, we&apos;ll send you a notification — whether they&apos;re newly Confirmed, flipped to Injured / Questionable, or pulled Out / Dropped.</p>
+<h4 class="mt-4 font-bold text-black dark:text-white">What does each player status mean</h4>
+<ul class="mt-2 list-disc space-y-1 pl-5 text-base">
+<li><strong>Confirmed</strong> — playing.</li>
+<li><strong>Addition</strong> — new addition to the roster.</li>
+<li><strong>Questionable</strong> — playing status uncertain either due to no response from the team, or uncertainty on their end.</li>
+<li><strong>Injured</strong> — carrying an injury that may affect availability.</li>
+<li><strong>Out</strong> — confirmed not playing this event.</li>
+<li><strong>Dropped</strong> — removed from the roster.</li>
+<li><strong>Unconfirmed</strong> — playing status uncertain either due to no response from the team, or uncertainty on their end.</li>
+</ul>
+<h4 class="mt-4 font-bold text-black dark:text-white">What happens to my picks if a player is Out when picks lock?</h4>
+<p class="text-base">Picks freeze at the team lock deadline. If a player you&apos;ve picked ends up Out or Dropped, the slot stays in your lineup but scores zero kills. Because of this, we strongly encourage you to check the Roster Updates section before picks lock and swap out any affected picks while you still can.</p>
+<h4 class="mt-4 font-bold text-black dark:text-white">Mistakes</h4>
+<p class="text-base">While we make every effort to ensure that the roster updates are accurate, there&apos;s no requirement from the NXL to share this information. We do our best to collect accurate and timely information, but there is a chance that we may miss some. In those instances we apologise and welcome feedback to get better every event!</p>
+`.trim();
 
 /** Appended after the “missing stats” answer; matches your cmsPages `faq` HTML patterns. */
 const FAQ_KILL_TYPES_HTML = `
@@ -53,24 +83,38 @@ export function transformFaqPageBody(html: string): string {
     "What happens if players' stats are missing?",
   );
 
-  if (withGrammar.includes(KILL_TYPES_SENTINEL)) {
-    return withGrammar;
+  let result = withGrammar;
+
+  if (!result.includes(KILL_TYPES_SENTINEL)) {
+    const lower = result.toLowerCase();
+    const needle = "all players equally.";
+    const idx = lower.indexOf(needle);
+    if (idx !== -1) {
+      const closeIdx = result.indexOf("</p>", idx);
+      if (closeIdx !== -1) {
+        const insertAt = closeIdx + "</p>".length;
+        result = result.slice(0, insertAt) + FAQ_KILL_TYPES_HTML + result.slice(insertAt);
+      }
+    }
   }
 
-  const lower = withGrammar.toLowerCase();
-  const needle = "all players equally.";
-  const idx = lower.indexOf(needle);
-  if (idx === -1) {
-    return withGrammar;
+  if (!result.includes(ROSTER_UPDATES_SENTINEL)) {
+    const lower = result.toLowerCase();
+    const anchor = "when can i make changes to my picks";
+    const anchorIdx = lower.indexOf(anchor);
+    if (anchorIdx !== -1) {
+      const tagOpen = result.lastIndexOf("<", anchorIdx);
+      if (tagOpen !== -1) {
+        result = result.slice(0, tagOpen) + FAQ_ROSTER_UPDATES_HTML + result.slice(tagOpen);
+      } else {
+        result = result + FAQ_ROSTER_UPDATES_HTML;
+      }
+    } else {
+      result = result + FAQ_ROSTER_UPDATES_HTML;
+    }
   }
 
-  const closeIdx = withGrammar.indexOf("</p>", idx);
-  if (closeIdx === -1) {
-    return withGrammar;
-  }
-
-  const insertAt = closeIdx + "</p>".length;
-  return withGrammar.slice(0, insertAt) + FAQ_KILL_TYPES_HTML + withGrammar.slice(insertAt);
+  return result;
 }
 
 /**
