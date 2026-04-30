@@ -463,13 +463,12 @@ export default function Dashboard() {
         </div>
       )}
       <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-white/10">
-        <table className="w-full text-left text-sm font-azonix table-fixed">
+        <table className="w-full text-left text-sm font-azonix">
           <thead className="bg-gray-100 dark:bg-white/5 text-[10px] uppercase tracking-widest text-gray-600 dark:text-gray-400">
             <tr>
               <th className="px-3 py-2 w-6"></th>
               <th className="px-3 py-2">Player</th>
-              <th className="px-3 py-2">Team</th>
-              <th className="px-3 py-2 w-24">Status</th>
+              <th className="px-3 py-2 w-28">Status</th>
               <th className="px-3 py-2 text-right w-20">Updated</th>
             </tr>
           </thead>
@@ -479,7 +478,7 @@ export default function Dashboard() {
               if (visible.length === 0) {
                 return (
                   <tr>
-                    <td colSpan={5} className="px-3 py-8 text-center text-gray-500 dark:text-gray-400 text-xs">
+                    <td colSpan={4} className="px-3 py-8 text-center text-gray-500 dark:text-gray-400 text-xs">
                       No player status changes for this event.
                     </td>
                   </tr>
@@ -492,7 +491,7 @@ export default function Dashboard() {
                   : null;
                 return (
                   <tr key={row.id}>
-                    <td className="pl-3 pr-0 py-1.5 align-middle">
+                    <td className="pl-3 pr-0 py-2 align-middle">
                       <span
                         className={`inline-flex leading-none align-top ${STATUS_TICK_BASE} ${meta.tickClass}`}
                         style={{ width: 14, height: 14, fontSize: 10 }}
@@ -501,14 +500,16 @@ export default function Dashboard() {
                         {meta.tickGlyph}
                       </span>
                     </td>
-                    <td className="px-3 py-1.5 font-bold truncate">{row.player}</td>
-                    <td className="px-3 py-1.5 text-gray-600 dark:text-gray-300 truncate">{row.team}</td>
-                    <td className="px-3 py-1.5">
+                    <td className="px-3 py-2 min-w-0">
+                      <div className="text-[11px] font-bold truncate">{row.player}</div>
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{row.team}</div>
+                    </td>
+                    <td className="px-3 py-2 align-middle">
                       <span className={`${STATUS_BUTTON_BASE_CLASS} ${meta.buttonClass}`}>
                         {meta.label}
                       </span>
                     </td>
-                    <td className="pickem-numeric px-3 py-1.5 text-right text-gray-600 dark:text-gray-300">
+                    <td className="pickem-numeric px-3 py-2 text-right text-gray-600 dark:text-gray-300 align-middle">
                       {updatedLabel ?? "—"}
                     </td>
                   </tr>
