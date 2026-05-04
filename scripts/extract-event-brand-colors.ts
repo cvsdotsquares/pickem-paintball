@@ -37,6 +37,7 @@ async function main() {
 
   for (const doc of snap.docs) {
     const data = doc.data();
+    if (!data) { skipped++; continue; }
     const updates: Record<string, string> = {};
 
     const logoUrl: string | undefined = data.logoUrl || data.event_logo;
