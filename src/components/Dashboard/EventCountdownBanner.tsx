@@ -173,14 +173,16 @@ export default function EventCountdownBanner({
   const deadlineLabelDashboard = isEventBreak ? "PICKS GO LIVE IN:" : "Team lock deadline:";
   const deadlineLabelCaps = isEventBreak ? "PICKS GO LIVE IN:" : "Team Lock Deadline:";
 
+  const eventEnded =
+    event.eventEndsAt != null && event.eventEndsAt.getTime() <= Date.now();
   const defaultDesktopCta =
     ctaHref != null ? (
       <Link
-        href={ctaHref}
+        href={eventEnded ? "/dashboard/leaderboard" : ctaHref}
         className="pickem-industry-ultra-emphasis block w-full rounded-full py-2.5 text-center text-[10px] uppercase leading-none text-white transition-opacity hover:opacity-95 md:text-sm"
         style={{ backgroundColor: brand }}
       >
-        {ctaLabel}
+        {eventEnded ? "View Past Results" : ctaLabel}
       </Link>
     ) : null;
 

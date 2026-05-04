@@ -4,7 +4,6 @@ import EventCountdownBanner, {
   type EventCountdownBannerModel,
 } from "@/src/components/Dashboard/EventCountdownBanner";
 import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
-import { getBannerAccentColor } from "@/src/lib/bannerPhase";
 import { useAuth } from "@/src/contexts/authProvider";
 import {
   collection,
@@ -19,7 +18,6 @@ import { memo, useEffect, useState } from "react";
 import { useDashboardNestedScrollHandler } from "@/src/contexts/DashboardMainScrollContext";
 import Link from "next/link";
 import { MonochromePillTabs } from "@/src/components/ui/monochrome-pill-tabs";
-import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dashboardEventBannerShared";
 import {
   PlayerStatus,
   STATUS_META,
@@ -653,23 +651,8 @@ export default function Dashboard() {
           variant="dashboard"
           mobileBlackBarFullBleed
           showBudget={false}
-          desktopCta={
-            <Link
-              href="/dashboard/pick-em"
-              className={DASHBOARD_BANNER_PICK_CTA_CLASS}
-              style={{
-                backgroundColor: getBannerAccentColor({
-                  lockDate: liveEvent.lockDate,
-                  eventEndsAt: liveEvent.eventEndsAt ?? null,
-                  nextPicksOpenAt: liveEvent.nextPicksOpenAt ?? null,
-                  brandColor: liveEvent.brandColor,
-                  nextBrandColor: liveEvent.nextBrandColor,
-                }),
-              }}
-            >
-              Pick your team &gt;
-            </Link>
-          }
+          ctaHref="/dashboard/pick-em"
+          ctaLabel="Pick your team ›"
         />
       ) : null}
 

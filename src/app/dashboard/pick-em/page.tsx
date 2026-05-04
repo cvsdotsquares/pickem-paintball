@@ -792,22 +792,41 @@ export default function Pickems() {
           event={pickEmBannerModel}
           showBudget={false}
           desktopCta={
-            <button
-              type="button"
-              onClick={confirmPicks}
-              className={DASHBOARD_BANNER_PICK_CTA_CLASS}
-              style={{
-                backgroundColor: getBannerAccentColor({
-                  lockDate: pickEmBannerModel.lockDate,
-                  eventEndsAt: pickEmBannerModel.eventEndsAt ?? null,
-                  nextPicksOpenAt: pickEmBannerModel.nextPicksOpenAt ?? null,
-                  brandColor: pickEmBannerModel.brandColor,
-                  nextBrandColor: pickEmBannerModel.nextBrandColor,
-                }),
-              }}
-            >
-              Pick your team &gt;
-            </button>
+            pickEmBannerModel.eventEndsAt != null &&
+            pickEmBannerModel.eventEndsAt.getTime() <= Date.now() ? (
+              <Link
+                href="/dashboard/leaderboard"
+                className={DASHBOARD_BANNER_PICK_CTA_CLASS}
+                style={{
+                  backgroundColor: getBannerAccentColor({
+                    lockDate: pickEmBannerModel.lockDate,
+                    eventEndsAt: pickEmBannerModel.eventEndsAt ?? null,
+                    nextPicksOpenAt: pickEmBannerModel.nextPicksOpenAt ?? null,
+                    brandColor: pickEmBannerModel.brandColor,
+                    nextBrandColor: pickEmBannerModel.nextBrandColor,
+                  }),
+                }}
+              >
+                View Past Results
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={confirmPicks}
+                className={DASHBOARD_BANNER_PICK_CTA_CLASS}
+                style={{
+                  backgroundColor: getBannerAccentColor({
+                    lockDate: pickEmBannerModel.lockDate,
+                    eventEndsAt: pickEmBannerModel.eventEndsAt ?? null,
+                    nextPicksOpenAt: pickEmBannerModel.nextPicksOpenAt ?? null,
+                    brandColor: pickEmBannerModel.brandColor,
+                    nextBrandColor: pickEmBannerModel.nextBrandColor,
+                  }),
+                }}
+              >
+                Pick your team &gt;
+              </button>
+            )
           }
         />
       ) : null}

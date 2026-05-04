@@ -8,8 +8,7 @@ import { MatchupTable } from "../../../components/Dashboard/datatable";
 import { Player } from "../pick-em/page";
 import { useAuth } from "@/src/contexts/authProvider";
 import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanner";
-import { eventRecordToBannerModel, getBannerAccentFromRecord } from "@/src/lib/eventCountdownBannerModel";
-import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dashboardEventBannerShared";
+import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
 import { cn } from "@/src/lib/utils";
 import {
   EVENT_LOCATION_SHORT_LABEL_BY_EVENT_ID as AGGREGATE_EVENT_COLUMN_BY_EVENT_ID,
@@ -621,19 +620,8 @@ export default function Statistics() {
                 liveEvent as unknown as Record<string, unknown> & { id: string },
               )}
               showBudget={false}
-              desktopCta={
-                <Link
-                  href="/dashboard/pick-em"
-                  className={DASHBOARD_BANNER_PICK_CTA_CLASS}
-                  style={{
-                    backgroundColor: getBannerAccentFromRecord(
-                      liveEvent as unknown as Record<string, unknown> & { id: string },
-                    ),
-                  }}
-                >
-                  Pick your team &gt;
-                </Link>
-              }
+              ctaHref="/dashboard/pick-em"
+              ctaLabel="Pick your team ›"
             />
           ) : null}
           <section

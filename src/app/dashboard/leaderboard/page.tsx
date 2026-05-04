@@ -76,8 +76,7 @@ function getInitials(name: string): string {
 import { cn } from "@/src/lib/utils";
 import { individualEventDisplayName } from "@/src/lib/eventDisplayName";
 import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanner";
-import { eventRecordToBannerModel, getBannerAccentFromRecord } from "@/src/lib/eventCountdownBannerModel";
-import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dashboardEventBannerShared";
+import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
 import LeagueSelector from "../../../components/Leagues/LeagueSelector";
 import CreateLeagueModal from "../../../components/Leagues/CreateLeagueModal";
 import JoinLeagueModal from "../../../components/Leagues/JoinLeagueModal";
@@ -1558,19 +1557,8 @@ function LeaderboardNewContent() {
             bannerEvent as unknown as Record<string, unknown> & { id: string },
           )}
           showBudget={false}
-          desktopCta={
-            <Link
-              href="/dashboard/pick-em"
-              className={DASHBOARD_BANNER_PICK_CTA_CLASS}
-              style={{
-                backgroundColor: getBannerAccentFromRecord(
-                  bannerEvent as unknown as Record<string, unknown> & { id: string },
-                ),
-              }}
-            >
-              Pick your team &gt;
-            </Link>
-          }
+          ctaHref="/dashboard/pick-em"
+          ctaLabel="Pick your team ›"
         />
       ) : null}
 

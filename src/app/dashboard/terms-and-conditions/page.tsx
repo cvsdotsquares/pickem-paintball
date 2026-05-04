@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import TermsAndConditionsContent from "@/src/components/Legal/TermsAndConditionsContent";
 import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanner";
-import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dashboardEventBannerShared";
-import { eventRecordToBannerModel, getBannerAccentFromRecord } from "@/src/lib/eventCountdownBannerModel";
+import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
 import { usePromoBannerEvent } from "@/src/hooks/usePromoBannerEvent";
 
 export default function DashboardTermsPage() {
@@ -20,19 +18,8 @@ export default function DashboardTermsPage() {
             bannerEvent as unknown as Record<string, unknown> & { id: string },
           )}
           showBudget={false}
-          desktopCta={
-            <Link
-              href="/dashboard/pick-em"
-              className={DASHBOARD_BANNER_PICK_CTA_CLASS}
-              style={{
-                backgroundColor: getBannerAccentFromRecord(
-                  bannerEvent as unknown as Record<string, unknown> & { id: string },
-                ),
-              }}
-            >
-              Pick your team &gt;
-            </Link>
-          }
+          ctaHref="/dashboard/pick-em"
+          ctaLabel="Pick your team ›"
         />
       ) : null}
       <div className="mx-auto w-full max-w-7xl px-4 pb-10 pt-4 text-gray-900 dark:text-white">

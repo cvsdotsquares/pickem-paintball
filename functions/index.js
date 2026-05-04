@@ -552,6 +552,65 @@ exports.onPlayerChange = functions.firestore
     }
   });
 
+// ─── Extract average brand color from event logos ─────────────────────────
+// Fires when an event doc is created or updated.
+// - If `logoUrl`/`event_logo` changed → extracts and writes `brand_color`
+// - If `nextEventImage` changed → extracts and writes `next_brand_color`
+// Manual Firestore edits to either color field are safe — they don't change
+// the image URLs so this function won't overwrite them.
+exports.onEventLogoChanged = functions.firestore
+  .document('events/{eventId}')
+  .onWrite(async (change, context) => {
+    if (!change.after.exists) return null;
+
+    const after = change.after.data() || {};
+    const before = change.before.exists ? (change.before.data() || {}) : {};
+    const eventId = context.params.eventId;
+    const sharp = require('sharp');
+
+    const extractColor = async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const buffer = Buffer.from(await response.arrayBuffer());
+      const { data } = await sharp(buffer)
+        .flatten({ background: { r: 255, g: 255, b: 255 } })
+        .resize(1, 1, { kernel: 'lanczos3' })
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      return `#${data[0].toString(16).padStart(2, '0')}${data[1].toString(16).padStart(2, '0')}${data[2].toString(16).padStart(2, '0')}`;
+    };
+
+    const updates = {};
+
+    const newLogoUrl = after.logoUrl || after.event_logo || null;
+    const oldLogoUrl = before.logoUrl || before.event_logo || null;
+    if (newLogoUrl && newLogoUrl !== oldLogoUrl) {
+      try {
+        updates.brand_color = await extractColor(newLogoUrl);
+        console.log(`🎨 ${eventId} brand_color → ${updates.brand_color}`);
+      } catch (err) {
+        console.error(`❌ Failed to extract brand_color for ${eventId}:`, err);
+      }
+    }
+
+    const newNextImage = after.nextEventImage || null;
+    const oldNextImage = before.nextEventImage || null;
+    if (newNextImage && newNextImage !== oldNextImage) {
+      try {
+        updates.next_brand_color = await extractColor(newNextImage);
+        console.log(`🎨 ${eventId} next_brand_color → ${updates.next_brand_color}`);
+      } catch (err) {
+        console.error(`❌ Failed to extract next_brand_color for ${eventId}:`, err);
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await db.doc(`events/${eventId}`).update(updates);
+    }
+
+    return null;
+  });
+
 async function handlePlayerStatusChange(eventId, playerId, change) {
   if (!change.after.exists) return;
   const after = change.after.data() || {};
