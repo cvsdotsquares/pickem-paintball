@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
         price: priceId,
         quantity: 1,
       }],
+      allow_promotion_codes: true,
       success_url: `${baseUrl}/dashboard?subscription=success`,
       cancel_url: `${baseUrl}/dashboard?subscription=cancelled`,
       metadata: {
