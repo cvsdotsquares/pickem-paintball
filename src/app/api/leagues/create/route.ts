@@ -44,7 +44,6 @@ export async function POST(request: NextRequest) {
       maxMembers: 20,
       pendingRequests: [],
       inviteCode: generateInviteCode(),
-      inviteCodeExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       isActive: true
     };
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/src/contexts/authProvider';
 import { useLeague } from '@/src/contexts/LeagueContext';
 import { League } from '@/src/lib/league-types';
-import { FaTimes, FaUsers, FaCopy, FaTrash, FaCrown, FaCheck, FaTimes as FaReject, FaUserPlus, FaImage } from 'react-icons/fa';
+import { FaTimes, FaUsers, FaCopy, FaTrash, FaCrown, FaCheck, FaTimes as FaReject, FaUserPlus, FaImage, FaSync } from 'react-icons/fa';
 import { db } from '@/src/lib/firebaseClient';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import ConfirmDialog from '../ui/ConfirmDialog';
@@ -53,14 +53,47 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({ name: league.name, description: league.description });
   const [editLoading, setEditLoading] = useState(false);
+  const [inviteCode, setInviteCode] = useState(league.inviteCode);
+  const [showResetCodeConfirm, setShowResetCodeConfirm] = useState(false);
+  const [resetCodeLoading, setResetCodeLoading] = useState(false);
 
   const isUserAdmin = user && league.admins.includes(user.uid);
 
   // Copy invite code
   const copyInviteCode = () => {
-    navigator.clipboard.writeText(league.inviteCode);
+    navigator.clipboard.writeText(inviteCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Reset / refresh invite code (invalidates the old one)
+  const handleResetCode = async () => {
+    setShowResetCodeConfirm(false);
+    if (!user) return;
+
+    setResetCodeLoading(true);
+    try {
+      const response = await fetch(`/api/leagues/${league.id}/regenerate-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setInviteCode(data.inviteCode);
+        showToast('New invite code generated', 'success');
+        refreshUserLeagues();
+      } else {
+        const error = await response.json();
+        showToast(error.error || 'Failed to reset invite code', 'error');
+      }
+    } catch (error) {
+      console.error('Error resetting invite code:', error);
+      showToast('Error resetting invite code', 'error');
+    } finally {
+      setResetCodeLoading(false);
+    }
   };
 
   // Fetch league members and pending requests
@@ -547,7 +580,7 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                     <div className="flex items-center justify-center gap-2">
                       <div className="bg-gray-300 dark:bg-gray-700 px-4 py-2 rounded-lg">
                         <span className="pickem-numeric text-xl font-bold text-gray-900 dark:text-white tracking-wider">
-                          {league.inviteCode}
+                          {inviteCode}
                         </span>
                       </div>
                       <button
@@ -557,6 +590,16 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                         {copied ? <FaCheck /> : <FaCopy />}
                         {copied ? 'Copied!' : 'Copy'}
                       </button>
+                      {isUserAdmin && (
+                        <button
+                          onClick={() => setShowResetCodeConfirm(true)}
+                          disabled={resetCodeLoading}
+                          className="px-3 py-2 bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-gray-900 dark:text-white rounded-lg transition-colors flex items-center gap-1"
+                        >
+                          <FaSync className={resetCodeLoading ? 'animate-spin' : ''} />
+                          {resetCodeLoading ? 'Resetting…' : 'Reset'}
+                        </button>
+                      )}
                     </div>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                       Share this code with friends to join your league
@@ -927,6 +970,17 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
         type="danger"
         onConfirm={handleDeleteLeague}
         onCancel={() => setShowDeleteConfirm(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={showResetCodeConfirm}
+        title="Reset Invite Code"
+        message="Generate a new invite code? The current code will stop working immediately, so anyone using the old code will need the new one. Existing members are not affected."
+        confirmText="Reset Code"
+        cancelText="Cancel"
+        type="danger"
+        onConfirm={handleResetCode}
+        onCancel={() => setShowResetCodeConfirm(false)}
       />
 
       {/* Transfer Admin Confirmation */}

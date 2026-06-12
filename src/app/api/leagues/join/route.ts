@@ -43,11 +43,6 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Check if invite code is expired
-    if (leagueData.inviteCodeExpiry && leagueData.inviteCodeExpiry.toDate() < new Date()) {
-      return NextResponse.json({ error: 'Invite code has expired' }, { status: 400 });
-    }
-
     // Add user to league
     const leagueRef = doc(db, 'leagues', leagueDoc.id);
     await updateDoc(leagueRef, {
