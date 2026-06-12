@@ -33,8 +33,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Sort by createdAt desc and limit to 20
+    // Sort by member count desc (fall back to createdAt desc as a tiebreaker) and limit to 20
     leagues.sort((a, b) => {
+      const memberDiff = (b.memberCount ?? 0) - (a.memberCount ?? 0);
+      if (memberDiff !== 0) return memberDiff;
       if (!a.createdAt || !b.createdAt) return 0;
       return b.createdAt.toMillis() - a.createdAt.toMillis();
     });
