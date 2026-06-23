@@ -201,6 +201,27 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
         </div>
 
         <div className="p-6">
+          {/* Join by Code */}
+          <div className="mb-4 pb-4 border-b border-gray-300 dark:border-gray-700">
+            <form onSubmit={handleJoinByCode} className="flex gap-2">
+              <input
+                type="text"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 pickem-numeric tracking-wider"
+                placeholder="Enter access code"
+                maxLength={10}
+              />
+              <button
+                type="submit"
+                disabled={loading || !inviteCode.trim()}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-gray-900 dark:text-white rounded-lg transition-colors whitespace-nowrap"
+              >
+                Join with Code
+              </button>
+            </form>
+          </div>
+
           {/* Search Leagues Tab */}
           <div className="space-y-4">
             <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="flex gap-2">

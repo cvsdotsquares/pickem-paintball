@@ -33,6 +33,8 @@ export default function LeagueBrowser({
   const [requestingLeagueId, setRequestingLeagueId] = useState<string | null>(null);
   const [joiningLeagueId, setJoiningLeagueId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "my-leagues">("all");
+  const [codeEntryLeagueId, setCodeEntryLeagueId] = useState<string | null>(null);
+  const [codeInput, setCodeInput] = useState('');
 
   const getLeagueIconUrl = (league: League): string | null => {
     if (!league.icon) return null;
@@ -74,7 +76,7 @@ export default function LeagueBrowser({
     }
   };
 
-  const joinLeague = async (league: League) => {
+  const joinLeague = async (league: League, code: string = league.inviteCode) => {
     // Check subscription before joining
     try {
       const response = await fetch(`/api/users/${user?.uid}/subscription`);
@@ -98,9 +100,11 @@ export default function LeagueBrowser({
 
     setJoiningLeagueId(league.id);
     try {
-      await joinLeagueByCode(league.inviteCode, user.uid);
+      await joinLeagueByCode(code, user.uid);
       await refreshUserLeagues();
       showToast('Successfully joined league!', 'success');
+      setCodeEntryLeagueId(null);
+      setCodeInput('');
       fetchLeagues();
     } catch (error: any) {
       showToast(error.message || 'Failed to join league', 'error');
@@ -315,27 +319,63 @@ export default function LeagueBrowser({
                           )}
                         </button>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => requestToJoin(league.id)}
-                          disabled={requestingLeagueId === league.id}
-                          className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 self-end rounded-lg bg-blue-600 px-3 py-0 text-xs font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50 sm:self-center sm:text-sm"
-                        >
-                          {requestingLeagueId === league.id ? (
-                            <>
-                              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-b-transparent" />
-                              Requesting...
-                            </>
-                          ) : (
-                            <>
-                              <FaUserPlus className="shrink-0 text-sm" />
-                              Request Join
-                            </>
-                          )}
-                        </button>
+                        <div className="flex shrink-0 gap-2 self-end sm:self-center">
+                          <button
+                            type="button"
+                            onClick={() => requestToJoin(league.id)}
+                            disabled={requestingLeagueId === league.id}
+                            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-0 text-xs font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50 sm:text-sm"
+                          >
+                            {requestingLeagueId === league.id ? (
+                              <>
+                                <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-b-transparent" />
+                                Requesting...
+                              </>
+                            ) : (
+                              <>
+                                <FaUserPlus className="shrink-0 text-sm" />
+                                Request Join
+                              </>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCodeEntryLeagueId(codeEntryLeagueId === league.id ? null : league.id);
+                              setCodeInput('');
+                            }}
+                            className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg border border-gray-400 px-3 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-300 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 sm:text-sm"
+                          >
+                            Use Code
+                          </button>
+                        </div>
                       )
                     )}
                   </div>
+
+                  {codeEntryLeagueId === league.id && (
+                    <form
+                      onSubmit={(e) => { e.preventDefault(); joinLeague(league, codeInput.trim().toUpperCase()); }}
+                      className="mt-3 flex gap-2"
+                    >
+                      <input
+                        type="text"
+                        value={codeInput}
+                        onChange={(e) => setCodeInput(e.target.value)}
+                        autoFocus
+                        placeholder="Enter access code"
+                        maxLength={10}
+                        className="pickem-numeric flex-1 rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm tracking-wider text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                      />
+                      <button
+                        type="submit"
+                        disabled={joiningLeagueId === league.id || !codeInput.trim()}
+                        className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {joiningLeagueId === league.id ? 'Joining...' : 'Join'}
+                      </button>
+                    </form>
+                  )}
                 </div>
                 );
               })}
