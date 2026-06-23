@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/src/contexts/authProvider';
+import { useLeague } from '@/src/contexts/LeagueContext';
 import { League } from '@/src/lib/league-types';
 import { FaSearch, FaUsers, FaLock, FaGlobe, FaUserPlus, FaTimes } from 'react-icons/fa';
 import { getFirebaseStorageUrl } from '@/src/lib/storage';
+import { joinLeagueByCode } from '@/src/lib/league-utils';
 import { useToast } from '@/src/hooks/useToast';
 import Toast from '../ui/Toast';
 
@@ -22,12 +24,14 @@ export default function LeagueBrowser({
   initialSearch,
 }: LeagueBrowserProps) {
   const { user } = useAuth();
+  const { refreshUserLeagues } = useLeague();
   const { toasts, showToast, hideToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [leagues, setLeagues] = useState<League[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [requestingLeagueId, setRequestingLeagueId] = useState<string | null>(null);
+  const [joiningLeagueId, setJoiningLeagueId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "my-leagues">("all");
 
   const getLeagueIconUrl = (league: League): string | null => {
@@ -67,6 +71,41 @@ export default function LeagueBrowser({
       showToast('Failed to load leagues', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const joinLeague = async (league: League) => {
+    // Check subscription before joining
+    try {
+      const response = await fetch(`/api/users/${user?.uid}/subscription`);
+      if (!response.ok) {
+        throw new Error(`Subscription check failed: ${response.status}`);
+      }
+      const subscriptionData = await response.json();
+
+      if (!subscriptionData.isSubscribed) {
+        onClose();
+        window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate' } }));
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+      showToast('Unable to verify subscription. Please try again.', 'error');
+      return;
+    }
+
+    if (!user) return;
+
+    setJoiningLeagueId(league.id);
+    try {
+      await joinLeagueByCode(league.inviteCode, user.uid);
+      await refreshUserLeagues();
+      showToast('Successfully joined league!', 'success');
+      fetchLeagues();
+    } catch (error: any) {
+      showToast(error.message || 'Failed to join league', 'error');
+    } finally {
+      setJoiningLeagueId(null);
     }
   };
 
@@ -231,7 +270,7 @@ export default function LeagueBrowser({
                       <div className="min-w-0 flex-1">
                         <div className="mb-1 flex flex-wrap items-center gap-2">
                           <h3 className="font-medium text-gray-900 dark:text-white">{league.name}</h3>
-                          {league.settings.isPublic ? (
+                          {league.settings.access === 'open' ? (
                             <FaGlobe className="shrink-0 text-sm text-green-400" />
                           ) : (
                             <FaLock className="shrink-0 text-sm text-yellow-400" />
@@ -243,8 +282,7 @@ export default function LeagueBrowser({
                             <FaUsers className="shrink-0" />
                             {league.memberCount} members
                           </span>
-                          <span>{league.settings.isPublic ? 'Public' : 'Private'}</span>
-                          {league.settings.requiresApproval && <span>Requires Approval</span>}
+                          <span>{league.settings.access === 'open' ? 'Open Access' : 'Private Access'}</span>
                         </div>
                       </div>
                     </div>
@@ -257,6 +295,25 @@ export default function LeagueBrowser({
                         >
                           Request sent
                         </span>
+                      ) : league.settings.access === 'open' ? (
+                        <button
+                          type="button"
+                          onClick={() => joinLeague(league)}
+                          disabled={joiningLeagueId === league.id}
+                          className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 self-end rounded-lg bg-green-600 px-3 py-0 text-xs font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50 sm:self-center sm:text-sm"
+                        >
+                          {joiningLeagueId === league.id ? (
+                            <>
+                              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-b-transparent" />
+                              Joining...
+                            </>
+                          ) : (
+                            <>
+                              <FaUserPlus className="shrink-0 text-sm" />
+                              Join
+                            </>
+                          )}
+                        </button>
                       ) : (
                         <button
                           type="button"

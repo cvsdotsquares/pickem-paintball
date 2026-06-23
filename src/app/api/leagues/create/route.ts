@@ -32,9 +32,8 @@ export async function POST(request: NextRequest) {
       createdBy: userId,
       createdAt: serverTimestamp(),
       settings: {
-        isPublic: settings?.isPublic ?? true,
-        requiresApproval: settings?.requiresApproval ?? false,
-        isSearchable: settings?.isSearchable ?? true,
+        visibility: settings?.visibility ?? 'public',
+        access: settings?.access ?? 'open',
         seasonSpecific: settings?.seasonSpecific ?? false,
         resetFrequency: settings?.resetFrequency ?? 'never'
       },

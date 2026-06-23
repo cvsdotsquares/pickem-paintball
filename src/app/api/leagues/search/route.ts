@@ -19,9 +19,11 @@ export async function GET(request: NextRequest) {
       ...doc.data()
     })) as any[];
 
-    // Filter client-side for public leagues (searchable is optional)
-    leagues = leagues.filter(league => 
-      league.settings?.isPublic === true
+    // Visibility is the only control for whether a league appears in search.
+    // Hidden leagues never show up here, regardless of access type — they're
+    // findable only by invite code or invite link.
+    leagues = leagues.filter(league =>
+      league.settings?.visibility === 'public'
     );
 
     // Filter by search term if provided
@@ -33,14 +35,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Sort by member count desc (fall back to createdAt desc as a tiebreaker) and limit to 20
+    // Sort by member count desc (fall back to createdAt desc as a tiebreaker)
     leagues.sort((a, b) => {
       const memberDiff = (b.memberCount ?? 0) - (a.memberCount ?? 0);
       if (memberDiff !== 0) return memberDiff;
       if (!a.createdAt || !b.createdAt) return 0;
       return b.createdAt.toMillis() - a.createdAt.toMillis();
     });
-    leagues = leagues.slice(0, 20);
 
     return NextResponse.json({ leagues });
 

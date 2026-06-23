@@ -7,9 +7,10 @@ export interface League {
   createdAt: any;
   
   settings: {
-    isPublic: boolean;
-    requiresApproval: boolean;
-    isSearchable: boolean;
+    /** public = appears in search, hidden = found only by invite code or invite link */
+    visibility: 'public' | 'hidden';
+    /** open = anyone who finds it joins instantly, private = joining requires the access code or admin approval */
+    access: 'open' | 'private';
     seasonSpecific: boolean;
     resetFrequency: 'never' | 'event' | 'season';
   };

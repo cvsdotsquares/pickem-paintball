@@ -14,7 +14,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
-    "migrate-players": "node scripts/migrate-players.mjs"
+    "migrate-players": "node scripts/migrate-players.mjs",
+    "migrate-league-access": "node scripts/migrate-league-access-schema.mjs"
   },
   "dependencies": {
     "@mantine/core": "^7.17.0",

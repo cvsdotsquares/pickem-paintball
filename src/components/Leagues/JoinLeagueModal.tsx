@@ -133,7 +133,7 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
     
     setLoading(true);
     try {
-      if (league.settings.requiresApproval) {
+      if (league.settings.access === 'private') {
         const response = await fetch(`/api/leagues/${league.id}/request`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -232,7 +232,7 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center mb-1">
-                            {league.settings.isPublic ? (
+                            {league.settings.access === 'open' ? (
                               <FaGlobe className="mr-2 text-green-400 text-sm" />
                             ) : (
                               <FaLock className="mr-2 text-red-400 text-sm" />
@@ -258,7 +258,7 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
                             disabled={loading}
                             className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-gray-900 dark:text-white rounded text-sm transition-colors"
                           >
-                            {league.settings.requiresApproval ? 'Request' : 'Join'}
+                            {league.settings.access === 'private' ? 'Request' : 'Join'}
                           </button>
                         )}
                       </div>

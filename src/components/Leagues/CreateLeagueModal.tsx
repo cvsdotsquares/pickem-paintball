@@ -29,9 +29,8 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    isPublic: true,
-    requiresApproval: false,
-    isSearchable: true,
+    visibility: 'public' as 'public' | 'hidden',
+    access: 'open' as 'open' | 'private',
     seasonSpecific: false,
     resetFrequency: 'never' as 'never' | 'event' | 'season'
   });
@@ -87,9 +86,8 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
       }
 
       const settings = {
-        isPublic: formData.isPublic,
-        requiresApproval: formData.requiresApproval,
-        isSearchable: formData.isSearchable,
+        visibility: formData.visibility,
+        access: formData.access,
         seasonSpecific: formData.seasonSpecific,
         resetFrequency: formData.resetFrequency
       };
@@ -125,9 +123,8 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
       setFormData({
         name: '',
         description: '',
-        isPublic: true,
-        requiresApproval: false,
-        isSearchable: true,
+        visibility: 'public',
+        access: 'open',
         seasonSpecific: false,
         resetFrequency: 'never'
       });
@@ -250,70 +247,78 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
           {/* Settings */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">League Settings</h3>
-            
-            {/* Public/Private */}
+
+            {/* Visibility: public (in search) vs hidden (invite/code only) */}
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                {formData.isPublic ? <FaGlobe className="mr-2 text-green-400" /> : <FaLock className="mr-2 text-red-400" />}
-                <span className="text-sm text-gray-900 dark:text-white">
-                  {formData.isPublic ? 'Public League' : 'Private League'}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, isPublic: !formData.isPublic })}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  formData.isPublic ? 'bg-green-600' : 'bg-gray-600'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    formData.isPublic ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-
-            {/* Searchable */}
-            {formData.isPublic && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  {formData.isSearchable ? <FaEye className="mr-2 text-blue-400" /> : <FaEyeSlash className="mr-2 text-gray-600 dark:text-gray-400" />}
-                  <span className="text-sm text-gray-900 dark:text-white">Searchable</span>
+                {formData.visibility === 'public' ? <FaEye className="mr-2 text-blue-400" /> : <FaEyeSlash className="mr-2 text-gray-600 dark:text-gray-400" />}
+                <div>
+                  <span className="text-sm text-gray-900 dark:text-white">
+                    {formData.visibility === 'public' ? 'Visible in Search' : 'Hidden from Search'}
+                  </span>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    {formData.visibility === 'public'
+                      ? 'Anyone can find this league by searching'
+                      : 'Only found by invite link or access code'}
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, isSearchable: !formData.isSearchable })}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    formData.isSearchable ? 'bg-blue-600' : 'bg-gray-600'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      formData.isSearchable ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
               </div>
-            )}
-
-            {/* Requires Approval */}
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-900 dark:text-white">Require Admin Approval</span>
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, requiresApproval: !formData.requiresApproval })}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  formData.requiresApproval ? 'bg-yellow-600' : 'bg-gray-600'
+                onClick={() => setFormData({ ...formData, visibility: formData.visibility === 'public' ? 'hidden' : 'public' })}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                  formData.visibility === 'public' ? 'bg-blue-600' : 'bg-gray-600'
                 }`}
               >
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    formData.requiresApproval ? 'translate-x-6' : 'translate-x-1'
+                    formData.visibility === 'public' ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
               </button>
             </div>
+
+            {/* Access: open (instant join) vs private (code or approval) */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                {formData.access === 'open' ? <FaGlobe className="mr-2 text-green-400" /> : <FaLock className="mr-2 text-yellow-400" />}
+                <div>
+                  <span className="text-sm text-gray-900 dark:text-white">
+                    {formData.access === 'open' ? 'Open Access' : 'Private Access'}
+                  </span>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    {formData.access === 'open'
+                      ? 'Anyone who finds this league joins instantly'
+                      : 'Joining needs the access code, or your approval'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, access: formData.access === 'open' ? 'private' : 'open' })}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                  formData.access === 'open' ? 'bg-green-600' : 'bg-yellow-600'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    formData.access === 'open' ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Plain-language summary of the combined effect */}
+            <p className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+              {formData.visibility === 'public' && formData.access === 'open' &&
+                "Anyone can find this league in search and join right away — no approval needed."}
+              {formData.visibility === 'public' && formData.access === 'private' &&
+                "Anyone can find this league in search, but they'll need the access code or your approval to join."}
+              {formData.visibility === 'hidden' && formData.access === 'open' &&
+                "This league won't show up in search. Anyone with the invite link or access code can join right away."}
+              {formData.visibility === 'hidden' && formData.access === 'private' &&
+                "This league won't show up in search. People need the access code to join — you can also invite members directly."}
+            </p>
           </div>
 
           {/* Submit Button */}

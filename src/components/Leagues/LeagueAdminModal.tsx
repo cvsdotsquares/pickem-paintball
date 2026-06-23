@@ -898,42 +898,48 @@ export default function LeagueAdminModal({ isOpen, onClose, league }: LeagueAdmi
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-gray-900 dark:text-white font-medium">Public League</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Anyone can find and join</div>
+                      <div className="text-gray-900 dark:text-white font-medium">Visible in Search</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        {leagueSettings.visibility === 'public'
+                          ? 'Anyone can find this league by searching'
+                          : 'Hidden — only found by invite link or access code'}
+                      </div>
                     </div>
                     <button
-                      onClick={() => handleSettingsUpdate({ ...leagueSettings, isPublic: !leagueSettings.isPublic })}
-                      className={`w-12 h-6 rounded-full ${leagueSettings.isPublic ? 'bg-green-600' : 'bg-gray-600'} relative transition-colors`}
+                      onClick={() => handleSettingsUpdate({ ...leagueSettings, visibility: leagueSettings.visibility === 'public' ? 'hidden' : 'public' })}
+                      className={`w-12 h-6 rounded-full ${leagueSettings.visibility === 'public' ? 'bg-blue-600' : 'bg-gray-600'} relative transition-colors`}
                     >
-                      <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${leagueSettings.isPublic ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${leagueSettings.visibility === 'public' ? 'translate-x-6' : 'translate-x-0.5'}`} />
                     </button>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-gray-900 dark:text-white font-medium">Require Approval</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Admin must approve join requests</div>
+                      <div className="text-gray-900 dark:text-white font-medium">Open Access</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        {leagueSettings.access === 'open'
+                          ? 'Anyone who finds this league joins instantly'
+                          : 'Joining needs the access code, or your approval'}
+                      </div>
                     </div>
                     <button
-                      onClick={() => handleSettingsUpdate({ ...leagueSettings, requiresApproval: !leagueSettings.requiresApproval })}
-                      className={`w-12 h-6 rounded-full ${leagueSettings.requiresApproval ? 'bg-yellow-600' : 'bg-gray-600'} relative transition-colors`}
+                      onClick={() => handleSettingsUpdate({ ...leagueSettings, access: leagueSettings.access === 'open' ? 'private' : 'open' })}
+                      className={`w-12 h-6 rounded-full ${leagueSettings.access === 'open' ? 'bg-green-600' : 'bg-yellow-600'} relative transition-colors`}
                     >
-                      <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${leagueSettings.requiresApproval ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${leagueSettings.access === 'open' ? 'translate-x-6' : 'translate-x-0.5'}`} />
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-gray-900 dark:text-white font-medium">Searchable</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Appears in public search</div>
-                    </div>
-                    <button
-                      onClick={() => handleSettingsUpdate({ ...leagueSettings, isSearchable: !leagueSettings.isSearchable })}
-                      className={`w-12 h-6 rounded-full ${leagueSettings.isSearchable ? 'bg-blue-600' : 'bg-gray-600'} relative transition-colors`}
-                    >
-                      <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${leagueSettings.isSearchable ? 'translate-x-6' : 'translate-x-0.5'}`} />
-                    </button>
-                  </div>
+                  <p className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                    {leagueSettings.visibility === 'public' && leagueSettings.access === 'open' &&
+                      "Anyone can find this league in search and join right away — no approval needed."}
+                    {leagueSettings.visibility === 'public' && leagueSettings.access === 'private' &&
+                      "Anyone can find this league in search, but they'll need the access code or your approval to join."}
+                    {leagueSettings.visibility === 'hidden' && leagueSettings.access === 'open' &&
+                      "This league won't show up in search. Anyone with the invite link or access code can join right away."}
+                    {leagueSettings.visibility === 'hidden' && leagueSettings.access === 'private' &&
+                      "This league won't show up in search. People need the access code to join — you can also invite members directly."}
+                  </p>
                 </div>
 
                 <div className="border-t border-gray-300 dark:border-gray-700 pt-4">
