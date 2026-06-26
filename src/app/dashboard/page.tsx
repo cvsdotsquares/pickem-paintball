@@ -18,6 +18,7 @@ import { memo, useEffect, useState } from "react";
 import { useDashboardNestedScrollHandler } from "@/src/contexts/DashboardMainScrollContext";
 import Link from "next/link";
 import { MonochromePillTabs } from "@/src/components/ui/monochrome-pill-tabs";
+import ShareTeamButton from "@/src/components/Dashboard/ShareTeamButton";
 import {
   PlayerStatus,
   STATUS_META,
@@ -514,9 +515,12 @@ export default function Dashboard() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
         <h3 className={sectionRowHeadingClass}>Live picks</h3>
-        <Link href="/dashboard/pick-em" className={sectionActionLinkClass}>
-          Edit picks →
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <ShareTeamButton uid={user?.uid} className={sectionActionLinkClass} />
+          <Link href="/dashboard/pick-em" className={sectionActionLinkClass}>
+            Edit picks →
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-col overflow-hidden rounded-2xl bg-gray-100 dark:bg-[#1a1a1a]">
