@@ -328,6 +328,7 @@ export async function GET(request: NextRequest) {
     await Promise.all(
       earnedBadges.slice(0, 3).map(async (b) => ({
         count: b.count,
+        showCount: BADGE_DEFINITIONS[b.id].showCount,
         img: await badgePng(BADGE_DEFINITIONS[b.id].imageSrc),
       })),
     )
@@ -661,38 +662,51 @@ export async function GET(request: NextRequest) {
                       </div>
                     )}
                   </div>
-                  <div style={{ display: "flex", marginTop: 12 }}>
-                    {[0, 1, 2].map((i) => {
-                      const b = topBadges[i];
-                      return b ? (
-                        <img
-                          key={i}
-                          src={b.img}
-                          width={46}
-                          height={46}
-                          style={{
-                            width: 46,
-                            height: 46,
-                            marginRight: i < 2 ? 6 : 0,
-                          }}
-                        />
-                      ) : (
+                  {topBadges.length > 0 ? (
+                    <div style={{ display: "flex", marginTop: 12 }}>
+                      {topBadges.map((b, i) => (
                         <div
                           key={i}
                           style={{
                             display: "flex",
-                            width: 18,
-                            height: 18,
-                            borderRadius: 9,
-                            marginTop: 14,
-                            marginRight: i < 2 ? 6 : 0,
-                            backgroundColor: "rgba(255,255,255,0.08)",
-                            border: "1px solid rgba(255,255,255,0.15)",
+                            position: "relative",
+                            marginRight: i < topBadges.length - 1 ? 8 : 0,
                           }}
-                        />
-                      );
-                    })}
-                  </div>
+                        >
+                          <img
+                            src={b.img}
+                            width={46}
+                            height={46}
+                            style={{ width: 46, height: 46 }}
+                          />
+                          {b.showCount && b.count > 1 ? (
+                            <div
+                              style={{
+                                position: "absolute",
+                                bottom: -3,
+                                right: -5,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                minWidth: 22,
+                                height: 22,
+                                padding: "0 5px",
+                                borderRadius: 11,
+                                backgroundColor: BRAND_GREEN,
+                                color: "#000",
+                                fontFamily: "Hitmarker",
+                                fontSize: 14,
+                                fontWeight: 700,
+                                border: "2px solid #000",
+                              }}
+                            >
+                              {b.count}
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
                 {/* name + stats */}
                 <div
