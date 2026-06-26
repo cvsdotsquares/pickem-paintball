@@ -236,7 +236,8 @@ function StatusTick({ status }: { status: string }) {
 
 export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
-  const email = sp.get("email") || "greenjoc3397@gmail.com";
+  const uidParam = sp.get("uid");
+  const email = sp.get("email");
   const eventIdParam = sp.get("eventId");
 
   const [logoUri, placeholderUri, fonts] = await Promise.all([
@@ -263,12 +264,28 @@ export async function GET(request: NextRequest) {
     (typeof event?.brand_color === "string" && (event.brand_color as string)) ||
     BRAND_GREEN;
 
-  // Resolve user by email
-  const usersQ = query(collection(db, "users"), where("email", "==", email));
-  const userSnap = await getDocs(usersQ);
-  const userDocSnap = userSnap.docs[0];
-  const userData = (userDocSnap?.data() as AnyRec) || {};
-  const uid = userDocSnap?.id || "";
+  // Resolve user by uid (share links) or email (dev convenience).
+  let userData: AnyRec = {};
+  let uid = "";
+  if (uidParam) {
+    const ds = await getDoc(doc(db, "users", uidParam));
+    if (ds.exists()) {
+      userData = ds.data() as AnyRec;
+      uid = ds.id;
+    }
+  } else {
+    const snap = await getDocs(
+      query(
+        collection(db, "users"),
+        where("email", "==", email || "greenjoc3397@gmail.com"),
+      ),
+    );
+    const d = snap.docs[0];
+    if (d) {
+      userData = d.data() as AnyRec;
+      uid = d.id;
+    }
+  }
 
   const displayName = String(
     userData.username ||
@@ -277,7 +294,7 @@ export async function GET(request: NextRequest) {
         : "") ||
       userData.name ||
       userData.displayName ||
-      email.split("@")[0] ||
+      (email ? email.split("@")[0] : "") ||
       "PLAYER",
   ).toUpperCase();
 
