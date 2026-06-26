@@ -311,11 +311,19 @@ export async function GET(request: NextRequest) {
     (typeof event?.brand_color === "string" && (event.brand_color as string)) ||
     BRAND_GREEN;
 
+  // Public share links use an opaque ?share= id -> resolve to the userId.
+  let lookupUid = uidParam;
+  const shareParam = sp.get("share");
+  if (shareParam) {
+    const sc = await getDoc(doc(db, "shareCards", shareParam));
+    lookupUid = sc.exists() ? ((sc.get("userId") as string) || null) : shareParam;
+  }
+
   // Resolve user by uid (share links) or email (dev convenience).
   let userData: AnyRec = {};
   let uid = "";
-  if (uidParam) {
-    const ds = await getDoc(doc(db, "users", uidParam));
+  if (lookupUid) {
+    const ds = await getDoc(doc(db, "users", lookupUid));
     if (ds.exists()) {
       userData = ds.data() as AnyRec;
       uid = ds.id;

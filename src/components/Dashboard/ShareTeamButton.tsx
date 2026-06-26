@@ -9,11 +9,11 @@ import { SHARE_COPY } from "@/src/lib/shareCopy";
  * (with a tap-through link as secondary text). Desktop / unsupported browsers
  * fall back to downloading the image + copying the link.
  *
- * The card render takes a few seconds, and navigator.share() must fire within
- * a tap's user-activation window — so we PRE-WARM the image on mount and reuse
- * the cached blob on click, making the share open instantly.
- * Trade-off: this downloads the (~1.2MB) card on dashboard load even if the
- * user never shares. Acceptable for now; revisit if bandwidth matters.
+ * Share links use an opaque shareId (minted via /api/share/link) so raw uids
+ * never appear in URLs. We resolve the id and PRE-WARM the image on mount, then
+ * reuse the cached blob on click so navigator.share() fires inside the tap's
+ * user-activation window (the render is multi-second).
+ * Trade-off: downloads the (~1.2MB) card on dashboard load even if unused.
  */
 export default function ShareTeamButton({
   uid,
@@ -23,36 +23,70 @@ export default function ShareTeamButton({
   className?: string;
 }) {
   const [loading, setLoading] = useState(false);
+  const [shareId, setShareId] = useState<string | null>(null);
   const blobRef = useRef<Blob | null>(null);
 
-  const imageUrl = uid
-    ? `/api/share/og?uid=${encodeURIComponent(uid)}`
-    : null;
-
+  // Mint/fetch the opaque shareId on mount.
   useEffect(() => {
-    if (!imageUrl) return;
+    if (!uid) return;
     let cancelled = false;
-    fetch(imageUrl)
+    fetch(`/api/share/link?uid=${encodeURIComponent(uid)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d?.shareId) setShareId(d.shareId);
+      })
+      .catch(() => {
+        /* best-effort */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [uid]);
+
+  // Pre-warm the card image once the shareId is known.
+  useEffect(() => {
+    if (!shareId) return;
+    let cancelled = false;
+    fetch(`/api/share/og?share=${encodeURIComponent(shareId)}`)
       .then((r) => (r.ok ? r.blob() : null))
       .then((b) => {
         if (!cancelled && b) blobRef.current = b;
       })
       .catch(() => {
-        /* best-effort pre-warm */
+        /* best-effort */
       });
     return () => {
       cancelled = true;
     };
-  }, [imageUrl]);
+  }, [shareId]);
+
+  async function ensureShareId(): Promise<string | null> {
+    if (shareId) return shareId;
+    if (!uid) return null;
+    try {
+      const r = await fetch(`/api/share/link?uid=${encodeURIComponent(uid)}`);
+      const d = r.ok ? await r.json() : null;
+      if (d?.shareId) {
+        setShareId(d.shareId);
+        return d.shareId as string;
+      }
+    } catch {
+      /* ignore */
+    }
+    return null;
+  }
 
   async function handleShare() {
-    if (!uid || !imageUrl || loading) return;
+    if (!uid || loading) return;
     setLoading(true);
     try {
-      const shareUrl = `${window.location.origin}/t/${uid}`;
+      const id = await ensureShareId();
+      if (!id) throw new Error("no shareId");
+
+      const shareUrl = `${window.location.origin}/t/${id}`;
       let blob = blobRef.current;
       if (!blob) {
-        const res = await fetch(imageUrl);
+        const res = await fetch(`/api/share/og?share=${encodeURIComponent(id)}`);
         if (!res.ok) throw new Error(`render ${res.status}`);
         blob = await res.blob();
         blobRef.current = blob;

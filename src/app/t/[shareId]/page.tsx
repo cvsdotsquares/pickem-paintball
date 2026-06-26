@@ -18,9 +18,21 @@ async function getBaseUrl(): Promise<string> {
   return `${proto}://${host}`;
 }
 
-async function getDisplayName(shareId: string): Promise<string> {
+// Opaque shareId -> userId via the shareCards mapping (falls back to treating
+// the id as a raw uid for older/dev links).
+async function resolveUserId(shareId: string): Promise<string> {
   try {
-    const ds = await getDoc(doc(db, "users", shareId));
+    const sc = await getDoc(doc(db, "shareCards", shareId));
+    if (sc.exists()) return (sc.get("userId") as string) || shareId;
+  } catch {
+    /* ignore */
+  }
+  return shareId;
+}
+
+async function getDisplayName(userId: string): Promise<string> {
+  try {
+    const ds = await getDoc(doc(db, "users", userId));
     if (ds.exists()) {
       const d = ds.data();
       const name =
@@ -43,8 +55,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { shareId } = await params;
   const base = await getBaseUrl();
-  const ogImage = `${base}/api/share/og?uid=${encodeURIComponent(shareId)}`;
-  const raw = await getDisplayName(shareId);
+  const ogImage = `${base}/api/share/og?share=${encodeURIComponent(shareId)}`;
+  const userId = await resolveUserId(shareId);
+  const raw = await getDisplayName(userId);
   const name = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : "";
   const title = name
     ? `${name}'s PickEm Paintball team`
@@ -77,7 +90,7 @@ export default async function SharePage({
   params: Promise<{ shareId: string }>;
 }) {
   const { shareId } = await params;
-  const ogImage = `/api/share/og?uid=${encodeURIComponent(shareId)}`;
+  const ogImage = `/api/share/og?share=${encodeURIComponent(shareId)}`;
 
   return (
     <div className="min-h-screen w-full bg-[#0c0c0c] flex flex-col items-center px-4 py-8 gap-6 text-white">
