@@ -4,12 +4,12 @@ export const SHARE_COPY = {
   preparingLabel: "Preparing…",
   title: "My PickEm Paintball team",
   /**
-   * Sits alongside the link in the share sheet. Because apps like WhatsApp
-   * both attach the image AND unfurl the link (whose OG image is the same
-   * card), this text frames the link as a "build your own" call-to-action so
-   * the second appearance reads as intentional rather than a duplicate.
+   * Caption for the native (image-only) share. Kept URL-free on purpose: any
+   * link/domain here would make WhatsApp/Discord unfurl a second copy of the
+   * card. The call-to-action (QR + pickempaintball.com) is baked into the
+   * card image itself, so it travels with the picture everywhere.
    */
-  text: "Check out my PickEm Paintball team 🎯  Build your own free team:",
+  text: "Check out my PickEm Paintball team 🎯 Build your own — free to play.",
   fileName: "pickem-team.png",
   downloadedToast: "Card downloaded & link copied",
   downloadedNoCopyToast: "Card downloaded",

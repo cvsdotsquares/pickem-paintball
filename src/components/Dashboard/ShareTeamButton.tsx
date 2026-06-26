@@ -97,11 +97,13 @@ export default function ShareTeamButton({
         typeof navigator !== "undefined" &&
         navigator.canShare?.({ files: [file] })
       ) {
+        // Image-only on purpose: no `url`, so apps don't unfurl a second copy
+        // of the card. The CTA (QR + URL) is baked into the image. The link is
+        // still available via the desktop "copy link" fallback below.
         await navigator.share({
           files: [file],
           title: SHARE_COPY.title,
           text: SHARE_COPY.text,
-          url: shareUrl,
         });
         return;
       }
