@@ -9,6 +9,7 @@ import { Player } from "../pick-em/page";
 import { useAuth } from "@/src/contexts/authProvider";
 import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanner";
 import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
+import { setCachedFeaturedEvent } from "@/src/lib/featuredEvent";
 import { cn } from "@/src/lib/utils";
 import {
   EVENT_LOCATION_SHORT_LABEL_BY_EVENT_ID as AGGREGATE_EVENT_COLUMN_BY_EVENT_ID,
@@ -79,6 +80,17 @@ export default function Statistics() {
   const [selectedYear, setSelectedYear] = useState<string>("All");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [liveEvent, setLiveEvent] = useState<Event | null>(null);
+
+  // Warm the shared cache so the dashboard home renders this banner instantly on navigation.
+  useEffect(() => {
+    if (liveEvent) {
+      setCachedFeaturedEvent(
+        eventRecordToBannerModel(
+          liveEvent as unknown as Record<string, unknown> & { id: string },
+        ),
+      );
+    }
+  }, [liveEvent]);
   const [showSeasonTable, setShowSeasonTable] = useState<boolean>(false);
   const [selectedSeasonYear, setSelectedSeasonYear] = useState<string | null>(null);
 
