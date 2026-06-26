@@ -137,19 +137,66 @@ async function badgePng(imageSrc: string): Promise<string> {
   }
 }
 
+// --- warm-instance caches ---
+// Fonts/static SVGs never change; badge art is a fixed set; transcodes are
+// deterministic per URL and player photos are shared across all users, so a
+// process-lifetime cache turns most renders into near-pure layout work.
+let _fontsPromise: ReturnType<typeof loadFonts> | null = null;
+const loadFontsCached = () => (_fontsPromise ??= loadFonts());
+
+const _dataUriCache = new Map<string, Promise<string | null>>();
+const dataUriCached = (file: string, mime: string) => {
+  let p = _dataUriCache.get(file);
+  if (!p) {
+    p = dataUri(file, mime);
+    _dataUriCache.set(file, p);
+  }
+  return p;
+};
+
+const _badgeCache = new Map<string, Promise<string>>();
+const badgePngCached = (src: string) => {
+  let p = _badgeCache.get(src);
+  if (!p) {
+    p = badgePng(src);
+    _badgeCache.set(src, p);
+  }
+  return p;
+};
+
+const PNG_CACHE_MAX = 400;
+const _pngCache = new Map<string, Promise<string>>();
+const toPngCached = (url: string): Promise<string> => {
+  if (!url) return Promise.resolve("");
+  let p = _pngCache.get(url);
+  if (!p) {
+    if (_pngCache.size >= PNG_CACHE_MAX) {
+      const oldest = _pngCache.keys().next().value;
+      if (oldest !== undefined) _pngCache.delete(oldest);
+    }
+    // Don't cache failures (transient fetch errors) — let them retry.
+    p = toPng(url).then((v) => {
+      if (!v) _pngCache.delete(url);
+      return v;
+    });
+    _pngCache.set(url, p);
+  }
+  return p;
+};
+
 async function resolveAvatar(userData: AnyRec): Promise<string> {
   const pp = userData.profilePicture;
   if (typeof pp === "string" && pp) {
-    if (pp.startsWith("http")) return toPng(pp);
+    if (pp.startsWith("http")) return toPngCached(pp);
     try {
       const url = await getDownloadURL(ref(getStorage(), pp));
-      return await toPng(url);
+      return await toPngCached(url);
     } catch {
       /* fall through */
     }
   }
   const ph = userData.photoURL;
-  if (typeof ph === "string" && ph.startsWith("http")) return toPng(ph);
+  if (typeof ph === "string" && ph.startsWith("http")) return toPngCached(ph);
   return "";
 }
 
@@ -241,9 +288,9 @@ export async function GET(request: NextRequest) {
   const eventIdParam = sp.get("eventId");
 
   const [logoUri, placeholderUri, fonts] = await Promise.all([
-    dataUri("logo-dark.svg", "image/svg+xml"),
-    dataUri("placeholder.svg", "image/svg+xml"),
-    loadFonts(),
+    dataUriCached("logo-dark.svg", "image/svg+xml"),
+    dataUriCached("placeholder.svg", "image/svg+xml"),
+    loadFontsCached(),
   ]);
 
   const event = await resolveEvent(eventIdParam);
@@ -329,11 +376,11 @@ export async function GET(request: NextRequest) {
     resolveAvatar(userData),
     Promise.all(
       picks.map(async (p) => {
-        p.picture = await toPng(p.picture);
+        p.picture = await toPngCached(p.picture);
       }),
     ),
   ]);
-  const eventLogo = await toPng(rawEventLogo);
+  const eventLogo = await toPngCached(rawEventLogo);
 
   // Badges are a subscriber-only feature (matches ProfileBadgesSection gating).
   const isSubscribed = userData.isSubscribed === true;
@@ -346,7 +393,7 @@ export async function GET(request: NextRequest) {
       earnedBadges.slice(0, 3).map(async (b) => ({
         count: b.count,
         showCount: BADGE_DEFINITIONS[b.id].showCount,
-        img: await badgePng(BADGE_DEFINITIONS[b.id].imageSrc),
+        img: await badgePngCached(BADGE_DEFINITIONS[b.id].imageSrc),
       })),
     )
   ).filter((b) => b.img);
@@ -908,6 +955,16 @@ export async function GET(request: NextRequest) {
         </div>
       </div>
     ),
-    { width: WIDTH, height: HEIGHT, fonts },
+    {
+      width: WIDTH,
+      height: HEIGHT,
+      fonts,
+      headers: {
+        // CDN/browser cache: crawlers + repeat views serve cached; short TTL
+        // keeps picks/live-stat edits reasonably fresh, SWR hides re-renders.
+        "Cache-Control":
+          "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
+      },
+    },
   );
 }
