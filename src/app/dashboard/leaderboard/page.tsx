@@ -77,6 +77,7 @@ import { cn } from "@/src/lib/utils";
 import { individualEventDisplayName } from "@/src/lib/eventDisplayName";
 import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanner";
 import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
+import { setCachedFeaturedEvent } from "@/src/lib/featuredEvent";
 import LeagueSelector from "../../../components/Leagues/LeagueSelector";
 import CreateLeagueModal from "../../../components/Leagues/CreateLeagueModal";
 import JoinLeagueModal from "../../../components/Leagues/JoinLeagueModal";
@@ -607,6 +608,17 @@ function LeaderboardNewContent() {
     if (allEvents.length === 0) return null;
     return allEvents.find((e) => e.status === "live") ?? allEvents[0] ?? null;
   }, [allEvents]);
+
+  // Warm the shared cache so the dashboard home renders this banner instantly on navigation.
+  useEffect(() => {
+    if (bannerEvent) {
+      setCachedFeaturedEvent(
+        eventRecordToBannerModel(
+          bannerEvent as unknown as Record<string, unknown> & { id: string },
+        ),
+      );
+    }
+  }, [bannerEvent]);
 
   const auth = getAuth();
   const currentUserId = auth.currentUser?.uid;

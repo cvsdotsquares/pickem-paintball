@@ -3,7 +3,7 @@
 import EventCountdownBanner, {
   type EventCountdownBannerModel,
 } from "@/src/components/Dashboard/EventCountdownBanner";
-import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
+import { fetchFeaturedEvent, getCachedFeaturedEvent } from "@/src/lib/featuredEvent";
 import { useAuth } from "@/src/contexts/authProvider";
 import {
   collection,
@@ -108,7 +108,9 @@ export default function Dashboard() {
   const [seasonRank, setSeasonRank] = useState<number | undefined>();
   const [eventPoints, setEventPoints] = useState<number | undefined>();
   const [seasonPoints, setSeasonPoints] = useState<number | undefined>();
-  const [liveEvent, setLiveEvent] = useState<EventCountdownBannerModel | null>(null);
+  const [liveEvent, setLiveEvent] = useState<EventCountdownBannerModel | null>(
+    () => getCachedFeaturedEvent(),
+  );
   const [topKills, setTopKills] = useState<KillRow[]>([]);
   const [statusRows, setStatusRows] = useState<StatusRow[]>([]);
   const [statusFilter, setStatusFilter] = useState<PlayerStatus | "All">("All");
@@ -158,38 +160,16 @@ export default function Dashboard() {
   }, [user?.uid]);
 
   useEffect(() => {
-    const fetchFeaturedEvent = async () => {
-      try {
-        const snap = await getDocs(collection(db, "events"));
-        const raw = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as (Record<string, unknown> & {
-          id: string;
-        })[];
-        const live = raw.find((e) => (e as { status?: string }).status === "live");
-        if (live) {
-          setLiveEvent(eventRecordToBannerModel(live));
-          return;
-        }
-        const upcoming = raw
-          .filter((e) => {
-            const lock = (e as { lockDate?: { toDate: () => Date } }).lockDate;
-            return lock?.toDate && lock.toDate() > new Date();
-          })
-          .sort((a, b) => {
-            const la = (a as { lockDate?: { toMillis: () => number } }).lockDate;
-            const lb = (b as { lockDate?: { toMillis: () => number } }).lockDate;
-            return (la?.toMillis?.() ?? 0) - (lb?.toMillis?.() ?? 0);
-          });
-        if (upcoming[0]) {
-          setLiveEvent(eventRecordToBannerModel(upcoming[0]));
-          return;
-        }
-        if (raw[0]) setLiveEvent(eventRecordToBannerModel(raw[0]));
-        else setLiveEvent(null);
-      } catch (e) {
-        console.error(e);
-      }
+    let cancelled = false;
+    void (async () => {
+      // Returns the last-known event on transient failure, so we never blank an
+      // already-visible banner; only overwrite state when we actually have data.
+      const event = await fetchFeaturedEvent();
+      if (!cancelled && event) setLiveEvent(event);
+    })();
+    return () => {
+      cancelled = true;
     };
-    fetchFeaturedEvent();
   }, [user?.uid]);
 
   useEffect(() => {
