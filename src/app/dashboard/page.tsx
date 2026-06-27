@@ -425,7 +425,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between gap-4">
         <h3 className={sectionRowHeadingClass}>Roster updates</h3>
         <Link href="/dashboard/pick-em" className={`${sectionActionLinkClass} md:hidden`}>
-          Edit picks →
+          Edit team →
         </Link>
       </div>
       {statusRows.length > 0 && (
@@ -530,7 +530,7 @@ export default function Dashboard() {
         <div className="flex shrink-0 items-center gap-2">
           <ShareTeamButton uid={user?.uid} className={sectionActionLinkClass} />
           <Link href="/dashboard/pick-em" className={sectionActionLinkClass}>
-            Edit picks →
+            Edit team →
           </Link>
         </div>
       </div>
