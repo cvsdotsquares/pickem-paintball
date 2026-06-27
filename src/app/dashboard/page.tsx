@@ -20,6 +20,11 @@ import Link from "next/link";
 import { MonochromePillTabs } from "@/src/components/ui/monochrome-pill-tabs";
 import ShareTeamButton from "@/src/components/Dashboard/ShareTeamButton";
 import {
+  sortUserBadges,
+  BADGE_DEFINITIONS,
+  type UserBadges,
+} from "@/src/lib/badges";
+import {
   PlayerStatus,
   STATUS_META,
   STATUS_BUTTON_BASE_CLASS,
@@ -104,6 +109,8 @@ export default function Dashboard() {
   );
   const [captainId, setCaptainId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [badges, setBadges] = useState<UserBadges | null>(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const [displayName, setDisplayName] = useState<string>("");
   const [eventRank, setEventRank] = useState<number | undefined>();
   const [seasonRank, setSeasonRank] = useState<number | undefined>();
@@ -130,6 +137,8 @@ export default function Dashboard() {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
           const data = userDoc.data();
+          setBadges((data.badges ?? null) as UserBadges | null);
+          setIsSubscribed(data.isSubscribed === true);
           const name =
             data.username ||
             (data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : null) ||
@@ -511,6 +520,9 @@ export default function Dashboard() {
     </div>
   );
 
+  // Subscriber-only badges in the summary panel (mirrors the share card).
+  const topBadges = (isSubscribed ? sortUserBadges(badges ?? {}) : []).slice(0, 3);
+
   const livePicksBlock = (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
@@ -540,11 +552,31 @@ export default function Dashboard() {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-0.5">
-                    {[0, 1, 2].map((i) => (
-                      <div key={i} className="w-3.5 h-3.5 rounded-full bg-white/10 border border-white/15" />
-                    ))}
-                  </div>
+                  {topBadges.length > 0 && (
+                    <div className="flex gap-1">
+                      {topBadges.map((b) => {
+                        const def = BADGE_DEFINITIONS[b.id];
+                        return (
+                          <div key={b.id} className="relative w-5 h-5">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={def.imageSrc}
+                              alt={def.name}
+                              className="w-5 h-5 object-contain"
+                            />
+                            {def.showCount && b.count > 1 && (
+                              <span
+                                className="absolute -bottom-1 -right-1 flex items-center justify-center min-w-[14px] h-[14px] px-[3px] rounded-full bg-red-500 text-white font-bold leading-none"
+                                style={{ fontSize: 9 }}
+                              >
+                                {b.count}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-white/40 text-[8px] uppercase tracking-widest font-bold leading-none">Player</div>
