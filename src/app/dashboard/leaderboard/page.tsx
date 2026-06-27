@@ -25,10 +25,12 @@ import {
   FaTimes,
   FaTrophy,
 } from "react-icons/fa";
+import { IoShareOutline } from "react-icons/io5";
 import { getAuth } from "firebase/auth";
 import { LeaderboardSkeleton } from "@/src/components/LoadingSkeleton";
 import { ErrorBoundaryWrapper } from "@/src/components/ErrorBoundaryWrapper";
 import UserAchievementBadges from "@/src/components/Badges/UserAchievementBadges";
+import ShareTeamButton from "@/src/components/Dashboard/ShareTeamButton";
 import { useSubscription } from "@/src/contexts/SubscriptionContext";
 import type { UserBadges } from "@/src/lib/badges";
 import {
@@ -1753,13 +1755,27 @@ function LeaderboardNewContent() {
                     </p>
                   </div>
                 </div>
-                {currentUserCardLoading ? (
-                  <div className={cn(LEADERBOARD_SPINNER_BASE, "h-4 w-4")} aria-hidden={true} />
-                ) : expandCurrentUser ? (
-                  <FaChevronUp className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-sm" />
-                ) : (
-                  <FaChevronDown className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-sm" />
-                )}
+                <div className="flex shrink-0 items-center gap-2">
+                  {/* Share — stops propagation so it doesn't toggle the card. */}
+                  <span onClick={(e) => e.stopPropagation()} className="inline-flex">
+                    <ShareTeamButton
+                      uid={currentUserId}
+                      icon={<IoShareOutline className="text-lg" />}
+                      labelClassName="hidden sm:inline"
+                      className="h-9 w-9 sm:h-auto sm:w-auto rounded-full bg-[#00f976] text-neutral-950 font-bold uppercase tracking-wide text-xs sm:px-4 sm:py-2 hover:brightness-95 active:scale-95 transition-all"
+                    />
+                  </span>
+                  {/* Expand chevron in a green circle — same size as the share circle. */}
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#00f976] text-neutral-950">
+                    {currentUserCardLoading ? (
+                      <div className={cn(LEADERBOARD_SPINNER_BASE, "h-4 w-4")} aria-hidden={true} />
+                    ) : expandCurrentUser ? (
+                      <FaChevronUp className="text-sm" />
+                    ) : (
+                      <FaChevronDown className="text-sm" />
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
             <AnimatePresence>

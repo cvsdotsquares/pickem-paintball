@@ -969,8 +969,7 @@ export default function Pickems() {
                 <button
                   onClick={confirmPicks}
                   disabled={!isReady || saveStatus === "saving" || isLocked}
-                  style={{ flex: 3 }}
-                  className={`py-2 rounded-xl font-black uppercase tracking-widest text-sm transition-all
+                  className={`flex-[2] sm:flex-[3] py-2 rounded-xl font-black uppercase tracking-widest text-sm transition-all
                     ${isLocked ? "bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-white/10 text-gray-400 dark:text-white/30 cursor-not-allowed"
                     : saveStatus === "saved" ? "bg-[#00f976] text-neutral-950 shadow-lg shadow-[#00f976]/35"
                     : isReady ? "bg-[#00f976] hover:brightness-[0.95] text-neutral-950 shadow-lg shadow-[#00f976]/35 active:scale-95"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "react-toastify";
 import { SHARE_COPY } from "@/src/lib/shareCopy";
 
@@ -18,9 +18,15 @@ import { SHARE_COPY } from "@/src/lib/shareCopy";
 export default function ShareTeamButton({
   uid,
   className,
+  icon,
+  labelClassName,
 }: {
   uid?: string | null;
   className?: string;
+  /** Optional leading icon (e.g. a share glyph). */
+  icon?: ReactNode;
+  /** Class on the text label — pass "hidden sm:inline" for icon-only on mobile. */
+  labelClassName?: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [shareId, setShareId] = useState<string | null>(null);
@@ -138,9 +144,16 @@ export default function ShareTeamButton({
       onClick={handleShare}
       disabled={!uid || loading}
       aria-busy={loading}
-      className={`${className ?? ""} disabled:opacity-60 disabled:cursor-not-allowed`}
+      className={`${className ?? ""} inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed`}
     >
-      {loading ? SHARE_COPY.preparingLabel : SHARE_COPY.buttonLabel}
+      {icon ? (
+        <span className="shrink-0 inline-flex" aria-hidden="true">
+          {icon}
+        </span>
+      ) : null}
+      <span className={labelClassName}>
+        {loading ? SHARE_COPY.preparingLabel : SHARE_COPY.buttonLabel}
+      </span>
     </button>
   );
 }
