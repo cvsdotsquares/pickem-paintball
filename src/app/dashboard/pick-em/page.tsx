@@ -24,6 +24,11 @@ import EventCountdownBanner from "@/src/components/Dashboard/EventCountdownBanne
 import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dashboardEventBannerShared";
 import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
 import { getBannerAccentColor } from "@/src/lib/bannerPhase";
+import {
+  sortUserBadges,
+  BADGE_DEFINITIONS,
+  type UserBadges,
+} from "@/src/lib/badges";
 import { individualEventDisplayName } from "@/src/lib/eventDisplayName";
 import {
   PlayerStatus,
@@ -240,6 +245,7 @@ export default function Pickems() {
     seasonRank?: number;
     eventElims?: number;
     seasonElims?: number;
+    badges?: UserBadges;
   }>({});
 
   function useThrottledState<T>(initialState: T, delay = 300): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -477,6 +483,7 @@ export default function Pickems() {
           photoURL: resolvedPhoto,
           eventRank: data[`${liveEvent.id}Rank`] ?? undefined,
           eventElims: data[`${liveEvent.id}PTS`] ?? undefined,
+          badges: (data.badges ?? undefined) as UserBadges | undefined,
         }));
 
         // Use official picks if present, otherwise fall back to saved draft
@@ -855,7 +862,28 @@ export default function Pickems() {
                           ? <img src={userProfile.photoURL} alt="" className="w-full h-full object-cover rounded-full" style={{ aspectRatio: "1/1" }} />
                           : <span className="text-white/50 font-black text-lg">{(userProfile.displayName || user?.email || "?")[0].toUpperCase()}</span>}
                       </div>
-                      <div className="flex gap-0.5">{[0, 1, 2].map((i) => <div key={i} className="w-3.5 h-3.5 rounded-full bg-white/10 border border-white/15" />)}</div>
+                      {(() => {
+                        const topBadges = (isSubscribed ? sortUserBadges(userProfile.badges ?? {}) : []).slice(0, 3);
+                        if (topBadges.length === 0) return null;
+                        return (
+                          <div className="flex gap-1">
+                            {topBadges.map((b) => {
+                              const def = BADGE_DEFINITIONS[b.id];
+                              return (
+                                <div key={b.id} className="relative w-5 h-5">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={def.imageSrc} alt={def.name} className="w-5 h-5 object-contain" />
+                                  {def.showCount && b.count > 1 && (
+                                    <span className="absolute -bottom-1 -right-1 flex items-center justify-center min-w-[14px] h-[14px] px-[3px] rounded-full bg-red-500 text-white font-bold leading-none" style={{ fontSize: 9 }}>
+                                      {b.count}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </div>
                     {/* Player name + stats */}
                     <div className="flex-1 min-w-0">
