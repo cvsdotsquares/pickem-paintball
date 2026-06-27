@@ -18,6 +18,7 @@ import { getBannerPhase } from "@/src/lib/bannerPhase";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
+import QRCode from "qrcode";
 import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
@@ -30,7 +31,8 @@ const TOTAL_BUDGET = 1_000_000;
 // Brand
 const BRAND_GREEN = "#00f976";
 const CAPTAIN = "#facc15";
-const SHARE_URL = "https://pickempaintball.com/";
+const SITE_BASE = "https://pickempaintball.com";
+const SHARE_URL = `${SITE_BASE}/`;
 
 type AnyRec = Record<string, unknown>;
 
@@ -459,9 +461,17 @@ export async function GET(request: NextRequest) {
   const captain = picks.find((p) => p.isCaptain) || null;
   const others = picks.filter((p) => !p.isCaptain);
 
-  const qrUri = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=0&color=000000&bgcolor=00f976&data=${encodeURIComponent(
-    SHARE_URL,
-  )}`;
+  // QR points at the user's share page (falls back to the homepage when no
+  // shareId is available, e.g. dev ?email= renders). Generated locally (no
+  // third-party service); black on brand-green to sit on the footer.
+  const shareId =
+    shareParam || (typeof userData.shareId === "string" ? userData.shareId : "");
+  const qrTarget = shareId ? `${SITE_BASE}/t/${shareId}` : SHARE_URL;
+  const qrUri = await QRCode.toDataURL(qrTarget, {
+    margin: 0,
+    width: 200,
+    color: { dark: "#000000", light: "#00f976" },
+  });
 
   // Fixed banner heights so the grid can be sized to fill the rest exactly.
   const HEADER_H = 264;
