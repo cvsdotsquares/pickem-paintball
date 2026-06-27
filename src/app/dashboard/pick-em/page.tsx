@@ -849,7 +849,7 @@ export default function Pickems() {
           <div className="relative flex-1 overflow-hidden min-h-0">
             <div className="h-full px-2 pt-2 pb-1">
               <div className="grid grid-cols-3 gap-1.5 h-full" style={{
-                gridTemplateRows: "auto 1fr 1fr 1fr"
+                gridTemplateRows: "auto minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)"
               }}>
 
                 {/* ── ROW 1: My Team + Cost Cap (2 cols) + Captain slot (1 col) ── */}
