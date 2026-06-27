@@ -29,6 +29,7 @@ import {
   BADGE_DEFINITIONS,
   type UserBadges,
 } from "@/src/lib/badges";
+import ShareTeamButton from "@/src/components/Dashboard/ShareTeamButton";
 import { individualEventDisplayName } from "@/src/lib/eventDisplayName";
 import {
   PlayerStatus,
@@ -977,14 +978,11 @@ export default function Pickems() {
                     : "bg-gray-100 dark:bg-white/10 border border-gray-300 dark:border-white/25 text-gray-600 dark:text-white/75 cursor-not-allowed"}`}>
                   {confirmLabel}
                 </button>
-                {/* Reset — 25% */}
-                <button
-                  onClick={() => { setTemporaryPicks([]); setCaptainId(null); setSaveStatus("idle"); setPlayerSlots((p) => p.map((s) => ({ ...s, player: null }))); }}
-                  disabled={isLocked}
-                  style={{ flex: 1 }}
-                  className="py-2 rounded-xl font-black uppercase tracking-widest text-sm border border-gray-300 dark:border-white/25 text-gray-600 dark:text-white/75 hover:text-gray-800 dark:hover:text-white hover:border-gray-400 dark:hover:border-white/40 bg-gray-100 dark:bg-white/10 transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed">
-                  Reset
-                </button>
+                {/* Share — 25% */}
+                <ShareTeamButton
+                  uid={user?.uid}
+                  className="flex-1 py-2 rounded-xl font-black uppercase tracking-widest text-sm whitespace-nowrap bg-[#00f976] text-neutral-950 hover:brightness-[0.95] active:scale-95 shadow-lg shadow-[#00f976]/35 transition-all"
+                />
               </div>
             );
           })()}
