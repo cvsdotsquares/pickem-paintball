@@ -18,7 +18,6 @@ import { getBannerPhase } from "@/src/lib/bannerPhase";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
-import QRCode from "qrcode";
 import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
@@ -31,8 +30,6 @@ const TOTAL_BUDGET = 1_000_000;
 // Brand
 const BRAND_GREEN = "#00f976";
 const CAPTAIN = "#facc15";
-const SITE_BASE = "https://pickempaintball.com";
-const SHARE_URL = `${SITE_BASE}/`;
 
 type AnyRec = Record<string, unknown>;
 
@@ -460,18 +457,6 @@ export async function GET(request: NextRequest) {
 
   const captain = picks.find((p) => p.isCaptain) || null;
   const others = picks.filter((p) => !p.isCaptain);
-
-  // QR points at the user's share page (falls back to the homepage when no
-  // shareId is available, e.g. dev ?email= renders). Generated locally (no
-  // third-party service); black on brand-green to sit on the footer.
-  const shareId =
-    shareParam || (typeof userData.shareId === "string" ? userData.shareId : "");
-  const qrTarget = shareId ? `${SITE_BASE}/t/${shareId}` : SHARE_URL;
-  const qrUri = await QRCode.toDataURL(qrTarget, {
-    margin: 0,
-    width: 200,
-    color: { dark: "#000000", light: "#00f976" },
-  });
 
   // Fixed banner heights so the grid can be sized to fill the rest exactly.
   const HEADER_H = 264;
@@ -955,21 +940,38 @@ export async function GET(request: NextRequest) {
           }}
         >
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ display: "flex", color: "#000", fontSize: 42, fontWeight: 800 }}>
-              {ctaText}
-            </div>
             <div
               style={{
                 display: "flex",
                 color: "rgba(0,0,0,0.7)",
-                fontSize: 24,
-                marginTop: 4,
+                fontSize: 26,
+                fontWeight: 700,
               }}
             >
-              pickempaintball.com · @pickempaintball
+              {ctaText} at
+            </div>
+            <div
+              style={{
+                display: "flex",
+                color: "#000",
+                fontSize: 54,
+                fontWeight: 800,
+                letterSpacing: 0.5,
+              }}
+            >
+              PICKEMPAINTBALL.COM
             </div>
           </div>
-          <img src={qrUri} width={120} height={120} style={{ borderRadius: 10 }} />
+          <div
+            style={{
+              display: "flex",
+              color: "rgba(0,0,0,0.65)",
+              fontSize: 26,
+              fontWeight: 700,
+            }}
+          >
+            @pickempaintball
+          </div>
         </div>
       </div>
     ),
