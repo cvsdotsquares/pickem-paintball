@@ -954,7 +954,7 @@ export async function GET(request: NextRequest) {
               style={{
                 display: "flex",
                 color: "#000",
-                fontSize: 54,
+                fontSize: 38,
                 fontWeight: 800,
                 letterSpacing: 0.5,
               }}
