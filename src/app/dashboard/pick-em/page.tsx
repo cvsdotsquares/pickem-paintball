@@ -790,7 +790,7 @@ export default function Pickems() {
   }, [liveEvent]);
 
   return (
-    <div className="flex flex-col w-full overflow-hidden bg-[#f0f0f0] dark:bg-[#111] h-[calc(100dvh-106px)] md:h-[calc(100dvh-48px)]">
+    <div className="flex flex-col w-full overflow-hidden bg-[#f0f0f0] dark:bg-[#111] h-[calc(100dvh-106px)] md:h-[calc(100dvh_-_var(--pickem-dashboard-header-bottom,110px))]">
 
       {/* ── EVENT BANNER (shared component) ───────────────────────────────────── */}
       {pickEmBannerModel ? (
