@@ -5,7 +5,10 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaArrowRight, FaArrowLeft, FaTrophy } from "react-icons/fa";
+import { IoShareOutline } from "react-icons/io5";
+import { getAuth } from "firebase/auth";
 import { BADGE_DEFINITIONS, type BadgeId } from "@/src/lib/badges";
+import ShareTeamButton from "@/src/components/Dashboard/ShareTeamButton";
 
 export interface TeamHighlight {
   playerName: string;
@@ -56,6 +59,7 @@ export default function PostEventModal({
 }: Props) {
   const [page, setPage] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const uid = getAuth().currentUser?.uid;
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
@@ -249,29 +253,6 @@ export default function PostEventModal({
           </p>
         </>
       )}
-      {!isSubscribed && (
-        <button
-          type="button"
-          onClick={() => {
-            onClose();
-            onSubscribeClick?.();
-          }}
-          className="bg-[#00f976] hover:opacity-90 text-black font-black text-xs uppercase tracking-widest rounded-lg px-6 py-3 mb-3"
-        >
-          Subscribe to Support
-        </button>
-      )}
-      <button
-        type="button"
-        onClick={onClose}
-        className={
-          isSubscribed
-            ? "bg-[#1a3c6e] hover:bg-[#1a3c6e]/90 text-white font-black text-xs uppercase tracking-widest rounded-lg px-6 py-3"
-            : "text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white text-xs uppercase tracking-widest font-bold"
-        }
-      >
-        {isSubscribed ? "Close" : "No Thanks"}
-      </button>
     </div>
   );
 
@@ -309,7 +290,43 @@ export default function PostEventModal({
             </motion.div>
           </AnimatePresence>
 
-          <div className="flex-shrink-0 flex items-center justify-between mt-6 pt-4 border-t border-gray-100 dark:border-white/5">
+          {/* Persistent actions on every page: Subscribe (non-subs) + Share. */}
+          <div className="flex-shrink-0 mt-6">
+            <div className="flex items-center justify-center gap-3">
+              {!isSubscribed && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onSubscribeClick?.();
+                  }}
+                  className="bg-[#00f976] hover:opacity-90 text-black font-black text-xs uppercase tracking-widest rounded-lg px-6 py-3"
+                >
+                  Subscribe to Support
+                </button>
+              )}
+              {uid && (
+                <ShareTeamButton
+                  uid={uid}
+                  icon={<IoShareOutline className="text-base" />}
+                  className="bg-[#00f976] hover:opacity-90 text-black font-black text-xs uppercase tracking-widest rounded-lg px-6 py-3"
+                />
+              )}
+            </div>
+            {isLast && (
+              <div className="flex justify-center mt-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white text-xs uppercase tracking-widest font-bold"
+                >
+                  {isSubscribed ? "Close" : "No Thanks"}
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex-shrink-0 flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-white/5">
             <button
               type="button"
               onClick={() => setPage((p) => Math.max(0, p - 1))}
