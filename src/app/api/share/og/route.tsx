@@ -200,7 +200,7 @@ async function resolveAvatar(userData: AnyRec): Promise<string> {
   return "";
 }
 
-async function resolveEvent(eventIdParam: string | null) {
+async function resolveEvent(eventIdParam: string | null): Promise<AnyRec | null> {
   if (eventIdParam) {
     const snap = await getDoc(doc(db, "events", eventIdParam));
     if (snap.exists()) return { id: snap.id, ...(snap.data() as AnyRec) };
