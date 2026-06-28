@@ -108,7 +108,8 @@ export default function ShareTeamButton({
         // still available via the desktop "copy link" fallback below.
         await navigator.share({
           files: [file],
-          title: SHARE_COPY.title,
+          // No `title` — some targets concatenate title + text, duplicating the
+          // line. Just the caption (the CTA lives baked into the image).
           text: SHARE_COPY.text,
         });
         return;
