@@ -73,13 +73,14 @@ async function fontBuf(file: string): Promise<Buffer | null> {
 
 // Real brand fonts: Industry (text/display) + Hitmarker Condensed (numbers).
 async function loadFonts() {
-  const [demi, ultra, hitReg, hitBold] = await Promise.all([
+  const [demi, ultra, hitLight, hitReg, hitBold] = await Promise.all([
     fontBuf("Industry-Demi.ttf"),
     fontBuf("Industry-Ultra.ttf"),
+    fontBuf("HitmarkerCondensed-Light.ttf"),
     fontBuf("HitmarkerCondensed-Regular.ttf"),
     fontBuf("HitmarkerCondensed-Bold.ttf"),
   ]);
-  const fonts: { name: string; data: Buffer; weight: 400 | 700 | 800; style: "normal" }[] =
+  const fonts: { name: string; data: Buffer; weight: 300 | 400 | 700 | 800; style: "normal" }[] =
     [];
   // Industry Demi covers regular + bold (single master); Ultra is the heavy display weight.
   if (demi) {
@@ -88,6 +89,10 @@ async function loadFonts() {
   }
   if (ultra)
     fonts.push({ name: "Industry", data: ultra, weight: 800, style: "normal" });
+  // Numbers use Hitmarker Condensed Light (300) to match the in-app `.pickem-numeric`
+  // (which requests weight 360 and therefore resolves to the Light static).
+  if (hitLight)
+    fonts.push({ name: "Hitmarker", data: hitLight, weight: 300, style: "normal" });
   if (hitReg)
     fonts.push({ name: "Hitmarker", data: hitReg, weight: 400, style: "normal" });
   if (hitBold)
@@ -578,7 +583,7 @@ export async function GET(request: NextRequest) {
             fontFamily: "Hitmarker",
             color: "rgba(255,255,255,0.65)",
             fontSize: 19,
-            fontWeight: 700,
+            fontWeight: 300,
           }}
         >
           {fmt(p.cost)}
@@ -601,7 +606,7 @@ export async function GET(request: NextRequest) {
               fontFamily: "Hitmarker",
               color: "#fff",
               fontSize: 55,
-              fontWeight: 700,
+              fontWeight: 300,
               lineHeight: 1,
             }}
           >
