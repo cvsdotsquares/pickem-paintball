@@ -20,8 +20,9 @@ import Link from "next/link";
 import { MonochromePillTabs } from "@/src/components/ui/monochrome-pill-tabs";
 import ShareTeamButton from "@/src/components/Dashboard/ShareTeamButton";
 import {
-  sortUserBadges,
+  getDisplayBadges,
   BADGE_DEFINITIONS,
+  type BadgeId,
   type UserBadges,
 } from "@/src/lib/badges";
 import {
@@ -110,6 +111,7 @@ export default function Dashboard() {
   const [captainId, setCaptainId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [badges, setBadges] = useState<UserBadges | null>(null);
+  const [displayBadges, setDisplayBadges] = useState<BadgeId[]>([]);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [displayName, setDisplayName] = useState<string>("");
   const [eventRank, setEventRank] = useState<number | undefined>();
@@ -138,6 +140,7 @@ export default function Dashboard() {
         if (userDoc.exists()) {
           const data = userDoc.data();
           setBadges((data.badges ?? null) as UserBadges | null);
+          setDisplayBadges((data.displayBadges ?? []) as BadgeId[]);
           setIsSubscribed(data.isSubscribed === true);
           const name =
             data.username ||
@@ -521,7 +524,7 @@ export default function Dashboard() {
   );
 
   // Subscriber-only badges in the summary panel (mirrors the share card).
-  const topBadges = (isSubscribed ? sortUserBadges(badges ?? {}) : []).slice(0, 3);
+  const topBadges = isSubscribed ? getDisplayBadges(badges ?? {}, displayBadges) : [];
 
   const livePicksBlock = (
     <div className="flex flex-col gap-4">

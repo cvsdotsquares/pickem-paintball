@@ -10,8 +10,9 @@ import {
 } from "firebase/firestore";
 import { getDownloadURL, getStorage, ref } from "firebase/storage";
 import {
-  sortUserBadges,
+  getDisplayBadges,
   BADGE_DEFINITIONS,
+  type BadgeId,
   type UserBadges,
 } from "@/src/lib/badges";
 import { getBannerPhase } from "@/src/lib/bannerPhase";
@@ -393,11 +394,14 @@ export async function GET(request: NextRequest) {
   const isSubscribed = userData.isSubscribed === true;
   // Top 3 earned badges (rarity-ordered) for the avatar row — subscribers only.
   const earnedBadges = isSubscribed
-    ? sortUserBadges((userData.badges as UserBadges) || {})
+    ? getDisplayBadges(
+        (userData.badges as UserBadges) || {},
+        userData.displayBadges as BadgeId[] | undefined,
+      )
     : [];
   const topBadges = (
     await Promise.all(
-      earnedBadges.slice(0, 3).map(async (b) => ({
+      earnedBadges.map(async (b) => ({
         count: b.count,
         showCount: BADGE_DEFINITIONS[b.id].showCount,
         img: await badgePngCached(BADGE_DEFINITIONS[b.id].imageSrc),

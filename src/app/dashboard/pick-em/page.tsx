@@ -25,8 +25,9 @@ import { DASHBOARD_BANNER_PICK_CTA_CLASS } from "@/src/components/Dashboard/dash
 import { eventRecordToBannerModel } from "@/src/lib/eventCountdownBannerModel";
 import { getBannerAccentColor } from "@/src/lib/bannerPhase";
 import {
-  sortUserBadges,
+  getDisplayBadges,
   BADGE_DEFINITIONS,
+  type BadgeId,
   type UserBadges,
 } from "@/src/lib/badges";
 import ShareTeamButton from "@/src/components/Dashboard/ShareTeamButton";
@@ -247,6 +248,7 @@ export default function Pickems() {
     eventElims?: number;
     seasonElims?: number;
     badges?: UserBadges;
+    displayBadges?: BadgeId[];
   }>({});
 
   function useThrottledState<T>(initialState: T, delay = 300): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -485,6 +487,9 @@ export default function Pickems() {
           eventRank: data[`${liveEvent.id}Rank`] ?? undefined,
           eventElims: data[`${liveEvent.id}PTS`] ?? undefined,
           badges: (data.badges ?? undefined) as UserBadges | undefined,
+          displayBadges: (data.displayBadges ?? undefined) as
+            | BadgeId[]
+            | undefined,
         }));
 
         // Use official picks if present, otherwise fall back to saved draft
@@ -864,7 +869,7 @@ export default function Pickems() {
                           : <span className="text-white/50 font-black text-lg">{(userProfile.displayName || user?.email || "?")[0].toUpperCase()}</span>}
                       </div>
                       {(() => {
-                        const topBadges = (isSubscribed ? sortUserBadges(userProfile.badges ?? {}) : []).slice(0, 3);
+                        const topBadges = isSubscribed ? getDisplayBadges(userProfile.badges ?? {}, userProfile.displayBadges) : [];
                         if (topBadges.length === 0) return null;
                         return (
                           <div className="flex gap-1">

@@ -163,3 +163,25 @@ export function sortUserBadges(badges: UserBadges): Array<{ id: BadgeId; count: 
   }
   return result;
 }
+
+/**
+ * Badges to feature on team-card surfaces (share card, dashboard + pick-em
+ * team cards). Uses the user's chosen `displayBadges` order when set, keeping
+ * only ones still earned; otherwise falls back to the top-N by rarity.
+ */
+export function getDisplayBadges(
+  badges: UserBadges,
+  displayBadges?: BadgeId[] | null,
+  max = 3,
+): Array<{ id: BadgeId; count: number }> {
+  if (Array.isArray(displayBadges) && displayBadges.length > 0) {
+    const picked: Array<{ id: BadgeId; count: number }> = [];
+    for (const id of displayBadges) {
+      const entry = badges[id];
+      if (entry && entry.count > 0) picked.push({ id, count: entry.count });
+      if (picked.length >= max) break;
+    }
+    if (picked.length > 0) return picked;
+  }
+  return sortUserBadges(badges).slice(0, max);
+}

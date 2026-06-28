@@ -15,12 +15,22 @@ interface Props {
   badges: UserBadges | null | undefined;
   emptyHint?: string;
   align?: "center" | "start";
+  /** When true, tapping an earned badge toggles it in the display selection. */
+  selectable?: boolean;
+  /** Currently selected badge ids, in display order. */
+  selected?: BadgeId[];
+  onToggleSelect?: (id: BadgeId) => void;
+  maxSelect?: number;
 }
 
 export default function BadgeCollectionGrid({
   badges,
   emptyHint = "Hover or tap a badge to see how to earn it",
   align = "center",
+  selectable = false,
+  selected = [],
+  onToggleSelect,
+  maxSelect = 3,
 }: Props) {
   const alignClass = align === "start" ? "items-start" : "items-center";
   const textAlignClass = align === "start" ? "text-left" : "text-center";
@@ -45,6 +55,10 @@ export default function BadgeCollectionGrid({
           const count = earnedMap.get(id) ?? 0;
           const isEarned = count > 0;
           const isHovered = hoveredBadge === id;
+          const selIndex = selectable ? selected.indexOf(id) : -1;
+          const isSelected = selIndex >= 0;
+          const atMax = selected.length >= maxSelect;
+          const canSelect = selectable && isEarned;
           return (
             <button
               type="button"
@@ -57,14 +71,22 @@ export default function BadgeCollectionGrid({
                   ? () => setHoveredBadge((h) => (h === id ? null : h))
                   : undefined
               }
-              onClick={() =>
-                setHoveredBadge((h) => (h === id ? null : id))
-              }
+              onClick={() => {
+                if (canSelect) {
+                  onToggleSelect?.(id);
+                } else {
+                  setHoveredBadge((h) => (h === id ? null : id));
+                }
+              }}
               className={`relative rounded-lg p-2 flex flex-col items-center border outline-none transition-colors ${
-                isEarned
-                  ? "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/30"
-                  : "bg-gray-50/50 dark:bg-white/[0.02] border-gray-100 dark:border-white/5 hover:border-gray-300 dark:hover:border-white/20"
-              } ${isHovered ? "border-gray-500 dark:border-white/40" : ""}`}
+                isSelected
+                  ? "border-[#00f976] ring-2 ring-[#00f976] bg-[#00f976]/5"
+                  : isEarned
+                    ? "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/30"
+                    : "bg-gray-50/50 dark:bg-white/[0.02] border-gray-100 dark:border-white/5 hover:border-gray-300 dark:hover:border-white/20"
+              } ${isHovered && !isSelected ? "border-gray-500 dark:border-white/40" : ""} ${
+                canSelect && !isSelected && atMax ? "opacity-40" : ""
+              }`}
             >
               <div className="relative">
                 <Image
@@ -83,6 +105,14 @@ export default function BadgeCollectionGrid({
                     style={{ fontSize: 10 }}
                   >
                     {count}
+                  </span>
+                )}
+                {isSelected && (
+                  <span
+                    className="absolute -top-2 -left-2 bg-[#00f976] text-black rounded-full font-black leading-none flex items-center justify-center w-5 h-5"
+                    style={{ fontSize: 11 }}
+                  >
+                    {selIndex + 1}
                   </span>
                 )}
               </div>
