@@ -326,7 +326,7 @@ export default function Dashboard() {
     fetchPicks();
   }, [user, liveEvent?.id]);
 
-  const SlotCard = memo(({ player, isCaptain }: { player: Player; isCaptain: boolean }) => (
+  const SlotCard = memo(({ player, isCaptain, showKills }: { player: Player; isCaptain: boolean; showKills?: boolean }) => (
     <div
       className={`relative rounded-lg overflow-hidden h-full w-full ${isCaptain ? "ring-2 ring-yellow-400" : "ring-1 ring-black/10 dark:ring-white/10"}`}
     >
@@ -347,7 +347,7 @@ export default function Dashboard() {
           </span>
         );
       })()}
-      <div className="absolute bottom-0 inset-x-0 p-1">
+      <div className={`absolute bottom-0 inset-x-0 p-1 ${showKills ? "pr-7" : ""}`}>
         <div className="text-white font-bold text-[8px] truncate">{player.Player}</div>
         <div className="text-white/40 text-[7px] truncate">{player.Team}</div>
         <div className="pickem-numeric text-white/60 text-[8px] font-bold">{formatCost(player.Cost)}</div>
@@ -356,6 +356,14 @@ export default function Dashboard() {
         <div className="absolute top-1 left-1 bg-yellow-400 text-black font-black px-1 py-0.5 rounded uppercase tracking-widest flex flex-col items-center leading-none gap-[1px]">
           <span className="text-[6px]">★ CPT</span>
           <span className="text-[5px] opacity-80">1.5× PTS</span>
+        </div>
+      )}
+      {showKills && (
+        <div className="absolute bottom-1 right-1 flex flex-col items-end leading-none">
+          <span className="pickem-numeric text-white font-black text-[19px]">
+            {(player as unknown as { ["Confirmed Kills"]?: number })["Confirmed Kills"] ?? 0}
+          </span>
+          <span className="text-white/50 text-[5px] font-bold uppercase tracking-widest mt-[1px]">Kills</span>
         </div>
       )}
     </div>
@@ -525,6 +533,11 @@ export default function Dashboard() {
 
   // Subscriber-only badges in the summary panel (mirrors the share card).
   const topBadges = isSubscribed ? getDisplayBadges(badges ?? {}, displayBadges) : [];
+  // Kill counts only show once the event is live (past lock).
+  const lockTime = liveEvent?.lockDate?.getTime?.();
+  const showKills = lockTime != null && Date.now() >= lockTime;
+  const killsOf = (p: Player | null | undefined) =>
+    p ? ((p as unknown as { ["Confirmed Kills"]?: number })["Confirmed Kills"] ?? 0) : 0;
 
   const livePicksBlock = (
     <div className="flex flex-col gap-4">
@@ -619,7 +632,7 @@ export default function Dashboard() {
               {(() => {
                 const cap = captainId ? picks.find((p) => p.player_id === captainId) : null;
                 return cap ? (
-                  <SlotCard player={cap} isCaptain={true} />
+                  <SlotCard player={cap} isCaptain={true} showKills={showKills} />
                 ) : (
                   <Link href="/dashboard/pick-em">
                     <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-yellow-400/50 bg-yellow-400/5 h-full gap-1.5 min-h-[120px] cursor-pointer hover:border-yellow-400/80 hover:bg-yellow-400/10 transition-all">
@@ -642,10 +655,11 @@ export default function Dashboard() {
           <div className="grid grid-cols-3 gap-1.5" style={{ gridTemplateRows: "repeat(3, minmax(110px, 1fr))" }}>
             {playerSlots
               .filter((slot) => !slot.player || slot.player.player_id !== captainId)
+              .sort((a, b) => (showKills ? killsOf(b.player) - killsOf(a.player) : 0))
               .slice(0, 9)
               .map((slot) => (
                 <div key={slot.id} className="h-full">
-                  {slot.player ? <SlotCard player={slot.player} isCaptain={false} /> : <EmptySlot />}
+                  {slot.player ? <SlotCard player={slot.player} isCaptain={false} showKills={showKills} /> : <EmptySlot />}
                 </div>
               ))}
           </div>

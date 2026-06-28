@@ -461,6 +461,8 @@ export async function GET(request: NextRequest) {
 
   const captain = picks.find((p) => p.isCaptain) || null;
   const others = picks.filter((p) => !p.isCaptain);
+  // During the live event, surface top performers first (captain keeps its top slot).
+  if (!isPicks) others.sort((a, b) => b.kills - a.kills);
 
   // Fixed banner heights so the grid can be sized to fill the rest exactly.
   const HEADER_H = 264;
@@ -546,7 +548,7 @@ export async function GET(request: NextRequest) {
           width: w,
           display: "flex",
           flexDirection: "column",
-          padding: "70px 16px 16px",
+          padding: "70px 100px 16px 16px",
           backgroundImage:
             "linear-gradient(to top, rgba(0,0,0,0.95) 35%, rgba(0,0,0,0) 100%)",
         }}
@@ -556,7 +558,7 @@ export async function GET(request: NextRequest) {
             display: "flex",
             color: "#fff",
             fontWeight: 700,
-            fontSize: 25,
+            fontSize: 24,
           }}
         >
           {p.name}
@@ -565,7 +567,7 @@ export async function GET(request: NextRequest) {
           style={{
             display: "flex",
             color: "rgba(255,255,255,0.45)",
-            fontSize: 18,
+            fontSize: 17,
           }}
         >
           {p.team}
@@ -575,13 +577,50 @@ export async function GET(request: NextRequest) {
             display: "flex",
             fontFamily: "Hitmarker",
             color: "rgba(255,255,255,0.65)",
-            fontSize: 20,
+            fontSize: 19,
             fontWeight: 700,
           }}
         >
           {fmt(p.cost)}
         </div>
       </div>
+      {!isPicks ? (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 14,
+            right: 16,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              fontFamily: "Hitmarker",
+              color: "#fff",
+              fontSize: 55,
+              fontWeight: 700,
+              lineHeight: 1,
+            }}
+          >
+            {p.kills}
+          </div>
+          <div
+            style={{
+              display: "flex",
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: 1.5,
+              color: "rgba(255,255,255,0.55)",
+              marginTop: 3,
+            }}
+          >
+            KILLS
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 

@@ -756,27 +756,36 @@ export default function Pickems() {
           <PlayerStatusTick status={player.Status} size={14} />
         </div>
       )}
-      {/* Remove button top-left — hidden when locked */}
+      {/* Remove button top-right (over the status tick on hover) — hidden when locked */}
       {!isLocked && (
-        <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="absolute top-1 left-1 z-20 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="absolute top-1 right-1 z-30 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
           <IoMdClose className="text-white text-[8px]" />
         </button>
       )}
       {/* Player info bottom-left */}
-      <div className="absolute bottom-0 inset-x-0 p-1">
+      <div className={`absolute bottom-0 inset-x-0 p-1 ${isLocked ? "pr-7" : ""}`}>
         <div className="text-white font-bold text-[8px] truncate">{player.Player}</div>
         <div className="text-white/40 text-[7px] truncate">{player.Team}</div>
         <div className="pickem-numeric text-white/60 text-[8px] font-bold">{formatCost(player.Cost)}</div>
       </div>
-      {/* CPT button bottom-right — disabled after lock */}
+      {/* CPT button top-left — disabled after lock */}
       <button
         onClick={(e) => { e.stopPropagation(); if (!isLocked) onSetCaptain(); }}
-        className={`absolute bottom-1 right-1 z-10 font-black uppercase tracking-widest px-1 py-0.5 rounded transition-all flex flex-col items-center leading-none gap-[1px]
+        className={`absolute top-1 left-1 z-10 font-black uppercase tracking-widest px-1 py-0.5 rounded transition-all flex flex-col items-center leading-none gap-[1px]
           ${isCaptain ? "bg-yellow-400 text-black" : "bg-black/50 text-white/30 border border-white/20"}
           ${isLocked ? "opacity-50 cursor-not-allowed" : ""}`}>
         <span className="text-[6px]">{isCaptain ? "★ CPT" : "CPT"}</span>
         {isCaptain && <span className="text-[5px] opacity-80">1.5× PTS</span>}
       </button>
+      {/* Kill count bottom-right — only once the event is live (locked) */}
+      {isLocked && (
+        <div className="absolute bottom-1 right-1 z-10 flex flex-col items-end leading-none">
+          <span className="pickem-numeric text-white font-black text-[19px]">
+            {(player as unknown as { ["Confirmed Kills"]?: number })["Confirmed Kills"] ?? 0}
+          </span>
+          <span className="text-white/50 text-[5px] font-bold uppercase tracking-widest mt-[1px]">Kills</span>
+        </div>
+      )}
     </div>
   ));
 
@@ -938,7 +947,15 @@ export default function Pickems() {
 
                 {/* ── ROWS 2–4: 9 player slots. Filter out the captain so they only appear in the captain slot above ── */}
                 {[
-                  ...playerSlots.filter((slot) => slot.player && String(slot.player.player_id) !== String(captainId)),
+                  ...playerSlots
+                    .filter((slot) => slot.player && String(slot.player.player_id) !== String(captainId))
+                    // Once the event is live, order picks by kills (captain stays in its top slot).
+                    .sort((a, b) =>
+                      isBeforeLockDate(liveEvent.lockDate)
+                        ? 0
+                        : ((b.player as unknown as { ["Confirmed Kills"]?: number })["Confirmed Kills"] ?? 0) -
+                          ((a.player as unknown as { ["Confirmed Kills"]?: number })["Confirmed Kills"] ?? 0)
+                    ),
                   ...playerSlots.filter((slot) => !slot.player),
                 ].slice(0, 9).map((slot) => (
                   <div key={slot.id}>
