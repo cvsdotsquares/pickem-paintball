@@ -94,7 +94,7 @@ export default function PostEventModal({
             <div className="whitespace-nowrap text-[8px] uppercase tracking-widest font-black text-gray-400 dark:text-white/40">
               {label}
             </div>
-            <div className="mt-1.5 text-xl sm:text-2xl font-black text-gray-900 dark:text-white tabular-nums leading-none">
+            <div className="mt-1.5 pickem-numeric text-2xl sm:text-3xl leading-none text-gray-900 dark:text-white">
               {value}
             </div>
           </div>
@@ -135,7 +135,7 @@ export default function PostEventModal({
                   />
                   {showDelta ? (
                     <span
-                      className="absolute -bottom-1 -right-2 bg-green-500 text-white rounded-full font-bold leading-none flex items-center justify-center min-w-[22px] h-[18px] px-[5px]"
+                      className="absolute -bottom-1 -right-2 bg-green-500 text-white rounded-full pickem-numeric font-bold leading-none flex items-center justify-center min-w-[22px] h-[18px] px-[5px]"
                       style={{ fontSize: 11 }}
                     >
                       +{delta}
@@ -143,7 +143,7 @@ export default function PostEventModal({
                   ) : (
                     def.showCount && count > 1 && (
                       <span
-                        className="absolute -bottom-1 -right-2 bg-red-500 text-white rounded-full font-bold leading-none flex items-center justify-center min-w-[18px] h-[18px] px-[5px]"
+                        className="absolute -bottom-1 -right-2 bg-red-500 text-white rounded-full pickem-numeric font-bold leading-none flex items-center justify-center min-w-[18px] h-[18px] px-[5px]"
                         style={{ fontSize: 11 }}
                       >
                         {count}
@@ -184,7 +184,7 @@ export default function PostEventModal({
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div
-                  className={`flex items-center justify-center w-7 h-7 rounded-full font-black text-[10px] tabular-nums ${
+                  className={`flex items-center justify-center w-7 h-7 rounded-full pickem-numeric font-bold text-[11px] ${
                     i === 0
                       ? "bg-yellow-400 text-black"
                       : i === 1
@@ -205,7 +205,7 @@ export default function PostEventModal({
                   )}
                 </div>
               </div>
-              <div className="text-lg font-black text-gray-900 dark:text-white tabular-nums flex-shrink-0">
+              <div className="pickem-numeric text-xl leading-none text-gray-900 dark:text-white flex-shrink-0">
                 {player.kills}
               </div>
             </div>
@@ -269,7 +269,7 @@ export default function PostEventModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 20 }}
         transition={{ duration: 0.2 }}
-        className="relative w-full max-w-lg max-h-[90dvh] bg-white dark:bg-[#0d0d0d] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        className="relative w-full max-w-lg h-[480px] max-h-[90dvh] bg-white dark:bg-[#0d0d0d] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
       >
         <div className="px-6 pt-8 pb-6 flex flex-col justify-between flex-1 min-h-0 overflow-hidden">
           <AnimatePresence mode="wait">
