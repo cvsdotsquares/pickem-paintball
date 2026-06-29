@@ -1,5 +1,12 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const { onTaskDispatched } = require('firebase-functions/v2/tasks');
+const { defineSecret } = require('firebase-functions/params');
+const { getFunctions } = require('firebase-admin/functions');
+
+// Shared secret used to authenticate the function -> /api/badges/calculate call.
+// Set once with: firebase functions:secrets:set API_SECRET_KEY
+const apiSecretKey = defineSecret('API_SECRET_KEY');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -685,3 +692,98 @@ async function handlePlayerStatusChange(eventId, playerId, change) {
     );
   }
 }
+
+// ─── Scheduled post-event badge recalculation ─────────────────────────────
+// The post-event modal only becomes eligible once a user's `lastBadgeCalcEvent`
+// advances to the just-ended event, which happens when badges are recalculated.
+// Rather than rely on a user opening the dashboard (the only place the
+// client-side trigger fires) or a wasteful daily cron, we schedule a one-off
+// Cloud Task to run at each event's `eventEndsAt`. By then the macro has
+// uploaded results (eventEndsAt is padded ~1h past the real finish), so ranks,
+// points and kills are present.
+//
+// `recalcBadgesTask` calls the existing /api/badges/calculate endpoint so the
+// badge logic lives in exactly one place (src/lib/badgeCalculator.ts).
+
+const BADGE_TASK_QUEUE = 'recalcBadgesTask';
+// Cloud Tasks only accepts a scheduleTime up to 30 days out.
+const CLOUD_TASKS_MAX_HORIZON_MS = 30 * 24 * 60 * 60 * 1000;
+
+exports.recalcBadgesTask = onTaskDispatched(
+  {
+    secrets: [apiSecretKey],
+    // Transient failures (e.g. macro slightly late) are retried with backoff.
+    retryConfig: { maxAttempts: 5, minBackoffSeconds: 60 },
+    rateLimits: { maxConcurrentDispatches: 1 },
+  },
+  async (req) => {
+    const eventId = req.data && req.data.eventId;
+    const appUrl = (process.env.APP_URL || 'https://pickempaintball.com').replace(/\/$/, '');
+    const apiKey = apiSecretKey.value();
+    if (!apiKey) {
+      throw new Error('API_SECRET_KEY is not configured for functions');
+    }
+
+    console.log(`🏅 Running scheduled badge recalc (event: ${eventId || 'n/a'})`);
+    const res = await fetch(`${appUrl}/api/badges/calculate`, {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      // Throwing makes Cloud Tasks retry per retryConfig above.
+      throw new Error(`badges/calculate failed ${res.status}: ${body}`);
+    }
+    console.log(`✅ Badge recalc complete for ${eventId || 'n/a'}:`, await res.json());
+  },
+);
+
+// Firestore Trigger: schedule the badge recalc whenever an event's
+// `eventEndsAt` is set or changed. Dedup state is kept in a separate
+// `badgeRecalcSchedules` doc so we never write back to the event doc (which
+// would re-fire recalculateLeaderboard and the other event onWrite triggers).
+exports.scheduleBadgeRecalc = functions.firestore
+  .document('events/{eventId}')
+  .onWrite(async (change, context) => {
+    const eventId = context.params.eventId;
+    if (!change.after.exists) return null; // event deleted
+
+    const data = change.after.data() || {};
+    const endsAt =
+      data.eventEndsAt && typeof data.eventEndsAt.toDate === 'function'
+        ? data.eventEndsAt.toDate()
+        : null;
+    if (!endsAt) return null; // no end time → nothing to schedule
+
+    const endsIso = endsAt.toISOString();
+    const markerRef = db.doc(`badgeRecalcSchedules/${eventId}`);
+    const marker = await markerRef.get();
+    if (marker.exists && marker.get('scheduledFor') === endsIso) {
+      return null; // already scheduled for this exact time
+    }
+
+    const now = Date.now();
+    if (endsAt.getTime() - now > CLOUD_TASKS_MAX_HORIZON_MS) {
+      // Too far out for Cloud Tasks. A later event write (the macro updates
+      // events frequently as the date approaches) will enqueue it in time.
+      console.log(`⏭️  ${eventId} eventEndsAt is >30d out; deferring schedule`);
+      return null;
+    }
+
+    // If the end time is already past (e.g. backfill), run ~1 min from now.
+    const scheduleTime = endsAt.getTime() > now ? endsAt : new Date(now + 60 * 1000);
+
+    try {
+      const queue = getFunctions().taskQueue(BADGE_TASK_QUEUE);
+      await queue.enqueue({ eventId }, { scheduleTime });
+      await markerRef.set({
+        scheduledFor: endsIso,
+        scheduleTime: admin.firestore.Timestamp.fromDate(scheduleTime),
+        enqueuedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      console.log(`📅 Scheduled badge recalc for ${eventId} at ${scheduleTime.toISOString()}`);
+    } catch (err) {
+      console.error(`❌ Failed to schedule badge recalc for ${eventId}:`, err);
+    }
+    return null;
+  });
