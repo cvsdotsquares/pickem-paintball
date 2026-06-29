@@ -79,31 +79,26 @@ export default function PostEventModal({
       <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mb-6 uppercase tracking-tight">
         {eventName}
       </h2>
-      <div className="grid grid-cols-3 gap-3 w-full max-w-md">
-        <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-4">
-          <div className="text-[8px] uppercase tracking-widest font-black text-gray-400 dark:text-white/40 mb-1">
-            Event Rank
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full max-w-md">
+        {[
+          { label: "Event Rank", value: formatRank(eventRank) },
+          { label: "Points", value: eventPoints ?? 0 },
+          { label: "Season Rank", value: formatRank(seasonRank) },
+        ].map(({ label, value }) => (
+          <div
+            key={label}
+            className="flex flex-col items-center justify-center bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-3.5"
+          >
+            {/* nowrap keeps labels on one line so the numbers share a baseline
+                across all three boxes; leading-none stops the value clipping */}
+            <div className="whitespace-nowrap text-[8px] uppercase tracking-widest font-black text-gray-400 dark:text-white/40">
+              {label}
+            </div>
+            <div className="mt-1.5 text-xl sm:text-2xl font-black text-gray-900 dark:text-white tabular-nums leading-none">
+              {value}
+            </div>
           </div>
-          <div className="text-2xl font-black text-gray-900 dark:text-white tabular-nums">
-            {formatRank(eventRank)}
-          </div>
-        </div>
-        <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-4">
-          <div className="text-[8px] uppercase tracking-widest font-black text-gray-400 dark:text-white/40 mb-1">
-            Points
-          </div>
-          <div className="text-2xl font-black text-gray-900 dark:text-white tabular-nums">
-            {eventPoints ?? 0}
-          </div>
-        </div>
-        <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-4">
-          <div className="text-[8px] uppercase tracking-widest font-black text-gray-400 dark:text-white/40 mb-1">
-            Season Rank
-          </div>
-          <div className="text-2xl font-black text-gray-900 dark:text-white tabular-nums">
-            {formatRank(seasonRank)}
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );
@@ -292,7 +287,9 @@ export default function PostEventModal({
 
           {/* Persistent actions on every page: Subscribe (non-subs) + Share. */}
           <div className="flex-shrink-0 mt-6">
-            <div className="flex items-center justify-center gap-3">
+            {/* Each button is flex-1 but capped at 50% width: two buttons split
+                the row evenly; a lone Share button stays half-width and centered. */}
+            <div className="flex items-stretch justify-center gap-3">
               {!isSubscribed && (
                 <button
                   type="button"
@@ -300,7 +297,7 @@ export default function PostEventModal({
                     onClose();
                     onSubscribeClick?.();
                   }}
-                  className="bg-[#00f976] hover:opacity-90 text-black font-black text-xs uppercase tracking-widest rounded-lg px-6 py-3"
+                  className="flex-1 max-w-[50%] flex items-center justify-center text-center bg-[#00f976] hover:opacity-90 text-black font-black text-xs uppercase tracking-widest rounded-lg px-4 py-3"
                 >
                   Subscribe to Support
                 </button>
@@ -309,7 +306,7 @@ export default function PostEventModal({
                 <ShareTeamButton
                   uid={uid}
                   icon={<IoShareOutline className="text-base" />}
-                  className="bg-[#00f976] hover:opacity-90 text-black font-black text-xs uppercase tracking-widest rounded-lg px-6 py-3"
+                  className="flex-1 max-w-[50%] bg-[#00f976] hover:opacity-90 text-black font-black text-xs uppercase tracking-widest rounded-lg px-4 py-3"
                 />
               )}
             </div>
