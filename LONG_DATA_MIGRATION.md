@@ -4,9 +4,42 @@
 **Supersedes:** `pickem-long-data-migration-handoff.md` (several of its assumptions are stale — see §1.4)
 **Window:** Mid West Open ended 28 June; next picks open 3 September. No live scoring in between.
 
-## STATUS — Phases 0–3 complete and verified in production (19 July 2026)
+## STATUS — Phases 0–4 COMPLETE. Cutover done and verified (19 July 2026)
 
-Both pipelines run in parallel on every submit. Nothing user-facing has changed.
+The long-data pipeline is now the only source of player stats.
+`uploadEventWithPlayers()` is retired; `firestore.gs` deleted.
+
+**Submit time: ~52s → ~3.6s.**
+
+Cutover verification (Mid West Open, tested in both directions):
+
+| Check | Result |
+|---|---|
+| Stats written by the function, not the sheet | ✅ `target=events` |
+| Test kill applied then reverted | ✅ 2,285 → 2,286 → 2,285 |
+| `Rank` computed server-side | ✅ all 218, matches sheet `RANK()` incl. ties |
+| Roster metadata survives recompute writes | ✅ 0 of 218 docs lost `Player`/`Team`/`Cost`/`Status` |
+| `events.last_updated` bump → `recalculateLeaderboard` | ✅ fired, 382 users ranked |
+| `syncRoster()` diff | ✅ `written=0 unchanged=218` in 1.3s when nothing changed |
+
+Measured post-cutover:
+- Submit (1 row): **3.6s**, one batch request
+- `recomputeEvent`: 13.3s cold / **8.2s warm** — dominated by reading all 2,940 long
+  rows, so it scales with event size, not with how much changed
+- `written=56` for a one-kill change: ranks are interdependent, so a single kill
+  shifts everyone it passes. Expected, and still far below the old 218-every-time.
+
+**Operational rule: void, don't delete.** Deleting a row from the sheet leaves its
+Firestore document orphaned — harmless at weight 0, but a deleted weight-1 row
+keeps counting forever with nothing in the sheet to explain it.
+
+**Remaining: Phase 5 only — including the Node 20 deadline of 30 October.**
+
+---
+
+### Superseded — Phases 0–3 parallel run (kept for reference)
+
+Both pipelines ran in parallel on every submit. Nothing user-facing changed.
 
 | Path exercised against Mid West Open | Result |
 |---|---|
