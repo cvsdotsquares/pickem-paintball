@@ -257,6 +257,7 @@ in this plan that touches the live scoring path.*
   - Redeploys all ten functions at once, so it wants its own focused session.
   - **Do it before 3 September** if at all possible — that's when picks open for Lone Star and the no-live-event window closes.
 - [ ] **`onEdit` trigger** that clears `sync_state` automatically when a row is edited. *Important: manual amendment flagging will be forgotten, and a forgotten flag means a correction silently never reaches production.*
+- [ ] **Event creation macro.** Setting up a new event currently means hand-editing `EVENT_DETAILS` in `firestore.gs`. Worth a macro that takes the event details once and stamps them everywhere they're needed — including `getEventId_()` in `01_LongDataRowIds.gs`, which is currently a separate hardcoded copy of the same id and will silently write rows against the wrong event if the two drift.
 - [ ] Per-event breakdown columns for the 2026 season table.
 - [ ] Delete the orphaned `season-totals/page.tsx`.
 - [ ] Restrict the upload to a known column list (currently maps blank headers from columns S–AB into `""` field names).
