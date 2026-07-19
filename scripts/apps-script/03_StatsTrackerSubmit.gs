@@ -69,8 +69,23 @@ function submitStatsTracker_(trackerSheetName) {
   // The original counted non-empty rows and then re-read a contiguous block of
   // that length, which silently grabbed the wrong rows if the flattened block
   // ever contained a gap.
+  //
+  // "Populated" must mean the SAME thing here as in ensureRowIds(): a row needs
+  // a Team and a Player. A looser `row.some(cell => cell !== '')` test lets
+  // through rows where only the Round/Date formulas still evaluate after the
+  // form is cleared — those get appended, get stamped with a row_id, and then
+  // fail upload validation with "missing Team / Player / Weight".
+  //
+  // Flattened columns J:Q map to Long Data A:H —
+  //   0 Round | 1 Date | 2 Team | 3 Opponent | 4 Point | 5 Player | 6 Type | 7 Weight
+  const COL_TEAM = 2;
+  const COL_PLAYER = 5;
   const actualData = scanned.filter(function (row) {
-    return row.some(function (cell) { return cell !== '' && cell !== null; });
+    const team = String(row[COL_TEAM] == null ? '' : row[COL_TEAM]).trim();
+    const player = String(row[COL_PLAYER] == null ? '' : row[COL_PLAYER]).trim();
+    if (!team || !player) return false;
+    if (team === '#N/A' || player === '#N/A') return false;
+    return true;
   });
 
   if (actualData.length === 0) {
