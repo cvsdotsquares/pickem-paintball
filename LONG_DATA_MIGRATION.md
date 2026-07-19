@@ -290,10 +290,10 @@ in this plan that touches the live scoring path.*
   - Redeploys all ten functions at once, so it wants its own focused session.
   - **Do it before 3 September** if at all possible — that's when picks open for Lone Star and the no-live-event window closes.
 - [ ] **`onEdit` trigger** that clears `sync_state` automatically when a row is edited. *Important: manual amendment flagging will be forgotten, and a forgotten flag means a correction silently never reaches production.*
-- [ ] **Event creation macro.** Setting up a new event currently means hand-editing `EVENT_DETAILS` in `firestore.gs`. Worth a macro that takes the event details once and stamps them everywhere they're needed — including `getEventId_()` in `01_LongDataRowIds.gs`, which is currently a separate hardcoded copy of the same id and will silently write rows against the wrong event if the two drift.
+- [ ] **Event creation macro.** Setting up a new event still means hand-editing `EVENT_DETAILS` in `05_EventSetup.gs` then running `setupEvent()`. A guided macro (prompt for the fields, validate, write) would be less error-prone. *Partly addressed in Phase 4: `EVENT_DETAILS` now has a single definition and `getEventId_()` reads from it, so the event id can no longer drift between two copies.*
 - [ ] Per-event breakdown columns for the 2026 season table.
 - [ ] Delete the orphaned `season-totals/page.tsx`.
-- [ ] Restrict the upload to a known column list (currently maps blank headers from columns S–AB into `""` field names).
+- [x] ~~Restrict the upload to a known column list~~ — done in Phase 4: `syncRoster()` writes only the named fields in `ROSTER_CONFIG.fields`, so the blank headers in columns S–AB are no longer mapped into `""` field names.
 - [ ] Latency: minimum instances to kill cold starts; consider collapsing the recompute → leaderboard trigger hop into one invocation; watch the full `users` scan in `recalculateLeaderboard` as the user base grows.
 - [ ] Two-level aggregation (per-game subtotals) if reads ever become the bottleneck — takes ~3,000 reads to ~40.
 - [ ] New use cases: points played, per-game breakdowns, form over last N events, head-to-head, pick % trends.
