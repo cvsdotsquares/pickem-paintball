@@ -4,6 +4,28 @@
 **Supersedes:** `pickem-long-data-migration-handoff.md` (several of its assumptions are stale — see §1.4)
 **Window:** Mid West Open ended 28 June; next picks open 3 September. No live scoring in between.
 
+## STATUS — Phases 0–3 complete and verified in production (19 July 2026)
+
+Both pipelines run in parallel on every submit. Nothing user-facing has changed.
+
+| Path exercised against Mid West Open | Result |
+|---|---|
+| Bulk backfill, 2,937 rows / 49 games / 6 batch requests | ✅ 162 players, all 8 fields, exact match |
+| Delta upload (2 new rows) | ✅ propagated to both pipelines |
+| Amendment → void (`Reviewed`, weight 0) | ✅ aggregates corrected; rows retained as audit record |
+| Idempotent re-run of `ensureRowIds()` | ✅ `assigned=0` — no duplicate ids |
+| Validation abort (row with id but no data) | ✅ refused, nothing written |
+
+Final diff: **218 players compared, 0 mismatches, 2,285 kills on both sides.**
+
+Measured (previously estimated):
+- `recalculateLeaderboard` 3,450ms — `readPlayers` 1,074ms, `readAllUsers` 787ms dominate; `allUsers=1597` vs `usersWithPicks=382`
+- `recomputeEvent` 16,767ms for the 2,937-row backfill — read 15,383ms, aggregate 202ms, write 1,182ms
+- Full backfill upload from Apps Script: 134s (not the "couple of seconds" originally estimated — 500-doc batch writes are slower than assumed). Steady-state deltas are one batch request.
+- `migrateSingleEvent` now runs ~3× per upload, down from ~220.
+
+**Remaining: Phase 4 (cutover) and Phase 5 (tidy-up, incl. the Node 20 deadline).**
+
 ---
 
 ## 1. Audit Findings
