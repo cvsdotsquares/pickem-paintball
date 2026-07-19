@@ -11,7 +11,31 @@ const apiSecretKey = defineSecret('API_SECRET_KEY');
 admin.initializeApp();
 const db = admin.firestore();
 
-// ─── Helper ────────────────────────────────────────────────────────────────
+// ─── Long-data migration (parallel run — writes only to _v2) ───────────────
+// See LONG_DATA_MIGRATION.md. Nothing here is user-visible yet.
+exports.onLongDataUpload = require('./longDataRecompute').onLongDataUpload;
+
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
+// Lightweight stage timer. Cloud Functions logs give total invocation time but
+// not where it went; this attributes it so latency work targets measurements
+// rather than guesses. See LONG_DATA_MIGRATION.md Phase 0.
+function createTimer(label) {
+  const t0 = Date.now();
+  let last = t0;
+  const stages = [];
+  return {
+    mark(stage) {
+      const now = Date.now();
+      stages.push(`${stage}=${now - last}ms`);
+      last = now;
+    },
+    done(extra = '') {
+      console.log(`⏱️  ${label} total=${Date.now() - t0}ms | ${stages.join(' ')}${extra ? ' | ' + extra : ''}`);
+    },
+  };
+}
+
 function resolveDisplayName(data) {
   return (
     data.username ||
@@ -37,6 +61,7 @@ exports.recalculateLeaderboard = functions.firestore
     console.log(`🔁 last_updated changed, running recalculation for: ${eventId}`);
 
     console.log(`📊 Recalculating leaderboard for: ${eventId}`);
+    const timer = createTimer(`recalculateLeaderboard ${eventId}`);
 
     try {
       // Derive the season year from the event document or its ID
@@ -60,13 +85,17 @@ exports.recalculateLeaderboard = functions.firestore
       console.log(`📋 Players with kills (${scorers.length}): ${scorers.join(', ') || 'none'}`);
       console.log(`📋 Total players read: ${playersSnap.docs.length}`);
 
+      timer.mark('readPlayers');
+
       // ── 2. Fetch all users with picks for this event (one batch read) ────
       const usersSnap = await db.collection('users')
         .where(`pickems.${eventId}`, '!=', null)
         .get();
+      timer.mark('readUsersWithPicks');
 
       // ── 3. Discover other events in the same season (for season totals) ──
       const eventsSnap = await db.collection('events').get();
+      timer.mark('readEvents');
       const siblingEventIds = eventsSnap.docs
         .map(d => d.id)
         .filter(id => {
@@ -152,10 +181,12 @@ exports.recalculateLeaderboard = functions.firestore
         lastCalculated: admin.firestore.FieldValue.serverTimestamp(),
         users: userScores,
       });
+      timer.mark('writeEventLeaderboard');
 
       // ── 8. Build & write season summary doc → leaderboards/season_{year} ─
       // Needs ALL users (not just this event) to cover multi-event participants
       const allUsersSnap = await db.collection('users').get();
+      timer.mark('readAllUsers');
       const allSeasonEventIds = [eventId, ...siblingEventIds];
       const seasonUsers = [];
 
@@ -216,6 +247,7 @@ exports.recalculateLeaderboard = functions.firestore
         lastCalculated: admin.firestore.FieldValue.serverTimestamp(),
         users: seasonUsers,
       });
+      timer.mark('writeSeasonLeaderboard');
 
       // ── 9. Batch-write flat fields to each user doc ───────────────────────
       const BATCH_SIZE = 500;
@@ -231,6 +263,9 @@ exports.recalculateLeaderboard = functions.firestore
         });
         await batch.commit();
       }
+
+      timer.mark('writeUserFlatFields');
+      timer.done(`players=${playersSnap.size} usersWithPicks=${usersSnap.size} allUsers=${allUsersSnap.size}`);
 
       console.log(`✅ Done: ${userScores.length} users ranked for ${eventId}`);
       return null;
@@ -537,12 +572,18 @@ exports.onEventChange = functions.firestore
   });
 
 // Firestore Trigger: Runs when players subcollection changes
+// NOTE: this fires once per player document write. The macro uploads players one
+// at a time, so a single upload produces ~218 invocations of this function.
+// It deliberately does NOT call migrateSingleEvent: doing so made each of those
+// invocations read and rewrite every player twice (~95k writes per upload), and
+// nothing reads the `players/season_{season}/{eventId}/` path it populated —
+// every application read uses the `players/season_{year}/players/` shape.
+// `onEventChange` still calls migrateSingleEvent once per event-doc write, so
+// that path continues to be maintained. See LONG_DATA_MIGRATION.md §1.2.
 exports.onPlayerChange = functions.firestore
   .document('events/{eventId}/players/{playerId}')
   .onWrite(async (change, context) => {
     const { eventId, playerId } = context.params;
-
-    console.log(`🔔 Player changed: ${playerId} in event ${eventId}`);
 
     try {
       await handlePlayerStatusChange(eventId, playerId, change);
@@ -550,13 +591,7 @@ exports.onPlayerChange = functions.firestore
       console.error(`❌ Failed to process player status change:`, error);
     }
 
-    try {
-      await migrateSingleEvent(eventId);
-      return null;
-    } catch (error) {
-      console.error(`❌ Failed to migrate after player change:`, error);
-      return null;
-    }
+    return null;
   });
 
 // ─── Extract average brand color from event logos ─────────────────────────
