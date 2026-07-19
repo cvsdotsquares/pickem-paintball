@@ -13,10 +13,16 @@
  *   - writes only the players whose numbers actually changed. Reads are cheap
  *     (~3k docs, one query); writes are what cost time.
  *
- * PARALLEL RUN: writes to `events_v2/{eventId}/players/{playerId}`, mirroring
- * the live document shape so Phase 3 can diff field-for-field. It deliberately
- * does NOT touch `events/{eventId}.last_updated`, so none of the live
- * leaderboard/badge chain fires. Nothing here is user-visible.
+ * PHASE 4 (CUTOVER): writes to the LIVE `events/{eventId}/players/{playerId}`
+ * and bumps `events/{eventId}.last_updated`, which fires recalculateLeaderboard
+ * exactly as the old macro's event-doc write used to.
+ *
+ * FIELD OWNERSHIP — this function and syncRoster() write to the same documents
+ * and must not overwrite each other:
+ *   here          Confirmed Kills, the 7 type splits, Rank
+ *   syncRoster()  Player, Team, Cost, Status, Number, img_url, team_id, league_id
+ * Writes here use merge, and syncRoster uses an updateMask, so each only ever
+ * touches its own fields.
  */
 
 const functions = require('firebase-functions');
@@ -25,7 +31,11 @@ const admin = require('firebase-admin');
 const db = admin.firestore();
 
 const LONG_DATA_COLLECTION = 'long_data';
-const V2_EVENTS_COLLECTION = 'events_v2';
+
+// Live as of Phase 4 cutover. Set to 'events_v2' to run in parallel-run mode
+// again (writes nowhere user-visible, and skips the last_updated bump).
+const TARGET_EVENTS_COLLECTION = 'events';
+const IS_LIVE = TARGET_EVENTS_COLLECTION === 'events';
 
 /**
  * Long-data `Type` → the aggregate field it feeds.
@@ -108,28 +118,59 @@ async function readEventRows(eventId) {
 }
 
 /**
- * Writes only players whose totals differ from what's already stored.
+ * Assigns Rank across EVERY player on the roster, not just those with kills.
+ *
+ * Matches the sheet's RANK(K2,K:K,0): descending, ties share a rank, and the
+ * next distinct value skips accordingly — [5,5,3] ranks as 1,1,3. Players on
+ * the roster with no long rows rank at 0 kills rather than being left unranked,
+ * which is what the sheet formula did.
+ *
+ * @param {Map<string,Object>} byPlayer  playerId → totals (scorers only)
+ * @param {Map<string,Object>} existing  playerId → current doc (whole roster)
+ */
+function assignRanks(byPlayer, existing) {
+  const all = new Map();
+  existing.forEach((_, playerId) => all.set(playerId, emptyTotals()));
+  byPlayer.forEach((totals, playerId) => all.set(playerId, totals));
+
+  const sorted = [...all.entries()].sort(
+    (a, b) => b[1]['Confirmed Kills'] - a[1]['Confirmed Kills']
+  );
+
+  let lastKills = null;
+  let lastRank = 0;
+  sorted.forEach(([, totals], i) => {
+    const kills = totals['Confirmed Kills'];
+    if (kills !== lastKills) {
+      lastRank = i + 1;      // skip ranks after a tie, as RANK() does
+      lastKills = kills;
+    }
+    totals.Rank = lastRank;
+  });
+
+  return all;
+}
+
+/**
+ * Writes only players whose stats differ from what's already stored.
  * @return {{written: number, unchanged: number}}
  */
 async function writeChangedPlayers(eventId, byPlayer) {
-  const targetCol = db.collection(`${V2_EVENTS_COLLECTION}/${eventId}/players`);
+  const targetCol = db.collection(`${TARGET_EVENTS_COLLECTION}/${eventId}/players`);
   const existingSnap = await targetCol.get();
 
   const existing = new Map();
   existingSnap.docs.forEach((d) => existing.set(d.id, d.data()));
 
+  // Ranks depend on the whole roster, so this also folds in players whose rows
+  // were all voided — they drop to zero rather than lingering at their old total.
+  const all = assignRanks(byPlayer, existing);
+
   const changed = [];
-  byPlayer.forEach((totals, playerId) => {
+  all.forEach((totals, playerId) => {
     const prev = existing.get(playerId);
     if (!prev || !totalsEqual(prev, totals)) {
       changed.push({ playerId, totals });
-    }
-  });
-
-  // A player whose rows were all voided should drop to zero, not linger.
-  existing.forEach((prev, playerId) => {
-    if (!byPlayer.has(playerId) && Number(prev['Confirmed Kills'] || 0) !== 0) {
-      changed.push({ playerId, totals: emptyTotals() });
     }
   });
 
@@ -145,17 +186,18 @@ async function writeChangedPlayers(eventId, byPlayer) {
           eventId,
           recomputedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
+        // merge so syncRoster's metadata (Player, Team, Cost, Status…) survives.
         { merge: true }
       );
     });
     await batch.commit();
   }
 
-  return { written: changed.length, unchanged: byPlayer.size - changed.length };
+  return { written: changed.length, unchanged: all.size - changed.length };
 }
 
 function totalsEqual(a, b) {
-  const fields = ['Confirmed Kills', 'Unclassified', ...TYPE_FIELDS];
+  const fields = ['Confirmed Kills', 'Unclassified', 'Rank', ...TYPE_FIELDS];
   return fields.every((f) => Number(a[f] || 0) === Number(b[f] || 0));
 }
 
@@ -177,10 +219,24 @@ async function recomputeEvent(eventId) {
   const { written, unchanged } = await writeChangedPlayers(eventId, byPlayer);
   const tWrite = Date.now();
 
+  // Fire the downstream chain. The old macro did this implicitly by writing the
+  // event doc on every upload; now that stats no longer go through the macro,
+  // this is what triggers recalculateLeaderboard.
+  //
+  // Skipped when nothing changed — otherwise every submit would re-rank the
+  // entire leaderboard for no reason. Also skipped in parallel-run mode.
+  if (IS_LIVE && written > 0) {
+    await db.doc(`events/${eventId}`).update({
+      last_updated: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+  const tTrigger = Date.now();
+
   console.log(
-    `⏱️  recomputeEvent ${eventId} total=${tWrite - t0}ms | ` +
-    `read=${tRead - t0}ms aggregate=${tAgg - tRead}ms write=${tWrite - tAgg}ms | ` +
-    `rows=${docs.length} players=${byPlayer.size} written=${written} unchanged=${unchanged}`
+    `⏱️  recomputeEvent ${eventId} total=${tTrigger - t0}ms | ` +
+    `read=${tRead - t0}ms aggregate=${tAgg - tRead}ms write=${tWrite - tAgg}ms ` +
+    `trigger=${tTrigger - tWrite}ms | rows=${docs.length} players=${byPlayer.size} ` +
+    `written=${written} unchanged=${unchanged} target=${TARGET_EVENTS_COLLECTION}`
   );
 
   return { players: byPlayer.size, rows: docs.length, written, unchanged };

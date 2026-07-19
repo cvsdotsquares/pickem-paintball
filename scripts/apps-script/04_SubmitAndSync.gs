@@ -5,25 +5,22 @@
  * The Stats Tracker buttons point at SubmitAndSync1 / SubmitAndSync2, so those
  * names must not change.
  *
- * ── DURING THE PARALLEL RUN (now) ────────────────────────────────────────────
+ * ── POST-CUTOVER (Phase 4) ───────────────────────────────────────────────────
  * Each submit does three things:
  *   1. flatten the tracker form into Long Data   (+ row_id, under a lock)
- *   2. uploadEventWithPlayers()   — the OLD path, keeps the live site correct
- *   3. uploadLongDataDelta()      — the NEW path, feeds long_data / _v2
+ *   2. syncRoster()          — metadata only, batched + diffed  (~0-2s)
+ *   3. uploadLongDataDelta() — the changed rows, one batch       (~1-2s)
  *
- * Step 2 is the slow one (~52s: 218 player documents, one HTTP request each).
- * Step 3 adds only a second or two because it sends just the new rows in a
- * single batched request.
+ * Stats are no longer uploaded at all: the recompute Cloud Function derives
+ * Confirmed Kills, the type splits and Rank from the long rows, then bumps
+ * events.last_updated to fire recalculateLeaderboard.
  *
- * Step 3 is wrapped in its own try/catch and runs LAST, deliberately. The new
- * pipeline is unproven in live conditions, and it must not be able to break
- * live scoring. If it fails, the live site is already updated and the rows stay
- * unsynced — the next submit retries them automatically.
+ * This replaced uploadEventWithPlayers(), which rewrote all 218 player
+ * documents one HTTP request at a time on EVERY submit (~52s). Total is now
+ * roughly 3-5s.
  *
- * ── AT CUTOVER (Phase 4) ─────────────────────────────────────────────────────
- * Delete step 2. Submits then drop from ~52s to ~3s, and the try/catch around
- * step 3 should be removed so failures surface loudly instead of being
- * swallowed.
+ * Step 3 is no longer wrapped in a try/catch — it is now the path that carries
+ * the scores, so a failure must surface loudly rather than be swallowed.
  */
 
 function SubmitAndSync1() {
@@ -58,43 +55,47 @@ function submitAndSync_(label, trackerSubmit) {
 
   const tSubmit = Date.now();
 
-  // ── 2. OLD path — keeps the live site correct. REMOVE AT CUTOVER. ────────
+  // ── 2. Roster metadata — name, team, cost, status, photo ─────────────────
+  // Diffed, so this usually writes nothing. Non-fatal: stale metadata is bad
+  // (an injured player still showing as Confirmed) but it must not stop the
+  // scores getting through.
+  let rosterNote = '';
   try {
-    uploadEventWithPlayers();
+    const r = syncRoster();
+    rosterNote = 'roster=' + r.written + '/' + r.total;
   } catch (error) {
-    Logger.log('%s: uploadEventWithPlayers FAILED: %s', label, error.message);
-    try {
-      SpreadsheetApp.getUi().alert(
-        'The point was recorded in the sheet, but the site did not update.\n\n' +
-        error.message
-      );
-    } catch (e) {}
-    // Continue to step 3 regardless — the long-data path is independent.
+    Logger.log('%s: syncRoster failed (non-fatal): %s', label, error.message);
+    rosterNote = 'roster=FAILED';
   }
 
-  const tOld = Date.now();
+  const tRoster = Date.now();
 
-  // ── 3. NEW path — parallel run. Must never break live scoring. ───────────
-  let newPathNote = '';
+  // ── 3. Long data — this now carries the scores ───────────────────────────
+  // Deliberately NOT caught: before cutover this was the unproven parallel
+  // path and failures were swallowed. It is now the only route by which kills
+  // reach the site, so a failure has to be visible.
   try {
     uploadLongDataDelta();
-    newPathNote = 'longData=ok';
   } catch (error) {
-    // Deliberately swallowed. The rows keep an empty sync_state, so the next
-    // submit picks them up. Nothing is lost, and scoring continues.
-    Logger.log('%s: uploadLongDataDelta failed (non-fatal, will retry): %s', label, error.message);
-    newPathNote = 'longData=FAILED (' + error.message + ')';
+    Logger.log('%s: uploadLongDataDelta FAILED: %s', label, error.message);
+    try {
+      SpreadsheetApp.getUi().alert(
+        'The point was recorded in the sheet, but the scores did NOT reach the site.\n\n' +
+        error.message + '\n\nFix the issue and submit again — the rows will retry.'
+      );
+    } catch (e) {}
+    throw error;
   }
 
-  const tNew = Date.now();
+  const tLong = Date.now();
 
   Logger.log(
-    '%s complete in %sms | submit=%sms uploadPlayers=%sms longData=%sms | %s',
+    '%s complete in %sms | submit=%sms roster=%sms longData=%sms | %s',
     label,
-    tNew - started,
+    tLong - started,
     tSubmit - started,
-    tOld - tSubmit,
-    tNew - tOld,
-    newPathNote
+    tRoster - tSubmit,
+    tLong - tRoster,
+    rosterNote
   );
 }

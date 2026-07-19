@@ -36,10 +36,17 @@ const LD = {
   headers: { 9: 'row_id', 10: 'sync_state', 11: 'last_modified' },
 };
 
-/** Event id — must match the Firestore `events/{id}` document id exactly. */
+/**
+ * Event id — must match the Firestore `events/{id}` document id exactly.
+ * Single source of truth is EVENT_DETAILS in 05_EventSetup.gs. It used to be
+ * hardcoded here as well, where drift between the two copies would silently
+ * write long rows against the wrong event.
+ */
 function getEventId_() {
-  // Mirrors EVENT_DETAILS.id in the existing upload macro.
-  return 'mid_west_open_2026';
+  if (typeof EVENT_DETAILS === 'undefined' || !EVENT_DETAILS.id) {
+    throw new Error('EVENT_DETAILS.id is not set — check 05_EventSetup.gs');
+  }
+  return EVENT_DETAILS.id;
 }
 
 /**
