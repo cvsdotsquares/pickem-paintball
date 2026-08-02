@@ -22,7 +22,7 @@ export default function DashboardPrivacyPolicyPage() {
           ctaLabel="Pick your team ›"
         />
       ) : null}
-      <div className="mx-auto w-full max-w-7xl px-4 pb-10 pt-4 text-gray-900 dark:text-white">
+      <div className="mx-auto w-full max-w-7xl px-4 md:px-6 pb-10 pt-4 text-gray-900 dark:text-white">
         <PrivacyPolicyContent variant="dashboard" />
       </div>
     </div>

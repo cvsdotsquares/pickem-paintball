@@ -195,14 +195,19 @@ export default function EventCountdownBanner({
       mobileBlackBarFullBleed
         ? // Black strip edge-to-edge; inner wrapper holds the white pill. max-md:py-* keeps top/bottom black bands equal.
           "relative z-0 ml-[calc(50%-50vw)] w-screen max-w-[100vw] pl-0 pr-0 max-md:py-3"
-        : "w-full pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] md:pl-[max(1.25rem,env(safe-area-inset-left))] md:pr-[max(1.25rem,env(safe-area-inset-right))]",
+        : "w-full",
     );
 
-    const fullBleedPillGutterClass =
-      "pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] md:pl-[max(1.25rem,env(safe-area-inset-left))] md:pr-[max(1.25rem,env(safe-area-inset-right))]";
+    /**
+     * Matches page content containers (`mx-auto max-w-7xl px-4 md:px-6`) so the pill's edges
+     * line up with the panels below it. The cap belongs here, not on the pill, or the gutters
+     * would sit outside the 7xl box and the pill would overhang the content on wide screens.
+     */
+    const pillGutterClass =
+      "mx-auto w-full max-w-7xl pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] md:pl-[max(1.5rem,env(safe-area-inset-left))] md:pr-[max(1.5rem,env(safe-area-inset-right))]";
 
     const pillRow = (
-      <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-5xl flex-row items-stretch overflow-hidden rounded-xl bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.06)] md:rounded-2xl md:shadow-lg">
+      <div className="flex min-h-0 w-full min-w-0 flex-row items-stretch overflow-hidden rounded-xl bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.06)] md:rounded-2xl md:shadow-lg">
           {/* Left: height follows measured “deadline + CTA” stack on the right */}
           <div className="flex w-[26%] min-w-[4.5rem] max-w-[8.5rem] shrink-0 flex-col justify-center border-r border-gray-100 p-1.5 md:w-[28%] md:min-w-[7rem] md:max-w-[11rem] md:p-2.5">
             <div
@@ -319,11 +324,7 @@ export default function EventCountdownBanner({
 
     return (
       <div className={blackBarClass}>
-        {mobileBlackBarFullBleed ? (
-          <div className={fullBleedPillGutterClass}>{pillRow}</div>
-        ) : (
-          pillRow
-        )}
+        <div className={pillGutterClass}>{pillRow}</div>
       </div>
     );
   }

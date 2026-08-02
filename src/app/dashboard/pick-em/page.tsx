@@ -855,14 +855,17 @@ export default function Pickems() {
       ) : null}
 
       {/* ── MAIN SPLIT ────────────────────────────────────────────────────────── */}
-      <div className="mx-auto w-full max-w-7xl flex flex-1 overflow-hidden">
+      {/* Matches the event banner's gutters at both breakpoints so the columns sit flush under the pill. */}
+      <div className="mx-auto w-full max-w-7xl px-4 md:px-6 flex flex-1 overflow-hidden">
 
         {/* LEFT: Unified Grid */}
         <div className="flex flex-col w-full md:w-[45%] border-r border-gray-200 dark:border-white/10 overflow-hidden bg-[#f0f0f0] dark:bg-[#111]">
 
           {/* Grid fills all remaining height — confirm bar is always visible below */}
           <div className="relative flex-1 overflow-hidden min-h-0">
-            <div className="h-full px-2 pt-2 pb-1">
+            {/* No outer gutter — the container's px provides it, so cards sit flush with the banner.
+                md:pr-2 is the inner gutter against the player table. */}
+            <div className="h-full pt-2 pb-1 md:pr-2">
               <div className="grid grid-cols-3 gap-1.5 h-full" style={{
                 gridTemplateRows: "auto 1fr 1fr 1fr"
               }}>
@@ -986,7 +989,7 @@ export default function Pickems() {
                 </>
               );
             return (
-              <div className="flex-shrink-0 flex gap-2 px-3 pb-2 pt-1">
+              <div className="flex-shrink-0 flex gap-2 pb-2 pt-1 md:pr-2">
                 {/* Confirm — 75% */}
                 <button
                   onClick={confirmPicks}
@@ -1010,7 +1013,8 @@ export default function Pickems() {
         </div>
 
         {/* RIGHT: Player Table */}
-        <div className="hidden md:flex flex-col flex-1 overflow-hidden p-2">
+        {/* pr dropped so the panel's outer edge sits flush with the event banner */}
+        <div className="hidden md:flex flex-col flex-1 overflow-hidden py-2 pl-2">
           <div className="flex flex-col flex-1 overflow-hidden rounded-xl bg-white dark:bg-[#0d0d0d] ring-1 ring-black/10 dark:ring-white/10">
           {/* Search */}
           <div className="flex-shrink-0 px-3 py-3 border-b border-gray-100 dark:border-white/5">

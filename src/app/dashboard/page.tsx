@@ -431,6 +431,14 @@ export default function Dashboard() {
     </div>
   );
 
+  /**
+   * Sticky header for the roster updates table. Needs its own *opaque* background — a sticky cell
+   * doesn't inherit the thead's paint, and the thead's `dark:bg-white/5` is translucent, so rows
+   * scroll straight through it. #181615 is that 5% white already flattened onto the stone-950
+   * surface behind the table, so it looks identical while actually hiding what passes underneath.
+   */
+  const rosterHeadCellClass = "sticky top-0 z-10 bg-gray-100 px-3 py-2 dark:bg-[#181615]";
+
   const rosterUpdatesBlock = (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
@@ -461,14 +469,20 @@ export default function Dashboard() {
           })}
         </div>
       )}
-      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-white/10">
+      {/* Caps the table at the 10 most recent updates, with everything older reachable by scrolling.
+          Two caps because the rows differ per breakpoint (max-h is border-box, hence the +2 borders):
+          mobile 608px = 36px header + 10 x 57px stacked rows; desktop 408px = 36px + 10 x 37px,
+          the single-line height the Live stats table uses. */}
+      <div className="max-h-[608px] overflow-auto rounded-lg border border-gray-200 dark:border-white/10 md:max-h-[408px]">
         <table className="w-full text-left text-sm font-azonix">
           <thead className="bg-gray-100 dark:bg-white/5 text-[10px] uppercase tracking-widest text-gray-600 dark:text-gray-400">
             <tr>
-              <th className="px-3 py-2 w-6"></th>
-              <th className="px-3 py-2">Player</th>
-              <th className="px-3 py-2 w-28">Status</th>
-              <th className="px-3 py-2 text-right w-20">Updated</th>
+              <th className={`${rosterHeadCellClass} w-6`}></th>
+              <th className={rosterHeadCellClass}>Player</th>
+              {/* Desktop only — on mobile the team stays stacked under the player name */}
+              <th className={`${rosterHeadCellClass} hidden md:table-cell`}>Team</th>
+              <th className={`${rosterHeadCellClass} w-28`}>Status</th>
+              <th className={`${rosterHeadCellClass} w-20 text-right`}>Updated</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-white/10 text-gray-900 dark:text-white">
@@ -477,7 +491,7 @@ export default function Dashboard() {
               if (visible.length === 0) {
                 return (
                   <tr>
-                    <td colSpan={4} className="px-3 py-8 text-center text-gray-500 dark:text-gray-400 text-xs">
+                    <td colSpan={5} className="px-3 py-8 text-center text-gray-500 dark:text-gray-400 text-xs">
                       No player status changes for this event.
                     </td>
                   </tr>
@@ -499,9 +513,13 @@ export default function Dashboard() {
                         {meta.tickGlyph}
                       </span>
                     </td>
-                    <td className="px-3 py-2 min-w-0">
-                      <div className="text-[11px] font-bold truncate">{row.player}</div>
-                      <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{row.team}</div>
+                    <td className="px-3 py-2 min-w-0 align-middle">
+                      <div className="truncate text-[11px] font-bold md:text-sm">{row.player}</div>
+                      {/* Desktop promotes this to its own column (next cell) */}
+                      <div className="truncate text-[10px] text-gray-500 dark:text-gray-400 md:hidden">{row.team}</div>
+                    </td>
+                    <td className="hidden min-w-0 px-3 py-2 align-middle md:table-cell">
+                      <div className="truncate text-sm font-bold">{row.team}</div>
                     </td>
                     <td className="px-3 py-2 align-middle">
                       <span className={`${STATUS_BUTTON_BASE_CLASS} ${meta.buttonClass}`}>
