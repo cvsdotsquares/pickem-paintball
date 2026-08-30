@@ -1,0 +1,233 @@
+# TODO — open items
+
+Everything outstanding, newest work first. Companion docs:
+[`SECURITY_HARDENING.md`](./SECURITY_HARDENING.md) · [`ROSTER_IDENTITY.md`](./ROSTER_IDENTITY.md) ·
+[`DATA_PIPELINE.md`](./DATA_PIPELINE.md) · [`LONG_DATA_MIGRATION.md`](./LONG_DATA_MIGRATION.md)
+
+---
+
+## Next session
+
+Dark mode and mobile are both signed off on the player page.
+
+1. **Append long data for the 7 remaining events** (see Data below). The Matches tab
+   lights up per event as its rows land; no code change needed.
+2. **Tidy this list.** It has grown through several sessions and now mixes live
+   blockers with design notes and one-line bugs.
+
+Accepted as-is on mobile, not bugs — recorded so they are not rediscovered:
+- Both tables still scroll horizontally (events 790px, matches 654px into a ~303px
+  column). Truncation took it as far as it goes; fitting a phone properly means
+  dropping columns or a card layout, which was a deliberate no for now.
+- Chart hovers are pointer-driven, so the crosshair readouts and the
+  `% of Team’s Kills` tooltip do nothing on touch. A tap-to-show equivalent is the
+  fix whenever it matters.
+
+---
+
+## Blocking real use
+
+**Pick % is on a temporary data path.** `fetchOwnership()` scans all ~1,600 user
+documents on every player-page load. Fine locally, will not survive traffic.
+
+The real version: ownership freezes at **pick lock**, so compute it once then and store
+one summary doc per event. The calculation already exists in
+`functions/extract-pick-percentages.js` — it writes an `.xlsx` today and needs to write
+Firestore instead, triggered on `lockDate`. Then the page does one read.
+
+Needs no long-data backfill. It is independent of everything below.
+
+**Firestore rules, stages 2 and 3.** Stage 1 shipped (game data is read-only). `users`,
+`leagues`, `notifications` and `shareCards` are still world-readable *and writable* —
+1,600 emails, real names and Stripe customer ids. Full plan in `SECURITY_HARDENING.md`;
+first step is creating the service-account key and adding it to `.env.local` **and**
+Vercel.
+
+---
+
+## Player page — design
+
+- [ ] **Scope toggle for the career charts.** Not needed at 8 events; it bites as the
+      count grows. Cole Scott (`100192`) already shows the shape of the problem — five
+      "not rostered" rows between his debut and his two played events.
+      Decisions already taken, so the work is mechanical when it comes up:
+      - **One control for the whole page**, not per panel. There is already a scope
+        dropdown on Playing Style; a second window control on the kills chart would
+        put two scopes on one page, which is the inconsistency this replaced.
+      - **Offer time-based windows, not count-based** — `Career / Last 2 seasons /
+        This season`. "Last 10 played" reaches back two seasons for an ever-present and
+        five for an occasional player, so two charts stop meaning the same thing.
+        A sparse career should give a sparse chart; that sparseness is real information.
+      - **Career totals never window.** Career kills, all-time rank and the type
+        breakdown stay over everything, or "career" drifts as events accumulate.
+      - **The table never windows** — it is the record, let it scroll. Charts read a
+        trend; tables get looked up.
+      - Label the window on the chart, or a reader takes it for the whole career.
+- [ ] **Semi-retired players need a status line rather than more chart logic.**
+      Johnny Luckau (`100181`) is on 8 rosters with 7 DNPs because he moved to coaching
+      — the league lists him as `Coach` for three 2026 events. Honest but nearly empty.
+      Something like "Last played Tampa Bay 26", or a coach marker.
+
+- [ ] **Pick the high-contrast palette.** Current set is ocean/coral/teal/sand/violet/cyan,
+      validated at ΔE 16.0 normal vision / 8.8 CVD in both themes.
+      ⚠️ Constraint learned the hard way: **muted palettes fail**. Low chroma is exactly
+      what makes colours indistinguishable — three restrained sets were tried and all
+      failed. Go for different *hues* at similar saturation, not lower saturation.
+      Validate with `dataviz/scripts/validate_palette.js "<hexes>" --pairs all`.
+- [ ] **Event history table.** The least-worked part of the page: very airy rows, the
+      Team column floats alone mid-table, and every number carries equal weight so
+      nothing guides the eye. Kills and rank are the interesting columns.
+- [ ] **Page rhythm.** Five panels of identical radius, padding and background, so the
+      reference table has the same visual weight as the career story. No hierarchy.
+- [ ] **Hero tile whitespace** — bottom-aligned as agreed, which leaves 90px above the
+      content and 18px below. The tile is 168px only because the photo sets the row
+      height. Shrinking the photo or capping the tile column would tighten it without
+      moving the numbers off the floor.
+
+## Player page — features not built
+
+- [ ] **Match detail — head-to-head and by-day views.** The per-match table is built
+      (Matches tab on the history panel); these are the cuts it does not yet offer.
+      Needs the long-data backfill (below) to be worth building.
+- [ ] **Team tab.** `fetchPlayerMatches()` already computes `teamKills` and
+      `opponentKills` per match — eliminations for and against. Parked from the player
+      view because it describes the team, not the player. Note it is NOT the scoreline:
+      X-Ball is won on points and long data holds no result, so it must never be
+      coloured or labelled as a win.
+- [ ] Team names and event names in the table are **not links** — the page is a dead end.
+- [ ] No nav entry for players; reachable only from the stats table or by URL.
+
+---
+
+## Data
+
+- [ ] **Participation must be re-run after every event.** This is manual by choice
+      until the offseason. After an event finishes and the league's team sheets settle,
+      re-crawl `~/Documents/nxl-pro-players` and then:
+
+      node scripts/dry-run-participation.mjs      # review the absent list
+      node scripts/apply-participation.mjs --yes  # then write
+
+      Both take `--csv <path>`. Use the **role-aware** export
+      (`Player_Roster_Historic.csv`) — the older `nxl_pro_players_long.csv` has no
+      `role` column and sweeps in coaches, staff and pit crew.
+      Runs on firebase-admin via Application Default Credentials, which bypasses the
+      Stage 1 rules; the client SDK cannot write to `events/{id}/players`.
+      Rules live in `scripts/participation-plan.mjs`. Writes only `participation`,
+      `participationReason`, `participationAt` — never a stat, pick or leaderboard field.
+      *Offseason:* schedule this at `eventEndsAt` like the badge recalc, and port the
+      crawler into `functions/`. Keep the 80% coverage floor — its failure mode is
+      silently marking a whole roster absent.
+- [ ] **Verify the "my picks" DNP path.** Absent players are hidden from the stats
+      table but deliberately kept under *Show only my picks*, rendering `DNP` instead
+      of zeros. Unverified in the browser: the test account holds no picks on an event
+      where one of its players was absent. Check this at the next live event.
+- [ ] **Finish the AFT/SDA team-code swap in the database.** James is renaming these in
+      the Live Data sheet; once that lands, migrate the stored data and delete the
+      display override.
+      Target: Aftermath `SDA` → **AFT** · Aftershock `AFT` → **SHK**.
+      - **The two codes collide** — Aftermath wants the code Aftershock holds. Must go
+        through a temp value (`AFT`→`TMP`, `SDA`→`AFT`, `TMP`→`SHK`) or one atomic
+        remap. A naive find-replace merges the two teams.
+      - **`gameId` embeds the sorted team pair, and 6 of 8 re-sort** because `SHK`
+        sorts after `DYN`/`IRN`/`JNG` where `AFT` sorted before them, e.g.
+        `mid_west_open_2026_Friday_AFT-IRN` → `..._IRN-SHK`. Miss this and the Matches
+        tab silently drops those games.
+      - Scope at time of writing: **79 AFT + 70 SDA** docs in `events/{id}/players`,
+        **453** `long_data` rows (`teamId`/`opponentId`), **8** gameIds, and
+        `scripts/player-identity-registry.json` (16 + 12). Long-data counts grow with
+        each event backfilled — re-scope before running.
+      - **Do the sheet first.** `syncRoster()` owns `team_id` under an updateMask
+        (`06_RosterSync.gs`), so migrating Firestore alone gets reverted on the next
+        roster upload, leaving rosters and long data disagreeing.
+      - Then **delete `TEAM_CODE_OVERRIDES`** from the player page — it exists only to
+        paper over this, and leaving it in after the migration would double-swap.
+      - ⚠️ Worth confirming before committing: the league's own data uses `SDA` for
+        Aftermath, and `Player_Roster_Historic.csv` keys on it. Renaming ours means our
+        codes stop matching theirs when reconciling rosters against their team sheets.
+- [ ] **Long-data backfill — 7 events.** Only `mid_west_open_2026` has kill-by-kill rows
+      loaded. Each remaining event needs row ids stamped, validating, uploading and
+      verifying. **The Matches tab on the player page is already built and waiting** —
+      each event lights up the moment its long data lands, no code change needed. Until
+      then those events show a "no kill-by-kill data loaded yet" note.
+- [ ] **Scope the match-detail query.** `fetchPlayerMatches()` reads every long row for
+      the event (~2,900 today) and filters in memory. Fine for one event, and it only
+      fires when the Matches tab is opened, but it grows with each backfill. The real
+      fix is a per-game summary written at recompute time — the same move the pick-%
+      path needs, and both could share one pass.
+- [ ] **Decide on points-played.** Long data records kills only, so there is no
+      denominator — no K/D, no per-point rates, and raw totals reward deep tournament
+      runs over individual performance. **Cannot be applied retroactively**, so the
+      decision only affects events from the next one onward.
+- [ ] **`syncRoster()` guard** — refuse a roster that mints a new id for a player who
+      already exists. This is the root cause of every merge defect fixed in August, and
+      it recurs at every event boundary, not just season rollovers. James is building a
+      crawler keyed on `league_id`; it must map to *existing* player ids, never mint
+      fresh ones. Seed data: `scripts/player-identity-registry.json`.
+- [ ] **4 players show the wrong headshot** — their `img_url` carries another player's
+      league id: `100097` Josh Taylor, `100110` Mark Frans, `100177` Ashton Bufton,
+      `100183` Diego Gallego.
+- [ ] **Two roster identities won't join to the official team sheet.** Found by
+      `dry-run-participation.mjs`, which cross-checks our rosters against the NXL
+      team sheets scraped into `~/Documents/nxl-pro-players/Player_Roster_Historic.csv`.
+      Neither breaks anything today — the kills-outrank-everything rule keeps both
+      players visible — but neither can be validated either.
+      - **`100053` Carlos Cortes — league_id `37312` looks wrong.** That id appears
+        nowhere in the league's own data across 2015–2026, and no player named Cortes
+        appears at all, yet he scores at all eight events (17 kills at Mid West 26).
+        He was already one of the two ids the Aug identity pass could not resolve.
+        Find his real numeric id the usual way: his avatar filename on pbleagues.com.
+      - **`100174` Keith Devit — league_id `58216` is real but stale.** Rows exist only
+        for 2017 (LA Ironmen) and nothing since, so he is absent from every recent team
+        sheet while sitting on three of our rosters. Probably a genuine return the
+        league never re-listed — worth confirming rather than assuming.
+
+---
+
+## Fonts
+
+- [ ] **Roll the variable font out beyond the player page.** `HitmarkerVF-CondensedLight.ttf`
+      is registered and the player page opts in via `data-numeric="variable"` on its root.
+      Add that attribute per surface, check for overflow, move on.
+      ⚠️ **wdth 25 renders ~43% wider** than the static Condensed Light everywhere else,
+      so fixed-width numeric columns will break. Order of risk:
+      dashboard home → leaderboard → stats table (`w-[7rem]` pinned) →
+      pick-em (`GRID_COLS` fixed) → **share card last** (fixed 1080×1920 canvas; overflow
+      clips silently rather than wrapping, so nothing will tell you it broke).
+- [ ] Once every surface is converted, replace `.pickem-numeric` with the scoped block
+      and drop the three static Hitmarker files.
+- [ ] **Tailwind font aliases are misleading**: `font-azonix`, `font-inter`, `font-hanson`,
+      `font-heading` and `font-body` all resolve to `--font-industry`. Applying
+      `font-azonix` changes nothing. Worth collapsing.
+
+---
+
+## Bugs found in passing, not yet fixed
+
+- [ ] **`firebasePublicEnv.ts:19` always reports env vars missing in the browser.** It
+      reads `process.env[k]` with a *variable* key, and Next only substitutes literal
+      `process.env.NAME` at build time. The scary red "Missing env" panel on the local
+      login screen is a false positive and always has been.
+- [ ] **`tailwind-merge` silently drops `leading-*` before `text-[size]`.** Cost an hour
+      on the player page; likely present elsewhere.
+- [ ] **Stale `tampa_bay_2025` event id** (real id is `tampa_bay_open_2025`) in
+      `season-totals/page.tsx`, `SeasonTotals.tsx` and `user-details/route.ts:112`. All
+      three are orphaned or dead code, but the id is a trap.
+- [ ] **`pickems.test`** — a user has a `test` event key holding a real pick.
+- [ ] **6 users have `isSubscribed: true`** with no Stripe customer, tier or status.
+      Probably comped by hand; worth confirming, since until 22 Aug anyone could have set
+      that on themselves with one HTTP request.
+- [ ] Confirm **`NEXT_PUBLIC_DEV_ALLOW_UNVERIFIED_LOGIN`** is not set in Vercel — if true
+      outside local dev, unverified accounts can sign in.
+
+---
+
+## Next features
+
+- [ ] **Team pages** — same treatment as player pages. Team ids are clean since the
+      August fix.
+- [ ] **Share graphics** — extend the existing `api/share/og/route.tsx` pipeline
+      (1,038 lines, `next/og`, 1080×1920 branded cards) rather than starting fresh.
+- [ ] **Public player pages?** Currently under `/dashboard` behind auth. Player names are
+      exactly what fans search for, so there is a real SEO case — but it is a product
+      call, and it decides whether the data needs precomputing for static rendering.

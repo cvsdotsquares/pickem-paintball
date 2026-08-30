@@ -1,9 +1,117 @@
 rules_version = '2';
 
+// PickEm Paintball — Firestore security rules
+//
+// The Firebase API key is public by design (NEXT_PUBLIC_FIREBASE_API_KEY ships in
+// the browser bundle). It identifies the project; it authorises nothing. These
+// rules are the ONLY access control — anyone can call firestore.googleapis.com
+// directly with that key, bypassing the app entirely.
+//
+// Cloud Functions (Admin SDK) and the Apps Script uploader (service account) both
+// bypass rules completely, so locking a collection to read-only here does not stop
+// the stats pipeline from writing to it.
+//
+// STAGED ROLLOUT — see ROSTER_IDENTITY.md and the session notes.
+//   Stage 1 (this file): game data is read-only. Verified 22 Aug 2026 that not a
+//           single client or API route writes to any collection below.
+//   Stage 2 (pending): convert the ~25 server routes that use the CLIENT SDK over
+//           to firebase-admin. Until that lands they are indistinguishable from an
+//           anonymous visitor, so `users` / `leagues` / `notifications` /
+//           `shareCards` cannot yet require auth without breaking them.
+//   Stage 3 (pending): lock those four to authenticated, own-document access and
+//           move PII (email, real name, Stripe ids) out of the readable user doc.
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
+
+    // ── Game data — read-only to every client ────────────────────────────────
+    // Written only by Cloud Functions and Apps Script, which bypass these rules.
+
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if false;
+
+      match /players/{playerId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
+    match /leaderboards/{leaderboardId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Granular kill rows — the source of truth for every stat.
+    match /long_data/{rowId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Player career projections — one document per player, holding everything the
+    // career page renders. Derived entirely from the collections above, so it carries
+    // no information a client could not already read; it exists to make one read do
+    // the work of ~6,200. Written only by the rebuild and, later, the recompute.
+    match /playerSummaries/{playerId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Upload manifests. Nothing client-side reads these; they trigger the recompute.
+    match /uploads/{uploadId} {
+      allow read: if false;
+      allow write: if false;
+    }
+
+    // Pre-aggregated season tables. season_2025 was retired 22 Aug 2026 (the stats
+    // page computes 2025 live); season_2024 remains and is not surfaced in the UI.
+    match /players/{seasonId} {
+      allow read: if true;
+      allow write: if false;
+
+      match /players/{playerId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
+    // CMS content and badge-rarity counters — published by admin tooling.
+    match /cmsPages/{pageId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /stats/{statId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ── Still open — blocked on the Admin SDK conversion (stage 2) ───────────
+    // These receive writes from client code AND from server routes that currently
+    // use the client SDK, so they have no auth context to key a rule on yet.
+    // TODO(stage 3): require request.auth and restrict to the owning document.
+
+    match /users/{userId} {
       allow read, write: if true;
+    }
+
+    match /leagues/{leagueId} {
+      allow read, write: if true;
+    }
+
+    match /notifications/{notificationId} {
+      allow read, write: if true;
+    }
+
+    match /shareCards/{shareId} {
+      allow read, write: if true;
+    }
+
+    // ── Default deny ─────────────────────────────────────────────────────────
+    // Anything not named above is unreachable from a client. Adding a collection
+    // means adding a rule for it.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

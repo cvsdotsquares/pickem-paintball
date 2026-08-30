@@ -1,0 +1,4921 @@
+{
+  "generated": "2026-08-22T15:32:22.531Z",
+  "note": "Authoritative league_id <-> player_id map after the 22 Aug 2026 identity fix. player_id is the key pickems resolve against and MUST NOT change. league_id is the NXL identity.",
+  "scope": [
+    "tampa_bay_open_2025",
+    "atlantic_city_2025",
+    "midwest_open_2025",
+    "lonestar_open_2025",
+    "world_cup_2025",
+    "tampa_bay_2026",
+    "mid_atlantic_open_2026",
+    "mid_west_open_2026"
+  ],
+  "count": 325,
+  "players": [
+    {
+      "player_id": "100001",
+      "Player": "Cyrus Garringer",
+      "team_id": "FIT",
+      "Team": "PaintballFIT",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "193471",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100002",
+      "Player": "Blake Yarber",
+      "team_id": "DYN",
+      "Team": "Dynasty",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "37327",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100003",
+      "Player": "Kirill Prikhidni",
+      "team_id": "LEG",
+      "Team": "Red Legion",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "3892",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100004",
+      "Player": "Pavel Karsliev",
+      "team_id": "LEG",
+      "Team": "Red Legion",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "56861",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100005",
+      "Player": "Jonathan Chavez",
+      "team_id": "FIT",
+      "Team": "PaintballFIT",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "111768",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100006",
+      "Player": "Scott Stewart",
+      "team_id": "FIT",
+      "Team": "PaintballFIT",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "117562",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100007",
+      "Player": "Graham Arnold",
+      "team_id": "UPR",
+      "Team": "Uprising",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "36617",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100008",
+      "Player": "Arturo Andrade",
+      "team_id": "DYN",
+      "Team": "Dynasty",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "56462",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100009",
+      "Player": "Alexander Berdnikov",
+      "team_id": "LEG",
+      "Team": "Red Legion",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "26691",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100010",
+      "Player": "Trenton Mason Salinas",
+      "team_id": "FIT",
+      "Team": "PaintballFIT",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "133572",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100011",
+      "Player": "Mark Baginski",
+      "team_id": "ACD",
+      "Team": "ac DIESEL",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "92338",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100012",
+      "Player": "Brandon Cornell",
+      "team_id": "IMP",
+      "Team": "Impact",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "73338",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100013",
+      "Player": "Alex Goldman",
+      "team_id": "ACD",
+      "Team": "ac DIESEL",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "14329",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100014",
+      "Player": "Jacob Sebaugh",
+      "team_id": "FIT",
+      "Team": "PaintballFIT",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "74339",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100015",
+      "Player": "Ryan Greenspan",
+      "team_id": "DYN",
+      "Team": "Dynasty",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "3004",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100016",
+      "Player": "Justin Rabackoff",
+      "team_id": "LEG",
+      "Team": "Red Legion",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "7482",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100017",
+      "Player": "Harrison Frye",
+      "team_id": "DYN",
+      "Team": "Dynasty",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "62920",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100018",
+      "Player": "Shahyar Hussain",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "43335",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100019",
+      "Player": "Sergey Solnyshkov",
+      "team_id": "LEG",
+      "Team": "Red Legion",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "34640",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100020",
+      "Player": "Yosh Rau",
+      "team_id": "DYN",
+      "Team": "Dynasty",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "6860",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100021",
+      "Player": "Stephen Omara",
+      "team_id": "ARS",
+      "Team": "Arsenal",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "63599",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100022",
+      "Player": "Alex Rodriguez",
+      "team_id": "AFT",
+      "Team": "Aftershock",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "36148",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100023",
+      "Player": "Axel Gaudin",
+      "team_id": "TON",
+      "Team": "TonTon",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "70849",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100024",
+      "Player": "John Soap Schappaugh",
+      "team_id": "HEA",
+      "Team": "Heat",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "83867",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100025",
+      "Player": "Nathan Schroeder",
+      "team_id": "UPR",
+      "Team": "Uprising",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "18249",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100026",
+      "Player": "Chad Busiere",
+      "team_id": "DAM",
+      "Team": "Damage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "21296",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100027",
+      "Player": "Clint Johnson",
+      "team_id": "ACD",
+      "Team": "ac DIESEL",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "65312",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100028",
+      "Player": "Archie Montemayor",
+      "team_id": "XFA",
+      "Team": "X-Factor",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "1456",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100029",
+      "Player": "Joe Barrett",
+      "team_id": "DYN",
+      "Team": "Dynasty",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "53504",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100030",
+      "Player": "Aaron Pate",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "56623",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100031",
+      "Player": "Eliot Weaver",
+      "team_id": "ARS",
+      "Team": "Arsenal",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "55101",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100032",
+      "Player": "Zachary Yachimec",
+      "team_id": "IMP",
+      "Team": "Impact",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "2895",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100033",
+      "Player": "Jerry Caro",
+      "team_id": "IRN",
+      "Team": "Ironmen",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025"
+      ],
+      "league_id": "43112",
+      "latest_event": "atlantic_city_2025"
+    },
+    {
+      "player_id": "100034",
+      "Player": "Nikolao Asabedo",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "159819",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100035",
+      "Player": "Mikhail Knyazev",
+      "team_id": "HEA",
+      "Team": "Heat",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "7065",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100036",
+      "Player": "Matt Jackson",
+      "team_id": "XFA",
+      "Team": "X-Factor",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "25645",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100037",
+      "Player": "Conner Kelley",
+      "team_id": "AFT",
+      "Team": "Aftershock",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "130609",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100038",
+      "Player": "Andrew Bell",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "2768",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100039",
+      "Player": "Grayson Gladstone",
+      "team_id": "SDA",
+      "Team": "Aftermath",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "102906",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100040",
+      "Player": "Jonah Jamroz",
+      "team_id": "IMF",
+      "Team": "Infamous",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "127384",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100041",
+      "Player": "Dillon Rizzardo",
+      "team_id": "RCS",
+      "Team": "Seadogs",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "155042",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100042",
+      "Player": "Konstantin Fedorov",
+      "team_id": "TON",
+      "Team": "TonTon",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "3891",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100043",
+      "Player": "Tyler Harmon",
+      "team_id": "IMP",
+      "Team": "Impact",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "995",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100044",
+      "Player": "Marcello Margott",
+      "team_id": "IMP",
+      "Team": "Impact",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "7083",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100045",
+      "Player": "Henry Sentz",
+      "team_id": "IRN",
+      "Team": "Ironmen",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "63261",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100046",
+      "Player": "Tj Danner",
+      "team_id": "XFA",
+      "Team": "X-Factor",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "33959",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100047",
+      "Player": "Jacob Edwards",
+      "team_id": "DAM",
+      "Team": "Damage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "23693",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100048",
+      "Player": "Brice Gaudin",
+      "team_id": "TON",
+      "Team": "TonTon",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025"
+      ],
+      "league_id": "80161",
+      "latest_event": "midwest_open_2025"
+    },
+    {
+      "player_id": "100049",
+      "Player": "Thomas Guest",
+      "team_id": "IRN",
+      "Team": "Ironmen",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "73916",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100050",
+      "Player": "Michael Urena",
+      "team_id": "IMP",
+      "Team": "Impact",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "47605",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100051",
+      "Player": "Ronnie Dizon",
+      "team_id": "HEA",
+      "Team": "Heat",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "36273",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100053",
+      "Player": "Carlos Cortes",
+      "team_id": "ACD",
+      "Team": "ac DIESEL",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "37312",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100054",
+      "Player": "Justin Cornell",
+      "team_id": "IMP",
+      "Team": "Impact",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "22731",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100055",
+      "Player": "Stuart Ridgel",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "14294",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100056",
+      "Player": "William Bernacchia",
+      "team_id": "XFA",
+      "Team": "X-Factor",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "1796",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100057",
+      "Player": "Chris Schehr",
+      "team_id": "DAM",
+      "Team": "Damage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "26856",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100058",
+      "Player": "Thomas Szpytma",
+      "team_id": "TON",
+      "Team": "TonTon",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "109811",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100059",
+      "Player": "Sam Silberg",
+      "team_id": "IMF",
+      "Team": "Infamous",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "45235",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100060",
+      "Player": "Rob Velez",
+      "team_id": "IMF",
+      "Team": "Infamous",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "45321",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100061",
+      "Player": "Chad George",
+      "team_id": "HEA",
+      "Team": "Heat",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "28108",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100062",
+      "Player": "Ryan Rodarte",
+      "team_id": "IMF",
+      "Team": "Infamous",
+      "events": [
+        "tampa_bay_open_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "29709",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100063",
+      "Player": "Colt Roberts",
+      "team_id": "XFA",
+      "Team": "X-Factor",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "1311",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100064",
+      "Player": "Dominic DeVivo",
+      "team_id": "LEV",
+      "Team": "Leverage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "73424",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100065",
+      "Player": "Bryan Smith",
+      "team_id": "DAM",
+      "Team": "Damage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "1606",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100066",
+      "Player": "Keith Brown",
+      "team_id": "DAM",
+      "Team": "Damage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "22746",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100067",
+      "Player": "Cody Woodruff",
+      "team_id": "SDA",
+      "Team": "Aftermath",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "31923",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100068",
+      "Player": "Trent Nitta",
+      "team_id": "AFT",
+      "Team": "Aftershock",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "135881",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100069",
+      "Player": "Samuel Monville",
+      "team_id": "HEA",
+      "Team": "Heat",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "mid_west_open_2026"
+      ],
+      "league_id": "7002",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100070",
+      "Player": "Ricky Moran",
+      "team_id": "LEV",
+      "Team": "Leverage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "82220",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100071",
+      "Player": "Ethan Adams",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "63859",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100072",
+      "Player": "John Parrish",
+      "team_id": "AFT",
+      "Team": "Aftershock",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "20544",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100073",
+      "Player": "Travis Baskin",
+      "team_id": "LEV",
+      "Team": "Leverage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "100329",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100074",
+      "Player": "Kyle Nicholaou",
+      "team_id": "IRN",
+      "Team": "Ironmen",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "54867",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100075",
+      "Player": "Mark Gawlikowski",
+      "team_id": "RCS",
+      "Team": "Seadogs",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "101575",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100076",
+      "Player": "Mark Meiterman",
+      "team_id": "UPR",
+      "Team": "Uprising",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025"
+      ],
+      "league_id": "64043",
+      "latest_event": "midwest_open_2025"
+    },
+    {
+      "player_id": "100077",
+      "Player": "James Green",
+      "team_id": "SDA",
+      "Team": "Aftermath",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "115555",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100078",
+      "Player": "Archie Barnes",
+      "team_id": "ARS",
+      "Team": "Arsenal",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "164176",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100079",
+      "Player": "Ryan Moorhead",
+      "team_id": "HEA",
+      "Team": "Heat",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "26271",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100080",
+      "Player": "Will Hennessy",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "29600",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100081",
+      "Player": "Alex Fraige",
+      "team_id": "DYN",
+      "Team": "Dynasty",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "3003",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100082",
+      "Player": "Alec Holland",
+      "team_id": "UPR",
+      "Team": "Uprising",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "150634",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100083",
+      "Player": "Ben Carroll",
+      "team_id": "ARS",
+      "Team": "Arsenal",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "39082",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100084",
+      "Player": "Corey Hall",
+      "team_id": "AFT",
+      "Team": "Aftershock",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "44489",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100085",
+      "Player": "John Peterson",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026"
+      ],
+      "league_id": "119772",
+      "latest_event": "mid_atlantic_open_2026"
+    },
+    {
+      "player_id": "100086",
+      "Player": "Dany Schonauer",
+      "team_id": "DYN",
+      "Team": "Dynasty",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "22815",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100087",
+      "Player": "Jesse Stephens",
+      "team_id": "ACD",
+      "Team": "ac DIESEL",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "55542",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100088",
+      "Player": "Cody Chong",
+      "team_id": "SDA",
+      "Team": "Aftermath",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "78490",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100089",
+      "Player": "Clayton Rizzardo",
+      "team_id": "RCS",
+      "Team": "Seadogs",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "155044",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100090",
+      "Player": "Benjamin Heningburg",
+      "team_id": "ACD",
+      "Team": "ac DIESEL",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "22314",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100091",
+      "Player": "Ryan Hoskinson",
+      "team_id": "AFT",
+      "Team": "Aftershock",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "29202",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100092",
+      "Player": "Justin Hodges",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "196045",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100093",
+      "Player": "Daniel Camp",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "30731",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100094",
+      "Player": "Nic Rippel",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "164205",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100095",
+      "Player": "Brandon Trujillo",
+      "team_id": "SDA",
+      "Team": "Aftermath",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "159323",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100096",
+      "Player": "Alfred De Los Santos",
+      "team_id": "LEV",
+      "Team": "Leverage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "39049",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100097",
+      "Player": "Josh Taylor",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "27365",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100098",
+      "Player": "Evan Manners",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "46201",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100099",
+      "Player": "Demetrius Ninios",
+      "team_id": "XFA",
+      "Team": "X-Factor",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "40274",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100100",
+      "Player": "Joel Eaton",
+      "team_id": "UPR",
+      "Team": "Uprising",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "23645",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100101",
+      "Player": "Cody Mickowski",
+      "team_id": "ARS",
+      "Team": "Arsenal",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "16888",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100102",
+      "Player": "Christopher Sanborn",
+      "team_id": "LEV",
+      "Team": "Leverage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "98042",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100103",
+      "Player": "Damian Vazquez",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025"
+      ],
+      "league_id": "148443",
+      "latest_event": "midwest_open_2025"
+    },
+    {
+      "player_id": "100104",
+      "Player": "Edilberto Vasquez",
+      "team_id": "LEG",
+      "Team": "Red Legion",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "109665",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100105",
+      "Player": "Cj Canter",
+      "team_id": "DAM",
+      "Team": "Damage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "52122",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100106",
+      "Player": "Cody Lapapa",
+      "team_id": "HEA",
+      "Team": "Heat",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "69046",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100107",
+      "Player": "Kevin Rudulph",
+      "team_id": "IMF",
+      "Team": "Infamous",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "7403",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100108",
+      "Player": "Cody Bayless",
+      "team_id": "XFA",
+      "Team": "X-Factor",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "7706",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100109",
+      "Player": "Fabrice Colombo",
+      "team_id": "TON",
+      "Team": "TonTon",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "4149",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100110",
+      "Player": "Mark Frans",
+      "team_id": "TON",
+      "Team": "TonTon",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "100171",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100111",
+      "Player": "Julian Velazquez",
+      "team_id": "SDA",
+      "Team": "Aftermath",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "188347",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100112",
+      "Player": "Trevor Resar",
+      "team_id": "IMF",
+      "Team": "Infamous",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "19824",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100113",
+      "Player": "Zack Patient",
+      "team_id": "IMF",
+      "Team": "Infamous",
+      "events": [
+        "tampa_bay_open_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "10566",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100114",
+      "Player": "Kyle Spicka",
+      "team_id": "ACD",
+      "Team": "ac DIESEL",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "15981",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100115",
+      "Player": "Austin Bufton",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "104861",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100116",
+      "Player": "Nicholas Leival",
+      "team_id": "IMP",
+      "Team": "Impact",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "56830",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100117",
+      "Player": "Garrett Baldwin",
+      "team_id": "IRN",
+      "Team": "Ironmen",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "132968",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100118",
+      "Player": "Tim Stelzl",
+      "team_id": "XFA",
+      "Team": "X-Factor",
+      "events": [
+        "tampa_bay_open_2025"
+      ],
+      "league_id": "143290",
+      "latest_event": "tampa_bay_open_2025"
+    },
+    {
+      "player_id": "100119",
+      "Player": "Lucas Alindajao",
+      "team_id": "SDA",
+      "Team": "Aftermath",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "61884",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100120",
+      "Player": "Timothy Stanczak",
+      "team_id": "IMP",
+      "Team": "Impact",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "7685",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100121",
+      "Player": "Jackson Frey",
+      "team_id": "HEA",
+      "Team": "Heat",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "100234",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100122",
+      "Player": "Michael Brown",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "133381",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100123",
+      "Player": "Kyle Bowen",
+      "team_id": "ARS",
+      "Team": "Arsenal",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "4614",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100124",
+      "Player": "Ryan Hall",
+      "team_id": "IMF",
+      "Team": "Infamous",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "98211",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100125",
+      "Player": "Joseph Altamore",
+      "team_id": "AFT",
+      "Team": "Aftershock",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "3924",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100126",
+      "Player": "Kaito Warner",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "41690",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100127",
+      "Player": "Shayne Salmon",
+      "team_id": "RCS",
+      "Team": "Seadogs",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "117141",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100128",
+      "Player": "Jason Edwards",
+      "team_id": "DAM",
+      "Team": "Damage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "929",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100129",
+      "Player": "Kyle Barry",
+      "team_id": "DYN",
+      "Team": "Dynasty",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "58533",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100130",
+      "Player": "Tim Brusselback",
+      "team_id": "IMF",
+      "Team": "Infamous",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "73753",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100131",
+      "Player": "Patrick Kraft",
+      "team_id": "IRN",
+      "Team": "Ironmen",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "76088",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100132",
+      "Player": "Ryan Williamson",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "15865",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100133",
+      "Player": "Josh Calleja",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "13689",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100134",
+      "Player": "Justin Politi",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025"
+      ],
+      "league_id": "66846",
+      "latest_event": "midwest_open_2025"
+    },
+    {
+      "player_id": "100135",
+      "Player": "Nick Campbell",
+      "team_id": "RCS",
+      "Team": "Seadogs",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "106721",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100136",
+      "Player": "Ryan Chantler",
+      "team_id": "RCS",
+      "Team": "Seadogs",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "55778",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100137",
+      "Player": "Christopher Horn",
+      "team_id": "DAM",
+      "Team": "Damage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "70517",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100138",
+      "Player": "Caleb Abuhl",
+      "team_id": "ARS",
+      "Team": "Arsenal",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "27727",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100139",
+      "Player": "Hugo Verhaeghe",
+      "team_id": "TON",
+      "Team": "TonTon",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "176466",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100140",
+      "Player": "Stephen Mazurek",
+      "team_id": "SDA",
+      "Team": "Aftermath",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "18625",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100141",
+      "Player": "Rob Altamore",
+      "team_id": "AFT",
+      "Team": "Aftershock",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "7816",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100142",
+      "Player": "Dalton Vanderbyl",
+      "team_id": "IMP",
+      "Team": "Impact",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "15384",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100143",
+      "Player": "Tyler Panlilio",
+      "team_id": "IMP",
+      "Team": "Impact",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "149433",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100144",
+      "Player": "Brandon Domenico",
+      "team_id": "LEV",
+      "Team": "Leverage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "65804",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100146",
+      "Player": "Jackson Blue",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "148117",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100147",
+      "Player": "Kristian Woodmansee",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025"
+      ],
+      "league_id": "180519",
+      "latest_event": "midwest_open_2025"
+    },
+    {
+      "player_id": "100148",
+      "Player": "David Luckau",
+      "team_id": "FIT",
+      "Team": "PaintballFIT",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "107567",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100150",
+      "Player": "Alexander Borromeo",
+      "team_id": "UPR",
+      "Team": "Uprising",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "36616",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100151",
+      "Player": "Shon Saucedo",
+      "team_id": "ARS",
+      "Team": "Arsenal",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "9523",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100152",
+      "Player": "Thomas Kim",
+      "team_id": "AFT",
+      "Team": "Aftershock",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025"
+      ],
+      "league_id": "91405",
+      "latest_event": "midwest_open_2025"
+    },
+    {
+      "player_id": "100153",
+      "Player": "Zakery Giger",
+      "team_id": "IMF",
+      "Team": "Infamous",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "32934",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100154",
+      "Player": "Chris Caputo",
+      "team_id": "LEV",
+      "Team": "Leverage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "93442",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100155",
+      "Player": "Christopher Lennon",
+      "team_id": "IRN",
+      "Team": "Ironmen",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "98942",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100156",
+      "Player": "Charles Dowden Vii",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "mid_west_open_2026"
+      ],
+      "league_id": "159917",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100157",
+      "Player": "Derrick Weltz",
+      "team_id": "RCS",
+      "Team": "Seadogs",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "60265",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100158",
+      "Player": "Jonah Rodriguez",
+      "team_id": "UPR",
+      "Team": "Uprising",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "190440",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100159",
+      "Player": "Daniel Holliday",
+      "team_id": "DAM",
+      "Team": "Damage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "26045",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100160",
+      "Player": "Mark Ireland",
+      "team_id": "DAM",
+      "Team": "Damage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "2523",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100161",
+      "Player": "Jacob Johnson",
+      "team_id": "FIT",
+      "Team": "PaintballFIT",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "154036",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100162",
+      "Player": "Daniil Kuzmin",
+      "team_id": "LEG",
+      "Team": "Red Legion",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "192477",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100163",
+      "Player": "Jared Lackey",
+      "team_id": "ACD",
+      "Team": "ac DIESEL",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "13175",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100164",
+      "Player": "Rene Rodriguez",
+      "team_id": "ACD",
+      "Team": "ac DIESEL",
+      "events": [
+        "tampa_bay_open_2025"
+      ],
+      "league_id": "144957",
+      "latest_event": "tampa_bay_open_2025"
+    },
+    {
+      "player_id": "100165",
+      "Player": "Jeremy Doan",
+      "team_id": "SDA",
+      "Team": "Aftermath",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "17344",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100166",
+      "Player": "Clayton Hughes",
+      "team_id": "AFT",
+      "Team": "Aftershock",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "162344",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100167",
+      "Player": "Nick Criscione",
+      "team_id": "AFT",
+      "Team": "Aftershock",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "11512",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100168",
+      "Player": "Andres Ramos Saldana",
+      "team_id": "HEA",
+      "Team": "Heat",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "187155",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100169",
+      "Player": "Andy Kopcok",
+      "team_id": "IMF",
+      "Team": "Infamous",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "50327",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100170",
+      "Player": "Nathan Aboulhosn",
+      "team_id": "IMF",
+      "Team": "Infamous",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "119920",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100171",
+      "Player": "Frankie Pasciuta",
+      "team_id": "LEV",
+      "Team": "Leverage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "90034",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100172",
+      "Player": "Zach Moran",
+      "team_id": "LEV",
+      "Team": "Leverage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "mid_west_open_2026"
+      ],
+      "league_id": "81927",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100173",
+      "Player": "Brody Lewis",
+      "team_id": "IRN",
+      "Team": "Ironmen",
+      "events": [
+        "tampa_bay_open_2025"
+      ],
+      "league_id": "171351",
+      "latest_event": "tampa_bay_open_2025"
+    },
+    {
+      "player_id": "100174",
+      "Player": "Keith Devit",
+      "team_id": "IRN",
+      "Team": "Ironmen",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025"
+      ],
+      "league_id": "58216",
+      "latest_event": "midwest_open_2025"
+    },
+    {
+      "player_id": "100175",
+      "Player": "Jim Corcoran",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "62305",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100176",
+      "Player": "Timmy Roberts",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "88759",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100177",
+      "Player": "Ashton Bufton",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "tampa_bay_open_2025"
+      ],
+      "league_id": "112992",
+      "latest_event": "tampa_bay_open_2025"
+    },
+    {
+      "player_id": "100178",
+      "Player": "Brandon Portman",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "91144",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100179",
+      "Player": "Danny Del Signore",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025"
+      ],
+      "league_id": "7737",
+      "latest_event": "midwest_open_2025"
+    },
+    {
+      "player_id": "100180",
+      "Player": "Jonathan Adkins",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026"
+      ],
+      "league_id": "84836",
+      "latest_event": "mid_atlantic_open_2026"
+    },
+    {
+      "player_id": "100181",
+      "Player": "Johnny Luckau",
+      "team_id": "FIT",
+      "Team": "PaintballFIT",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "9663",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100182",
+      "Player": "Tyler Luckau",
+      "team_id": "FIT",
+      "Team": "PaintballFIT",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "125361",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100183",
+      "Player": "Diego Gallego",
+      "team_id": "LEG",
+      "Team": "Red Legion",
+      "events": [
+        "tampa_bay_open_2025"
+      ],
+      "league_id": "34803",
+      "latest_event": "tampa_bay_open_2025"
+    },
+    {
+      "player_id": "100184",
+      "Player": "Jake McDarby",
+      "team_id": "LEG",
+      "Team": "Red Legion",
+      "events": [
+        "tampa_bay_open_2025"
+      ],
+      "league_id": "203393",
+      "latest_event": "tampa_bay_open_2025"
+    },
+    {
+      "player_id": "100185",
+      "Player": "Jameson Stanton",
+      "team_id": "LEG",
+      "Team": "Red Legion",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "139690",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100186",
+      "Player": "Jason Burns",
+      "team_id": "LEG",
+      "Team": "Red Legion",
+      "events": [
+        "tampa_bay_open_2025"
+      ],
+      "league_id": "104103",
+      "latest_event": "tampa_bay_open_2025"
+    },
+    {
+      "player_id": "100187",
+      "Player": "Carl Reppesgard",
+      "team_id": "LEG",
+      "Team": "Red Legion",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "188689",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100188",
+      "Player": "Jesse Benoit",
+      "team_id": "RCS",
+      "Team": "Seadogs",
+      "events": [
+        "tampa_bay_open_2025"
+      ],
+      "league_id": "69783",
+      "latest_event": "tampa_bay_open_2025"
+    },
+    {
+      "player_id": "100189",
+      "Player": "Nolan Stoer",
+      "team_id": "RCS",
+      "Team": "Seadogs",
+      "events": [
+        "tampa_bay_open_2025"
+      ],
+      "league_id": "46280",
+      "latest_event": "tampa_bay_open_2025"
+    },
+    {
+      "player_id": "100190",
+      "Player": "Alex Martinez",
+      "team_id": "XFA",
+      "Team": "X-Factor",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "4272",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100191",
+      "Player": "Brandon Olsen",
+      "team_id": "UPR",
+      "Team": "Uprising",
+      "events": [
+        "tampa_bay_open_2025"
+      ],
+      "league_id": "18252",
+      "latest_event": "tampa_bay_open_2025"
+    },
+    {
+      "player_id": "100192",
+      "Player": "Cole Scott",
+      "team_id": "UPR",
+      "Team": "Uprising",
+      "events": [
+        "tampa_bay_open_2025",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "34808",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100194",
+      "Player": "Phil Veatch",
+      "team_id": "UPR",
+      "Team": "Uprising",
+      "events": [
+        "tampa_bay_open_2025"
+      ],
+      "league_id": "28713",
+      "latest_event": "tampa_bay_open_2025"
+    },
+    {
+      "player_id": "100195",
+      "Player": "Shane Howe",
+      "team_id": "UPR",
+      "Team": "Uprising",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "1162",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100196",
+      "Player": "Xavier Linn",
+      "team_id": "UPR",
+      "Team": "Uprising",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "37371",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100197",
+      "Player": "Christos Botsolas",
+      "team_id": "DAM",
+      "Team": "Damage",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "11657",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100198",
+      "Player": "Diego Santos Gonzales",
+      "team_id": "TON",
+      "Team": "TonTon",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025"
+      ],
+      "league_id": "22702",
+      "latest_event": "lonestar_open_2025"
+    },
+    {
+      "player_id": "100199",
+      "Player": "Jeronimo Patino Benavent",
+      "team_id": "TON",
+      "Team": "TonTon",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "84167",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100200",
+      "Player": "Mike Zuppa",
+      "team_id": "IMP",
+      "Team": "Impact",
+      "events": [
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "46532",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100202",
+      "Player": "Jonathan Clerembot",
+      "team_id": "BKS",
+      "Team": "Breakout Spa",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "130249",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100203",
+      "Player": "Baptiste Giger",
+      "team_id": "BKS",
+      "Team": "Breakout Spa",
+      "events": [
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "150002",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100206",
+      "Player": "Adrien Krompholtz",
+      "team_id": "BKS",
+      "Team": "Breakout Spa",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "170827",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100207",
+      "Player": "Carter Donaldson",
+      "team_id": "DAM",
+      "Team": "Damage",
+      "events": [
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025"
+      ],
+      "league_id": "169361",
+      "latest_event": "lonestar_open_2025"
+    },
+    {
+      "player_id": "100209",
+      "Player": "Thomas Amdal",
+      "team_id": "JYD",
+      "Team": "Joy Division",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "178730",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100212",
+      "Player": "Gilbert Sakaguchi",
+      "team_id": "LEV",
+      "Team": "Leverage",
+      "events": [
+        "mid_west_open_2026"
+      ],
+      "league_id": "130229",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100217",
+      "Player": "Jacob Keck",
+      "team_id": "ACD",
+      "Team": "ac DIESEL",
+      "events": [
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "147478",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100220",
+      "Player": "Mason Hinds",
+      "team_id": "LKY",
+      "Team": "Lucky15s",
+      "events": [
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "138729",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100222",
+      "Player": "Logan Dyer",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
+      "events": [
+        "mid_west_open_2026"
+      ],
+      "league_id": "127127",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100224",
+      "Player": "Jacob Searight",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
+      "events": [
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "107816",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100227",
+      "Player": "Vince Newell",
+      "team_id": "DST",
+      "Team": "Distortion",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "187718",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100230",
+      "Player": "Jared Sherman",
+      "team_id": "XFA",
+      "Team": "X-Factor",
+      "events": [
+        "atlantic_city_2025",
+        "midwest_open_2025"
+      ],
+      "league_id": "9565",
+      "latest_event": "midwest_open_2025"
+    },
+    {
+      "player_id": "100231",
+      "Player": "Codi Lembo",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026"
+      ],
+      "league_id": "78631",
+      "latest_event": "mid_atlantic_open_2026"
+    },
+    {
+      "player_id": "100233",
+      "Player": "Zack Carter",
+      "team_id": "SDA",
+      "Team": "Aftermath",
+      "events": [
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "155604",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100237",
+      "Player": "Britt Simpson",
+      "team_id": "JNG",
+      "Team": "Jungle Cats",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "2649",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100240",
+      "Player": "Devon Stuart",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "53684",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100242",
+      "Player": "Thomas Carroll",
+      "team_id": "LKY",
+      "Team": "Lucky15s",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "173833",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100250",
+      "Player": "Michael Johnson",
+      "team_id": "LEG",
+      "Team": "Red Legion",
+      "events": [
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "106344",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100254",
+      "Player": "Robert Bowen",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "midwest_open_2025"
+      ],
+      "league_id": "32259",
+      "latest_event": "midwest_open_2025"
+    },
+    {
+      "player_id": "100261",
+      "Player": "Quentin Duchene",
+      "team_id": "BKS",
+      "Team": "Breakout Spa",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "128936",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100276",
+      "Player": "Mark Johnson",
+      "team_id": "ACD",
+      "Team": "ac DIESEL",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "46089",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100279",
+      "Player": "Justin Bailey",
+      "team_id": "JNG",
+      "Team": "Jungle Cats",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "66611",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100291",
+      "Player": "Ryan Smith",
+      "team_id": "HEA",
+      "Team": "Heat",
+      "events": [
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025"
+      ],
+      "league_id": "38783",
+      "latest_event": "lonestar_open_2025"
+    },
+    {
+      "player_id": "100292",
+      "Player": "Robert Messer",
+      "team_id": "TON",
+      "Team": "TonTon",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "50259",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100294",
+      "Player": "Scott Graham",
+      "team_id": "LEV",
+      "Team": "Leverage",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "87512",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100304",
+      "Player": "Kyle Theriault",
+      "team_id": "RCS",
+      "Team": "Seadogs",
+      "events": [
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026"
+      ],
+      "league_id": "68983",
+      "latest_event": "tampa_bay_2026"
+    },
+    {
+      "player_id": "100306",
+      "Player": "Ray Buco",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "46163",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100307",
+      "Player": "Leonid Smotrov",
+      "team_id": "LEG",
+      "Team": "Red Legion",
+      "events": [
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "108677",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100308",
+      "Player": "Connor Nelson",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "112616",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100309",
+      "Player": "Ilia Pankov",
+      "team_id": "UPR",
+      "Team": "Uprising",
+      "events": [
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "163325",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100310",
+      "Player": "Jarrett Bissonette",
+      "team_id": "RCS",
+      "Team": "Seadogs",
+      "events": [
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "117384",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100311",
+      "Player": "Austin Woodward",
+      "team_id": "UPR",
+      "Team": "Uprising",
+      "events": [
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "18248",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100312",
+      "Player": "Conor Smith",
+      "team_id": "RCS",
+      "Team": "Seadogs",
+      "events": [
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "77134",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100313",
+      "Player": "Nathan Combs",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "atlantic_city_2025",
+        "midwest_open_2025"
+      ],
+      "league_id": "121611",
+      "latest_event": "midwest_open_2025"
+    },
+    {
+      "player_id": "100314",
+      "Player": "James Whittington",
+      "team_id": "ARS",
+      "Team": "Arsenal",
+      "events": [
+        "atlantic_city_2025",
+        "midwest_open_2025"
+      ],
+      "league_id": "974",
+      "latest_event": "midwest_open_2025"
+    },
+    {
+      "player_id": "100315",
+      "Player": "Jordan Rhodes",
+      "team_id": "UPR",
+      "Team": "Uprising",
+      "events": [
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "128879",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100316",
+      "Player": "Charlie Givens",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "109950",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100317",
+      "Player": "Austin Kaus",
+      "team_id": "RCS",
+      "Team": "Seadogs",
+      "events": [
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "131582",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100318",
+      "Player": "Chris Tiru",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "lonestar_open_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "134090",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100319",
+      "Player": "Nico Hyde",
+      "team_id": "XFA",
+      "Team": "X-Factor",
+      "events": [
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "mid_west_open_2026"
+      ],
+      "league_id": "58868",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100320",
+      "Player": "Ryan Stephens",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "212777",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100321",
+      "Player": "Steve Wojnicz",
+      "team_id": "LEV",
+      "Team": "Leverage",
+      "events": [
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "34834",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100322",
+      "Player": "Corey Macon Walter",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "154606",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100323",
+      "Player": "Jim McGowan",
+      "team_id": "SDA",
+      "Team": "Aftermath",
+      "events": [
+        "lonestar_open_2025"
+      ],
+      "league_id": "156474",
+      "latest_event": "lonestar_open_2025"
+    },
+    {
+      "player_id": "100324",
+      "Player": "Monty Hills",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "173309",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100325",
+      "Player": "Tyler Spiece",
+      "team_id": "ACD",
+      "Team": "ac DIESEL",
+      "events": [
+        "lonestar_open_2025",
+        "world_cup_2025"
+      ],
+      "league_id": "27145",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100326",
+      "Player": "Adam Skoglund",
+      "team_id": "JYD",
+      "Team": "Joy Division",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "114364",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100327",
+      "Player": "Aidan Ball",
+      "team_id": "LKY",
+      "Team": "Lucky15s",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "156475",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100328",
+      "Player": "Avery Nguyen",
+      "team_id": "PLT",
+      "Team": "Papeletto",
+      "events": [
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "196290",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100329",
+      "Player": "Axel Knauf",
+      "team_id": "BKS",
+      "Team": "Breakout Spa",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "129031",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100330",
+      "Player": "Carlos Alves Filho",
+      "team_id": "PLT",
+      "Team": "Papeletto",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "70270",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100331",
+      "Player": "Eric Lima",
+      "team_id": "PLT",
+      "Team": "Papeletto",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "70181",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100332",
+      "Player": "Ethan Ward",
+      "team_id": "LKY",
+      "Team": "Lucky15s",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "174329",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100333",
+      "Player": "Fabian Berggren",
+      "team_id": "JYD",
+      "Team": "Joy Division",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "169701",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100334",
+      "Player": "Guy Wakefield",
+      "team_id": "LKY",
+      "Team": "Lucky15s",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "186247",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100335",
+      "Player": "Isak Ronningen",
+      "team_id": "JYD",
+      "Team": "Joy Division",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "179596",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100336",
+      "Player": "Jaime Barbosa Neto",
+      "team_id": "PLT",
+      "Team": "Papeletto",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "54659",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100337",
+      "Player": "Jesper Markusson",
+      "team_id": "JYD",
+      "Team": "Joy Division",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "224172",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100338",
+      "Player": "Jonathan Liljeblad",
+      "team_id": "JYD",
+      "Team": "Joy Division",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "224174",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100339",
+      "Player": "Jose Cardoso Filho",
+      "team_id": "PLT",
+      "Team": "Papeletto",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "12756",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100340",
+      "Player": "Kalle Samuelsson",
+      "team_id": "JYD",
+      "Team": "Joy Division",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "70614",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100341",
+      "Player": "Logan Blaise",
+      "team_id": "BKS",
+      "Team": "Breakout Spa",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "219277",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100342",
+      "Player": "Louis Koffi",
+      "team_id": "LKY",
+      "Team": "Lucky15s",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "169647",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100343",
+      "Player": "Luis Betancourt",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "34467",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100344",
+      "Player": "Marcelo Amaral",
+      "team_id": "PLT",
+      "Team": "Papeletto",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "24000",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100345",
+      "Player": "Marcelo Rozental",
+      "team_id": "PLT",
+      "Team": "Papeletto",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "79435",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100346",
+      "Player": "Marcio Decat",
+      "team_id": "PLT",
+      "Team": "Papeletto",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "54621",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100347",
+      "Player": "Marcos Valente",
+      "team_id": "PLT",
+      "Team": "Papeletto",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "67963",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100348",
+      "Player": "Nathan Pitt",
+      "team_id": "LKY",
+      "Team": "Lucky15s",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "208075",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100349",
+      "Player": "Nicholas Schaedel",
+      "team_id": "TON",
+      "Team": "TonTon",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": null,
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100350",
+      "Player": "Norman Reitemyer",
+      "team_id": "TON",
+      "Team": "TonTon",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": null,
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100351",
+      "Player": "Rafael Magalhaes",
+      "team_id": "PLT",
+      "Team": "Papeletto",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "11824",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100352",
+      "Player": "Spencer Tilbury",
+      "team_id": "LKY",
+      "Team": "Lucky15s",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "173854",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100353",
+      "Player": "Thiago Languinho",
+      "team_id": "PLT",
+      "Team": "Papeletto",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "94037",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100354",
+      "Player": "Tristan Scheepers",
+      "team_id": "BKS",
+      "Team": "Breakout Spa",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "182363",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100355",
+      "Player": "Truls Persson",
+      "team_id": "JYD",
+      "Team": "Joy Division",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "201234",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100356",
+      "Player": "Vinicius De Brito",
+      "team_id": "PLT",
+      "Team": "Papeletto",
+      "events": [
+        "world_cup_2025"
+      ],
+      "league_id": "77679",
+      "latest_event": "world_cup_2025"
+    },
+    {
+      "player_id": "100357",
+      "Player": "Alex Rosati",
+      "team_id": "IRN",
+      "Team": "Ironmen",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "85982",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100358",
+      "Player": "Dustin Cort",
+      "team_id": "UPR",
+      "Team": "Uprising",
+      "events": [
+        "tampa_bay_open_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "18088",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100359",
+      "Player": "Eric Arrieta",
+      "team_id": "SDA",
+      "Team": "Aftermath",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "171090",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100360",
+      "Player": "Henry Portillo",
+      "team_id": "FIT",
+      "Team": "PaintballFIT",
+      "events": [
+        "tampa_bay_2026"
+      ],
+      "league_id": null,
+      "latest_event": "tampa_bay_2026"
+    },
+    {
+      "player_id": "100361",
+      "Player": "Jet Isidro",
+      "team_id": "AFT",
+      "Team": "Aftershock",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "175276",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100362",
+      "Player": "Joey Petrucelli",
+      "team_id": "FIT",
+      "Team": "PaintballFIT",
+      "events": [
+        "tampa_bay_2026"
+      ],
+      "league_id": null,
+      "latest_event": "tampa_bay_2026"
+    },
+    {
+      "player_id": "100363",
+      "Player": "John Brinkman",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "33493",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100364",
+      "Player": "Max Rooney",
+      "team_id": "AFT",
+      "Team": "Aftershock",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "160651",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100365",
+      "Player": "Maxim Stancel",
+      "team_id": "AFT",
+      "Team": "Aftershock",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "206359",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100366",
+      "Player": "Michael Rojas",
+      "team_id": "AFT",
+      "Team": "Aftershock",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "205573",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100367",
+      "Player": "Peter Anfossi",
+      "team_id": "TON",
+      "Team": "TonTon",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "166449",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100368",
+      "Player": "Shawn Demers",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026"
+      ],
+      "league_id": "216895",
+      "latest_event": "mid_atlantic_open_2026"
+    },
+    {
+      "player_id": "100369",
+      "Player": "Aaron Rios",
+      "team_id": "JNG",
+      "Team": "Jungle Cats",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "62084",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100370",
+      "Player": "AJ Malsam",
+      "team_id": "DST",
+      "Team": "Distortion",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "192338",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100371",
+      "Player": "Alex D'Acquisto",
+      "team_id": "DST",
+      "Team": "Distortion",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "152111",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100372",
+      "Player": "Ben Challenger",
+      "team_id": "COL",
+      "Team": "Collision",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "87379",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100373",
+      "Player": "Blaine Povilaitis",
+      "team_id": "JNG",
+      "Team": "Jungle Cats",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "25048",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100374",
+      "Player": "Bryan Narcisse",
+      "team_id": "COL",
+      "Team": "Collision",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "192433",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100375",
+      "Player": "Daniel Park",
+      "team_id": "COL",
+      "Team": "Collision",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "9116",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100376",
+      "Player": "David Harber",
+      "team_id": "DST",
+      "Team": "Distortion",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "55030",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100377",
+      "Player": "David Ramirez",
+      "team_id": "COL",
+      "Team": "Collision",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "40636",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100378",
+      "Player": "Davis Stephens",
+      "team_id": "JNG",
+      "Team": "Jungle Cats",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "103976",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100379",
+      "Player": "Ethan Castro",
+      "team_id": "COL",
+      "Team": "Collision",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "140916",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100380",
+      "Player": "Evan Ruelas",
+      "team_id": "JNG",
+      "Team": "Jungle Cats",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "204710",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100381",
+      "Player": "Frank Antetomaso",
+      "team_id": "IRN",
+      "Team": "Ironmen",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "59302",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100382",
+      "Player": "Greg Montavlo",
+      "team_id": "DST",
+      "Team": "Distortion",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "22066",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100383",
+      "Player": "Gunther Stumpf",
+      "team_id": "DST",
+      "Team": "Distortion",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "149932",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100384",
+      "Player": "Joey Dipolito",
+      "team_id": "JNG",
+      "Team": "Jungle Cats",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "33508",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100385",
+      "Player": "Jordan Boyum",
+      "team_id": "COL",
+      "Team": "Collision",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "40482",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100386",
+      "Player": "Kevin Wenck",
+      "team_id": "DST",
+      "Team": "Distortion",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "55318",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100387",
+      "Player": "Lance Dejesus",
+      "team_id": "COL",
+      "Team": "Collision",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "65096",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100388",
+      "Player": "Lucas Tamura",
+      "team_id": "COL",
+      "Team": "Collision",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "202454",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100389",
+      "Player": "Matt Askren",
+      "team_id": "NRG",
+      "Team": "NRG Elite",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "lonestar_open_2025",
+        "world_cup_2025",
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "10117",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100390",
+      "Player": "Mike McGowan",
+      "team_id": "JNG",
+      "Team": "Jungle Cats",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "4196",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100391",
+      "Player": "Mike Unger",
+      "team_id": "DST",
+      "Team": "Distortion",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "9441",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100392",
+      "Player": "Nate Roberts",
+      "team_id": "DST",
+      "Team": "Distortion",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "132808",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100393",
+      "Player": "Rickie Smith",
+      "team_id": "DST",
+      "Team": "Distortion",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "2820",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100394",
+      "Player": "Ronny Tiner",
+      "team_id": "JNG",
+      "Team": "Jungle Cats",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "136575",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100395",
+      "Player": "Wes Ward",
+      "team_id": "JNG",
+      "Team": "Jungle Cats",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "50790",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100396",
+      "Player": "Evan Middleton",
+      "team_id": "COL",
+      "Team": "Collision",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "191072",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100397",
+      "Player": "Thomas Hara",
+      "team_id": "LEG",
+      "Team": "Red Legion",
+      "events": [
+        "tampa_bay_2026",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "129237",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100398",
+      "Player": "Fred Berkley",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "20072",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100399",
+      "Player": "Jon Woodley",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "20607",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100400",
+      "Player": "Jared Cester",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "7687",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100401",
+      "Player": "Jeren Perez",
+      "team_id": "DST",
+      "Team": "Distortion",
+      "events": [
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "221970",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100402",
+      "Player": "Alex Stahli",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "149168",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100403",
+      "Player": "Ivan Lopez",
+      "team_id": "LEG",
+      "Team": "Red Legion",
+      "events": [
+        "tampa_bay_open_2025",
+        "atlantic_city_2025",
+        "midwest_open_2025",
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "143019",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100405",
+      "Player": "Matthew Helgeson",
+      "team_id": "AFT",
+      "Team": "Aftershock",
+      "events": [
+        "mid_atlantic_open_2026",
+        "mid_west_open_2026"
+      ],
+      "league_id": "840",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100406",
+      "Player": "Lionel Guiramand",
+      "team_id": "TON",
+      "Team": "TonTon",
+      "events": [
+        "mid_west_open_2026"
+      ],
+      "league_id": "176342",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100407",
+      "Player": "Joseph Oller",
+      "team_id": "JNG",
+      "Team": "Jungle Cats",
+      "events": [
+        "mid_west_open_2026"
+      ],
+      "league_id": "23225",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100408",
+      "Player": "Owen Goin",
+      "team_id": "DST",
+      "Team": "Distortion",
+      "events": [
+        "mid_west_open_2026"
+      ],
+      "league_id": "86051",
+      "latest_event": "mid_west_open_2026"
+    },
+    {
+      "player_id": "100409",
+      "Player": "Jose Navarro",
+      "team_id": "NYX",
+      "Team": "Xtreme",
+      "events": [
+        "mid_west_open_2026"
+      ],
+      "league_id": "14904",
+      "latest_event": "mid_west_open_2026"
+    }
+  ]
+}
