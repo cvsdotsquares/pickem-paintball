@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { FaUser, FaSearch } from "react-icons/fa";
 import {
   FaAngleLeft,
@@ -461,6 +462,18 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       filtered = filtered.filter((player) => player.Team === selectedTeam);
     }
 
+    /**
+     * Players who did not take the field leave the table entirely.
+     *
+     * Their zeros are not results — see `scripts/participation-plan.mjs`. The one
+     * exception is the user's own picks: someone who picked a player who never
+     * played needs to see them, or their score becomes inexplicable. There they
+     * stay, showing DNP instead of a row of zeros.
+     */
+    if (!showOnlyMyPicks) {
+      filtered = filtered.filter((player) => player.participation !== "absent");
+    }
+
     // Apply myPicks filter if enabled
     if (showOnlyMyPicks && myPicks && myPicks.size > 0) {
       const myPicksNormalized = new Set<string>();
@@ -780,6 +793,11 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
         "team_id",
         "picture",
         "pictureLoading",
+        // Participation drives row filtering and the DNP cells below — it is a
+        // control field, not a stat, so it must not become a column.
+        "participation",
+        "participationreason",
+        "participationat",
         "img_url", // Exclude img_url from table display
         "IMG_URL", // Handle uppercase variation
         "Img_Url", // Handle mixed case variation
@@ -1322,7 +1340,13 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                   className={`sticky left-0 z-[20] box-border px-0 py-2 whitespace-nowrap md:border-r ${themeClasses.border} ${themeClasses.bg} w-5 min-w-5 max-w-5 md:w-10 md:min-w-10 md:max-w-10`}
                 >
                   <div className="pickem-numeric text-center text-[10px] md:text-[12px] font-medium">
-                    {row.Rank}
+                    {/* A finishing position is as much a claim as a kill count, so an
+                        absent player gets a dash rather than a rank they never earned. */}
+                    {row.participation === "absent" ? (
+                      <span className={darkMode ? "text-white/25" : "text-gray-300"}>—</span>
+                    ) : (
+                      row.Rank
+                    )}
                   </div>
                 </td>
 
@@ -1385,31 +1409,15 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                     </div>
 
                     <div className="min-w-0 flex-1 md:max-w-[140px]">
-                      <div className="md:hidden">
-                        <div
-                          className={`truncate text-[10px] font-azonix font-medium leading-tight ${darkMode ? "text-white" : "text-gray-900"
-                            }`}
-                          title={row.Player}
-                        >
-                          {firstName}
-                        </div>
-                        {lastName ? (
-                          <div
-                            className={`truncate text-[10px] font-azonix font-medium leading-tight ${darkMode ? "text-white" : "text-gray-900"
-                              }`}
-                            title={row.Player}
-                          >
-                            {lastName}
-                          </div>
-                        ) : null}
-                      </div>
-                      <div
-                        className={`hidden md:block truncate text-[12px] font-azonix font-medium md:whitespace-normal md:break-words ${darkMode ? "text-white" : "text-gray-900"
-                          } leading-tight`}
-                        title={row.Player}
-                      >
-                        {row.Player}
-                      </div>
+                      {/* Name links to the player's career page; the row's own click
+                          handler still adds/removes the pick, so stop propagation. */}
+                      <PlayerNameLink
+                        playerId={row.player_id}
+                        playerName={row.Player}
+                        firstName={firstName}
+                        lastName={lastName}
+                        darkMode={darkMode}
+                      />
                       <div
                         className={`truncate text-[8px] font-azonix md:whitespace-normal md:break-words md:text-[12px] ${darkMode ? "text-gray-400" : "text-gray-700"
                           } leading-tight`}
@@ -1422,18 +1430,33 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                 </td>
 
                 {/* Stats columns — same order as header row */}
-                {dynamicHeaders.map(({ originalKey, displayKey }) => (
+                {dynamicHeaders.map(({ originalKey, displayKey }) => {
+                  // A zero here would read as a score. This player was not there, so
+                  // the first stat column says so and the rest stay blank.
+                  const absent = row.participation === "absent";
+                  return (
                   <td
                     key={originalKey}
                     className={`relative z-[10] px-0.5 py-2 md:px-2 md:py-3 whitespace-nowrap text-[9px] md:text-[12px] font-bold ${themeClasses.border
                       } text-center ${darkMode ? "text-gray-300" : "text-gray-900"
                       } ${getStatColumnWidthClass(displayKey)}`}
                   >
-                    <span className="pickem-numeric">
-                      {(row[originalKey] ?? "") as React.ReactNode}
-                    </span>
+                    {absent ? (
+                      <span
+                        className={`font-azonix text-[9px] tracking-wide md:text-[10px] ${
+                          darkMode ? "text-white/35" : "text-gray-400"
+                        }`}
+                      >
+                        {originalKey === "Confirmed Kills" ? "DNP" : "\u2014"}
+                      </span>
+                    ) : (
+                      <span className="pickem-numeric">
+                        {(row[originalKey] ?? "") as React.ReactNode}
+                      </span>
+                    )}
                   </td>
-                ))}
+                  );
+                })}
               </tr>
               );
             })}
@@ -1451,3 +1474,66 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     </div>
   );
 };
+
+/**
+ * Player name in the stats table, linking through to their career page.
+ *
+ * Rendered inside a clickable row, so clicks are stopped from bubbling — otherwise
+ * following the link would also toggle the pick underneath it. Falls back to plain
+ * text when the row has no `player_id` (season aggregates built before ids were
+ * carried through).
+ */
+function PlayerNameLink({
+  playerId,
+  playerName,
+  firstName,
+  lastName,
+  darkMode,
+}: {
+  playerId?: string | number | null;
+  playerName?: string;
+  firstName?: string;
+  lastName?: string;
+  darkMode: boolean;
+}) {
+  const nameColour = darkMode ? "text-white" : "text-gray-900";
+
+  const inner = (
+    <>
+      <div className="md:hidden">
+        <div
+          className={`truncate text-[10px] font-azonix font-medium leading-tight ${nameColour}`}
+          title={playerName}
+        >
+          {firstName}
+        </div>
+        {lastName ? (
+          <div
+            className={`truncate text-[10px] font-azonix font-medium leading-tight ${nameColour}`}
+            title={playerName}
+          >
+            {lastName}
+          </div>
+        ) : null}
+      </div>
+      <div
+        className={`hidden md:block truncate text-[12px] font-azonix font-medium md:whitespace-normal md:break-words ${nameColour} leading-tight`}
+        title={playerName}
+      >
+        {playerName}
+      </div>
+    </>
+  );
+
+  if (playerId == null || playerId === "") return <>{inner}</>;
+
+  return (
+    <Link
+      href={`/dashboard/players/${playerId}`}
+      onClick={(e) => e.stopPropagation()}
+      className="block rounded-sm outline-none transition-colors hover:underline hover:decoration-[#00f976] hover:decoration-2 hover:underline-offset-2 focus-visible:ring-2 focus-visible:ring-[#00f976]"
+    >
+      {inner}
+    </Link>
+  );
+}

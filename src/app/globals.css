@@ -255,6 +255,24 @@ select.pickem-stats-filter option {
   font-variant-numeric: tabular-nums;
 }
 
+/**
+ * Opt-in variable-font numerals: wght 360 / wdth 25, the brand spec.
+ *
+ * Scoped to `[data-numeric="variable"]` so it can be adopted one surface at a time —
+ * wdth 25 renders ~43% wider than the static Condensed Light currently in use, which
+ * will overflow any fixed-width numeric column that has not been checked.
+ *
+ * Once every surface is converted this block replaces `.pickem-numeric` above.
+ */
+[data-numeric="variable"] .pickem-numeric {
+  font-family: var(--font-hitmarker-vf), var(--font-hitmarker-condensed),
+    var(--font-industry), system-ui, sans-serif;
+  /* This font's wdth axis is 0-100 (0 = Condensed, 30 = Normal), not a percentage,
+     so `font-stretch` cannot drive it. */
+  font-variation-settings: "wght" 360, "wdth" 25;
+  font-weight: 360;
+}
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
