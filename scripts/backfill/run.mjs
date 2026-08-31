@@ -296,14 +296,51 @@ async function handleEvent(db, file, eventId, fixtures, { write }) {
   corrections.forEach((c) => console.log(`   fix ${c.pairKey}: ${c.wrong.join("/")} → ${c.target}   (league: ${c.fixture})`));
   unresolvedSplits.forEach((u) => console.log(`   ✗  ${u.pairKey} under ${u.rounds.join(" + ")} — league says ${u.fixture}`));
 
+  /**
+   * A playoff game under a round the league disagrees with.
+   *
+   * Distinct from a split: the pair appears once, in one round, but the wrong one.
+   * Tampa Bay 2026 had two quarter-finals labelled Wildcard, and World Cup had a
+   * round-of-16 game labelled Top8. Nothing tripped the split detector because
+   * nothing was torn in half — the label was simply wrong.
+   *
+   * Only ever applied when the league records exactly one meeting for the pair, so
+   * there is no ambiguity about which game is being renamed.
+   */
+  if (fxList) {
+    const meetings = meetingsByPair(fxList);
+    const seen = new Map();
+    rows.forEach((r) => {
+      if (!PLAYOFF_ROUND[r.round]) return;
+      const pair = [normTeam(r.team), normTeam(r.opponent)].sort().join(" v ");
+      const k = `${pair}|${r.round}`;
+      if (!seen.has(k)) seen.set(k, pair);
+    });
+    for (const [k, pair] of seen) {
+      const round = k.split("|")[1];
+      const met = (meetings.get(pair) ?? []).filter((f) => !isLeaguePrelim(f.round));
+      if (met.length !== 1) continue;
+      const want = Object.keys(PLAYOFF_ROUND).find((x) => PLAYOFF_ROUND[x] === met[0].round);
+      if (!want || want === round) continue;
+      corrections.push({ pairKey: pair, namePair: pair, target: want, wrong: [round], fixture: `${met[0].round} ${met[0].date}` });
+    }
+    corrections
+      .filter((c) => c.namePair === c.pairKey)
+      .forEach((c) => console.log(`   fix ${c.pairKey}: ${c.wrong.join("/")} → ${c.target}   (league: ${c.fixture})`));
+  }
+
   // Apply the corrections in memory so the rest of the run sees the repaired data.
   if (corrections.length) {
     const fixMap = new Map();
     corrections.forEach((c) => c.wrong.forEach((w) => fixMap.set(`${c.pairKey}|${w}`, c.target)));
     let n = 0;
     for (const r of rows) {
-      const k = `${[r.teamId ?? r.team, r.opponentId ?? r.opponent].sort().join(" v ")}|${r.round}`;
-      if (fixMap.has(k)) { r.correctedFrom = r.round; r.round = fixMap.get(k); r.gameId = buildGameId(eventId, r.round, r.team, r.opponent, teamIdByName); n++; }
+      // Corrections are keyed either by team-id pair (splits) or by display-name pair
+      // (wrong-round), so try both rather than duplicating the table.
+      const byId = `${[r.teamId ?? r.team, r.opponentId ?? r.opponent].sort().join(" v ")}|${r.round}`;
+      const byName = `${[normTeam(r.team), normTeam(r.opponent)].sort().join(" v ")}|${r.round}`;
+      const target = fixMap.get(byId) ?? fixMap.get(byName);
+      if (target) { r.correctedFrom = r.round; r.round = target; r.gameId = buildGameId(eventId, r.round, r.team, r.opponent, teamIdByName); n++; }
     }
     console.log(`   ${n} rows re-labelled; games now ${new Set(rows.map((r) => r.gameId)).size}`);
     games.clear();

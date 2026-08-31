@@ -17,6 +17,10 @@ export const EVENT_FILES = {
   "Archived PickEm Paintball - Lone Star Open 2025 Data.xlsx": "lonestar_open_2025",
   "Archived PickEm Paintball - WorldCup 2025.xlsx": "world_cup_2025",
   "PickEm Paintball - MAO 2026 Archived.xlsx": "mid_atlantic_open_2026",
+  // The live sheet, supplied 31 Aug. Supersedes "Broken PickEm Paintball - Tampa
+  // 2026.xlsx", whose Long Data held 5 unusable rows — both teams crammed into one
+  // cell, point 0, no type.
+  "Live PickEm Paintball - Tampa 2026.xlsx": "tampa_bay_2026",
 };
 
 /**
@@ -27,7 +31,6 @@ export const EVENT_FILES = {
  *                        and restore the three voided rows deleted on 31 Aug.
  */
 export const EXCLUDED = {
-  tampa_bay_2026: "archive has only 5 long rows (file is named Broken)",
   mid_west_open_2026: "already loaded; archive has no row_ids so re-upload would duplicate",
 };
 
