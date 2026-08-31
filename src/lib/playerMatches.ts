@@ -94,6 +94,19 @@ export async function fetchPlayerMatches(
     else games.set(r.gameId, [r]);
   }
 
+  /**
+   * A game whose every row is voided never happened.
+   *
+   * Weight 0 is the pipeline's tombstone (see longDataRecompute), but a voided row
+   * still carries a round and a team pair, so it mints a gameId. Three such rows once
+   * created two phantom games here, which then handed a 0-kill match row to all 25
+   * players on the three teams involved — for matches that were never played.
+   * Scoring was unaffected; the fixture list was not.
+   */
+  for (const [gameId, rs] of Array.from(games)) {
+    if (rs.every((r) => num(r.weight) === 0)) games.delete(gameId);
+  }
+
   const out: PlayerMatch[] = [];
   for (const [gameId, gameRows] of Array.from(games)) {
     const mine = gameRows.filter((r) => String(r.playerId ?? "") === playerId);
