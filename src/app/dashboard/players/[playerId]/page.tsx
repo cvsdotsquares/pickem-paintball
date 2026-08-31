@@ -11,7 +11,7 @@ import {
   type CareerAppearance,
   type KillType,
 } from "@/src/lib/playerCareer";
-import type { PlayerMatch } from "@/src/lib/playerMatches";
+import { displayRound, type PlayerMatch } from "@/src/lib/playerMatches";
 import { individualEventDisplayName } from "@/src/lib/eventDisplayName";
 import { useTheme } from "@/src/contexts/ThemeContext";
 import { cn } from "@/src/lib/utils";
@@ -1225,7 +1225,9 @@ function MatchTable({
                   <span className="sm:hidden">{teamCode(m.opponentId, m.opponent)}</span>
                   <span className="hidden sm:inline">{m.opponent}</span>
                 </div>
-                <div className="text-[12px] text-gray-600 dark:text-white/50">{m.round}</div>
+                <div className="text-[12px] text-gray-600 dark:text-white/50">
+                  {displayRound(m.round)}
+                </div>
                 <div />
                 <div className="text-right text-[12px] font-semibold pickem-numeric text-gray-900 dark:text-white">
                   {fmtK(m.kills)}

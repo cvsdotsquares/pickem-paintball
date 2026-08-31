@@ -24,11 +24,31 @@ const TYPE_FIELD: Record<string, KillType> = {
 };
 
 /** Tournament order, so matches sort as they were played rather than alphabetically. */
-const ROUND_ORDER = ["Friday", "Saturday", "Sunday", "Wildcard", "Top8", "Top4", "Finals"];
+const ROUND_ORDER = ["Thursday", "Friday", "Saturday", "Sunday", "Wildcard", "Top8", "Top4", "Finals"];
 const roundRank = (r: string) => {
   const i = ROUND_ORDER.indexOf(r);
   return i === -1 ? ROUND_ORDER.length : i;
 };
+
+/** The knockout stages. Everything else is a preliminary round. */
+const KNOCKOUT = new Set(["Wildcard", "Top8", "Top4", "Finals"]);
+
+/**
+ * What a round is called on the page.
+ *
+ * Group games are stored by the DAY they were played — Thursday, Friday, Saturday —
+ * because that is what the scorers record. The league records them by group instead
+ * (A–E Prelims), so the day is ours alone and carries no meaning to a reader: nobody
+ * asks which day a prelim was. Worse, it is the one label with nothing external to
+ * validate against, so a typo in it survives every check — Tampa Bay 2026 has two
+ * games marked Thursday that were played on the Friday.
+ *
+ * Collapsing them to "Prelims" removes a distinction that was never useful and takes
+ * a whole class of silent error off the page with it. Sorting still uses the stored
+ * day, so prelims stay in the order they were played.
+ */
+export const displayRound = (round: string) =>
+  KNOCKOUT.has(round) ? round : "Prelims";
 
 export interface PlayerMatch {
   gameId: string;
