@@ -19,8 +19,9 @@ import admin from "firebase-admin";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { EVENT_FILES, EXCLUDED, buildGameId, isSentinel, parseEvent } from "./parse.mjs";
-import { indexFixtures, isPrelim, loadFixtures, normTeam, PLAYOFF_ROUND } from "./fixtures.mjs";
+import { dayLabelsByDate, indexFixtures, isLeaguePrelim, isPrelim, loadFixtures, meetingsByPair, normTeam, PLAYOFF_ROUND } from "./fixtures.mjs";
 import { buildResolver } from "./resolve.mjs";
+import { remapArchiveId } from "./identity.mjs";
 
 const DIR = "/Users/jamesgreen/Documents/PickEm Paintball/historic data";
 const FIXTURES = path.join(DIR, "NXL_Power_Rankings_2026_v17.xlsx");
@@ -113,23 +114,56 @@ async function handleEvent(db, file, eventId, fixtures, { write }) {
   if (dupNames.length) console.log(`\n⚠ duplicate player names in the archive roster: ${dupNames.join(", ")}`);
 
   // ── resolve players and teams ────────────────────────────────────────────
+  /**
+   * IDS FIRST. The archive's own Live Data carries the exact spelling the Long Data
+   * uses, with an id attached, so "Matthew Askren" needs no fuzzy matching — it needs
+   * remapping through the August identity fix. Name matching is the fallback for the
+   * handful of rows whose player is not on the roster at all (a nickname, an
+   * apostrophe), and every use of it is reported.
+   */
+  const liveIds = new Set(rosterSnap.docs.map((d) => d.id));
   const resolve = buildResolver(playerIdByName);
   const unresolved = new Map();
-  const aliased = new Map();
+  const viaName = new Map();
+  const viaRemap = new Map();
+  const deadIds = new Map();
   for (const r of rows) {
     r.gameId = buildGameId(eventId, r.round, r.team, r.opponent, teamIdByName);
     r.teamId = teamIdByName.get(r.team) ?? null;
     r.opponentId = teamIdByName.get(r.opponent) ?? null;
     if (isSentinel(r.player)) { r.playerId = null; r.credit = r.player.toLowerCase(); continue; }
     r.credit = "player";
+
+    const archiveId = parsed.playerIdByName.get(r.player) ?? null;
+    const mapped = remapArchiveId(eventId, archiveId);
+    if (mapped && liveIds.has(mapped)) {
+      r.playerId = mapped;
+      if (mapped !== archiveId) viaRemap.set(r.player, { n: (viaRemap.get(r.player)?.n ?? 0) + 1, from: archiveId, to: mapped });
+      continue;
+    }
+    // An archive id that survives the remap but is not on the live roster is the
+    // "larger problem" — a person the fix did not account for. Never guess past it.
+    if (mapped && !liveIds.has(mapped)) {
+      deadIds.set(r.player, { n: (deadIds.get(r.player)?.n ?? 0) + 1, archiveId, mapped });
+      r.playerId = null;
+      continue;
+    }
     const got = resolve(r.player);
     r.playerId = got.id;
-    if (!got.id) unresolved.set(r.player, { n: (unresolved.get(r.player)?.n ?? 0) + 1, how: got.how });
-    else if (got.how !== "exact") aliased.set(r.player, { n: (aliased.get(r.player)?.n ?? 0) + 1, how: got.how });
+    if (got.id) viaName.set(r.player, { n: (viaName.get(r.player)?.n ?? 0) + 1, how: got.how });
+    else unresolved.set(r.player, { n: (unresolved.get(r.player)?.n ?? 0) + 1, how: got.how });
   }
-  if (aliased.size) {
-    console.log(`\nname variants resolved (${aliased.size}):`);
-    [...aliased].forEach(([n, v]) => console.log(`   ${String(v.n).padStart(4)}  "${n}"  →  ${v.how}`));
+  if (viaRemap.size) {
+    console.log(`\nids remapped through the identity fix (${viaRemap.size}):`);
+    [...viaRemap].forEach(([n, v]) => console.log(`   ${String(v.n).padStart(4)}  "${n}"  ${v.from} → ${v.to}`));
+  }
+  if (viaName.size) {
+    console.log(`\nresolved by name — not in the archive roster (${viaName.size}):`);
+    [...viaName].forEach(([n, v]) => console.log(`   ${String(v.n).padStart(4)}  "${n}"  →  ${v.how}`));
+  }
+  if (deadIds.size) {
+    console.log(`\n⛔ ARCHIVE IDS THAT DO NOT EXIST TODAY (${deadIds.size}) — the identity fix missed these:`);
+    [...deadIds].forEach(([n, v]) => console.log(`   ${String(v.n).padStart(4)}  "${n}"  archive ${v.archiveId} → ${v.mapped}, not on the live roster`));
   }
   if (unresolved.size) {
     console.log(`\n⚠ UNRESOLVED PLAYER NAMES (${unresolved.size}) — these kills would score for nobody:`);
@@ -159,6 +193,7 @@ async function handleEvent(db, file, eventId, fixtures, { write }) {
    * one point simply has no recorded kills. Worth reporting, not worth blocking — it
    * costs nothing downstream because nothing counts points.
    */
+  const fxList = fixtures.byEvent.get(eventId) ?? null;
   const byPair = new Map();
   rows.forEach((r) => {
     const k = [r.teamId ?? r.team, r.opponentId ?? r.opponent].sort().join(" v ");
@@ -167,18 +202,73 @@ async function handleEvent(db, file, eventId, fixtures, { write }) {
   });
   const splits = [...byPair].filter(([, rs]) => rs.size > 1);
   console.log(`\ngames derived: ${games.size}`);
-  console.log(`split games (one pair under two rounds): ${splits.length}`);
-  splits.forEach(([p, rs]) => console.log(`   ✗ ${p} appears under: ${[...rs].join(", ")}`));
+
+  /**
+   * Ask the league how many times each split pair actually met.
+   *
+   * Two rounds for one pair is only a problem if they met once — then one label is a
+   * typo and the fixture list names the right round. If they met twice (a prelim and a
+   * playoff, which happens constantly) then two gameIds are correct and it was never a
+   * split. Only the fixture list can tell those apart.
+   */
+  const corrections = [];
+  const unresolvedSplits = [];
+  if (fxList) {
+    const meetings = meetingsByPair(fxList);
+    const dayOf = dayLabelsByDate(rows);
+    for (const [pairKey, roundSet] of splits) {
+      const sample = rows.find((r) => [r.teamId ?? r.team, r.opponentId ?? r.opponent].sort().join(" v ") === pairKey);
+      const namePair = [normTeam(sample.team), normTeam(sample.opponent)].sort().join(" v ");
+      const met = meetings.get(namePair) ?? [];
+      if (met.length >= roundSet.size) {
+        console.log(`   ok  ${pairKey} under ${[...roundSet].join(" + ")} — league records ${met.length} meetings, not a split`);
+        continue;
+      }
+      if (met.length === 1) {
+        const f = met[0];
+        // Playoff rounds map directly; a prelim's correct label is whatever day that
+        // date carries elsewhere in this event's own data.
+        // f.round is a LEAGUE label here, so it needs the league predicate.
+        const target = isLeaguePrelim(f.round)
+          ? dayOf.get(f.date) ?? null
+          : Object.keys(PLAYOFF_ROUND).find((k) => PLAYOFF_ROUND[k] === f.round) ?? null;
+        if (target && roundSet.has(target)) {
+          const wrong = [...roundSet].filter((r) => r !== target);
+          corrections.push({ pairKey, namePair, target, wrong, fixture: `${f.round} ${f.date}` });
+          continue;
+        }
+        unresolvedSplits.push({ pairKey, rounds: [...roundSet], fixture: `${f.round} ${f.date}`, target });
+        continue;
+      }
+      unresolvedSplits.push({ pairKey, rounds: [...roundSet], fixture: `${met.length} meetings on record` });
+    }
+  }
+  console.log(`split games: ${splits.length} candidates → ${corrections.length} correctable, ${unresolvedSplits.length} need a human`);
+  corrections.forEach((c) => console.log(`   fix ${c.pairKey}: ${c.wrong.join("/")} → ${c.target}   (league: ${c.fixture})`));
+  unresolvedSplits.forEach((u) => console.log(`   ✗  ${u.pairKey} under ${u.rounds.join(" + ")} — league says ${u.fixture}`));
+
+  // Apply the corrections in memory so the rest of the run sees the repaired data.
+  if (corrections.length) {
+    const fixMap = new Map();
+    corrections.forEach((c) => c.wrong.forEach((w) => fixMap.set(`${c.pairKey}|${w}`, c.target)));
+    let n = 0;
+    for (const r of rows) {
+      const k = `${[r.teamId ?? r.team, r.opponentId ?? r.opponent].sort().join(" v ")}|${r.round}`;
+      if (fixMap.has(k)) { r.correctedFrom = r.round; r.round = fixMap.get(k); r.gameId = buildGameId(eventId, r.round, r.team, r.opponent, teamIdByName); n++; }
+    }
+    console.log(`   ${n} rows re-labelled; games now ${new Set(rows.map((r) => r.gameId)).size}`);
+    games.clear();
+    rows.forEach((r) => { if (!games.has(r.gameId)) games.set(r.gameId, []); games.get(r.gameId).push(r); });
+  }
   console.log(`points with no recorded kills: ${holes.length}  (informational — the game is intact)`);
   holes.slice(0, 5).forEach((h) => console.log(`     ${h.gid}  ${h.why}`));
 
   // ── fixture validation ───────────────────────────────────────────────────
-  const fx = fixtures.byEvent.get(eventId);
   let unknown = [];
-  if (!fx) {
+  if (!fxList) {
     console.log(`\n⚠ no fixtures found for ${eventId} — skipping fixture validation`);
   } else {
-    const idx = indexFixtures(fx);
+    const idx = indexFixtures(fxList);
     const seen = new Set();
     for (const [gid, rs] of games) {
       const r = rs[0];
@@ -199,7 +289,7 @@ async function handleEvent(db, file, eventId, fixtures, { write }) {
       if (!ok) unknown.push({ gid, pair, round: r.round, dates: [...new Set(rs.map((x) => x.date))].join(","), rows: rs.length });
       seen.add(pair);
     }
-    const fxPairs = new Set(fx.map((f) => f.pair));
+    const fxPairs = new Set(fxList.map((f) => f.pair));
     const missingFx = [...fxPairs].filter((p) => !seen.has(p));
     console.log(`fixtures on record: ${idx.total}   games not matching any fixture: ${unknown.length}   fixture pairs with no long data: ${missingFx.length}`);
     unknown.slice(0, 8).forEach((u) => console.log(`   ✗ ${u.gid}  ${u.pair}  round=${u.round} dates=${u.dates} rows=${u.rows}`));
@@ -226,12 +316,13 @@ async function handleEvent(db, file, eventId, fixtures, { write }) {
     if (deltas.length > 10) console.log(`   … and ${deltas.length - 10} more`);
   }
 
-  const blocked = deltas.length > 0 || unresolved.size > 0 || splits.length > 0 || unknown.length > 0;
+  const blocked = deltas.length > 0 || unresolved.size > 0 || unresolvedSplits.length > 0 || unknown.length > 0 || deadIds.size > 0;
   if (blocked) {
     console.log(`\n⛔ SKIPPING ${eventId} — nothing written. Reasons: ` +
       [deltas.length && `${deltas.length} stat deltas`, unresolved.size && `${unresolved.size} unresolved names`,
-       splits.length && `${splits.length} split games`, unknown.length && `${unknown.length} unknown fixtures`].filter(Boolean).join(", "));
-    return { eventId, status: "skipped", rows: rows.length, deltas: deltas.length, unresolved: unresolved.size, holes: splits.length, unknown: unknown.length };
+       unresolvedSplits.length && `${unresolvedSplits.length} split games`, unknown.length && `${unknown.length} unknown fixtures`,
+       deadIds.size && `${deadIds.size} dead ids`].filter(Boolean).join(", "));
+    return { eventId, status: "skipped", rows: rows.length, deltas: deltas.length, unresolved: unresolved.size, holes: unresolvedSplits.length, unknown: unknown.length, corrections };
   }
   console.log(`\n✅ ${eventId} passes every check.`);
 

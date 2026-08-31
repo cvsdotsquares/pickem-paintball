@@ -20,7 +20,17 @@ export const PLAYOFF_ROUND = {
   Top4: "Semifinals",
   Finals: "Final",
 };
+/** True for OUR round labels (Friday, Saturday…) — anything not a playoff stage. */
 export const isPrelim = (round) => !PLAYOFF_ROUND[round];
+
+/**
+ * True for the LEAGUE's round labels (A Prelims … E Prelims).
+ *
+ * Separate from `isPrelim` because the two vocabularies do not overlap: passing
+ * "Quarters" to `isPrelim` returns true, since "Quarters" is not one of OUR playoff
+ * keys — which briefly relabelled a real quarter-final as a Friday prelim.
+ */
+export const isLeaguePrelim = (round) => /prelim/i.test(String(round ?? ""));
 
 /**
  * Fixture-list team names → the names our sheets use. Inferred from the 27 names in
@@ -104,4 +114,46 @@ export function indexFixtures(list) {
     pairs.set(f.pair, (pairs.get(f.pair) ?? 0) + 1);
   }
   return { byRound, byDate, pairs, total: list.length };
+}
+
+
+/**
+ * What the league says about one team pair at one event: how many times they met, and
+ * in which rounds.
+ *
+ * This is what turns a split game from a blocker into a correction. Our sheet may have
+ * one match torn across "Friday" and "Top8"; the fixture list settles whether they met
+ * once (so one label is wrong) or twice (so both are right and it was never a split).
+ */
+export function meetingsByPair(list) {
+  const m = new Map();
+  for (const f of list) {
+    if (!m.has(f.pair)) m.set(f.pair, []);
+    m.get(f.pair).push({ round: f.round, date: f.date });
+  }
+  return m;
+}
+
+/**
+ * Our day labels mapped to calendar dates, learned from the event's own long data.
+ *
+ * The fixture list records prelims by group (A–E Prelims) and our sheets record them by
+ * day (Friday/Saturday), so neither can be translated into the other directly. Both
+ * carry a DATE though, so the date is the bridge: whatever label our rows overwhelmingly
+ * use for a given date is that date's label.
+ */
+export function dayLabelsByDate(rows) {
+  const counts = new Map(); // date -> Map(round -> n)
+  for (const r of rows) {
+    if (!r.date || !isPrelim(r.round)) continue;
+    if (!counts.has(r.date)) counts.set(r.date, new Map());
+    const m = counts.get(r.date);
+    m.set(r.round, (m.get(r.round) ?? 0) + 1);
+  }
+  const out = new Map();
+  for (const [date, m] of counts) {
+    const best = [...m].sort((a, b) => b[1] - a[1])[0];
+    if (best) out.set(date, best[0]);
+  }
+  return out;
 }
