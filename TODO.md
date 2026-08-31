@@ -101,6 +101,43 @@ Vercel.
 
 ## Data
 
+- [ ] **Long Data stores player NAMES, not ids — fix at source.** Every data problem in
+      the 31 Aug backfill traced to this. The scorer types a name, and the id is derived
+      at upload from `lookups.playerIdByName[player] || ''` — which returns an empty id
+      on any variant and writes the row anyway. A kill that scores for nobody looks
+      exactly like a quiet game, so nothing surfaces it.
+      Seven variants found across six events, four of which had **silently lost kills
+      from the live site** since the original upload:
+
+      | In Long Data | Roster | Cost |
+      |---|---|---|
+      | `Jackson Noodle Knees Frey` | Jackson Frey | 5 kills |
+      | `Clay Hughes` | Clayton Hughes | 2 kills |
+      | `Steve Pablo Wojnicz` | Steve Wojnicz | 2 kills |
+      | `Alex DAcquisto` | Alex D'Acquisto | 1 kill |
+      | `Matthew Askren` | Matt Askren | — |
+      | `Francis Antetomaso` | Frank Antetomaso | — |
+      | `Sebastian Ivan Lopez` | Ivan Lopez | — |
+
+      Two fixes, both worth doing:
+      - **Data-validation dropdown on the Player column**, sourced from `Live Data`, so
+        a name that is not on the roster cannot be typed. Kills it at source; scorers
+        still see names.
+      - **Fail the upload on an unresolved name**, naming the row. `02_LongDataUpload.gs`
+        currently writes a blank id and continues. Refusing a submit is far better than
+        losing a kill — the sentinels (`Missed`, `Penalty`) stay the only legitimate
+        rows without an id.
+
+      A hidden id column alongside the name would also work, but the dropdown is simpler
+      and does not change what a scorer sees.
+- [ ] **Tampa Bay 2026 has no long data.** The archive holds 5 rows, all Finals — the
+      file is literally named "Broken". Its published stats came from the old macro
+      pipeline and have nothing to reconcile against, so it is the one event with no
+      match detail. Recover the scoring sheet if it exists anywhere.
+- [ ] **Three World Cup 2025 Ochos games were never scored** — Ironmen v TonTon,
+      Damage v Leverage, Joy Division v X-Factor, all 2025-11-16. The league has them;
+      we have no rows. Missing from the published stats too, so nothing disagrees — a
+      completeness gap, not a correctness one.
 - [ ] **Participation must be re-run after every event.** This is manual by choice
       until the offseason. After an event finishes and the league's team sheets settle,
       re-crawl `~/Documents/nxl-pro-players` and then:

@@ -27,6 +27,55 @@ const DIR = "/Users/jamesgreen/Documents/PickEm Paintball/historic data";
 const FIXTURES = path.join(DIR, "NXL_Power_Rankings_2026_v17.xlsx");
 const CHUNK = 400;
 
+/**
+ * Deltas signed off as corrections rather than errors.
+ *
+ * The gate exists to stop published stats being rewritten unattended, so anything that
+ * moves a live number must be named here explicitly, with the reason and the exact
+ * before/after. A blanket "proceed anyway" flag would defeat the point.
+ *
+ * Approved by James, 31 Aug 2026.
+ */
+const APPROVED_DELTAS = [
+  {
+    eventId: "tampa_bay_open_2025",
+    playerId: "100121",
+    who: "Jackson Frey",
+    from: 0,
+    to: 5,
+    why:
+      "Logged in the long data as 'Jackson Noodle Knees Frey'. The original upload " +
+      "could not resolve the nickname, so the kills were dropped and he was published " +
+      "at 0. The long data is the more correct source; this restores them.",
+  },
+  {
+    eventId: "mid_atlantic_open_2026",
+    playerId: "100371",
+    who: "Alex D'Acquisto",
+    from: 0,
+    to: 1,
+    why:
+      "Logged without the apostrophe, so the original upload could not match him to " +
+      "the roster and the kill was lost. Same cause as Jackson Frey.",
+  },
+  {
+    eventId: "midwest_open_2025",
+    playerId: "100166",
+    who: "Clayton Hughes",
+    from: 11,
+    to: 13,
+    why: "Two kills logged as 'Clay Hughes' and lost by the original upload.",
+  },
+  {
+    eventId: "midwest_open_2025",
+    playerId: "100321",
+    who: "Steve Wojnicz",
+    from: 1,
+    to: 3,
+    why: "Two kills logged as 'Steve Pablo Wojnicz' and lost by the original upload.",
+  },
+];
+
 const TYPE_FIELD = {
   Gunfight: "Gunfights", Breakshooting: "Breakshooting", Movement: "Movement",
   "Zone Coverage": "Zone Coverage", Pressure: "Pressure", Trade: "Trades",
@@ -299,14 +348,30 @@ async function handleEvent(db, file, eventId, fixtures, { write }) {
   // ── the gate: would this change published stats? ─────────────────────────
   const projected = projectTotals(rows);
   const liveSnap = rosterSnap;
+  const approved = APPROVED_DELTAS.filter((a) => a.eventId === eventId);
   const deltas = [];
+  const accepted = [];
   liveSnap.docs.forEach((d) => {
     const stored = Number(d.get("Confirmed Kills") ?? 0);
     const proj = projected.get(d.id)?.["Confirmed Kills"] ?? 0;
-    if (Math.abs(stored - proj) > 0.001) {
-      deltas.push({ id: d.id, name: d.get("Player"), stored, proj, diff: +(proj - stored).toFixed(2) });
-    }
+    if (Math.abs(stored - proj) <= 0.001) return;
+    // An approval only counts if the numbers are exactly what was signed off. If the
+    // data has moved since, it is a new delta and must be looked at again.
+    const ok = approved.find(
+      (a) => a.playerId === d.id && Math.abs(a.from - stored) < 0.001 && Math.abs(a.to - proj) < 0.001,
+    );
+    if (ok) accepted.push({ ...ok, stored, proj });
+    else deltas.push({ id: d.id, name: d.get("Player"), stored, proj, diff: +(proj - stored).toFixed(2) });
   });
+  if (accepted.length) {
+    console.log(`\napproved corrections (published value will change):`);
+    accepted.forEach((a) => console.log(`   ${a.who}: ${a.from} → ${a.to}   ${a.why.slice(0, 60)}…`));
+  }
+  const staleApprovals = approved.filter((a) => !accepted.some((x) => x.playerId === a.playerId));
+  if (staleApprovals.length) {
+    console.log(`\n⚠ approvals that no longer match the data (ignored, and they still block):`);
+    staleApprovals.forEach((a) => console.log(`   ${a.who}: expected ${a.from} → ${a.to}`));
+  }
   const extra = [...projected.keys()].filter((id) => !liveSnap.docs.some((d) => d.id === id));
   console.log(`\nGATE — recomputed vs published Confirmed Kills`);
   console.log(`   roster ${liveSnap.size} · players differing: ${deltas.length} · long-data players not on roster: ${extra.length}`);
