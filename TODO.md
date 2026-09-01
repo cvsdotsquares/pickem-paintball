@@ -204,6 +204,24 @@ Vercel.
 - [ ] **4 players show the wrong headshot** — their `img_url` carries another player's
       league id: `100097` Josh Taylor, `100110` Mark Frans, `100177` Ashton Bufton,
       `100183` Diego Gallego.
+- [ ] **Player photo library is the limit on the card grid.** Career-stats cards render
+      only for players with a real, reachable photo — a brand rule, not a fallback — so
+      the picture library now decides who can appear. Three separate problems sit under
+      it, all surfaced by `build-player-summaries.mjs`:
+      - **187 of 325 players have a real photo URL (58%).** The other 138 are reachable
+        by search and appear in every table, but never as a card.
+      - **12 of those URLs are 404s** and are excluded at build time (the script prints
+        them on every run): Ashton Bufton, Charles Dowden Vii, Cj Canter, David Luckau,
+        Diego Gallego, Jake McDarby, Jeronimo Patino Benavent, John Peterson, Johnny
+        Luckau, Joseph Altamore, Rene Rodriguez, Tj Danner. Some overlap the wrong-
+        headshot list above, so fixing identity may fix the URL.
+      - **58 players carry `placeholder.svg` pointing at `pickem-paintball-cyan.vercel.app`**
+        — a stale deployment, not production. Harmless while the cards filter it out,
+        but any surface that renders `img_url` blindly breaks the day that deployment
+        goes. Store an empty value instead.
+      Source portraits are also inconsistent: almost all are 200x200 (a handful 300x300),
+      and the subject is framed at different scales, so heads vary in size across the
+      grid. Re-exporting at a consistent crop and >=400px would visibly lift the page.
 - [ ] **Two roster identities won't join to the official team sheet.** Found by
       `dry-run-participation.mjs`, which cross-checks our rosters against the NXL
       team sheets scraped into `~/Documents/nxl-pro-players/Player_Roster_Historic.csv`.

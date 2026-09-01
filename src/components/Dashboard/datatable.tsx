@@ -279,6 +279,8 @@ type MatchupTableProps = {
   sortConfig?: SortConfig | null;
   onSortChange?: (config: SortConfig | null) => void;
   myPicks?: Set<string>;
+  /** Set false where a picks filter is meaningless (e.g. the all-time table). */
+  showMyPicks?: boolean;
   currentEventId?: string; // Add this
   isSeasonView?: boolean; // Add this to identify season totals view
   /** Season view: event column keys, most recent first (matches stats page event order) */
@@ -315,6 +317,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   sortConfig: propSortConfig,
   onSortChange,
   myPicks,
+  showMyPicks = true,
   currentEventId,
   isSeasonView = false,
   seasonEventColumnOrder = [],
@@ -1087,7 +1090,10 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   );
 
   const renderMyPicksButton = () =>
-    !isSeasonView ? (
+    // Hidden outright where picks have no meaning — the all-time table spans every
+    // event, so there is no single set of picks to filter to. A permanently disabled
+    // control is worse than no control.
+    !isSeasonView && showMyPicks ? (
       <button
         type="button"
         onClick={(e) => {

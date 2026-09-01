@@ -57,6 +57,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Small derived indexes — currently just the player list behind the search box.
+    // Same rationale as playerSummaries: derived from readable collections, exists so
+    // one read does the work of hundreds.
+    match /aggregates/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Upload manifests. Nothing client-side reads these; they trigger the recompute.
     match /uploads/{uploadId} {
       allow read: if false;

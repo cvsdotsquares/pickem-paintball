@@ -416,6 +416,242 @@ async function main() {
     return;
   }
 
+  /**
+   * One small document listing every player, for the search box.
+   *
+   * The alternative is reading all 325 summaries just to get their names, which would
+   * undo the whole point of the projection. This is ~20 KB and one read, and it holds
+   * only what a search result needs to render: name, team, and whether they are still
+   * active, so a retired player can be ranked below a current one.
+   */
+  const index = summaries
+    .map((s) => ({
+      id: s.playerId,
+      name: s.name,
+      team: s.currentTeam,
+      kills: s.totalKills,
+      played: s.playedCount,
+      lastEvent: s.events.filter((e) => e.kind === "played").at(-1)?.eventId ?? null,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  /**
+   * All-time table, shaped exactly like an event's roster so the stats page can render
+   * it with the same component and the same columns.
+   *
+   * The stats page aggregates per SEASON and never across them, so this is the one cut
+   * it cannot already do. Kills and the seven type splits are summed over events the
+   * player actually played — an absence contributes nothing, same rule as everywhere
+   * else. Rank is competition ranking on career kills: ties share a place.
+   */
+  const allTime = summaries
+    .filter((s) => s.playedCount > 0)
+    .map((s) => {
+      const types = Object.fromEntries(KILL_TYPES.map((t) => [t, 0]));
+      s.events
+        .filter((e) => e.kind === "played")
+        .forEach((e) => KILL_TYPES.forEach((t) => { types[t] += e.types[t] ?? 0; }));
+      return {
+        player_id: s.playerId,
+        Player: s.name,
+        Team: s.currentTeam,
+        Number: s.number,
+        img_url: s.imgUrl,
+        "Confirmed Kills": +s.totalKills.toFixed(2),
+        ...types,
+        Events: s.playedCount,
+        "Kills Per Event": +(s.totalKills / s.playedCount).toFixed(2),
+      };
+    })
+    .sort((a, b) => b["Confirmed Kills"] - a["Confirmed Kills"]);
+  // Competition ranking — ties share a place, the next distinct value skips.
+  let lastRank = 0;
+  let prev = null;
+  allTime.forEach((r, i) => {
+    if (prev === null || r["Confirmed Kills"] !== prev) { lastRank = i + 1; prev = r["Confirmed Kills"]; }
+    r.Rank = lastRank;
+  });
+
+  /**
+   * Spotlight — what the career-stats landing page shows before you search.
+   *
+   * NOT every player. A directory of 325 names is a table with extra steps; this is
+   * three short rows of players who have a photo, because the page's job is recognising
+   * someone and pointing at them — search is what reaches the other 319.
+   *
+   * Photo is a hard requirement, and a brand rule rather than a fallback: a card is a
+   * face, so a player without one is reachable by search and by every table on the site,
+   * but is never rendered as a card. 174 of 325 players qualify — placeholders and dead
+   * URLs are both excluded — which is more than enough to fill a rotating 50.
+   */
+  // Loaded again here rather than threaded out of buildAll — one extra read, and it
+  // keeps buildAll's return value as just the summaries.
+  const events = await loadEvents(db);
+  const LATEST = events.at(-1)?.id ?? null;
+  const pickAt = (s, ev) => s.events.find((e) => e.eventId === ev)?.pickPct ?? null;
+  /**
+   * A real headshot, not a placeholder.
+   *
+   * 58 players carry a `placeholder.svg` URL rather than an empty field, so a naive
+   * "starts with http" check reports 245 photos when only 187 exist. Those URLs also
+   * point at a stale Vercel deployment, which is a separate problem — see TODO.
+   */
+  const looksLikePhoto = (s) => {
+    const u = String(s.imgUrl ?? "");
+    return u.startsWith("http") && !/placeholder|no-image|default/i.test(u);
+  };
+
+  /**
+   * A URL is not a photo until it answers.
+   *
+   * The landing page now shows a card ONLY for a player with a picture, so a broken
+   * image is no longer a cosmetic blemish — it is a card that should not exist. Nine of
+   * the 183 real-looking URLs are 404s (players whose file was never uploaded, or was
+   * renamed), and nothing in the stored data distinguishes them from a live one.
+   *
+   * So they are fetched. ~180 requests against a public bucket, once per rebuild, is a
+   * rounding error next to the 4,600 Firestore reads above, and it is the only way to
+   * be sure. A network failure is treated as dead: better to omit a card than to ship
+   * one with a hole in it.
+   */
+  async function reachablePhotos(candidates) {
+    const live = new Set();
+    const dead = [];
+    const queue = [...candidates];
+    await Promise.all(
+      Array.from({ length: 12 }, async () => {
+        while (queue.length) {
+          const s = queue.pop();
+          try {
+            const r = await fetch(s.imgUrl, { method: "HEAD" });
+            if (r.ok) live.add(s.imgUrl);
+            else dead.push(`${s.name} (${r.status})`);
+          } catch (e) {
+            dead.push(`${s.name} (${e.message})`);
+          }
+        }
+      }),
+    );
+    if (dead.length) {
+      console.log(`\n  ${dead.length} photo URLs did not resolve and are excluded:`);
+      dead.sort().forEach((d) => console.log(`    ${d}`));
+    }
+    return live;
+  }
+
+  const livePhotos = await reachablePhotos(summaries.filter(looksLikePhoto));
+  const hasPhoto = (s) => looksLikePhoto(s) && livePhotos.has(s.imgUrl);
+  const playedOf = (s) => s.events.filter((e) => e.kind === "played");
+
+  /**
+   * A card carries THREE ARBITRARY STATS, formatted here rather than in the component.
+   *
+   * Each row asks a different question, so each row shows different numbers: career
+   * figures under "All-time leaders", that event's figures under the event row, and
+   * pick-relevant ones under "Most picked". Formatting sits in the builder because the
+   * builder is the only place that knows which scope a number came from — the card just
+   * renders what it is handed, and can never label a per-match average as a per-event
+   * one.
+   */
+  const ordinal = (n) => {
+    const t = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return t[(v - 20) % 10] ?? t[v] ?? t[0];
+  };
+  const fmtK = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+  const rankStat = (r) => ({
+    value: r ? String(r) : "\u2014",
+    suffix: r ? ordinal(r) : null,
+    label: "Rank",
+  });
+  /** Every cost per kill in the pool is four figures or more, so `$X.Xk` is uniform. */
+  const money = (n) => (n == null ? "\u2014" : `$${(n / 1000).toFixed(1)}k`);
+
+  const card = (s, statsLabel, stats) => ({
+    id: s.playerId,
+    name: s.name,
+    number: s.number,
+    team: s.currentTeam,
+    imgUrl: s.imgUrl,
+    statsLabel,
+    stats,
+  });
+
+  const ROW = 6;
+
+  /**
+   * All-time leaders — career kills, highest first.
+   *
+   * The photo rule still applies, so a player without one is skipped rather than shown
+   * as a placeholder. That is honest here only because the card carries its RANK: a
+   * skipped player leaves a visible gap in the sequence rather than a silent one.
+   */
+  const allTimeLeaders = summaries
+    .filter((s) => s.playedCount > 0 && hasPhoto(s))
+    .sort((a, b) => b.totalKills - a.totalKills)
+    .slice(0, ROW)
+    .map((s) =>
+      card(s, "Career stats", [
+        rankStat(s.careerRank),
+        { value: fmtK(s.totalKills), label: "Kills" },
+        { value: s.avgKills.toFixed(1), label: "Kills", sublabel: "/Event" },
+      ]),
+    );
+
+  /**
+   * Latest event's leaders, scoped to that event throughout — its rank, its kills, and
+   * kills per GAME rather than per event, which is the only average that means anything
+   * inside a single tournament. The label carries the difference, so the same player
+   * appearing in both rows cannot be read as a collapse in form.
+   */
+  const eventLeaders = summaries
+    .map((s) => {
+      if (!hasPhoto(s)) return null;
+      const row = s.events.find((e) => e.eventId === LATEST && e.kind === "played");
+      if (!row) return null;
+      const games = s.matches.filter((m) => m.eventId === LATEST).length;
+      return {
+        kills: row.kills,
+        card: card(s, "Event stats", [
+          rankStat(row.rank),
+          { value: fmtK(row.kills), label: "Kills" },
+          {
+            value: games > 0 ? (row.kills / games).toFixed(1) : "\u2014",
+            label: "Kills",
+            sublabel: "/Game",
+          },
+        ]),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.kills - a.kills)
+    .slice(0, ROW)
+    .map((x) => x.card);
+
+  /**
+   * The six most-picked at the latest event, scoped to that event throughout.
+   *
+   * Career kills used to sit in the first column beside an event pick % and an event
+   * cost per kill, which made one card report three different spans at once. All three
+   * are now the same event, so the row answers one question: who did people back, and
+   * what did they return.
+   *
+   * A player who was picked and then did not take the field stays in — their kills read
+   * 0 and their cost per kill "—", which is the story rather than a gap to hide.
+   */
+  const spotlight = summaries
+    .filter((s) => s.playedCount > 0 && hasPhoto(s) && pickAt(s, LATEST) != null)
+    .sort((a, b) => pickAt(b, LATEST) - pickAt(a, LATEST))
+    .slice(0, ROW)
+    .map((s) => {
+      const row = s.events.find((e) => e.eventId === LATEST);
+      return card(s, "Pick\u2019Em stats", [
+        { value: fmtK(row?.kills ?? 0), label: "Kills" },
+        { value: `${(pickAt(s, LATEST) ?? 0).toFixed(1)}%`, label: "Pick%" },
+        { value: money(row?.costPerKill ?? null), label: "$/Kill" },
+      ]);
+    });
+
   const BATCH = 200;
   let written = 0;
   for (let i = 0; i < summaries.length; i += BATCH) {
@@ -430,7 +666,33 @@ async function main() {
     written += Math.min(BATCH, summaries.length - i);
     console.log(`  ${written}/${summaries.length}`);
   }
-  console.log(`\nWrote ${written} documents to playerSummaries/.\n`);
+  await db.doc("aggregates/playerIndex").set({
+    players: index,
+    count: index.length,
+    rebuiltAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  // `eventName`/`eventYear` rather than a label: `individualEventDisplayName` stays the
+  // single source of naming, exactly as it does for the career page's rows.
+  const latestEvent = events.find((e) => e.id === LATEST) ?? null;
+  await db.doc("aggregates/spotlight").set({
+    eventId: LATEST,
+    eventName: latestEvent?.name ?? null,
+    eventYear: latestEvent?.year ?? null,
+    allTimeLeaders,
+    eventLeaders,
+    players: spotlight,
+    rebuiltAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  await db.doc("aggregates/allTime").set({
+    players: allTime,
+    count: allTime.length,
+    rebuiltAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  const kb = (n) => (Buffer.byteLength(JSON.stringify(n), "utf8") / 1024).toFixed(1);
+  console.log(`\nWrote ${written} documents to playerSummaries/.`);
+  console.log(`Wrote aggregates/playerIndex — ${index.length} players, ${kb(index)} KB.`);
+  console.log(`Wrote aggregates/allTime    — ${allTime.length} players, ${kb(allTime)} KB.`);
+  console.log(`Wrote aggregates/spotlight  — ${allTimeLeaders.length} all-time, ${eventLeaders.length} at ${LATEST}, ${spotlight.length} most picked, ${kb({ allTimeLeaders, eventLeaders, spotlight })} KB.\n`);
 }
 
 // Only run as a CLI. Imported (by the verifier, or a future Cloud Function) this file

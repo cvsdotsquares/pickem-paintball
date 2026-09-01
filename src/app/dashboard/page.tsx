@@ -419,7 +419,16 @@ export default function Dashboard() {
               topKills.map((row, i) => (
                 <tr key={row.id}>
                   <td className="pickem-numeric px-3 py-2 text-gray-500">{i + 1}</td>
-                  <td className="px-3 py-2 font-bold">{row.player}</td>
+                  <td className="px-3 py-2 font-bold">
+                    {/* Only the name is a link, not the row — matches the stats table,
+                        and leaves the rest of the row free for selection. */}
+                    <Link
+                      href={`/dashboard/players/${row.id}`}
+                      className="hover:underline focus-visible:underline"
+                    >
+                      {row.player}
+                    </Link>
+                  </td>
                   <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{row.team}</td>
                   <td className="pickem-numeric px-3 py-2 text-right font-black">{row.kills}</td>
                 </tr>

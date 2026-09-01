@@ -14,6 +14,7 @@ import {
 import { displayRound, type PlayerMatch } from "@/src/lib/playerMatches";
 import { individualEventDisplayName } from "@/src/lib/eventDisplayName";
 import { useTheme } from "@/src/contexts/ThemeContext";
+import PlayerSearch from "@/src/components/Dashboard/PlayerSearch";
 import { cn } from "@/src/lib/utils";
 
 /** Shared column template — header and rows must use the same constant (style guide). */
@@ -355,16 +356,26 @@ export default function PlayerPage() {
   const historyRows = played.slice().reverse();
 
   // Default the match view to their most recent played event.
-  const matchEvent =
-    historyRows.find((a) => a.eventId === matchEventId) ?? historyRows[0] ?? null;
+  const matchEvent = matchEventId
+    ? (historyRows.find((a) => a.eventId === matchEventId) ?? null)
+    : null;
 
   /**
-   * Matches for the selected event — a filter, not a query. Every match a player has
-   * is already on the summary document, so switching events costs nothing.
+   * Matches for the selected event, or every match when none is chosen — a filter, not
+   * a query. The whole career is already on the summary document, so switching costs
+   * nothing and showing everything costs nothing either, which is why "All events" is
+   * the default: the interesting view is a career of matches, not one tournament.
    */
-  const matches = matchEvent
+  const eventOrder = new Map(historyRows.map((a, i) => [a.eventId, i]));
+  const matches = (matchEvent
     ? allMatches.filter((m) => m.eventId === matchEvent.eventId)
-    : [];
+    : allMatches.slice()
+  ).sort((a, b) => {
+    // Newest event first, matching the events table; within an event, latest round first.
+    const ea = eventOrder.get(a.eventId) ?? 99;
+    const eb = eventOrder.get(b.eventId) ?? 99;
+    return ea !== eb ? ea - eb : 0;
+  });
   const active = hovered ? labelled.find((x) => x.eventId === hovered) : null;
 
   // Long names would wrap to three lines and make the hero taller for some players than
@@ -383,13 +394,24 @@ export default function PlayerPage() {
       // opt this page into the variable-font numerals; see globals.css
       data-numeric="variable"
     >
-      <nav className={cn(LABEL, "flex items-center gap-2 py-3")}>
-        <Link href="/dashboard/stats" className="hover:text-gray-600 dark:hover:text-white/70">
-          Stats
-        </Link>
-        <span className="text-gray-300 dark:text-white/25">›</span>
-        <span className="text-gray-600 dark:text-white/60">{career.name}</span>
-      </nav>
+      {/* Breadcrumb and search share the row: the page is otherwise a dead end, only
+          reachable from the stats table or by URL. */}
+      <div className="flex flex-wrap items-center justify-between gap-3 py-3">
+        {/*
+          Sized to the search input beside it, which globals.css pins at 16px so iOS
+          Safari does not zoom on focus — so the breadcrumb comes up rather than the
+          field coming down. Dropping LABEL's uppercase and tracking at that size:
+          16px black uppercase reads as a heading, not a trail.
+        */}
+        <nav className="flex items-center gap-2 text-base text-gray-400 dark:text-white/40">
+          <Link href="/dashboard/stats" className="hover:text-gray-600 dark:hover:text-white/70">
+            Stats
+          </Link>
+          <span className="text-gray-300 dark:text-white/25">›</span>
+          <span className="text-gray-600 dark:text-white/60">{career.name}</span>
+        </nav>
+        <PlayerSearch className="w-full sm:w-64" />
+      </div>
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="overflow-hidden rounded-xl bg-[#101010]">
@@ -599,9 +621,10 @@ export default function PlayerPage() {
           {historyTab === "matches" && historyRows.length > 0 && (
             <select
               value={matchEvent?.eventId ?? ""}
-              onChange={(e) => setMatchEventId(e.target.value)}
+              onChange={(e) => setMatchEventId(e.target.value || null)}
               className="rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] font-bold text-gray-700 outline-none dark:border-white/10 dark:bg-stone-800 dark:text-white/70"
             >
+              <option value="">All events</option>
               {historyRows.map((a) => (
                 <option key={a.eventId} value={a.eventId}>
                   {a.label}
@@ -616,6 +639,8 @@ export default function PlayerPage() {
             matches={matches}
             eventLabel={matchEvent?.label ?? ""}
             eventShort={matchEvent?.shortLabel ?? ""}
+            labelFor={(id) => historyRows.find((a) => a.eventId === id)?.label ?? id}
+            shortFor={(id) => historyRows.find((a) => a.eventId === id)?.shortLabel ?? id}
           />
         ) : (
         <div className="mt-4 overflow-x-auto" style={{ scrollbarGutter: "stable" }}>
@@ -1141,11 +1166,17 @@ function MatchTable({
   matches,
   eventLabel,
   eventShort,
+  labelFor,
+  shortFor,
 }: {
-  matches: PlayerMatch[] | null;
+  matches: (PlayerMatch & { eventId: string })[] | null;
+  /** Empty when showing every event. */
   eventLabel: string;
   /** Axis form of the same event, e.g. "MW 26" — used on phones. */
   eventShort: string;
+  /** Per-row labels, needed once rows can span events. */
+  labelFor: (eventId: string) => string;
+  shortFor: (eventId: string) => string;
 }) {
   if (matches === null) {
     return (
@@ -1158,13 +1189,15 @@ function MatchTable({
   if (matches.length === 0) {
     return (
       <p className="mt-6 max-w-[62ch] text-[12px] text-gray-500 dark:text-white/40">
-        No kill-by-kill data loaded for {eventLabel || "this event"} yet. Only Mid West
-        Open 2026 has long data so far — the remaining events are queued for backfill.
+        {eventLabel
+          ? `No matches recorded for ${eventLabel}.`
+          : "No matches recorded — this player has not taken the field at an event we hold kill-by-kill data for."}
       </p>
     );
   }
 
   const total = matches.reduce((a, m) => a + m.kills, 0);
+  const events = new Set(matches.map((m) => m.eventId)).size;
 
   return (
     <>
@@ -1173,13 +1206,31 @@ function MatchTable({
         kills across{" "}
         <b className="pickem-numeric font-black text-gray-900 dark:text-white">{matches.length}</b>{" "}
         {matches.length === 1 ? "match" : "matches"}
+        {!eventLabel && events > 1 ? (
+          <>
+            {" "}
+            ·{" "}
+            <b className="pickem-numeric font-black text-gray-900 dark:text-white">{events}</b>{" "}
+            events
+          </>
+        ) : null}
       </p>
 
-      <div className="mt-4 overflow-x-auto" style={{ scrollbarGutter: "stable" }}>
+      {/*
+        Twelve rows then scroll. A full career is now 30+ matches across six events,
+        which pushed everything below it off the screen; capping it keeps the panel a
+        readable block. Header and rows share one scroll box so the header can be
+        sticky — it needs a solid background, or rows show through it as they pass.
+        513px = the 44px header plus twelve 39px rows, measured rather than guessed.
+      */}
+      <div
+        className="mt-4 max-h-[513px] overflow-auto"
+        style={{ scrollbarGutter: "stable" }}
+      >
         <div className="min-w-[640px] sm:min-w-[1000px]">
           <div
             className={cn(
-              "grid items-end gap-1.5 border-b border-gray-200/70 px-2.5 pb-2 sm:gap-3 dark:border-white/5",
+              "sticky top-0 z-10 grid items-end gap-1.5 border-b border-gray-200/70 bg-neutral-100 px-2.5 pb-2 pt-1 sm:gap-3 dark:border-white/5 dark:bg-stone-900",
               MATCH_COLS,
             )}
           >
@@ -1218,8 +1269,8 @@ function MatchTable({
                 )}
               >
                 <div className="text-[12px] font-bold text-gray-900 dark:text-white">
-                  <span className="sm:hidden">{eventShort}</span>
-                  <span className="hidden sm:inline">{eventLabel}</span>
+                  <span className="sm:hidden">{shortFor(m.eventId)}</span>
+                  <span className="hidden sm:inline">{labelFor(m.eventId)}</span>
                 </div>
                 <div className="truncate text-[12px] text-gray-600 dark:text-white/50">
                   <span className="sm:hidden">{teamCode(m.opponentId, m.opponent)}</span>
