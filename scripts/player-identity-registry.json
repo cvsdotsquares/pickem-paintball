@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-22T15:32:22.531Z",
+  "generated": "2026-09-02T09:41:38.920Z",
   "note": "Authoritative league_id <-> player_id map after the 22 Aug 2026 identity fix. player_id is the key pickems resolve against and MUST NOT change. league_id is the NXL identity.",
   "scope": [
     "tampa_bay_open_2025",
@@ -9,9 +9,10 @@
     "world_cup_2025",
     "tampa_bay_2026",
     "mid_atlantic_open_2026",
-    "mid_west_open_2026"
+    "mid_west_open_2026",
+    "lone_star_open_2026"
   ],
-  "count": 325,
+  "count": 328,
   "players": [
     {
       "player_id": "100001",
@@ -26,10 +27,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "193471",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100002",
@@ -44,10 +46,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "37327",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100003",
@@ -62,10 +65,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "3892",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100004",
@@ -80,10 +84,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "56861",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100005",
@@ -98,10 +103,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "111768",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100006",
@@ -116,10 +122,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "117562",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100007",
@@ -134,10 +141,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "36617",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100008",
@@ -152,10 +160,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "56462",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100009",
@@ -170,10 +179,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "26691",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100010",
@@ -188,10 +198,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "133572",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100011",
@@ -220,16 +231,17 @@
         "lonestar_open_2025",
         "world_cup_2025",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "73338",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100013",
       "Player": "Alex Goldman",
-      "team_id": "ACD",
-      "Team": "ac DIESEL",
+      "team_id": "DAM",
+      "Team": "Damage",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -238,10 +250,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "14329",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100014",
@@ -256,10 +269,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "74339",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100015",
@@ -273,10 +287,11 @@
         "lonestar_open_2025",
         "world_cup_2025",
         "tampa_bay_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "3004",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100016",
@@ -291,10 +306,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "7482",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100017",
@@ -309,10 +325,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "62920",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100018",
@@ -327,10 +344,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "43335",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100019",
@@ -343,10 +361,11 @@
         "midwest_open_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "34640",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100020",
@@ -369,8 +388,8 @@
     {
       "player_id": "100021",
       "Player": "Stephen Omara",
-      "team_id": "ARS",
-      "Team": "Arsenal",
+      "team_id": "DYN",
+      "Team": "Dynasty",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -379,10 +398,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "63599",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100022",
@@ -412,10 +432,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "70849",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100024",
@@ -445,10 +466,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "18249",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100026",
@@ -462,10 +484,11 @@
         "lonestar_open_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "21296",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100027",
@@ -510,16 +533,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "53504",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100030",
       "Player": "Aaron Pate",
-      "team_id": "HUR",
-      "Team": "Hurricanes",
+      "team_id": "JNG",
+      "Team": "Jungle Cats",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -536,8 +560,8 @@
     {
       "player_id": "100031",
       "Player": "Eliot Weaver",
-      "team_id": "ARS",
-      "Team": "Arsenal",
+      "team_id": "DYN",
+      "Team": "Dynasty",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -546,10 +570,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "55101",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100032",
@@ -564,10 +589,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "2895",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100033",
@@ -612,10 +638,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "7065",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100036",
@@ -630,16 +657,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "25645",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100037",
       "Player": "Conner Kelley",
-      "team_id": "AFT",
-      "Team": "Aftershock",
+      "team_id": "IMP",
+      "Team": "Impact",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -648,10 +676,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "130609",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100038",
@@ -666,10 +695,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "2768",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100039",
@@ -684,10 +714,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "102906",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100040",
@@ -702,10 +733,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "127384",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100041",
@@ -720,16 +752,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "155042",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100042",
       "Player": "Konstantin Fedorov",
-      "team_id": "TON",
-      "Team": "TonTon",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -738,10 +771,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "3891",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100043",
@@ -756,16 +790,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "995",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100044",
       "Player": "Marcello Margott",
-      "team_id": "IMP",
-      "Team": "Impact",
+      "team_id": "DAM",
+      "Team": "Damage",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -774,10 +809,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "7083",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100045",
@@ -792,10 +828,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "63261",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100046",
@@ -810,10 +847,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "33959",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100047",
@@ -828,10 +866,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "23693",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100048",
@@ -849,8 +888,8 @@
     {
       "player_id": "100049",
       "Player": "Thomas Guest",
-      "team_id": "IRN",
-      "Team": "Ironmen",
+      "team_id": "XFA",
+      "Team": "X-Factor",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -859,16 +898,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "73916",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100050",
       "Player": "Michael Urena",
-      "team_id": "IMP",
-      "Team": "Impact",
+      "team_id": "DYN",
+      "Team": "Dynasty",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -877,10 +917,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "47605",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100051",
@@ -895,16 +936,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "36273",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100053",
       "Player": "Carlos Cortes",
-      "team_id": "ACD",
-      "Team": "ac DIESEL",
+      "team_id": "XFA",
+      "Team": "X-Factor",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -913,10 +955,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "37312",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100054",
@@ -931,10 +974,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "22731",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100055",
@@ -964,10 +1008,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "1796",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100057",
@@ -982,10 +1027,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "26856",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100058",
@@ -1000,10 +1046,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "109811",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100059",
@@ -1018,10 +1065,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "45235",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100060",
@@ -1036,16 +1084,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "45321",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100061",
       "Player": "Chad George",
-      "team_id": "HEA",
-      "Team": "Heat",
+      "team_id": "IMP",
+      "Team": "Impact",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1054,10 +1103,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "28108",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100062",
@@ -1086,10 +1136,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "1311",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100064",
@@ -1117,10 +1168,11 @@
         "midwest_open_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "1606",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100066",
@@ -1135,10 +1187,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "22746",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100067",
@@ -1153,16 +1206,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "31923",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100068",
       "Player": "Trent Nitta",
-      "team_id": "AFT",
-      "Team": "Aftershock",
+      "team_id": "NYX",
+      "Team": "Xtreme",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1187,10 +1241,11 @@
         "midwest_open_2025",
         "lonestar_open_2025",
         "world_cup_2025",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "7002",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100070",
@@ -1212,8 +1267,8 @@
     {
       "player_id": "100071",
       "Player": "Ethan Adams",
-      "team_id": "NRG",
-      "Team": "NRG Elite",
+      "team_id": "TON",
+      "Team": "TonTon",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1229,8 +1284,8 @@
     {
       "player_id": "100072",
       "Player": "John Parrish",
-      "team_id": "AFT",
-      "Team": "Aftershock",
+      "team_id": "IMP",
+      "Team": "Impact",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1239,10 +1294,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "20544",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100073",
@@ -1275,10 +1331,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "54867",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100075",
@@ -1293,10 +1350,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "101575",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100076",
@@ -1321,16 +1379,17 @@
         "atlantic_city_2025",
         "midwest_open_2025",
         "lonestar_open_2025",
-        "world_cup_2025"
+        "world_cup_2025",
+        "lone_star_open_2026"
       ],
       "league_id": "115555",
-      "latest_event": "world_cup_2025"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100078",
       "Player": "Archie Barnes",
-      "team_id": "ARS",
-      "Team": "Arsenal",
+      "team_id": "DYN",
+      "Team": "Dynasty",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1339,10 +1398,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "164176",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100079",
@@ -1357,10 +1417,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "26271",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100080",
@@ -1390,10 +1451,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "3003",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100082",
@@ -1408,16 +1470,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "150634",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100083",
       "Player": "Ben Carroll",
-      "team_id": "ARS",
-      "Team": "Arsenal",
+      "team_id": "TON",
+      "Team": "TonTon",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1426,16 +1489,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "39082",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100084",
       "Player": "Corey Hall",
-      "team_id": "AFT",
-      "Team": "Aftershock",
+      "team_id": "LEG",
+      "Team": "Red Legion",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1444,16 +1508,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "44489",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100085",
       "Player": "John Peterson",
-      "team_id": "NYX",
-      "Team": "Xtreme",
+      "team_id": "IRN",
+      "Team": "Ironmen",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1466,8 +1531,8 @@
     {
       "player_id": "100086",
       "Player": "Dany Schonauer",
-      "team_id": "DYN",
-      "Team": "Dynasty",
+      "team_id": "IMF",
+      "Team": "Infamous",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1476,16 +1541,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "22815",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100087",
       "Player": "Jesse Stephens",
-      "team_id": "ACD",
-      "Team": "ac DIESEL",
+      "team_id": "IRN",
+      "Team": "Ironmen",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1494,16 +1560,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "55542",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100088",
       "Player": "Cody Chong",
-      "team_id": "SDA",
-      "Team": "Aftermath",
+      "team_id": "RCS",
+      "Team": "Seadogs",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1512,10 +1579,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "78490",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100089",
@@ -1530,10 +1598,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "155044",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100090",
@@ -1563,10 +1632,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "29202",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100092",
@@ -1622,8 +1692,8 @@
     {
       "player_id": "100095",
       "Player": "Brandon Trujillo",
-      "team_id": "SDA",
-      "Team": "Aftermath",
+      "team_id": "COL",
+      "Team": "Collision",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1632,10 +1702,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "159323",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100096",
@@ -1650,10 +1721,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "39049",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100097",
@@ -1668,10 +1740,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "27365",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100098",
@@ -1700,10 +1773,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "40274",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100100",
@@ -1718,16 +1792,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "23645",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100101",
       "Player": "Cody Mickowski",
-      "team_id": "ARS",
-      "Team": "Arsenal",
+      "team_id": "HEA",
+      "Team": "Heat",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1736,10 +1811,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "16888",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100102",
@@ -1754,10 +1830,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "98042",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100103",
@@ -1785,16 +1862,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "109665",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100105",
       "Player": "Cj Canter",
-      "team_id": "DAM",
-      "Team": "Damage",
+      "team_id": "IRN",
+      "Team": "Ironmen",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1803,10 +1881,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "52122",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100106",
@@ -1836,10 +1915,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "7403",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100108",
@@ -1854,10 +1934,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "7706",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100109",
@@ -1880,8 +1961,8 @@
     {
       "player_id": "100110",
       "Player": "Mark Frans",
-      "team_id": "TON",
-      "Team": "TonTon",
+      "team_id": "AFT",
+      "Team": "Aftershock",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1890,10 +1971,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "100171",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100111",
@@ -1908,10 +1990,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "188347",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100112",
@@ -1926,10 +2009,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "19824",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100113",
@@ -1951,8 +2035,8 @@
     {
       "player_id": "100114",
       "Player": "Kyle Spicka",
-      "team_id": "ACD",
-      "Team": "ac DIESEL",
+      "team_id": "DYN",
+      "Team": "Dynasty",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1969,8 +2053,8 @@
     {
       "player_id": "100115",
       "Player": "Austin Bufton",
-      "team_id": "NRG",
-      "Team": "NRG Elite",
+      "team_id": "HEA",
+      "Team": "Heat",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -1979,10 +2063,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "104861",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100116",
@@ -1997,16 +2082,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "56830",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100117",
       "Player": "Garrett Baldwin",
-      "team_id": "IRN",
-      "Team": "Ironmen",
+      "team_id": "RCS",
+      "Team": "Seadogs",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -2015,10 +2101,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "132968",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100118",
@@ -2034,17 +2121,18 @@
     {
       "player_id": "100119",
       "Player": "Lucas Alindajao",
-      "team_id": "SDA",
-      "Team": "Aftermath",
+      "team_id": "COL",
+      "Team": "Collision",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "61884",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100120",
@@ -2059,10 +2147,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "7685",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100121",
@@ -2092,16 +2181,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "133381",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100123",
       "Player": "Kyle Bowen",
-      "team_id": "ARS",
-      "Team": "Arsenal",
+      "team_id": "IMF",
+      "Team": "Infamous",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -2110,10 +2200,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "4614",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100124",
@@ -2128,16 +2219,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "98211",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100125",
       "Player": "Joseph Altamore",
-      "team_id": "AFT",
-      "Team": "Aftershock",
+      "team_id": "LEV",
+      "Team": "Leverage",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -2145,10 +2237,11 @@
         "lonestar_open_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "3924",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100126",
@@ -2163,10 +2256,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "41690",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100127",
@@ -2199,10 +2293,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "929",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100129",
@@ -2217,10 +2312,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "58533",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100130",
@@ -2250,10 +2346,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "76088",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100132",
@@ -2283,10 +2380,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "13689",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100134",
@@ -2314,10 +2412,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "106721",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100136",
@@ -2332,10 +2431,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "55778",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100137",
@@ -2350,16 +2450,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "70517",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100138",
       "Player": "Caleb Abuhl",
-      "team_id": "ARS",
-      "Team": "Arsenal",
+      "team_id": "IRN",
+      "Team": "Ironmen",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -2368,10 +2469,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "27727",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100139",
@@ -2386,10 +2488,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "176466",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100140",
@@ -2404,16 +2507,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "18625",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100141",
       "Player": "Rob Altamore",
-      "team_id": "AFT",
-      "Team": "Aftershock",
+      "team_id": "LEV",
+      "Team": "Leverage",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -2421,10 +2525,11 @@
         "lonestar_open_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "7816",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100142",
@@ -2439,10 +2544,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "15384",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100143",
@@ -2479,8 +2585,8 @@
     {
       "player_id": "100146",
       "Player": "Jackson Blue",
-      "team_id": "NYX",
-      "Team": "Xtreme",
+      "team_id": "DST",
+      "Team": "Distortion",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -2489,10 +2595,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "148117",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100147",
@@ -2537,25 +2644,27 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "36616",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100151",
       "Player": "Shon Saucedo",
-      "team_id": "ARS",
-      "Team": "Arsenal",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
         "midwest_open_2025",
         "lonestar_open_2025",
-        "world_cup_2025"
+        "world_cup_2025",
+        "lone_star_open_2026"
       ],
       "league_id": "9523",
-      "latest_event": "world_cup_2025"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100152",
@@ -2573,8 +2682,8 @@
     {
       "player_id": "100153",
       "Player": "Zakery Giger",
-      "team_id": "IMF",
-      "Team": "Infamous",
+      "team_id": "IRN",
+      "Team": "Ironmen",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -2601,10 +2710,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "93442",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100155",
@@ -2619,10 +2729,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "98942",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100156",
@@ -2634,10 +2745,11 @@
         "atlantic_city_2025",
         "midwest_open_2025",
         "lonestar_open_2025",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "159917",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100157",
@@ -2652,10 +2764,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "60265",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100158",
@@ -2670,10 +2783,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "190440",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100159",
@@ -2688,10 +2802,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "26045",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100160",
@@ -2724,10 +2839,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "154036",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100162",
@@ -2742,16 +2858,17 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "192477",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100163",
       "Player": "Jared Lackey",
-      "team_id": "ACD",
-      "Team": "ac DIESEL",
+      "team_id": "AFT",
+      "Team": "Aftershock",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -2760,10 +2877,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "13175",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100164",
@@ -2789,10 +2907,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "17344",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100166",
@@ -2804,10 +2923,11 @@
         "atlantic_city_2025",
         "midwest_open_2025",
         "lonestar_open_2025",
-        "world_cup_2025"
+        "world_cup_2025",
+        "lone_star_open_2026"
       ],
       "league_id": "162344",
-      "latest_event": "world_cup_2025"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100167",
@@ -2837,10 +2957,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "187155",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100169",
@@ -2870,10 +2991,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "119920",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100171",
@@ -2900,10 +3022,11 @@
         "midwest_open_2025",
         "lonestar_open_2025",
         "world_cup_2025",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "81927",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100173",
@@ -2946,8 +3069,8 @@
     {
       "player_id": "100176",
       "Player": "Timmy Roberts",
-      "team_id": "NYX",
-      "Team": "Xtreme",
+      "team_id": "JNG",
+      "Team": "Jungle Cats",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -2956,10 +3079,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "88759",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100177",
@@ -3003,8 +3127,8 @@
     {
       "player_id": "100180",
       "Player": "Jonathan Adkins",
-      "team_id": "NRG",
-      "Team": "NRG Elite",
+      "team_id": "HEA",
+      "Team": "Heat",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -3046,10 +3170,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "125361",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100183",
@@ -3059,7 +3184,7 @@
       "events": [
         "tampa_bay_open_2025"
       ],
-      "league_id": "34803",
+      "league_id": "34804",
       "latest_event": "tampa_bay_open_2025"
     },
     {
@@ -3086,10 +3211,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "139690",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100186",
@@ -3105,8 +3231,8 @@
     {
       "player_id": "100187",
       "Player": "Carl Reppesgard",
-      "team_id": "LEG",
-      "Team": "Red Legion",
+      "team_id": "JYD",
+      "Team": "Joy Division",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -3150,10 +3276,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "4272",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100191",
@@ -3174,10 +3301,11 @@
       "events": [
         "tampa_bay_open_2025",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "34808",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100194",
@@ -3203,10 +3331,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "1162",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100196",
@@ -3233,10 +3362,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "11657",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100198",
@@ -3293,8 +3423,8 @@
     {
       "player_id": "100203",
       "Player": "Baptiste Giger",
-      "team_id": "BKS",
-      "Team": "Breakout Spa",
+      "team_id": "TON",
+      "Team": "TonTon",
       "events": [
         "world_cup_2025",
         "tampa_bay_2026",
@@ -3318,8 +3448,8 @@
     {
       "player_id": "100207",
       "Player": "Carter Donaldson",
-      "team_id": "DAM",
-      "Team": "Damage",
+      "team_id": "IRN",
+      "Team": "Ironmen",
       "events": [
         "atlantic_city_2025",
         "midwest_open_2025",
@@ -3345,10 +3475,11 @@
       "team_id": "LEV",
       "Team": "Leverage",
       "events": [
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "130229",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100217",
@@ -3365,16 +3496,17 @@
     {
       "player_id": "100220",
       "Player": "Mason Hinds",
-      "team_id": "LKY",
-      "Team": "Lucky15s",
+      "team_id": "AFT",
+      "Team": "Aftershock",
       "events": [
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "138729",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100222",
@@ -3382,10 +3514,11 @@
       "team_id": "HUR",
       "Team": "Hurricanes",
       "events": [
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "127127",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100224",
@@ -3407,15 +3540,16 @@
     {
       "player_id": "100227",
       "Player": "Vince Newell",
-      "team_id": "DST",
-      "Team": "Distortion",
+      "team_id": "COL",
+      "Team": "Collision",
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "187718",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100230",
@@ -3456,10 +3590,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "155604",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100237",
@@ -3477,17 +3612,18 @@
     {
       "player_id": "100240",
       "Player": "Devon Stuart",
-      "team_id": "NRG",
-      "Team": "NRG Elite",
+      "team_id": "SDA",
+      "Team": "Aftermath",
       "events": [
         "lonestar_open_2025",
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "53684",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100242",
@@ -3594,10 +3730,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "87512",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100304",
@@ -3624,10 +3761,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "46163",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100307",
@@ -3641,10 +3779,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "108677",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100308",
@@ -3686,10 +3825,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "117384",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100311",
@@ -3703,10 +3843,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "18248",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100312",
@@ -3720,10 +3861,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "77134",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100313",
@@ -3778,10 +3920,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "109950",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100317",
@@ -3793,10 +3936,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "131582",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100318",
@@ -3807,10 +3951,11 @@
         "lonestar_open_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "134090",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100319",
@@ -3820,10 +3965,11 @@
       "events": [
         "lonestar_open_2025",
         "world_cup_2025",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "58868",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100320",
@@ -3925,16 +4071,17 @@
     {
       "player_id": "100328",
       "Player": "Avery Nguyen",
-      "team_id": "PLT",
-      "Team": "Papeletto",
+      "team_id": "COL",
+      "Team": "Collision",
       "events": [
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "196290",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100329",
@@ -4093,8 +4240,8 @@
     {
       "player_id": "100343",
       "Player": "Luis Betancourt",
-      "team_id": "NRG",
-      "Team": "NRG Elite",
+      "team_id": "HEA",
+      "Team": "Heat",
       "events": [
         "world_cup_2025",
         "tampa_bay_2026",
@@ -4167,7 +4314,7 @@
       "events": [
         "world_cup_2025"
       ],
-      "league_id": null,
+      "league_id": "",
       "latest_event": "world_cup_2025"
     },
     {
@@ -4178,7 +4325,7 @@
       "events": [
         "world_cup_2025"
       ],
-      "league_id": null,
+      "league_id": "",
       "latest_event": "world_cup_2025"
     },
     {
@@ -4255,10 +4402,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "85982",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100358",
@@ -4282,10 +4430,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "171090",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100360",
@@ -4295,7 +4444,7 @@
       "events": [
         "tampa_bay_2026"
       ],
-      "league_id": null,
+      "league_id": "206876",
       "latest_event": "tampa_bay_2026"
     },
     {
@@ -4306,10 +4455,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "175276",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100362",
@@ -4319,7 +4469,7 @@
       "events": [
         "tampa_bay_2026"
       ],
-      "league_id": null,
+      "league_id": "206976",
       "latest_event": "tampa_bay_2026"
     },
     {
@@ -4330,10 +4480,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "33493",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100364",
@@ -4343,10 +4494,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "160651",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100365",
@@ -4356,10 +4508,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "206359",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100366",
@@ -4369,10 +4522,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "205573",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100367",
@@ -4382,10 +4536,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "166449",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100368",
@@ -4394,10 +4549,11 @@
       "Team": "Xtreme",
       "events": [
         "tampa_bay_2026",
-        "mid_atlantic_open_2026"
+        "mid_atlantic_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "216895",
-      "latest_event": "mid_atlantic_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100369",
@@ -4407,10 +4563,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "62084",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100370",
@@ -4420,10 +4577,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "192338",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100371",
@@ -4433,10 +4591,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "152111",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100372",
@@ -4459,10 +4618,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "25048",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100374",
@@ -4485,10 +4645,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "9116",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100376",
@@ -4498,10 +4659,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "55030",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100377",
@@ -4511,10 +4673,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "40636",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100378",
@@ -4524,23 +4687,25 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "103976",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100379",
-      "Player": "Ethan Castro",
+      "Player": "Ethan Jose Castro",
       "team_id": "COL",
       "Team": "Collision",
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "140916",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100380",
@@ -4550,16 +4715,17 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "204710",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100381",
       "Player": "Frank Antetomaso",
-      "team_id": "IRN",
-      "Team": "Ironmen",
+      "team_id": "COL",
+      "Team": "Collision",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -4568,10 +4734,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "59302",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100382",
@@ -4594,10 +4761,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "149932",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100384",
@@ -4607,10 +4775,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "33508",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100385",
@@ -4620,10 +4789,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "40482",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100386",
@@ -4633,10 +4803,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "55318",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100387",
@@ -4667,8 +4838,8 @@
     {
       "player_id": "100389",
       "Player": "Matt Askren",
-      "team_id": "NRG",
-      "Team": "NRG Elite",
+      "team_id": "DST",
+      "Team": "Distortion",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
@@ -4677,10 +4848,11 @@
         "world_cup_2025",
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "10117",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100390",
@@ -4690,10 +4862,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "4196",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100391",
@@ -4703,10 +4876,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "9441",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100392",
@@ -4716,10 +4890,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "132808",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100393",
@@ -4742,10 +4917,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "136575",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100395",
@@ -4755,10 +4931,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "50790",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100396",
@@ -4781,10 +4958,11 @@
       "events": [
         "tampa_bay_2026",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "129237",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100398",
@@ -4793,10 +4971,11 @@
       "Team": "Xtreme",
       "events": [
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "20072",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100399",
@@ -4817,10 +4996,11 @@
       "Team": "Xtreme",
       "events": [
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "7687",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100401",
@@ -4829,10 +5009,11 @@
       "Team": "Distortion",
       "events": [
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "221970",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100402",
@@ -4849,17 +5030,18 @@
     {
       "player_id": "100403",
       "Player": "Ivan Lopez",
-      "team_id": "LEG",
-      "Team": "Red Legion",
+      "team_id": "NYX",
+      "Team": "Xtreme",
       "events": [
         "tampa_bay_open_2025",
         "atlantic_city_2025",
         "midwest_open_2025",
         "mid_atlantic_open_2026",
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "143019",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100405",
@@ -4879,10 +5061,11 @@
       "team_id": "TON",
       "Team": "TonTon",
       "events": [
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "176342",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100407",
@@ -4890,10 +5073,11 @@
       "team_id": "JNG",
       "Team": "Jungle Cats",
       "events": [
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "23225",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100408",
@@ -4901,10 +5085,11 @@
       "team_id": "DST",
       "Team": "Distortion",
       "events": [
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "86051",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
     },
     {
       "player_id": "100409",
@@ -4912,10 +5097,44 @@
       "team_id": "NYX",
       "Team": "Xtreme",
       "events": [
-        "mid_west_open_2026"
+        "mid_west_open_2026",
+        "lone_star_open_2026"
       ],
       "league_id": "14904",
-      "latest_event": "mid_west_open_2026"
+      "latest_event": "lone_star_open_2026"
+    },
+    {
+      "player_id": "100410",
+      "Player": "Sam Brinkman",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
+      "events": [
+        "lone_star_open_2026"
+      ],
+      "league_id": "140859",
+      "latest_event": "lone_star_open_2026"
+    },
+    {
+      "player_id": "100411",
+      "Player": "Duran Martinez",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
+      "events": [
+        "lone_star_open_2026"
+      ],
+      "league_id": "91321",
+      "latest_event": "lone_star_open_2026"
+    },
+    {
+      "player_id": "100412",
+      "Player": "Jake Raffield",
+      "team_id": "HUR",
+      "Team": "Hurricanes",
+      "events": [
+        "lone_star_open_2026"
+      ],
+      "league_id": "122804",
+      "latest_event": "lone_star_open_2026"
     }
   ]
 }
