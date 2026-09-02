@@ -59,10 +59,30 @@ written at recompute time — `src/lib/playerMatches.ts` already anticipates exa
 ("the fix is a per-game summary written at recompute time"). The build would then read
 eight small documents instead of 18,271 rows.
 
-Not built yet on purpose: it adds a derived collection to keep in sync and weakens the
-"rebuild from source is always correct" property that makes the projection safe to reason
-about. **Trigger to do it: `long_data` passes ~50,000 rows, or a rebuild exceeds 60s.**
-At ~2,300 rows an event that is roughly two more seasons.
+Not built yet on purpose: it adds a derived collection to keep in sync, and the migration
+touches `onLongDataUpload`, which sits on the scoring path. Against that, the benefit
+today is a background job finishing in ~4s instead of ~13s and about $5 an event weekend —
+nobody waits on it.
+
+**Do it as scheduled off-season work, not as an optimisation.** The reason is timing, not
+performance: the natural trigger (~50,000 rows, roughly two more seasons at ~2,300 rows an
+event) lands mid-season, and refactoring the data pipeline during a live event is the
+worst possible moment. "We will do it when it hurts" guarantees exactly that.
+
+It is cheaper than it first looks, because `recomputeEvent` **already reads every long row
+for the event** — it can write the game summaries from rows it has in memory, so the
+trigger side costs no extra reads at all.
+
+Plan when it happens:
+1. `gameSummaries/{gameId}` — round, teams, points, and per-player kills plus type
+   splits. Written by `recomputeEvent` from rows already loaded. ~400 docs today,
+   growing ~50 an event, against 18,271 long rows growing ~2,300 an event.
+2. One-off backfill for the 400 existing games before anything reads it.
+3. `buildAll` reads game summaries instead of `long_data`. Keep a `--from-long-data`
+   flag on the CLI so a true from-source rebuild stays the reconciliation — that is what
+   preserves "a full rebuild is the definition of correct".
+4. Verify the way the projection work was verified: a rebuild reporting `0 changed,
+   325 unchanged` proves the new path is output-identical to the old one.
 
 Smaller items, in rough value order:
 - `matchesForEvent` is O(games x roster x rows-per-game) — it re-filters every game's

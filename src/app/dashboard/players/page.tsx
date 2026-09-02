@@ -199,6 +199,11 @@ export default function CareerStatsPage() {
         an input of unknown purpose); the height and type size; the air around it, which
         is what separates a hero control from a toolbar; and the cursor already being in
         it on desktop.
+
+        The "/" shortcut still works but is no longer advertised in the field. A lone
+        slash floating at the right-hand edge reads as a stray character before it reads
+        as a hint — and the cursor is already in the box on desktop, so the shortcut has
+        little to do on arrival anyway.
       */}
       <div className="mx-auto max-w-2xl py-6 sm:py-10">
         <div className="relative">
@@ -225,13 +230,8 @@ export default function CareerStatsPage() {
             }}
             placeholder="Search all 325 players…"
             aria-label="Search players"
-            className="w-full rounded-full border border-gray-200 bg-gray-50 py-4 pl-14 pr-5 text-base sm:pr-14 outline-none placeholder-gray-400 focus-visible:border-[#1a3c6e] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-white/30 dark:focus-visible:border-[#00f976]"
+            className="w-full rounded-full border border-gray-200 bg-gray-50 py-4 pl-14 pr-5 text-base outline-none placeholder-gray-400 focus-visible:border-[#1a3c6e] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-white/30 dark:focus-visible:border-[#00f976]"
           />
-          {/* Advertises the shortcut and, in doing so, advertises that search is here.
-              Hidden on touch, where there is no key to press. */}
-          <kbd className="pointer-events-none absolute right-5 top-1/2 hidden -translate-y-1/2 rounded border border-gray-200 px-1.5 py-0.5 font-azonix text-[10px] text-gray-400 sm:block dark:border-white/15 dark:text-white/30">
-            /
-          </kbd>
         </div>
       </div>
 
