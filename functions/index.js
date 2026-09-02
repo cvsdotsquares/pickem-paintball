@@ -18,6 +18,81 @@ const db = admin.firestore();
 // See DATA_PIPELINE.md.
 exports.onLongDataUpload = require('./longDataRecompute').onLongDataUpload;
 
+// ─── Career-stats projection ───────────────────────────────────────────────
+// `playerSummaries/*` and `aggregates/*` are derived from the same player docs
+// onLongDataUpload writes, so every upload leaves them behind. They are rebuilt
+// here rather than there because a rebuild costs ~22,000 reads — far too much to
+// run several times a game. onLongDataUpload leaves a marker instead, and this
+// collapses a weekend of uploads into one rebuild per pass.
+//
+// Five minutes is the staleness a career page can show during a live event. The
+// stats page and leaderboard are unaffected — they read the player docs directly
+// and update on every upload.
+exports.rebuildPlayerSummaries = functions
+  .runWith({ timeoutSeconds: 540, memory: '1GB' })
+  .pubsub.schedule('every 5 minutes')
+  .onRun(async () => {
+    const ref = db.doc('projections/playerSummaries');
+    const before = await ref.get();
+    const staleSince = before.get('staleSince');
+
+    // Idle cost is this single read. Nothing has been uploaded, nothing to do.
+    if (!staleSince) return null;
+
+    /**
+     * One rebuild at a time.
+     *
+     * A rebuild is ~22,000 reads, and the schedule does not wait for the last run to
+     * finish. Today a pass takes well under a minute so they cannot collide, but the
+     * long-data read grows with every event, and the failure mode is silent: two
+     * overlapping passes both do the full work and one throws its result away. A
+     * concurrent run would also be holding a marker the other is about to clear.
+     *
+     * The lock expires so a crashed run cannot wedge the projection permanently.
+     */
+    const LOCK_MS = 15 * 60 * 1000;
+    const runningSince = before.get('runningSince');
+    if (runningSince && Date.now() - runningSince.toDate().getTime() < LOCK_MS) {
+      console.log('⏭️  A rebuild is already running — skipping this pass.');
+      return null;
+    }
+    await ref.set({ runningSince: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+
+    console.log(`♻️  Projection stale since ${staleSince.toDate().toISOString()} — rebuilding.`);
+
+    const { rebuild } = require('./playerSummaries');
+    const result = await rebuild(db, {
+      now: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    /**
+     * Clear the marker ONLY if nothing new arrived while we were building.
+     *
+     * A rebuild takes tens of seconds and reads as it goes, so an upload landing
+     * midway through may not be in what we just wrote. Clearing unconditionally
+     * would drop that upload on the floor until the next one happened to arrive —
+     * a silent, intermittent staleness that would be miserable to diagnose. If the
+     * marker has moved, leave it: the next pass picks the work up.
+     */
+    await db.runTransaction(async (tx) => {
+      const now = await tx.get(ref);
+      const current = now.get('staleSince');
+      const done = {
+        runningSince: admin.firestore.FieldValue.delete(),
+        rebuiltAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastResult: `${result.changed} changed, ${result.unchanged} unchanged`,
+      };
+      if (current && current.isEqual(staleSince)) {
+        tx.set(ref, { ...done, staleSince: admin.firestore.FieldValue.delete() }, { merge: true });
+      } else {
+        console.log('↩️  New upload arrived mid-rebuild — leaving the marker for the next pass.');
+        tx.set(ref, done, { merge: true });
+      }
+    });
+
+    return null;
+  });
+
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 // Lightweight stage timer. Cloud Functions logs give total invocation time but

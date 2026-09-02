@@ -27,6 +27,61 @@ Accepted as-is on mobile, not bugs — recorded so they are not rediscovered:
 
 ## Blocking real use
 
+**Career-stats projection now rebuilds itself.** `longDataRecompute` marks
+`projections/playerSummaries.staleSince` whenever it writes a player, and the
+`rebuildPlayerSummaries` scheduled function (every 5 min) rebuilds if the marker is
+set, then clears it only if no new upload arrived mid-build. Build logic lives in
+`functions/playerSummaries.js`, shared with `scripts/build-player-summaries.mjs` so
+the live path and the manual rebuild cannot drift. Career pages can therefore lag a
+live event by up to 5 minutes; the stats page and leaderboard are unaffected because
+they read the player docs directly.
+
+**Optimising the rebuild — measured, not guessed.** A pass is ~12-40s wall (the spread
+is network, not code: the same build measured 12s, 35s and 49s on one laptop). Where it
+goes, profiled:
+
+| stage | share | note |
+|---|---|---|
+| `long_data` full read (18,271 rows) | **69%** of buildAll | one query, grows ~2,300 rows/event forever |
+| rosters + users | ~20% | now issued in parallel with long data |
+| aggregates (incl. photo HEAD checks) | ~5% | was 86% before the check was narrowed to candidates |
+| write (diffed) | ~15% | 325 reads to avoid up to 325 writes; pays off below ~217 changed |
+
+Already done: the three read stages run concurrently (roster+users stage 9.99s -> 6.94s,
+1.44x, benchmarked alternating on one connection); the event list is read once and
+threaded through; photo checks only cover players near the top of a row's ordering
+(84s -> 12s at the time).
+
+**The remaining win, and the one that matters: stop reading all of `long_data`.**
+It is 69% of the build and it exists to compute `matches`, which for seven of eight
+events cannot have changed since the last pass. The fix is per-event match summaries
+written at recompute time — `src/lib/playerMatches.ts` already anticipates exactly this
+("the fix is a per-game summary written at recompute time"). The build would then read
+eight small documents instead of 18,271 rows.
+
+Not built yet on purpose: it adds a derived collection to keep in sync and weakens the
+"rebuild from source is always correct" property that makes the projection safe to reason
+about. **Trigger to do it: `long_data` passes ~50,000 rows, or a rebuild exceeds 60s.**
+At ~2,300 rows an event that is roughly two more seasons.
+
+Smaller items, in rough value order:
+- `matchesForEvent` is O(games x roster x rows-per-game) — it re-filters every game's
+  rows once per player on the team. Indexing rows by playerId once per game would cut
+  it, but it is not currently hot enough to measure against the network noise.
+- The photo HEAD checks could be cached in Firestore (URL -> last known status) so a
+  rebuild does not re-check the same ~45 URLs every pass.
+- `writeAll` re-reads all 325 summaries to diff. Cheap and correct, but a stored content
+  hash per player would make it one read.
+
+Two follow-ups it does *not* cover:
+- **Pick % during an open pick window.** The rebuild only triggers on long data, so
+  before an event starts nothing marks the projection stale and pick % sits at
+  whatever the last rebuild saw. Marking stale on every pick save would rebuild
+  continuously for days (~22k reads a pass), so this needs its own cheaper path.
+- **Cost during a live event.** A rebuild is ~22,000 reads. Continuous uploads mean
+  one every 5 minutes — roughly $5 across an event weekend. Lengthen the schedule if
+  that is not worth it.
+
 **Pick % is on a temporary data path.** `fetchOwnership()` scans all ~1,600 user
 documents on every player-page load. Fine locally, will not survive traffic.
 

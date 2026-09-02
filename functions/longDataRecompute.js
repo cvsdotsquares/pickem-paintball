@@ -230,6 +230,25 @@ async function recomputeEvent(eventId) {
       last_updated: admin.firestore.FieldValue.serverTimestamp(),
     });
   }
+
+  /**
+   * Flag the career-stats projection as stale.
+   *
+   * `playerSummaries` and `aggregates/*` are derived from these same player docs, so
+   * the moment this writes, they are behind. They are NOT rebuilt here: a rebuild costs
+   * ~22,000 reads and would run on every upload, several times a game. Instead this
+   * leaves a marker and `rebuildPlayerSummaries` (index.js) picks it up on its next
+   * pass, which collapses a weekend of uploads into one rebuild every few minutes.
+   *
+   * Only on a real change, for the same reason the leaderboard trigger is.
+   */
+  if (IS_LIVE && written > 0) {
+    await db.doc('projections/playerSummaries').set({
+      staleSince: admin.firestore.FieldValue.serverTimestamp(),
+      reason: `recomputeEvent ${eventId} wrote ${written} player(s)`,
+    }, { merge: true });
+  }
+
   const tTrigger = Date.now();
 
   console.log(
