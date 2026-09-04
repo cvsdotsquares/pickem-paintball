@@ -125,6 +125,49 @@ Preview URLs (throwaway docs, no existing document touched — delete with
       their raw record implies. That is the right way round — it never credits an absence
       — and the gap is at most a place or two.
 
+## 2b. Failure modes — checked 4 Sep
+
+**Ruled out with evidence**
+
+| Risk | Check | Result |
+|---|---|---|
+| A player inherits someone else's career (bad `league_id`) | crawl's club vs our roster's team, every overlapping event | **746/746 agree** |
+| Two players share one `league_id` | scan all 9 event rosters | **0** |
+| Matches joined to the wrong fixture | `validate.mjs` against long data | **400/400 resolve** |
+| A club or event silently dropped | `build.mjs` fails the run on any residue | **0 unresolved / 51 events** |
+| Two events share a short label in one year | generated and compared per year | **none** |
+| Stripping "Major"/"Open" merges two events | compared per year | **none** |
+
+19 players' names differ between our roster and the crawl — all formal-vs-familiar
+("Matthew"/"Matt", "William (Billy)"), one mojibake (`ReppesgÃ¥rd`, a UTF-8 read as
+Latin-1 in the CSV). The team cross-check above is what proves these are the same
+people rather than bad ids.
+
+**Guarded — these fail loudly**
+
+- A new club or event the resolver cannot pair → `build.mjs` exits non-zero.
+- A PickEm-season event with no `pickemEventId` → warns; without it the event renders
+  TWICE, once from each source.
+- A match that cannot be identified beyond doubt → `null`, so the cell shows a dash.
+- An unreadable Round → counted as a prelim AND reported.
+
+**Live, unguarded**
+
+- [ ] **The pipeline has two manual steps and nothing enforces either.** After an event
+      the roster crawl and the workbook must BOTH be refreshed. If the crawl is stale,
+      new players get no NXL record and the new event appears in nobody's career; if the
+      workbook is stale, the event shows dashes in W-L. Neither is an error, so nothing
+      complains. This is the TODO.md pipeline item, and it is the most likely way this
+      feature goes quietly wrong.
+- [ ] **"Arsenal" names two unrelated clubs and the alias map is what keeps them apart.**
+      Baltimore Revo → Arsenal, and TonTon Arsenal → TonTons. Safe only because the
+      workbook retires "Arsenal" after 2025. If it ever uses "Arsenal" for the French
+      club, the map mis-assigns silently — no check would catch it.
+- [ ] **A tie renders in the loss styling.** `result === "W"` is green, everything else
+      grey, so a "T" reads as a loss. One tie exists in 2,393 matches (2015).
+- [ ] **Doc size is 49.6KB max, 4.7% of the 1 MiB limit**, growing roughly 1KB per player
+      per event. Years of headroom, but it is now the field that grows fastest.
+
 ## 3. Before this ships
 
 - [ ] **Delete the preview documents**: `node scripts/nxl-history/preview.mjs --delete`
