@@ -176,6 +176,62 @@ Vercel.
 
 ## Data
 
+- [ ] **Review the data pipeline as a whole — we now ingest several streams and pull
+      each one by hand.** Raised 4 Sep 2026. Not a bug; a shape problem that is starting
+      to cost. What currently feeds the site, and how each arrives:
+
+      | Stream | Source | How it gets in | Cadence |
+      |---|---|---|---|
+      | Rosters, costs, status | Google Sheet | `syncRoster()` on submit | live, automatic |
+      | Long data (one row per kill) | Google Sheet | `02_LongDataUpload.gs` -> `longDataRecompute` | live, automatic |
+      | Player identity (NXL numeric ids) | pbleagues crawl, `~/Documents/nxl-pro-players/crawl.js` | run by hand, CSV read by hand | ad hoc |
+      | Match results + brackets | Power Rankings workbook, `5. Historic Results` | run by hand -> `functions/data/nxlHistory.json` | ad hoc |
+      | Career projection | derived from the above | scheduled rebuild on a staleness marker | every 5 min when stale |
+
+      The two ad-hoc rows are the problem. Both are a person remembering to run a script
+      after an event, and both are now load-bearing for a page users see. Questions worth
+      settling in one pass rather than one at a time:
+      - **What triggers a pull?** An event finishing is the natural hook for both the
+        roster crawl and the results import, and `eventEndsAt` already exists as a Cloud
+        Task trigger for the badge recalculation.
+      - **Where does match-result truth live?** Today it is a spreadsheet James maintains.
+        pbleagues publishes the same results and the crawl is documented
+        (`.claude/skills/pbleagues-match-data`), so the workbook could become a fallback
+        rather than the source. That would also close the 2022 Golden State / Lone Star
+        gap the workbook simply does not carry.
+      - **What validates a pull before it lands?** `scripts/nxl-history/build.mjs` fails
+        the run on anything it cannot resolve and `validate.mjs` checks the join against
+        long data (400/400 today). That gate is the pattern; the other streams have
+        nothing equivalent.
+      - **How do we notice data going backwards?** The 4 Sep find below (participation
+        and brand colours lost on 2026 events, with a stale projection the only thing
+        still holding the good values) was caught by accident, by a diff written for an
+        unrelated reason. `scripts/nxl-history/safety-diff.mjs` is that diff — running it
+        on a schedule and alerting on a `CHANGED` bucket would have caught it in a day.
+
+- [ ] **Live data loss on the 2026 events — projection is currently the only copy.**
+      Found 4 Sep 2026 by `scripts/nxl-history/safety-diff.mjs`. Nothing is broken on the
+      site *yet* because `projections/playerSummaries.staleSince` is unset, so no rebuild
+      has run. The next upload sets that marker and the scheduled function publishes all
+      of it within five minutes.
+
+      | Event | `participation` on roster docs | `brand_color` |
+      |---|---|---|
+      | `mid_west_open_2026` | **missing on all 218** | **null** |
+      | `mid_atlantic_open_2026` | 187 played / 24 absent, intact | **null** |
+      | all 2025 events | intact | intact |
+
+      The stored summaries still hold `participation: "played"` / `reason: "scored"` for
+      those 218 players; the roster documents no longer do. Rebuilding copies the
+      degraded source over the good projection: **38 players flip from correctly-marked
+      DNP to "played"**, and the field size behind every rank at that event inflates from
+      180 to 218, moving ranks and averages for everyone.
+
+      Fix is to re-run `scripts/apply-participation.mjs` for `mid_west_open_2026` and
+      restore `brand_color` on both 2026 events, then rebuild. Worth finding out what
+      removed them first — `syncRoster()` owns a different field set and uses an update
+      mask, so it should not have been able to.
+
 - [ ] **Long Data stores player NAMES, not ids — fix at source.** Every data problem in
       the 31 Aug backfill traced to this. The scorer types a name, and the id is derived
       at upload from `lookups.playerIdByName[player] || ''` — which returns an empty id

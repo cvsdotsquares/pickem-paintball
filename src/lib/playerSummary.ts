@@ -6,8 +6,10 @@ import {
   type AppearanceKind,
   type CareerAppearance,
   type KillType,
+  type NxlCareer,
   type Participation,
   type PlayerCareer,
+  type TeamEventRecord,
 } from "@/src/lib/playerCareer";
 import type { PlayerMatch } from "@/src/lib/playerMatches";
 
@@ -46,6 +48,8 @@ interface SummaryEventRow {
   costPerKill: number | null;
   teamKills: number;
   shareOfTeam: number | null;
+  record: TeamEventRecord | null;
+  start: string | null;
 }
 
 interface SummaryDoc {
@@ -66,6 +70,8 @@ interface SummaryDoc {
   topTenCount: number;
   currentCost: number | null;
   typeTotals: { type: KillType; total: number; share: number }[];
+  nxl: NxlCareer | null;
+  trackedFrom: string | null;
   events: SummaryEventRow[];
   matches: (PlayerMatch & { eventId: string })[];
 }
@@ -105,6 +111,8 @@ export async function fetchPlayerSummary(playerId: string): Promise<PlayerSummar
     costPerKill: r.costPerKill ?? null,
     teamKills: r.teamKills ?? 0,
     shareOfTeam: r.shareOfTeam ?? null,
+    record: r.record ?? null,
+    start: r.start ?? null,
   }));
 
   const ownership = new Map<string, number>();
@@ -132,6 +140,8 @@ export async function fetchPlayerSummary(playerId: string): Promise<PlayerSummar
       topTenCount: d.topTenCount ?? 0,
       currentCost: d.currentCost ?? null,
       typeTotals: d.typeTotals ?? [],
+      nxl: d.nxl ?? null,
+      trackedFrom: d.trackedFrom ?? null,
     },
     ownership,
     matches: d.matches ?? [],

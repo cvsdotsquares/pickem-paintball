@@ -53,6 +53,26 @@ export const isAbsent = (p: Participation | null | undefined) => p === "absent";
  */
 export type AppearanceKind = "played" | "dnp" | "not-rostered";
 
+/**
+ * How a player's TEAM did at one league event.
+ *
+ * A team fact sitting on a player's row, which is why the page heads the column with
+ * the team's code rather than presenting it as something the player did alone. Comes
+ * from the league's own results (`functions/nxlHistory.js`), not from our kill data —
+ * a point is won by hanging the flag, so a team can lose a game it out-killed and no
+ * amount of kill arithmetic will ever produce a W.
+ */
+export interface TeamEventRecord {
+  w: number;
+  l: number;
+  t: number;
+  /** "Winner", "Runner-up", "Semi-finals", "Quarter-finals", "Ochos", "Prelims". */
+  finish: string;
+  /** 1, 2, 3, 5, 9 — or null for a team that never reached the bracket. */
+  finishRank: number | null;
+  champion: boolean;
+}
+
 export interface CareerAppearance {
   eventId: string;
   eventName: string;
@@ -90,6 +110,106 @@ export interface CareerAppearance {
    * nothing, or when we cannot tell which team they were on.
    */
   shareOfTeam: number | null;
+  /**
+   * Their team's win-loss record and finish here. Null while an event has a roster but
+   * no results yet — a live tournament has both for a day or two.
+   */
+  record: TeamEventRecord | null;
+  /** ISO date, from the event's lock date — used to order rows against league events. */
+  start: string | null;
+}
+
+/**
+ * A player's whole NXL record, 2015 to now.
+ *
+ * A DIFFERENT SCOPE from everything else on this type, deliberately. PickEm scores eight
+ * events, because that is where kills exist; the league has results for fifty-one. A page
+ * that told a three-time champion he had won nothing would be worse than one that carries
+ * two scopes and labels them, so every consumer must present this as the NXL career and
+ * never blend it into the kill columns.
+ *
+ * A win here is the TEAM's, at an event the player took the field for. Crediting only the
+ * matches they were personally on the field for is not possible: pbleagues publishes
+ * per-point lineups reliably for 2023 alone.
+ */
+export interface NxlEvent {
+  key: string;
+  year: string;
+  label: string;
+  start: string | null;
+  /** Set only for the eight events PickEm also scores. */
+  pickemEventId: string | null;
+  club: string;
+  teamId: string | null;
+  w: number;
+  l: number;
+  t: number;
+  finish: string;
+  finishRank: number | null;
+  fieldSize: number;
+}
+
+export interface NxlCareer {
+  leagueId: string;
+  /** Oldest first. */
+  events: NxlEvent[];
+  tournaments: number;
+  titles: number;
+  /** Finals reached, winners included. */
+  finals: number;
+  /**
+   * TOP FOUR, NOT PODIUM. This format has no third-place match, so the beaten
+   * semi-finalists are joint third and no event decides a 3rd place at all.
+   */
+  topFours: number;
+  /**
+   * Tournaments where the team reached the knockout bracket — "made Sunday".
+   *
+   * The paintball term, not a claim about the calendar: the whole bracket is played on
+   * an event's final day, which has occasionally been a Saturday.
+   */
+  sundays: number;
+  titleRate: number | null;
+  sundayRate: number | null;
+  /**
+   * All-time position on each figure, among every player who has appeared on an NXL Pro
+   * roster since 2015 — not just those on a current PickEm roster. Standard competition
+   * ranking, so ties share a place.
+   */
+  titlesRank: number | null;
+  sundaysRank: number | null;
+  matchesRank: number | null;
+  /**
+   * Every match at an event PickEm does NOT score.
+   *
+   * Single-letter keys because Firestore forbids nested arrays, so the compact tuple
+   * form is unavailable and the field names would otherwise be most of the payload:
+   * `k` event key, `r` round, `o` opponent, `f` scored for, `a` scored against.
+   *
+   * PickEm's own eight events are absent by design: those rows already exist on
+   * `matches`, built from long data and carrying kills.
+   */
+  matchLog: { k: string; r: string; o: string; f: number; a: number }[];
+  /**
+   * The first season the league file covers — 2015 — NOT this player's debut.
+   *
+   * The header above these numbers states where our data starts, so it must read the
+   * same on every page. Paintball is far older; the results before this are simply hard
+   * to come by, and saying so plainly is the point.
+   */
+  trackedFrom: string | null;
+  /** How many players those ranks are out of. */
+  rankField: number;
+  matchW: number;
+  matchL: number;
+  matchT: number;
+  /** Every match played, the denominator behind `matchWinPct`. */
+  matches: number;
+  /** Wins per DECIDED match. One tie exists in 2,393, so ties are simply excluded. */
+  matchWinPct: number | null;
+  firstYear: string | null;
+  lastYear: string | null;
+  seasons: number;
 }
 
 export interface PlayerCareer {
@@ -117,6 +237,10 @@ export interface PlayerCareer {
   currentCost: number | null;
   /** Career totals per kill type, plus each as a share of the total. */
   typeTotals: { type: KillType; total: number; share: number }[];
+  /** The league record. Null when we hold no NXL id for the player. */
+  nxl: NxlCareer | null;
+  /** The first season PickEm scored. Coverage, not this player's debut — see `trackedFrom` on NxlCareer. */
+  trackedFrom: string | null;
 }
 
 const num = (v: unknown): number => {
@@ -178,6 +302,14 @@ export async function fetchOwnership(playerId: string): Promise<Map<string, numb
   return out;
 }
 
+/**
+ * FALLBACK ONLY, for when `playerSummaries/{id}` is missing — see playerSummary.ts.
+ *
+ * `record` and `nxl` are null throughout: both are joins against the league's own
+ * results, which live beside the Cloud Function that builds the projection. Rendering
+ * them blank is the honest failure; there is nothing in Firestore this path could
+ * derive a win from, because kills do not decide points.
+ */
 export async function fetchPlayerCareer(playerId: string): Promise<PlayerCareer | null> {
   const events = await fetchCareerEvents();
 
@@ -244,6 +376,10 @@ export async function fetchPlayerCareer(playerId: string): Promise<PlayerCareer 
             shareOfTeam: null,
             types: Object.fromEntries(KILL_TYPES.map((t) => [t, 0])) as Record<KillType, number>,
             costPerKill: null,
+            // The league record lives in the projection, not in this fallback — see
+            // the note on `fetchPlayerCareer` below.
+            record: null,
+            start: null,
           } satisfies CareerAppearance,
         };
       }
@@ -277,6 +413,8 @@ export async function fetchPlayerCareer(playerId: string): Promise<PlayerCareer 
           costPerKill: cost > 0 && kills > 0 ? cost / kills : null,
           teamKills,
           shareOfTeam: teamKills > 0 ? (kills / teamKills) * 100 : null,
+          record: null,
+          start: null,
         } satisfies CareerAppearance,
       };
     }),
@@ -350,5 +488,7 @@ export async function fetchPlayerCareer(playerId: string): Promise<PlayerCareer 
       .map((t) => ({ ...t, share: typeGrand > 0 ? (t.total / typeGrand) * 100 : 0 }))
       .filter((t) => t.total > 0)
       .sort((a, b) => b.total - a.total),
+    nxl: null,
+    trackedFrom: events.length ? events[0].year : null,
   };
 }

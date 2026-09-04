@@ -10,6 +10,13 @@ import { KILL_TYPES, type KillType } from "@/src/lib/playerCareer";
  * the team appears in, whether or not the player got on the board — and their kills are
  * summed into it. Otherwise a quiet game would silently vanish from their record, which
  * is the same class of bug the participation work removed from the event history.
+ *
+ * FALLBACK ONLY — the page reads `playerSummaries/{id}`, which this file predates. Win
+ * and loss are joined against the league's fixture list, and that join lives in
+ * `functions/nxlHistory.js` where the results are. So the rows built here carry a null
+ * `result` and the column renders a dash. That is correct rather than unfortunate: this
+ * path exists for when the projection is missing, and a match table with no W/L is a
+ * better failure than one that infers a winner from kill counts, which cannot be done.
  */
 
 /** Long-data `type` → the kill-type column we display. Mirrors `TYPE_FIELD` in
@@ -61,6 +68,18 @@ export interface PlayerMatch {
   kills: number;
   teamKills: number;
   opponentKills: number;
+  /**
+   * Who won, from the league's own results — NOT derivable from the rows around it.
+   *
+   * Long data is one row per kill and a point is won by hanging the flag, so a team can
+   * lose a game it out-killed; `teamKills` beside this is a different fact, not a
+   * weaker version of it. Null when the fixture could not be identified beyond doubt,
+   * in which case the column shows a dash rather than a guess.
+   */
+  result: "W" | "L" | "T" | null;
+  /** Points scored by the player's team, and by their opponent. */
+  scoreFor: number | null;
+  scoreAgainst: number | null;
   types: Record<KillType, number>;
 }
 
@@ -165,6 +184,11 @@ export async function fetchPlayerMatches(
       kills,
       teamKills,
       opponentKills,
+      // Win/loss comes from the league's results, which only the projection joins —
+      // see the note at the head of this file.
+      result: null,
+      scoreFor: null,
+      scoreAgainst: null,
       types,
     });
   }

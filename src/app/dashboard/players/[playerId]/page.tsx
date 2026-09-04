@@ -10,6 +10,9 @@ import {
   type PlayerCareer,
   type CareerAppearance,
   type KillType,
+  type NxlCareer,
+  type NxlEvent,
+  type TeamEventRecord,
 } from "@/src/lib/playerCareer";
 import { displayRound, type PlayerMatch } from "@/src/lib/playerMatches";
 import { individualEventDisplayName } from "@/src/lib/eventDisplayName";
@@ -27,8 +30,8 @@ import { cn } from "@/src/lib/utils";
  * as the style guide requires.
  */
 const HISTORY_COLS =
-  "grid-cols-[74px_46px_minmax(0,1fr)_32px_40px_50px_repeat(7,42px)_64px_48px_42px] " +
-  "sm:grid-cols-[110px_88px_minmax(0,1fr)_42px_50px_72px_repeat(7,56px)_76px_56px_52px]";
+  "grid-cols-[74px_46px_52px_minmax(0,1fr)_32px_40px_50px_repeat(7,42px)_64px_48px_42px] " +
+  "sm:grid-cols-[110px_88px_62px_minmax(0,1fr)_42px_50px_72px_repeat(7,56px)_76px_56px_52px]";
 
 /**
  * Event · Opponent · Round · Kills · % of team · one column per kill type.
@@ -37,8 +40,8 @@ const HISTORY_COLS =
  * Narrow template on mobile — see HISTORY_COLS.
  */
 const MATCH_COLS =
-  "grid-cols-[74px_46px_66px_minmax(0,1fr)_40px_50px_repeat(7,42px)] " +
-  "sm:grid-cols-[110px_110px_88px_minmax(0,1fr)_50px_72px_repeat(7,56px)]";
+  "grid-cols-[74px_46px_66px_62px_minmax(0,1fr)_40px_50px_repeat(7,42px)] " +
+  "sm:grid-cols-[110px_110px_88px_72px_minmax(0,1fr)_50px_72px_repeat(7,56px)]";
 
 /**
  * Did the player miss this event?
@@ -346,19 +349,119 @@ export default function PlayerPage() {
     : 0;
 
   /**
-   * Event history rows: played events only, newest first.
+   * Event history rows: the WHOLE league career, newest first.
    *
-   * The table is a record of performances, so an event with nothing to record is not a
-   * row — a screenful of dashes buries the results underneath it. The absences are not
-   * lost: the charts above keep every missed event on the axis, which is where a gap
-   * in a career is legible as a shape rather than as blank cells.
+   * Every event the player's team played, whether or not PickEm scored it — so a
+   * twelve-year career is fifty rows, of which eight carry kills. The rest show a
+   * result and dashes.
+   *
+   * Two lists are merged rather than one being derived from the other, because neither
+   * contains the other. The league record drops events the player sat out (a DNP must
+   * never earn a share of a tournament win), and PickEm knows about events the league
+   * file does not — so the union is the only complete answer. `start` is what orders
+   * them; both sides carry one, which is why it was threaded onto the summary rows.
+   *
+   * Absences ARE rows here, unlike the old table: with league results beside them a
+   * missed tournament is legible as part of the sequence rather than a blank line.
    */
-  const historyRows = played.slice().reverse();
+  /**
+   * Not `useMemo`: this sits below the component's early returns for the loading and
+   * not-found states, and a hook called after a conditional return breaks React's hook
+   * ordering. Fifty rows of array work per render is not worth the risk of moving it.
+   */
+  const timeline: TimelineRow[] = (() => {
+    const byPickemId = new Map(labelled.map((a) => [a.eventId, a]));
+    const used = new Set<string>();
+    const rows: TimelineRow[] = [];
+
+    for (const ev of career?.nxl?.events ?? []) {
+      const pickem = ev.pickemEventId ? (byPickemId.get(ev.pickemEventId) ?? null) : null;
+      if (pickem) used.add(pickem.eventId);
+      rows.push({
+        key: ev.key,
+        label: pickem ? pickem.label : nxlEventLabel(ev.label, ev.year),
+        shortLabel: pickem ? pickem.shortLabel : nxlShortLabel(ev.label, ev.year),
+        year: ev.year,
+        team: pickem ? pickem.team : ev.club,
+        teamId: ev.teamId ?? pickem?.teamId ?? null,
+        record: {
+          w: ev.w,
+          l: ev.l,
+          t: ev.t,
+          finish: ev.finish,
+          finishRank: ev.finishRank,
+          champion: ev.finishRank === 1,
+        },
+        start: ev.start ?? `${ev.year}-01-01`,
+        pickem,
+      });
+    }
+
+    // PickEm events with no league row: the ones the player sat out, and every event
+    // for a player we hold no NXL id for at all.
+    for (const a of labelled) {
+      if (used.has(a.eventId)) continue;
+      rows.push({
+        key: a.eventId,
+        label: a.label,
+        shortLabel: a.shortLabel,
+        year: a.year,
+        team: a.team,
+        teamId: a.teamId,
+        record: a.record,
+        start: a.start ?? `${a.year}-01-01`,
+        pickem: a,
+      });
+    }
+
+    return rows.sort((x, y) => y.start.localeCompare(x.start));
+  })();
+
+  const historyRows = timeline;
 
   // Default the match view to their most recent played event.
   const matchEvent = matchEventId
-    ? (historyRows.find((a) => a.eventId === matchEventId) ?? null)
+    ? (historyRows.find((a) => a.key === matchEventId) ?? null)
     : null;
+
+  /**
+   * Every match of the career: PickEm's, which carry kills, plus the league's, which
+   * do not.
+   *
+   * Concatenated rather than joined. An event is either one PickEm scores or it is not,
+   * so no match can appear on both sides — and joining them would mean re-solving the
+   * round-and-opponent matching that `functions/nxlHistory.js` already does against the
+   * league's own fixture list.
+   */
+  // Plain computation rather than `useMemo`, for the same reason as `timeline` above.
+  const allCareerMatches: CareerMatch[] = (() => {
+    const rows: CareerMatch[] = allMatches.map((m) => ({
+      key: `${m.eventId}:${m.gameId}`,
+      eventKey: m.eventId,
+      round: m.round,
+      opponent: m.opponent,
+      opponentId: m.opponentId,
+      result: m.result,
+      scoreFor: m.scoreFor,
+      scoreAgainst: m.scoreAgainst,
+      pickem: m,
+    }));
+
+    for (const m of career?.nxl?.matchLog ?? []) {
+      rows.push({
+        key: `${m.k}:${m.r}:${m.o}`,
+        eventKey: m.k,
+        round: m.r,
+        opponent: m.o,
+        opponentId: null,
+        result: m.f > m.a ? "W" : m.f < m.a ? "L" : "T",
+        scoreFor: m.f,
+        scoreAgainst: m.a,
+        pickem: null,
+      });
+    }
+    return rows;
+  })();
 
   /**
    * Matches for the selected event, or every match when none is chosen — a filter, not
@@ -366,15 +469,23 @@ export default function PlayerPage() {
    * nothing and showing everything costs nothing either, which is why "All events" is
    * the default: the interesting view is a career of matches, not one tournament.
    */
-  const eventOrder = new Map(historyRows.map((a, i) => [a.eventId, i]));
+  const eventOrder = new Map(historyRows.map((a, i) => [a.key, i]));
+  const pickemKeyOf = new Map(
+    historyRows.filter((r) => r.pickem).map((r) => [r.pickem!.eventId, r.key]),
+  );
   const matches = (matchEvent
-    ? allMatches.filter((m) => m.eventId === matchEvent.eventId)
-    : allMatches.slice()
+    ? allCareerMatches.filter(
+        (m) => m.eventKey === matchEvent.key || pickemKeyOf.get(m.eventKey) === matchEvent.key,
+      )
+    : allCareerMatches.slice()
   ).sort((a, b) => {
     // Newest event first, matching the events table; within an event, latest round first.
-    const ea = eventOrder.get(a.eventId) ?? 99;
-    const eb = eventOrder.get(b.eventId) ?? 99;
-    return ea !== eb ? ea - eb : 0;
+    const ka = pickemKeyOf.get(a.eventKey) ?? a.eventKey;
+    const kb = pickemKeyOf.get(b.eventKey) ?? b.eventKey;
+    const ea = eventOrder.get(ka) ?? 99;
+    const eb = eventOrder.get(kb) ?? 99;
+    if (ea !== eb) return ea - eb;
+    return roundRankOf(b.round) - roundRankOf(a.round);
   });
   const active = hovered ? labelled.find((x) => x.eventId === hovered) : null;
 
@@ -416,9 +527,21 @@ export default function PlayerPage() {
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="overflow-hidden rounded-xl bg-[#101010]">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr]">
-          <div className="flex items-end gap-4 border-b border-white/[0.08] p-5 lg:border-b-0 lg:border-r">
+          {/*
+            Portrait on top, identity underneath — a stacked block rather than a row.
+
+            Side by side, the photo and the name each got half a column and neither had
+            room: the name stepped down a size to avoid a third line, and the photo was
+            small enough next to 38px numerals to read as an afterthought. Stacked, both
+            get the full width of the column.
+
+            No jersey number. It changes between seasons, it is the least durable thing
+            on a page about a decade-long career, and it was the only line above the
+            name — so it was the first thing read and the least worth reading.
+          */}
+          <div className="flex flex-col items-start gap-3.5 border-b border-white/[0.08] p-5 lg:border-b-0 lg:border-r">
             <div
-              className="h-[104px] w-[104px] flex-none rounded-xl bg-[#1a1a1a] lg:h-[128px] lg:w-[128px]"
+              className="h-[104px] w-[104px] flex-none rounded-xl bg-[#1a1a1a] lg:h-[132px] lg:w-[132px]"
               style={{
                 backgroundImage: `url('${career.imgUrl || "/placeholder.svg"}')`,
                 // portraits are square head-to-waist; favour the upper body so the face
@@ -427,15 +550,10 @@ export default function PlayerPage() {
                 backgroundPosition: "50% 8%",
               }}
             />
-            <div className="min-w-0 pb-0.5">
-              {career.number != null && career.number !== "" && (
-                <div className="pickem-numeric text-[11px] font-bold tracking-[0.18em] text-white/40">
-                  #{career.number}
-                </div>
-              )}
+            <div className="min-w-0">
               <h1
                 className={cn(
-                  "mt-1 font-azonix font-black uppercase tracking-[0.02em] text-white",
+                  "font-azonix font-black uppercase tracking-[0.02em] text-white",
                   nameSize,
                   // after nameSize: twMerge drops a leading-* that precedes a text-[size]
                   "leading-[1.02]",
@@ -450,34 +568,72 @@ export default function PlayerPage() {
             </div>
           </div>
 
-          {/* A player who never took the field has no career to average. Rendering
-              "0.0 average kills" would state a result for events they were not at —
-              the same false claim the participation work exists to remove. */}
-          {career.playedCount === 0 ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4">
-              <HeroTile label="Career kills" value="—" />
-              <HeroTile label="All-time rank" value="—" />
-              <HeroTile label="Average kills per event" value="—" />
-              <HeroTile label="Average event rank" value="—" />
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-4">
-              <HeroTile label="Career kills" value={fmtK(career.totalKills)} />
-              <HeroTile
-                label="All-time rank"
-                value={career.careerRank ? String(career.careerRank) : "—"}
-                suffix={career.careerRank ? ordinal(career.careerRank) : undefined}
-              />
-              <HeroTile label="Average kills per event" value={career.avgKills.toFixed(1)} />
-              <HeroTile
-                label="Average event rank"
-                value={career.avgRank != null ? String(Math.round(career.avgRank)) : "—"}
-                suffix={career.avgRank != null ? ordinal(Math.round(career.avgRank)) : undefined}
-              />
-            </div>
-          )}
+          {/* Two scoped rows: what the player's TEAMS have done across the league's
+              whole history, then what the player themself has done in the events
+              PickEm scores. Each row is captioned, because the two spans differ by a
+              decade and the numbers sit inches apart. */}
+          <div className="flex flex-col">
+            {/* Absent for the players we hold no NXL id for, rather than shown as a row
+                of dashes — a blank scoreboard reads as "never won anything", which is a
+                claim about the player instead of about our data. The hero simply falls
+                back to the PickEm row it had before. */}
+            {career.nxl && (
+              <>
+                {/*
+                  FIXED FOR EVERY PLAYER — this is a statement about our DATA, not about
+                  this career. Paintball goes back far further than 2015; the results
+                  before it are hard to come by, and saying where we start is the honest
+                  version of that. It read "Tracked 2020" on a player who debuted in
+                  2020, which turned a claim about coverage into a claim about them.
+
+                  ⚠️ The scope names are gone from both strips (your call, 4 Sep): these
+                  two rows span 51 league events and PickEm's eight, and only the differing
+                  years now hint at that. See CAREER_PAGE_REVIEW.md.
+                */}
+                <ScopeStrip>Tracked {career.nxl.trackedFrom ?? "2015"} to date</ScopeStrip>
+                <NxlHeroRow nxl={career.nxl} />
+              </>
+            )}
+
+            <ScopeStrip>Tracked {career.trackedFrom ?? "2025"} to date</ScopeStrip>
+            {/* A player who never took the field has no career to average. Rendering
+                "0.0 average kills" would state a result for events they were not at —
+                the same false claim the participation work exists to remove. */}
+            {career.playedCount === 0 ? (
+              <div className="grid flex-1 grid-cols-2 lg:grid-cols-4">
+                <HeroTile label="Career kills" value="—" />
+                <HeroTile label="All-time rank" value="—" />
+                <HeroTile label="Average kills per event" value="—" />
+                <HeroTile label="Average event rank" value="—" />
+              </div>
+            ) : (
+              <div className="grid flex-1 grid-cols-2 lg:grid-cols-4">
+                <HeroTile label="Career kills" value={fmtK(career.totalKills)} />
+                <HeroTile
+                  label="All-time rank"
+                  value={career.careerRank ? String(career.careerRank) : "—"}
+                  suffix={career.careerRank ? ordinal(career.careerRank) : undefined}
+                />
+                <HeroTile label="Average kills per event" value={career.avgKills.toFixed(1)} />
+                <HeroTile
+                  label="Average event rank"
+                  value={career.avgRank != null ? String(Math.round(career.avgRank)) : "—"}
+                  suffix={career.avgRank != null ? ordinal(Math.round(career.avgRank)) : undefined}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </section>
+
+      {/* ── NXL record ───────────────────────────────────────────────── */}
+      {/* Straight after the hero, because it is what the hero's top row means over
+          time. Bars rather than the line used below it, so the two panels cannot be
+          read as one series — see NxlRecordPanel. Hidden entirely for a player with
+          only one season, who has a record but no shape to show. */}
+      {career.nxl && career.nxl.seasons >= NXL_PANEL_MIN_SEASONS && (
+        <NxlRecordPanel nxl={career.nxl} />
+      )}
 
       {/* ── Kills by event ───────────────────────────────────────────── */}
       <section className={cn(PANEL, "mt-3.5 p-5")}>
@@ -620,13 +776,13 @@ export default function PlayerPage() {
           {/* Match detail is per event, so the view needs to say which one. */}
           {historyTab === "matches" && historyRows.length > 0 && (
             <select
-              value={matchEvent?.eventId ?? ""}
+              value={matchEvent?.key ?? ""}
               onChange={(e) => setMatchEventId(e.target.value || null)}
               className="rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] font-bold text-gray-700 outline-none dark:border-white/10 dark:bg-stone-800 dark:text-white/70"
             >
               <option value="">All events</option>
               {historyRows.map((a) => (
-                <option key={a.eventId} value={a.eventId}>
+                <option key={a.key} value={a.key}>
                   {a.label}
                 </option>
               ))}
@@ -639,8 +795,14 @@ export default function PlayerPage() {
             matches={matches}
             eventLabel={matchEvent?.label ?? ""}
             eventShort={matchEvent?.shortLabel ?? ""}
-            labelFor={(id) => historyRows.find((a) => a.eventId === id)?.label ?? id}
-            shortFor={(id) => historyRows.find((a) => a.eventId === id)?.shortLabel ?? id}
+            // A match row's event key is either a PickEm event id or a league event
+            // key, and the timeline is indexed by whichever of those it was built from.
+            labelFor={(key) =>
+              historyRows.find((a) => a.key === key || a.pickem?.eventId === key)?.label ?? key
+            }
+            shortFor={(key) =>
+              historyRows.find((a) => a.key === key || a.pickem?.eventId === key)?.shortLabel ?? key
+            }
           />
         ) : (
         <div className="mt-4 overflow-x-auto" style={{ scrollbarGutter: "stable" }}>
@@ -653,6 +815,11 @@ export default function PlayerPage() {
             >
               <span className={LABEL}>Event</span>
               <span className={LABEL}>Team</span>
+              {/* Sits beside Team, not among the kill columns, because it is the TEAM's
+                  result — everything to the right of the spacer is the player's own. */}
+              <span className={cn(LABEL, "text-right")} title="Their team's win-loss record at this event">
+                W–L
+              </span>
               <span />
               <span className={cn(LABEL, "text-right")}>Rank</span>
               <span className={cn(LABEL, "text-right")}>Kills</span>
@@ -676,14 +843,28 @@ export default function PlayerPage() {
               <span className={cn(LABEL, "text-right")}>Per kill</span>
               <span className={cn(LABEL, "text-right")}>Pick %</span>
             </div>
-            {historyRows.map((a) => {
-              // A zero is a real result when they played; only absence gets a dash. The
-              // same rule decides pick %: they were picked, but not for a game they played.
-              const absent = missedEvent(a);
-              const pick = absent ? null : (ownership?.get(a.eventId) ?? null);
+            {historyRows.map((row) => {
+              /**
+               * THREE STATES PER ROW, and they are not the same dash.
+               *
+               *   `p` null      league event PickEm never scored — nothing to report
+               *   absent        rostered and did not play — nothing HAPPENED to report
+               *   otherwise     a real performance, and a zero in it is a real zero
+               *
+               * The first two both render as dashes and they mean different things, but
+               * neither may render as a number: printing 0 kills for an event nobody
+               * counted, or for one the player watched from the pit, states a result
+               * that does not exist. Only the third can carry a zero.
+               */
+              const p = row.pickem;
+              const absent = p ? missedEvent(p) : false;
+              const noStats = !p || absent;
+              const pick = noStats ? null : (ownership?.get(p.eventId) ?? null);
+              // Kept so the existing cells below read unchanged where they can.
+              const a = p;
               return (
               <div
-                key={a.eventId}
+                key={row.key}
                 className={cn(
                   "grid items-center gap-1.5 border-b border-gray-200/50 px-2.5 py-2.5 last:border-b-0 hover:bg-black/[0.02] sm:gap-3 dark:border-white/[0.03] dark:hover:bg-white/[0.02]",
                   HISTORY_COLS,
@@ -692,18 +873,53 @@ export default function PlayerPage() {
                 {/* Phones get the axis form of each name so the columns can narrow;
                     both are rendered and the breakpoint picks one, which keeps the
                     full name in the DOM for search and copy. */}
-                <div className="text-[12px] font-bold text-gray-900 dark:text-white">
-                  <span className="sm:hidden">{a.shortLabel}</span>
-                  <span className="hidden sm:inline">{a.label}</span>
+                {/* One line, always. A wrapped name doubled the height of its row and
+                    broke the table's rhythm; the column is fixed-width, so anything
+                    still too long is clipped rather than allowed to reflow. */}
+                <div
+                  className="truncate whitespace-nowrap text-[12px] font-bold text-gray-900 dark:text-white"
+                  title={row.label}
+                >
+                  <span className="sm:hidden">{row.shortLabel}</span>
+                  <span className="hidden sm:inline">{row.label}</span>
                 </div>
                 <div className="truncate text-[12px] text-gray-600 dark:text-white/50">
-                  {a.kind === "not-rostered" ? (
+                  {p && p.kind === "not-rostered" ? (
                     "—"
                   ) : (
                     <>
-                      <span className="sm:hidden">{teamCode(a.teamId, a.team)}</span>
-                      <span className="hidden sm:inline">{a.team}</span>
+                      <span className="sm:hidden">{teamCode(row.teamId, row.team)}</span>
+                      <span className="hidden sm:inline">{row.team}</span>
                     </>
+                  )}
+                </div>
+                {/* The team's record, and — in brand green with a trophy — whether they
+                    won it. A title is the single most important thing an event row can
+                    say, and it costs no extra column: "7–0" already sits here, so the
+                    fact that it was the winning run is carried by the styling rather
+                    than by yet another 50px of table. */}
+                <div
+                  className={cn(
+                    "text-right text-[12px] pickem-numeric",
+                    row.record?.champion
+                      ? "font-black text-[#1a3c6e] dark:text-[#00f976]"
+                      : row.record
+                        ? "font-semibold text-gray-600 dark:text-white/60"
+                        : "text-gray-300 dark:text-white/25",
+                  )}
+                  title={
+                    row.record
+                      ? `${row.team} finished ${row.record.champion ? "as winners" : `at the ${row.record.finish.toLowerCase()}`} — ${row.record.w} won, ${row.record.l} lost`
+                      : "The league has no results for this event yet"
+                  }
+                >
+                  {row.record ? (
+                    <>
+                      {row.record.champion && <span className="mr-0.5" aria-hidden="true">🏆</span>}
+                      {row.record.w}–{row.record.l}
+                    </>
+                  ) : (
+                    "—"
                   )}
                 </div>
                 <div />
@@ -713,65 +929,75 @@ export default function PlayerPage() {
                 <div
                   className={cn(
                     "text-right text-[12px] font-semibold pickem-numeric",
-                    absent
+                    noStats
                       ? "text-gray-300 dark:text-white/25"
                       : "text-gray-900 dark:text-white",
                   )}
                 >
-                  {absent ? "—" : (a.rank ?? "—")}
+                  {noStats ? "—" : (a!.rank ?? "—")}
                 </div>
+                {/* "DNP" only where we KNOW they sat out. A league event PickEm never
+                    scored gets a plain dash — we have no idea whether they played. */}
                 <div
                   className={cn(
                     "text-right text-[12px] font-semibold",
                     absent
                       ? "font-azonix text-[10px] text-gray-400 dark:text-white/40"
-                      : "pickem-numeric text-gray-900 dark:text-white",
+                      : noStats
+                        ? "pickem-numeric text-gray-300 dark:text-white/25"
+                        : "pickem-numeric text-gray-900 dark:text-white",
                   )}
                 >
-                  {absent ? (a.kind === "not-rostered" ? "—" : "DNP") : fmtK(a.kills)}
+                  {absent
+                    ? a!.kind === "not-rostered"
+                      ? "\u2014"
+                      : "DNP"
+                    : noStats
+                      ? "\u2014"
+                      : fmtK(a!.kills)}
                 </div>
                 <div
                   className={cn(
                     "text-right text-[12px] pickem-numeric",
-                    !absent && a.shareOfTeam != null
+                    !noStats && a!.shareOfTeam != null
                       ? "text-gray-600 dark:text-white/60"
                       : "text-gray-300 dark:text-white/25",
                   )}
                 >
-                  {!absent && a.shareOfTeam != null ? `${a.shareOfTeam.toFixed(0)}%` : "—"}
+                  {!noStats && a!.shareOfTeam != null ? `${a!.shareOfTeam.toFixed(0)}%` : "\u2014"}
                 </div>
                 {KILL_TYPES.map((t) => (
                     <div
                       key={t}
                       className={cn(
                         "text-right text-[12px] pickem-numeric",
-                        a.types[t] > 0
+                        !noStats && a!.types[t] > 0
                           ? "text-gray-600 dark:text-white/60"
                           : "text-gray-300 dark:text-white/25",
                       )}
                     >
-                      {absent ? "—" : fmtK(a.types[t])}
+                      {noStats ? "\u2014" : fmtK(a!.types[t])}
                     </div>
                 ))}
                 <div
                   className={cn(
                     "text-right text-[12px] font-semibold pickem-numeric",
-                    a.kind === "not-rostered"
+                    !a || a.kind === "not-rostered"
                       ? "text-gray-300 dark:text-white/25"
                       : "text-gray-900 dark:text-white",
                   )}
                 >
-                  {a.kind === "not-rostered" ? "—" : fmtCost(a.cost)}
+                  {!a || a.kind === "not-rostered" ? "\u2014" : fmtCost(a.cost)}
                 </div>
                 <div
                   className={cn(
                     "text-right text-[12px] font-semibold pickem-numeric",
-                    absent
+                    noStats
                       ? "text-gray-300 dark:text-white/25"
                       : "text-gray-900 dark:text-white",
                   )}
                 >
-                  {a.costPerKill != null ? fmtCost(a.costPerKill) : "—"}
+                  {a?.costPerKill != null ? fmtCost(a.costPerKill) : "\u2014"}
                 </div>
                 <div
                   className={cn(
@@ -1169,7 +1395,7 @@ function MatchTable({
   labelFor,
   shortFor,
 }: {
-  matches: (PlayerMatch & { eventId: string })[] | null;
+  matches: CareerMatch[] | null;
   /** Empty when showing every event. */
   eventLabel: string;
   /** Axis form of the same event, e.g. "MW 26" — used on phones. */
@@ -1196,8 +1422,15 @@ function MatchTable({
     );
   }
 
-  const total = matches.reduce((a, m) => a + m.kills, 0);
-  const events = new Set(matches.map((m) => m.eventId)).size;
+  const total = matches.reduce((a, m) => a + (m.pickem?.kills ?? 0), 0);
+  const events = new Set(matches.map((m) => m.eventKey)).size;
+  // How many of these rows PickEm actually scored. The kill total is only about those,
+  // and saying "205.5 kills across 296 matches" would divide by the wrong denominator.
+  const scored = matches.filter((m) => m.pickem).length;
+  // Only the matches whose result we could identify. Counting the rest as losses would
+  // be the one thing worse than leaving them out.
+  const won = matches.filter((m) => m.result === "W").length;
+  const lost = matches.filter((m) => m.result === "L").length;
 
   return (
     <>
@@ -1206,6 +1439,22 @@ function MatchTable({
         kills across{" "}
         <b className="pickem-numeric font-black text-gray-900 dark:text-white">{matches.length}</b>{" "}
         {matches.length === 1 ? "match" : "matches"}
+        {scored > 0 && scored < matches.length && (
+          <span className="text-gray-400 dark:text-white/30">
+            {" "}
+            ({scored} scored by PickEm)
+          </span>
+        )}
+        {won + lost > 0 && (
+          <>
+            {" "}
+            ·{" "}
+            <b className="pickem-numeric font-black text-gray-900 dark:text-white">
+              {won}&ndash;{lost}
+            </b>{" "}
+            record
+          </>
+        )}
         {!eventLabel && events > 1 ? (
           <>
             {" "}
@@ -1237,6 +1486,7 @@ function MatchTable({
             <span className={LABEL}>Event</span>
             <span className={LABEL}>Opponent</span>
             <span className={LABEL}>Round</span>
+            <span className={LABEL} title="Won or lost, and the points score">Result</span>
             <span />
             <span className={cn(LABEL, "text-right")}>Kills</span>
             <span className={cn(LABEL, "text-right leading-[1.3]")} title="% of team\u2019s kills — this player\u2019s share of what the team scored">
@@ -1258,19 +1508,24 @@ function MatchTable({
           </div>
 
           {matches.map((m) => {
-            // What portion of the team's kills came from this player.
-            const share = m.teamKills > 0 ? (m.kills / m.teamKills) * 100 : null;
+            // What portion of the team's kills came from this player. Null for a league
+            // match PickEm never scored — see the dash treatment on the kill columns.
+            const p = m.pickem;
+            const share = p && p.teamKills > 0 ? (p.kills / p.teamKills) * 100 : null;
             return (
               <div
-                key={m.gameId}
+                key={m.key}
                 className={cn(
                   "grid items-center gap-1.5 border-b border-gray-200/50 px-2.5 py-2.5 last:border-b-0 hover:bg-black/[0.02] sm:gap-3 dark:border-white/[0.03] dark:hover:bg-white/[0.02]",
                   MATCH_COLS,
                 )}
               >
-                <div className="text-[12px] font-bold text-gray-900 dark:text-white">
-                  <span className="sm:hidden">{shortFor(m.eventId)}</span>
-                  <span className="hidden sm:inline">{labelFor(m.eventId)}</span>
+                <div
+                  className="truncate whitespace-nowrap text-[12px] font-bold text-gray-900 dark:text-white"
+                  title={labelFor(m.eventKey)}
+                >
+                  <span className="sm:hidden">{shortFor(m.eventKey)}</span>
+                  <span className="hidden sm:inline">{labelFor(m.eventKey)}</span>
                 </div>
                 <div className="truncate text-[12px] text-gray-600 dark:text-white/50">
                   <span className="sm:hidden">{teamCode(m.opponentId, m.opponent)}</span>
@@ -1279,9 +1534,56 @@ function MatchTable({
                 <div className="text-[12px] text-gray-600 dark:text-white/50">
                   {displayRound(m.round)}
                 </div>
+                {/*
+                  W or L, then the points score.
+                  A LETTER, NOT A COLOUR ALONE. Red-for-loss and green-for-win is the
+                  obvious treatment and excludes the readers the accessible-palette
+                  toggle on this page exists for; the letter carries the meaning and the
+                  weight and tint only reinforce it. The win is the emphasised state
+                  because a career reads as what someone won.
+
+                  Kills sit two columns to the right and are a DIFFERENT FACT: a point
+                  is won by hanging the flag, so a team can lose a game it out-killed.
+                  The two are never reconciled and are not meant to be.
+                */}
+                <div className="text-[12px] pickem-numeric">
+                  {m.result ? (
+                    <>
+                      <span
+                        className={cn(
+                          "font-black",
+                          m.result === "W"
+                            ? "text-[#1a3c6e] dark:text-[#00f976]"
+                            : "text-gray-500 dark:text-white/45",
+                        )}
+                      >
+                        {m.result}
+                      </span>
+                      {m.scoreFor != null && (
+                        <span className="ml-1 text-gray-500 dark:text-white/40">
+                          {m.scoreFor}–{m.scoreAgainst}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-gray-300 dark:text-white/25">—</span>
+                  )}
+                </div>
                 <div />
-                <div className="text-right text-[12px] font-semibold pickem-numeric text-gray-900 dark:text-white">
-                  {fmtK(m.kills)}
+                {/*
+                  A DASH, NOT A ZERO, for a league match PickEm never scored.
+                  Zero is a measurement — took the field, scored nothing — and printing
+                  one for a 2017 tournament nobody was counting would invent a result.
+                */}
+                <div
+                  className={cn(
+                    "text-right text-[12px] font-semibold",
+                    p
+                      ? "pickem-numeric text-gray-900 dark:text-white"
+                      : "text-gray-300 dark:text-white/25",
+                  )}
+                >
+                  {p ? fmtK(p.kills) : "\u2014"}
                 </div>
                 <div
                   className={cn(
@@ -1298,12 +1600,12 @@ function MatchTable({
                     key={t}
                     className={cn(
                       "text-right text-[12px] pickem-numeric",
-                      m.types[t] > 0
+                      p && p.types[t] > 0
                         ? "text-gray-600 dark:text-white/60"
                         : "text-gray-300 dark:text-white/25",
                     )}
                   >
-                    {fmtK(m.types[t])}
+                    {p ? fmtK(p.types[t]) : "\u2014"}
                   </div>
                 ))}
               </div>
@@ -1315,22 +1617,200 @@ function MatchTable({
   );
 }
 
+/**
+ * One hero number.
+ *
+ * EVERY TILE IS THE SAME SHAPE: one line of number, one line of label. Nothing sits
+ * between them.
+ *
+ * There used to be an optional third line for a supporting figure — the raw 224-72
+ * behind a 76%, the "of 699" behind a rank. It made the tiles that carried one 94px
+ * tall against 73px for the tiles that did not, so the NXL row and the PickEm row below
+ * it kept a different rhythm and the hero stopped reading as one block. Reserving an
+ * empty line in the tiles without a note fixed the baseline WITHIN a row and left the
+ * two rows still 21px apart, which is the version this replaces.
+ *
+ * A supporting figure now goes INLINE, via `inlineNote`, on the same line as the value
+ * and after the suffix. It cannot affect the tile's height there.
+ *
+ * The numerals shrank from 40/48px when the hero went from one row of stats to two, so
+ * that the stats column and the portrait column beside it finish within a few pixels of
+ * each other.
+ */
 function HeroTile({
-  label, value, suffix,
-}: { label: string; value: string; suffix?: string }) {
+  label, value, suffix, inlineNote, title,
+}: {
+  label: string;
+  value: string;
+  /** Glued to the value — ordinals ("18" + "th"). */
+  suffix?: string;
+  /** A separate fact on the same line, set apart by a space ("/699"). */
+  inlineNote?: string;
+  /** Hover gloss, for a label carrying a term a general reader may not know. */
+  title?: string;
+}) {
   return (
-    <div className="flex flex-col justify-end border-b border-r border-white/[0.08] p-[18px] last:border-r-0 lg:border-b-0">
-      <div className="text-[32px] font-black leading-none pickem-numeric text-white lg:text-[40px] xl:text-[48px]">
+    <div
+      /**
+       * Padding is deliberately TOP-HEAVY: the label has to sit near the floor of the
+       * box for the row to read as bottom-aligned. `justify-end` alone was not enough —
+       * it pushes content against the padding, and the padding was the wrong way round
+       * (12px above the number, 17px below the label at desktop), so every tile looked
+       * like it was floating with a margin underneath it.
+       */
+      className="flex flex-col justify-end border-b border-r border-white/[0.08] px-3.5 pb-2 pt-5 last:border-r-0 lg:pb-2.5 lg:pt-6"
+      title={title}
+    >
+      <div className="text-[26px] font-black leading-none pickem-numeric text-white lg:text-[32px] xl:text-[38px]">
         {value}
         {suffix && (
-          <span className="ml-0.5 text-[13px] font-bold text-white/40 lg:text-[16px] xl:text-[19px]">
+          <span className="ml-0.5 text-[11px] font-bold text-white/40 lg:text-[13px] xl:text-[15px]">
             {suffix}
           </span>
         )}
+        {inlineNote && (
+          <span className="ml-1 text-[11px] font-bold text-white/35 lg:text-[13px] xl:text-[15px]">
+            {inlineNote}
+          </span>
+        )}
       </div>
-      <div className="mt-2 font-azonix text-[8px] font-black uppercase tracking-widest text-white/40">
+      <div className="mt-1.5 font-azonix text-[8px] font-black uppercase tracking-widest text-white/40">
         {label}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The NXL row of the hero, at whichever tier the player's record reaches.
+ *
+ * THREE TIERS, BECAUSE A ZERO IS NOT A STAT.
+ * Leading with tournament wins is right for the players who have some, and useless for
+ * everyone else — most careers would put two zeros in the largest type on the page, and
+ * a decade-long record would say nothing. So each tier leads with the highest rung the
+ * player has actually reached, and the shape stays the same throughout: the COUNT, its
+ * ALL-TIME RANK, then the RATE.
+ *
+ *   won a tournament      wins      · rank · win %       + match win %
+ *   reached a bracket     Sundays   · rank · Sunday %    + match win %
+ *   neither               matches   · rank · match win %
+ *
+ * The last tier drops the fourth tile rather than repeating itself: its rate tile is
+ * already the match win rate, so a fourth would be the same number twice.
+ *
+ * Each rung genuinely separates players the rung above flattens. Among title-less
+ * careers of ten events or more, Sunday rate runs from 84% (Tj Danner) down to 30%
+ * (Joel Eaton) — records that "0 wins" calls identical.
+ */
+interface HeroFigure {
+  label: string;
+  value: string;
+  /** Hover gloss, where the label uses a term the sport takes for granted. */
+  title?: string;
+}
+
+interface NxlTier {
+  count: HeroFigure;
+  rank: { label: string; value: number | null };
+  rate: HeroFigure;
+  /** Null on the bottom tier, where the rate tile is already the match win rate. */
+  fourth: HeroFigure | null;
+}
+
+function NxlHeroRow({ nxl }: { nxl: NxlCareer }) {
+  const pct = (v: number | null) => (v != null ? `${v.toFixed(0)}%` : "\u2014");
+  // The won-lost record used to sit under this as a second line. It is the one figure
+  // on the row that has a natural home elsewhere — the match table's own caption reads
+  // "205.5 kills across 48 matches · 36-12 record" — so it goes there rather than
+  // costing every tile in the hero 21px of height.
+  const matchRate: HeroFigure = {
+    label: "Career match win %",
+    value: pct(nxl.matchWinPct),
+  };
+
+  const tier: NxlTier =
+    nxl.titles > 0
+      ? {
+          count: { label: "Career wins", value: String(nxl.titles) },
+          rank: { label: "Wins rank", value: nxl.titlesRank },
+          rate: { label: "Career win %", value: pct(nxl.titleRate) },
+          fourth: matchRate,
+        }
+      : nxl.sundays > 0
+        ? {
+            count: {
+              label: "Career Sundays made",
+              value: String(nxl.sundays),
+              // "Sunday" is the sport's word rather than a general reader's, and this is
+              // the only place on the page it appears. The gloss is on hover rather than
+              // under the number: an inline third line here is exactly what made the
+              // tiles uneven, and it would appear on this tier alone.
+              title: "Tournaments where the team reached the knockout bracket",
+            },
+            rank: { label: "Sundays made rank", value: nxl.sundaysRank },
+            rate: { label: "Career Sundays made %", value: pct(nxl.sundayRate) },
+            fourth: matchRate,
+          }
+        : {
+            count: { label: "Career matches", value: String(nxl.matches) },
+            rank: { label: "Matches rank", value: nxl.matchesRank },
+            rate: matchRate,
+            fourth: null,
+          };
+
+  return (
+    <div
+      className={cn(
+        // `flex-1` so the stats column always fills its side of the hero. The portrait
+        // column is the taller of the two now that the photo sits above the name, and
+        // the leftover height was collecting under the last row of tiles as an empty
+        // bar the width of the column. Sharing it between the rows removes that, and
+        // the tiles bottom-align their content either way.
+        "grid flex-1",
+        tier.fourth ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-3",
+      )}
+    >
+      <HeroTile label={tier.count.label} value={tier.count.value} title={tier.count.title} />
+      {/*
+        Labelled by WHAT it ranks, not "All-time rank".
+        The PickEm row directly below carries an "All-time rank" of its own, on career
+        kills, and two tiles a few inches apart under the same words would be read as
+        the same measurement.
+      */}
+      <HeroTile
+        label={tier.rank.label}
+        value={tier.rank.value != null ? String(tier.rank.value) : "\u2014"}
+        suffix={tier.rank.value != null ? ordinal(tier.rank.value) : undefined}
+        // "/699" on the same line as the rank rather than beneath it, so this tile is
+        // the same height as every other one and the row shares a baseline.
+        inlineNote={tier.rank.value != null ? `/${nxl.rankField}` : undefined}
+        title={`Out of every player on an NXL Pro roster since 2015 (${nxl.rankField})`}
+      />
+      <HeroTile label={tier.rate.label} value={tier.rate.value} title={tier.rate.title} />
+      {tier.fourth && (
+        <HeroTile
+          label={tier.fourth.label}
+          value={tier.fourth.value}
+          title={tier.fourth.title}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * The strip that says which scope the four numbers under it are measured over.
+ *
+ * THE HERO CARRIES TWO SCOPES AND MUST SAY SO. Kills exist for the eight events PickEm
+ * scores; results exist for every NXL event since 2015. Those numbers sit inches apart
+ * and a reader will otherwise assume one span covers both — reading "12 tournament wins"
+ * and "8 events" off the same block gives an impossible player. Labelling each row is
+ * what makes two scopes honest rather than a trap.
+ */
+function ScopeStrip({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="border-b border-white/[0.08] bg-white/[0.02] px-3.5 py-1.5 font-azonix text-[8px] font-black uppercase tracking-widest text-white/30">
+      {children}
     </div>
   );
 }
@@ -1990,3 +2470,374 @@ function KillsStacked({
     </div>
   );
 }
+
+
+/**
+ * One row of the event table: a league event, with PickEm's numbers where they exist.
+ *
+ * THE TABLE IS THE WHOLE CAREER NOW, not just the eight events PickEm scores. Those
+ * eight carry kills, cost and pick %; the other forty-odd carry a result and nothing
+ * else, and their PickEm columns render as dashes rather than zeroes. A zero is a
+ * measurement — "took the field and scored nothing" — and printing one for a 2017
+ * tournament we never tracked would be inventing a result.
+ */
+interface TimelineRow {
+  key: string;
+  label: string;
+  shortLabel: string;
+  year: string;
+  team: string;
+  teamId: string | null;
+  record: TeamEventRecord | null;
+  /** ISO date, for ordering. */
+  start: string;
+  /** Null for a league event PickEm does not score. */
+  pickem: (CareerAppearance & { label: string }) | null;
+}
+
+/**
+ * One row of the match table, from either source.
+ *
+ * `pickem` carries the kill breakdown and is null for a league event PickEm does not
+ * score — those rows show a result and dashes across every kill column.
+ */
+interface CareerMatch {
+  key: string;
+  /** A PickEm event id, or a league event key like "2019|NXL Texas Open". */
+  eventKey: string;
+  round: string;
+  opponent: string;
+  opponentId: string | null;
+  result: "W" | "L" | "T" | null;
+  scoreFor: number | null;
+  scoreAgainst: number | null;
+  pickem: (PlayerMatch & { eventId: string }) | null;
+}
+
+/**
+ * Tournament order for sorting, across BOTH vocabularies.
+ *
+ * Our long data labels prelims by day and knockouts by bracket size; the league labels
+ * prelims by group and knockouts by name. A career table interleaves both, so one
+ * ordering has to understand each — anything unrecognised sorts as a group game, which
+ * is what an unfamiliar label almost always is.
+ */
+const ROUND_RANK: Record<string, number> = {
+  Thursday: 0, Friday: 1, Saturday: 2, Sunday: 3,
+  "A Prelims": 0, "B Prelims": 1, "C Prelims": 2, "D Prelims": 3, "E Prelims": 4,
+  Wildcard: 5, Ochos: 5,
+  Top8: 6, Quarters: 6,
+  Top4: 7, Semifinals: 7,
+  Finals: 8, Final: 8,
+};
+const roundRankOf = (r: string) => ROUND_RANK[r] ?? 0;
+
+/**
+ * "NXL Mid Atlantic Major" -> "Mid Atlantic · 19".
+ *
+ * The league prefix and the tier word both go. "Major" and "Open" describe a ranking
+ * status that changed between seasons for the same tournament — Windy City was a Major
+ * in 2023 and an Open in 2024 — so they say nothing about WHICH event a row is, while
+ * costing enough width to wrap the column onto two lines and double the row height.
+ *
+ * Checked across all 51 events: no two events in any single year collapse to the same
+ * name once they are removed.
+ */
+const stripEventTier = (label: string) =>
+  label.replace(/^NXL\s+/i, "").replace(/\s+(Major|Open)\b/gi, "").trim();
+
+const nxlEventLabel = (label: string, year: string) =>
+  `${stripEventTier(label)} \u00b7 ${year.slice(2)}`;
+
+/**
+ * Initials plus the year, for the phone column — "Mid-Atlantic Major · 19" -> "MM 19".
+ *
+ * Deliberately not `eventAxisLabel`: that derives its initials from a canonical PickEm
+ * location, and these events have no PickEm identity to look up.
+ */
+const nxlShortLabel = (label: string, year: string) => {
+  const initials = label
+    // The tier word is KEPT here, unlike the full label: initials are lossy enough
+    // already, and without it "World Cup" and "Windy City Open" both become "WC" in the
+    // same season. "WCO" against "WC" is the whole difference.
+    .replace(/^NXL\s+/i, "")
+    .split(/[\s-]+/)
+    .filter((w) => /^[A-Za-z]/.test(w))
+    .map((w) => w[0].toUpperCase())
+    .join("")
+    .slice(0, 3);
+  return `${initials} ${year.slice(2)}`;
+};
+
+/**
+ * "2015-2026", or just "2025" for a single season.
+ *
+ * A range whose ends are equal reads as a mistake — "2025-2025" is the kind of detail
+ * that makes a reader distrust the numbers beside it.
+ */
+const yearSpan = (from: string | null, to: string | null) =>
+  from && to && from !== to ? `${from}\u2013${to}` : (to ?? from ?? "\u2014");
+
+
+/**
+ * A record needs at least two seasons before it has a SHAPE.
+ *
+ * With one season the chart is a single full-width bar, which reads as a progress meter
+ * rather than a trend, and the readout underneath calls it the "best season" of one.
+ * The hero already states the totals for those players, so the panel simply does not
+ * render — there is nothing it could add.
+ */
+const NXL_PANEL_MIN_SEASONS = 2;
+
+/**
+ * One season of a player's league record, folded up from its events.
+ *
+ * PER SEASON, NOT PER EVENT — and this is the whole design decision in the panel.
+ * A career runs to fifty tournaments of roughly seven matches each, so a per-event
+ * win rate moves in steps of 14 points and the line reads as noise: a 4-3 event and a
+ * 5-2 event look like a collapse and a peak. Seasons carry 25-35 matches, which is
+ * enough for the number to mean something, and twelve points fit on an axis a person
+ * can actually read. The events are still there — they are what the hover shows.
+ */
+interface NxlSeason {
+  year: string;
+  events: number;
+  w: number;
+  l: number;
+  winPct: number | null;
+  titles: number;
+  topFours: number;
+  clubs: string[];
+}
+
+function seasonsOf(events: NxlEvent[]): NxlSeason[] {
+  const byYear = new Map<string, NxlEvent[]>();
+  for (const e of events) {
+    if (!byYear.has(e.year)) byYear.set(e.year, []);
+    byYear.get(e.year)!.push(e);
+  }
+  return Array.from(byYear.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([year, evs]: [string, NxlEvent[]]) => {
+      const w = evs.reduce((a, e) => a + e.w, 0);
+      const l = evs.reduce((a, e) => a + e.l, 0);
+      return {
+        year,
+        events: evs.length,
+        w,
+        l,
+        winPct: w + l > 0 ? (w / (w + l)) * 100 : null,
+        titles: evs.filter((e) => e.finishRank === 1).length,
+        topFours: evs.filter((e) => e.finishRank != null && e.finishRank <= 3).length,
+        clubs: Array.from(new Set(evs.map((e) => e.club))),
+      };
+    });
+}
+
+/**
+ * The league record over time.
+ *
+ * SEPARATE PANEL, AND SEPARATE ON PURPOSE. Everything else on this page is measured
+ * over the eight events PickEm scores. This is measured over every NXL event since
+ * 2015, and the two must never be read as one series — which is why it does not share
+ * an axis with the kills chart, does not sit inside the same panel, and names its own
+ * span in the heading.
+ *
+ * A TEAM RECORD ON A PLAYER'S PAGE. The line is what the player's teams did at the
+ * tournaments the player was at. It is not a measure of individual contribution and
+ * the caption says so, because a page that quietly implies otherwise is worse than one
+ * that shows nothing.
+ */
+function NxlRecordPanel({ nxl }: { nxl: NxlCareer }) {
+  const [hovered, setHovered] = useState<string | null>(null);
+  const seasons = seasonsOf(nxl.events);
+
+  /**
+   * BARS, NOT A LINE — and this is the one decision in the panel worth defending.
+   *
+   * It was a line first, and in dark mode the result was two green area charts stacked
+   * one above the other: this panel and "Kills by event" directly below it, same mark,
+   * same fill, same colour, same height. A reader scrolling past reads them as one
+   * series in two halves, which is precisely the conflation the whole two-scope design
+   * exists to prevent — one covers twelve seasons of team results, the other eight
+   * events of this player's kills.
+   *
+   * Bars also fit the quantity better than a line did. Seasons are discrete and a win
+   * rate is a bounded proportion, so a bar from the floor is the honest mark; a line
+   * implies a continuum between 2019 and 2020 that does not exist. And it fixes the
+   * empty-space problem the fixed 0-100 scale caused for free: a bar occupies its own
+   * value rather than leaving the bottom of the panel blank.
+   */
+  const PLOT = 104;
+  const active = seasons.find((sn) => sn.year === hovered) ?? null;
+  /**
+   * Reserve the trophy row for the WHOLE chart, or for none of it.
+   *
+   * Per-bar it would ripple the bar tops out of line. Always-on it left a 13px band of
+   * nothing above every chart belonging to a player who has never won a tournament —
+   * which is most of them, and exactly the readers for whom empty space reads as
+   * something failing to load.
+   */
+  const anyTitles = seasons.some((sn) => sn.titles > 0);
+
+  return (
+    <section className={cn(PANEL, "mt-3.5 p-5")}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className={SECTION_HEADING}>NXL record</h2>
+          {/*
+            The caption does two jobs and both are load-bearing: it states the span,
+            because this panel alone covers more than a decade while the rest of the
+            page covers eight events; and it states that the record belongs to the
+            team, because "76%" beside a portrait will otherwise be read as the
+            player's own.
+          */}
+          <p className="mt-2.5 max-w-[62ch] text-[11px] leading-relaxed text-gray-500 dark:text-white/40">
+            Match win rate by season, from the league&rsquo;s own results,{" "}
+            {yearSpan(nxl.firstYear, nxl.lastYear)}. These are the results of the{" "}
+            <b className="font-bold text-gray-700 dark:text-white/60">teams</b> they played
+            for, at the tournaments they took the field at &mdash; not a measure of what
+            any one player did in a match.
+          </p>
+        </div>
+        {/*
+          No stat block here. Tournaments played, tournaments won and the match record
+          are the first three tiles of the hero, roughly 400px up the same page, and
+          repeating them in smaller type taught a reader nothing while implying the two
+          blocks might differ. The panel's job is the SHAPE of the record over time,
+          which is the one thing the hero cannot show.
+        */}
+      </div>
+
+      <div className="mt-5">
+        <div className="relative">
+          {/* An even record. The one reference line that means something here, drawn
+              over the bars so a season can be read as above or below it at a glance. */}
+          <div
+            className="pointer-events-none absolute inset-x-0 z-10 border-t border-dashed border-gray-400/50 dark:border-white/20"
+            style={{ bottom: PLOT / 2 }}
+          />
+          <div className="flex items-end gap-1 sm:gap-2">
+            {seasons.map((sn) => {
+              const on = hovered === sn.year;
+              const pct = sn.winPct ?? 0;
+              return (
+                <button
+                  key={sn.year}
+                  type="button"
+                  className="group flex flex-1 flex-col justify-end outline-none"
+                  onMouseEnter={() => setHovered(sn.year)}
+                  onMouseLeave={() => setHovered(null)}
+                  onFocus={() => setHovered(sn.year)}
+                  onBlur={() => setHovered(null)}
+                  aria-label={`${sn.year}: ${sn.w} won, ${sn.l} lost across ${sn.events} tournaments${sn.titles ? `, ${sn.titles} won` : ""}`}
+                >
+                  {/* A trophy over the seasons that produced a title, matching the one
+                      on the event table so the glyph means the same thing in both
+                      places. The count rides along when a season produced more than
+                      one, which a single mark would flatten. */}
+                  {anyTitles && (
+                    <span className="mb-0.5 block h-[13px] text-[10px] leading-none">
+                      {sn.titles > 0 && (
+                        <span className="pickem-numeric font-black text-gray-600 dark:text-white/60">
+                          <span aria-hidden="true">🏆</span>
+                          {sn.titles > 1 && sn.titles}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                  <span
+                    className={cn(
+                      "pickem-numeric mb-1 block text-center text-[11px] font-black leading-none transition-colors",
+                      on ? "text-gray-900 dark:text-white" : "text-gray-500 dark:text-white/50",
+                    )}
+                  >
+                    {sn.winPct != null ? `${sn.winPct.toFixed(0)}%` : "\u2014"}
+                  </span>
+                  <span
+                    className={cn(
+                      "block w-full rounded-t-[2px] transition-colors",
+                      on
+                        ? "bg-[#1a3c6e] dark:bg-[#00f976]"
+                        : "bg-[#1a3c6e]/70 dark:bg-[#00f976]/55",
+                    )}
+                    style={{ height: Math.max((pct / 100) * PLOT, 2) }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="mt-1.5 flex gap-1 sm:gap-2">
+          {seasons.map((sn) => (
+            <span
+              key={sn.year}
+              className={cn(
+                "pickem-numeric flex-1 text-center text-[10px] font-bold transition-colors",
+                hovered === sn.year
+                  ? "text-gray-900 dark:text-white"
+                  : "text-gray-400 dark:text-white/35",
+              )}
+            >
+              {sn.year.slice(2)}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Fixed-height readout so the panel does not jump as the pointer crosses it.
+          With nothing hovered it names the best season, which is the thing a reader
+          would otherwise hunt along the line for. */}
+      <div className="mt-4 min-h-[18px] border-t border-gray-200/70 pt-3 dark:border-white/5">
+        <SeasonReadout season={active} seasons={seasons} />
+      </div>
+    </section>
+  );
+}
+
+function SeasonReadout({
+  season,
+  seasons,
+}: {
+  season: NxlSeason | null;
+  seasons: NxlSeason[];
+}) {
+  const ranked = seasons.filter((s) => s.winPct != null);
+  const best = ranked.length
+    ? ranked.reduce((a, b) => (b.winPct! > a.winPct! ? b : a))
+    : null;
+  const sn = season ?? best;
+  if (!sn) return null;
+
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[11px] text-gray-500 dark:text-white/50">
+      <span className="font-black text-gray-900 dark:text-white">
+        {season ? sn.year : `Best season · ${sn.year}`}
+      </span>
+      <span>
+        <b className="pickem-numeric font-black text-gray-900 dark:text-white">
+          {sn.w}&ndash;{sn.l}
+        </b>{" "}
+        {sn.winPct != null && `(${sn.winPct.toFixed(0)}%)`}
+      </span>
+      <span>
+        <b className="pickem-numeric font-black text-gray-900 dark:text-white">{sn.events}</b>{" "}
+        {sn.events === 1 ? "tournament" : "tournaments"}
+      </span>
+      {sn.titles > 0 && (
+        <span className="font-bold text-[#1a3c6e] dark:text-[#00f976]">
+          {sn.titles} won
+        </span>
+      )}
+      {sn.titles === 0 && sn.topFours > 0 && (
+        <span>
+          <b className="pickem-numeric font-black text-gray-900 dark:text-white">{sn.topFours}</b>{" "}
+          top-four finish{sn.topFours === 1 ? "" : "es"}
+        </span>
+      )}
+      <span className="text-gray-400 dark:text-white/30">{sn.clubs.join(", ")}</span>
+    </div>
+  );
+}
+

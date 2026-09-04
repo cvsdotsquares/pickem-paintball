@@ -33,6 +33,14 @@
  * passes its own `rebuiltAt` value instead, and this module stays dependency-free.
  */
 
+/**
+ * The league's own results, 2015-2026 — see functions/nxlHistory.js.
+ *
+ * A plain require of committed reference data, so it costs no reads and cannot drift
+ * mid-rebuild the way a second collection could.
+ */
+const { eventRecord, matchResult, nxlCareer } = require("./nxlHistory");
+
 const KILL_TYPES = [
   "Gunfights",
   "Breakshooting",
@@ -121,8 +129,17 @@ async function loadOwnership(db) {
   return pct;
 }
 
+/** Firestore Timestamp, Date or ISO string -> YYYY-MM-DD, for the fixture join. */
+function isoDate(v) {
+  if (!v) return null;
+  if (typeof v.toDate === "function") return v.toDate().toISOString().slice(0, 10);
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  const m = String(v).match(/^\d{4}-\d{2}-\d{2}/);
+  return m ? m[0] : null;
+}
+
 /** Match rows per player, per event, from long data. Empty for events not yet loaded. */
-function matchesForEvent(rows, teamOfPlayer) {
+function matchesForEvent(eventId, rows, teamOfPlayer) {
   // gameId -> rows. A game is stored twice, directionally, so both halves land here.
   const games = new Map();
   for (const r of rows) {
@@ -165,6 +182,25 @@ function matchesForEvent(rows, teamOfPlayer) {
       const opponentId = (named.teamId === teamId ? named.opponentId : named.teamId) ?? null;
       const points = new Set(gameRows.map((r) => r.point)).size;
 
+      /**
+       * Who actually won, from the league's own results.
+       *
+       * NOT derivable from anything already here. Long data is one row per KILL, and a
+       * point is won by hanging the flag — a team can lose a game it out-killed. So
+       * `teamKills` beside this is a different fact, not a weaker version of it.
+       *
+       * Null when the fixture cannot be identified beyond doubt; the column renders a
+       * dash rather than inventing a result. Today that never happens: all 400 games
+       * across the eight events resolve.
+       */
+      const result = matchResult(
+        eventId,
+        named.round,
+        isoDate(named.date),
+        teamId,
+        opponentId,
+      );
+
       // Every player on this team gets a row, whether or not they scored — a quiet
       // game is a result, and building the list from a player's own kills would drop it.
       for (const [playerId, tid] of Array.from(teamOfPlayer)) {
@@ -190,6 +226,9 @@ function matchesForEvent(rows, teamOfPlayer) {
           teamKills,
           opponentKills,
           shareOfTeam: teamKills > 0 ? (kills / teamKills) * 100 : null,
+          result: result ? result.result : null,
+          scoreFor: result ? result.for : null,
+          scoreAgainst: result ? result.against : null,
           types,
         });
       }
@@ -242,6 +281,38 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
     fieldSizes.set(ev.id, field);
   });
 
+  /**
+   * An event nobody has scored a kill at HAS NOT HAPPENED YET.
+   *
+   * Rosters are loaded weeks before a tournament is played — Lone Star 2026 had all 188
+   * of its players in Firestore on 4 September for an event that locks on the 18th.
+   * Without this filter every one of those players picks up an event row marked
+   * `played` with zero kills, because `participation` defaults to "unknown" and only
+   * "absent" is treated as a non-appearance. Measured on that roster: `playedCount`
+   * rose by one for 215 players and `avgKills` fell about 12% across the board (Blake
+   * Yarber 20.6 -> 18.0) for a tournament nobody had turned up to.
+   *
+   * That is precisely the false claim the participation model exists to prevent — a
+   * zero presented as a performance — arriving through the front door instead.
+   *
+   * KILLS RATHER THAN THE CLOCK, deliberately. `lockDate` looks like the obvious test
+   * and leaves a hole: between picks locking and the first results being uploaded, the
+   * date has passed and the numbers have not arrived, so the same zeroes publish for a
+   * few hours. "Somebody has scored" is the condition that actually means the event has
+   * begun to produce results, and it needs no clock and no timezone.
+   *
+   * The event returns on its own the moment the first upload lands.
+   */
+  const started = events.filter((ev) =>
+    Array.from(rosters.get(ev.id).values()).some((o) => num(o["Confirmed Kills"]) > 0),
+  );
+  const notStarted = events.filter((ev) => !started.includes(ev));
+  if (notStarted.length) {
+    console.log(
+      `⏳ Excluding ${notStarted.length} event(s) with no kills recorded yet: ${notStarted.map((e) => e.id).join(", ")}`,
+    );
+  }
+
   // Long data, grouped by event. Events without a backfill simply have no rows.
   const longByEvent = new Map();
   longSnap.docs.forEach((d) => {
@@ -252,14 +323,14 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
   });
 
   const matchesByEvent = new Map(); // eventId -> Map(playerId -> match[])
-  for (const ev of events) {
+  for (const ev of started) {
     const rows = longByEvent.get(ev.id);
     if (!rows?.length) continue;
     const teamOfPlayer = new Map();
     for (const [pid, o] of Array.from(rosters.get(ev.id))) {
       if (o.team_id) teamOfPlayer.set(pid, o.team_id);
     }
-    matchesByEvent.set(ev.id, matchesForEvent(rows, teamOfPlayer));
+    matchesByEvent.set(ev.id, matchesForEvent(ev.id, rows, teamOfPlayer));
   }
 
   /**
@@ -268,7 +339,7 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
    * the page applies today.
    */
   const careerKills = new Map();
-  for (const ev of events) {
+  for (const ev of started) {
     for (const [pid, o] of Array.from(rosters.get(ev.id))) {
       if (o.participation === "absent") continue;
       careerKills.set(pid, (careerKills.get(pid) ?? 0) + num(o["Confirmed Kills"]));
@@ -278,14 +349,14 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
   const careerRankOf = (total) => sortedCareer.findIndex((k) => k <= total) + 1 || null;
 
   const everyPlayer = new Set();
-  for (const ev of events) for (const pid of Array.from(rosters.get(ev.id).keys())) everyPlayer.add(pid);
+  for (const ev of started) for (const pid of Array.from(rosters.get(ev.id).keys())) everyPlayer.add(pid);
 
   const summaries = [];
   for (const playerId of Array.from(everyPlayer)) {
     if (onlyPlayer && playerId !== onlyPlayer) continue;
 
     // Rows for every event in the player's own span, so a gap mid-career stays visible.
-    const rows = events.map((ev) => {
+    const rows = started.map((ev) => {
       const d = rosters.get(ev.id).get(playerId);
       const base = {
         eventId: ev.id,
@@ -294,6 +365,18 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
         brandColor: ev.brandColor,
         fieldSize: fieldSizes.get(ev.id),
         pickPct: ownership.get(ev.id)?.byPlayer.get(playerId) ?? null,
+        /**
+         * When the event happened, so the page can interleave these rows with the
+         * league events PickEm does not score.
+         *
+         * From `lockDate`, which is a day or two before the first game — close enough
+         * to order by, and the only date the event document carries. The league's own
+         * start date cannot be used for every row: an event the player sat out is
+         * dropped from their NXL record, so it has no league row to borrow from.
+         */
+        start: ev.lockSeconds
+          ? new Date(ev.lockSeconds * 1000).toISOString().slice(0, 10)
+          : null,
       };
       if (!d) {
         return {
@@ -311,6 +394,7 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
           costPerKill: null,
           teamKills: 0,
           shareOfTeam: null,
+          record: null,
         };
       }
       const kills = num(d["Confirmed Kills"]);
@@ -334,6 +418,15 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
         costPerKill: cost > 0 && kills > 0 ? cost / kills : null,
         teamKills,
         shareOfTeam: teamKills > 0 ? (kills / teamKills) * 100 : null,
+        /**
+         * How the player's TEAM did at this event: W-L and how far they went.
+         *
+         * A team fact on a player's row, which is why the column is headed with the
+         * team's code rather than presented as something the player did alone. Null
+         * for an event the league has no results for yet — a live event has a roster
+         * and rows long before it has a bracket.
+         */
+        record: eventRecord(ev.id, d.team_id ?? null),
       };
     });
 
@@ -360,6 +453,21 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
     const latest = span.filter((r) => r.kind !== "not-rostered").at(-1);
     const latestDoc = rosters.get(latest.eventId).get(playerId);
 
+    /**
+     * The player's NXL id, from ANY event that carries one — not just the latest.
+     *
+     * `league_id` is stamped by `syncRoster` and is missing from plenty of rows: the
+     * 2025 World Cup international entries mostly have none, and a blank on the most
+     * recent event would otherwise cost a player their whole league history. It is the
+     * same person's permanent id whichever row it comes from, so the first one found is
+     * as good as any. Taken newest-first purely so a stale value never wins.
+     */
+    const leagueId = span
+      .filter((r) => r.kind !== "not-rostered")
+      .reverse()
+      .map((r) => rosters.get(r.eventId).get(playerId)?.league_id)
+      .find((v) => v != null && String(v).trim() !== "") ?? null;
+
     // Match rows only for events the player actually took the field at. Their team's
     // fixtures exist either way, but attributing games to someone who was absent would
     // reintroduce the exact claim the participation model removes.
@@ -372,10 +480,18 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
 
     summaries.push({
       playerId,
+      /**
+       * The first season PickEm scored, for the header above the kill numbers.
+       *
+       * Like the NXL one it describes COVERAGE, not this player: the header has to read
+       * the same on every page, because what it is telling a reader is where our data
+       * starts, not when someone's career did.
+       */
+      trackedFrom: events.length ? events[0].year : null,
       name: latestDoc.Player || "Unknown player",
       number: latestDoc.Number ?? null,
       imgUrl: latestDoc.img_url ?? null,
-      leagueId: latestDoc.league_id ?? null,
+      leagueId,
       currentTeam: latestDoc.Team || "—",
       totalKills,
       playedCount: played.length,
@@ -396,6 +512,21 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
         .sort((a, b) => b.total - a.total),
       events: span,
       matches,
+      /**
+       * The whole NXL record, 2015 to now — a DIFFERENT SCOPE from everything above it.
+       *
+       * Everything else in this document is PickEm's eight events, because that is where
+       * kills exist. Results exist for fifty-one, and a career page that told a
+       * three-time champion he had won nothing would be worse than one that carries two
+       * scopes and says so. Every consumer must label this as the NXL career.
+       *
+       * Absences are passed in so a tournament win cannot be credited to someone who sat
+       * the event out. Only PickEm's events can be checked that way — for the league
+       * history a roster appearance is the only evidence there is.
+       */
+      nxl: nxlCareer(leagueId, {
+        absentEventIds: new Set(span.filter((r) => r.kind !== "played").map((r) => r.eventId)),
+      }),
     });
   }
 
