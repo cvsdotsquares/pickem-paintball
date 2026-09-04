@@ -375,6 +375,30 @@ for (const y of w.byYear) {
   if (problems.length) { hard++; console.log(`\n  ${y.year}  ${problems.join("\n        ")}`); }
 }
 
+/**
+ * A league event in a PickEm season that nobody mapped to a Firestore event id.
+ *
+ * THIS IS THE ONE THAT BITES SILENTLY. The career page merges the league's events with
+ * PickEm's, keyed on `pickemEventId`. An event with results and rosters but no mapping
+ * does not fail anything — it simply appears TWICE: once as a league-only row with
+ * dashes, and once as a PickEm row with kills. Every season boundary is a chance to
+ * forget, because adding the mapping is a hand edit in clubs.mjs.
+ *
+ * Every NXL event from 2025 on is a PickEm event, so an unmapped one is always a
+ * mistake rather than a judgement call.
+ */
+const pickemYears = Object.keys(PICKEM_EVENT_ID).map((k) => k.split("|")[0]);
+const firstPickemYear = pickemYears.length ? pickemYears.sort()[0] : null;
+const unmapped = firstPickemYear
+  ? data.events.filter((e) => e.year >= firstPickemYear && !e.pickemEventId)
+  : [];
+if (unmapped.length) {
+  console.log(`\n⚠️  League events in a PickEm season with no pickemEventId:`);
+  unmapped.forEach((e) => console.log(`  ${e.key}`));
+  console.log(`  These will render TWICE on a career page — once from each source.`);
+  console.log(`  Add them to PICKEM_EVENT_ID in scripts/nxl-history/clubs.mjs.`);
+}
+
 if (w.noResults.length) {
   console.log(`\nKnown gaps (rostered, no results in the workbook):`);
   w.noResults.forEach((e) => console.log(`  ${e}`));
