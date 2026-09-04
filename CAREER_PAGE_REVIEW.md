@@ -170,7 +170,18 @@ people rather than bad ids.
 
 ## 3. Before this ships
 
+- [x] **The NXL fields are live on all 325 summaries** (patched 4 Sep with
+      `scripts/nxl-history/patch-summaries.mjs --write`, additive only — 7 fields, and
+      125/125 DNP rows preserved). Every player's page works on the preview build.
+      ⚠️ NOT PERMANENT: any long-data upload sets `staleSince`, the scheduled function
+      rebuilds within five minutes, and that rebuild both strips these fields AND
+      publishes the 2026 participation loss. Repairing that loss and deploying
+      `functions/` is what makes this stick.
+
 - [ ] **Delete the preview documents**: `node scripts/nxl-history/preview.mjs --delete`
+
+- [ ] **Vercel Deployment Protection is on**, so a preview link asks anyone you send it
+      to for a Vercel login. Fine for screen-sharing; a blocker for handing out a URL.
 
 - [ ] **Deploy `functions/`** with `functions/nxlHistory.js` and
       `functions/data/nxlHistory.json`. Until then the deployed Cloud Function would
