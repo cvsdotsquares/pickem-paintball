@@ -76,6 +76,19 @@ type StatHeaderLayout =
  */
 function getStatHeaderLayout(displayKey: string): StatHeaderLayout {
   switch (displayKey) {
+    // ── The NXL block: the whole league since 2015, not PickEm's eight events ──
+    case "NXL Events":
+      return { kind: "two", line1: "NXL", line2: "Events", title: "Tournaments played in the NXL since 2015" };
+    case "NXL Wins":
+      return { kind: "two", line1: "NXL", line2: "Wins", title: "Tournaments won" };
+    case "Win %":
+      return { kind: "one", label: "Win %", title: "Share of tournaments won" };
+    case "Sundays":
+      return { kind: "one", label: "Sundays", title: "Tournaments where the team reached the knockout bracket" };
+    case "Record":
+      return { kind: "one", label: "Record", title: "Matches won and lost" };
+    case "Match Win %":
+      return { kind: "two", line1: "Match", line2: "Win %", title: "Share of matches won" };
     case "Confirmed Kills":
       return {
         kind: "two",
@@ -821,11 +834,22 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     additionalExclusions.forEach((key) => excludedKeys.add(key.toLowerCase()));
 
     // Define our preferred column order (single-event / default)
+    //
+    // The NXL block sits AHEAD of the kill columns and appears only where the data
+    // carries it — this list is an allowlist filtered against the row's own keys, so a
+    // per-event roster, which has none of these, is untouched. Today that means the
+    // all-time table alone.
     const columnOrder = [
       "Rank",
       "Player",
       "Team",
       "Number",
+      "NXL Events",
+      "NXL Wins",
+      "Win %",
+      "Sundays",
+      "Record",
+      "Match Win %",
       "Confirmed Kills",
       "Gunfights",
       "Breakshooting",

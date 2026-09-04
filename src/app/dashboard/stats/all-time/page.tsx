@@ -43,12 +43,26 @@ export default function AllTimeStatsPage() {
     };
   }, []);
 
+  /**
+   * An em-dash means "we cannot look this up", and it sorts LAST in both directions.
+   *
+   * 93 of the 325 players have no NXL id, so their league columns are dashes. Left to
+   * the string comparison below they would land at one end of an ascending sort and the
+   * other end of a descending one — which reads as a ranking, putting a hundred players
+   * "top of the table" for tournament wins. Absent data is not a low score or a high
+   * one; it belongs at the bottom whichever way the column is pointing.
+   */
+  const NO_DATA = "\u2014";
+
   const sorted = useMemo(() => {
     if (!rows) return [];
     if (!sortConfig) return rows;
     return [...rows].sort((a, b) => {
       const av = a[sortConfig.key];
       const bv = b[sortConfig.key];
+      const aMissing = av === NO_DATA || av == null;
+      const bMissing = bv === NO_DATA || bv == null;
+      if (aMissing || bMissing) return aMissing && bMissing ? 0 : aMissing ? 1 : -1;
       if (typeof av === "number" && typeof bv === "number") {
         return sortConfig.direction === "ascending" ? av - bv : bv - av;
       }
@@ -72,11 +86,19 @@ export default function AllTimeStatsPage() {
           <h1 className="relative pl-3 font-azonix text-xs uppercase tracking-wide text-gray-900 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#1a3c6e] before:content-[''] dark:text-white dark:before:bg-[#00f976] sm:text-sm">
             All-time stats
           </h1>
-          {/* "All-time" means all of OUR time, not the league's. The NXL has results
-              back to 2015; confirmed kills only exist from 2025, so the scope needs
-              stating or the totals read as career records. */}
-          <p className="mt-1.5 pl-3 text-[11px] text-gray-500 dark:text-white/40">
-            *Pick&rsquo;Em Paintball started tracking confirmed kills in 2025
+          {/*
+            TWO SCOPES IN ONE TABLE, and the header row has nowhere to say so.
+            Everything from NXL Events to Match Win % is the league since 2015; the kill
+            columns are the eight events PickEm scores. Without this line a reader takes
+            "16 wins" and "144 kills" to be measured over the same span, which gives an
+            impossible player.
+          */}
+          <p className="mt-1.5 max-w-[70ch] pl-3 text-[11px] leading-relaxed text-gray-500 dark:text-white/40">
+            League results are tracked from 2015 and are the record of the{" "}
+            <b className="font-bold text-gray-600 dark:text-white/60">teams</b> a player
+            turned out for. Pick&rsquo;Em started tracking confirmed kills in 2025 &mdash;
+            those columns cover far fewer events. A dash means we hold no NXL id for that
+            player.
           </p>
         </div>
         <PlayerSearch className="w-full sm:w-64" />

@@ -181,9 +181,81 @@ if (offLimits.size) {
 }
 console.log(`\n✅ Every change is one of the ${ALLOWED.size} allowed fields. Nothing else moves.`);
 
-if (!process.argv.includes("--write")) {
+const write = process.argv.includes("--write");
+await patchAllTime(write);
+
+if (!write) {
   console.log(`\nNo --write flag, so nothing was written.\n`);
   process.exit(0);
+}
+
+/**
+ * The all-time table reads `aggregates/allTime`, not the summaries, so it needs the
+ * same treatment: add the six league columns to each stored row and change nothing else.
+ *
+ * Rebuilt from the stored rows rather than recomputed from summaries, for the same
+ * reason as above — a fresh `buildAggregates` would recompute the kill totals and
+ * `Events` count from data whose participation has drifted.
+ */
+async function patchAllTime(write) {
+  const ref = db.doc("aggregates/allTime");
+  const snap = await ref.get();
+  const stored = (snap.data()?.players ?? []);
+  if (!stored.length) {
+    console.log(`\naggregates/allTime: empty, nothing to patch.`);
+    return;
+  }
+
+  const NONE = "\u2014";
+  let withRecord = 0;
+  const players = stored.map((row) => {
+    const lid = leagueIdOf.get(String(row.player_id)) ?? null;
+    // The summary is what knows which events this player sat out.
+    const summary = summaries.docs.find((d) => d.id === String(row.player_id));
+    const absentEventIds = new Set(
+      ((summary?.get("events") ?? []).filter((e) => e.kind && e.kind !== "played")).map((e) => e.eventId),
+    );
+    const n = nxlCareer(lid, { absentEventIds });
+    if (n) withRecord++;
+    const league = n
+      ? {
+          "NXL Events": n.tournaments,
+          "NXL Wins": n.titles,
+          "Win %": n.titleRate != null ? +n.titleRate.toFixed(1) : NONE,
+          Sundays: n.sundays,
+          Record: `${n.matchW}\u2013${n.matchL}`,
+          "Match Win %": n.matchWinPct != null ? +n.matchWinPct.toFixed(1) : NONE,
+        }
+      : {
+          "NXL Events": NONE, "NXL Wins": NONE, "Win %": NONE,
+          Sundays: NONE, Record: NONE, "Match Win %": NONE,
+        };
+
+    // Order matters: the table's column allowlist is order-independent, but keeping the
+    // league block ahead of the kills makes the stored document readable too.
+    const { "Confirmed Kills": kills, ...identity } = row;
+    return { ...identity, ...league, "Confirmed Kills": kills };
+  });
+
+  const changed = players.filter((p, i) => stable(p) !== stable(stored[i]));
+  const bad = [];
+  players.forEach((p, i) => {
+    diff(stored[i], p).forEach((path) => {
+      if (!["NXL Events", "NXL Wins", "Win %", "Sundays", "Record", "Match Win %"].includes(path)) {
+        bad.push(`${stored[i].Player}: ${path}`);
+      }
+    });
+  });
+
+  console.log(`\naggregates/allTime: ${stored.length} rows, ${changed.length} to patch, ${withRecord} with a league record`);
+  if (bad.length) {
+    console.error(`❌ would change fields outside the league block: ${bad.slice(0, 5).join(", ")}`);
+    process.exit(1);
+  }
+  console.log(`✅ Only the six league columns change.`);
+  if (!write) return;
+  await ref.set({ ...snap.data(), players }, { merge: true });
+  console.log(`Patched aggregates/allTime.`);
 }
 
 const BATCH = 200;

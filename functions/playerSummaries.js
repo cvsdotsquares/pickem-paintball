@@ -580,6 +580,36 @@ async function buildAggregates(db, summaries, { events: preloadedEvents = null }
         Team: s.currentTeam,
         Number: s.number,
         img_url: s.imgUrl,
+        /**
+         * The league record, ahead of the kill columns.
+         *
+         * TWO SCOPES IN ONE TABLE, exactly as on the career page: everything from
+         * "NXL Events" to "Match Win %" is the whole league since 2015, and everything
+         * from "Confirmed Kills" rightwards is the eight events PickEm scores. The
+         * caption above the table is what says so — there is nowhere else to put it in
+         * a header row this dense.
+         *
+         * An em-dash, never a zero, for the 93 players we hold no NXL id for. A zero in
+         * "NXL Wins" is a real and interesting fact about a player who has one; for a
+         * player we simply cannot look up it would be a fabrication.
+         */
+        ...(s.nxl
+          ? {
+              "NXL Events": s.nxl.tournaments,
+              "NXL Wins": s.nxl.titles,
+              "Win %": s.nxl.titleRate != null ? +s.nxl.titleRate.toFixed(1) : "\u2014",
+              Sundays: s.nxl.sundays,
+              Record: `${s.nxl.matchW}\u2013${s.nxl.matchL}`,
+              "Match Win %": s.nxl.matchWinPct != null ? +s.nxl.matchWinPct.toFixed(1) : "\u2014",
+            }
+          : {
+              "NXL Events": "\u2014",
+              "NXL Wins": "\u2014",
+              "Win %": "\u2014",
+              Sundays: "\u2014",
+              Record: "\u2014",
+              "Match Win %": "\u2014",
+            }),
         "Confirmed Kills": +s.totalKills.toFixed(2),
         ...types,
         Events: s.playedCount,
