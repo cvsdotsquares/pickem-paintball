@@ -6,10 +6,13 @@
  *
  * WHY NOT JUST REBUILD
  * A full rebuild recomputes every field from source, and the source has drifted:
- * `mid_west_open_2026` has lost `participation` on all 218 roster docs and both 2026
- * events have lost `brand_color`. The stored projection is the only place those good
- * values still exist, so rebuilding publishes the loss — 38 players flip from a
- * correctly-marked DNP to "played". See the Data section of TODO.md.
+ * `mid_west_open_2026` has lost `participation` on all 218 roster docs and its
+ * `brand_color`, in the misdirected write of 2 Sep. Rebuilding from source publishes
+ * that loss — 38 players flip from a correctly-marked DNP to "played".
+ *
+ * BOTH ARE RECOVERABLE and this script is a stopgap, not the answer: participation sits
+ * intact in `scripts/backups/midwest-pre-sync-2026-09-02.json` and the brand colour
+ * (#929889) in the stored projection. See the Data section of TODO.md.
  *
  * WHAT THIS DOES INSTEAD
  * Reads each stored summary and ADDS to it:
