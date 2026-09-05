@@ -583,31 +583,27 @@ async function buildAggregates(db, summaries, { events: preloadedEvents = null }
         /**
          * The league record, ahead of the kill columns.
          *
-         * TWO SCOPES IN ONE TABLE, exactly as on the career page: everything from
-         * "NXL Events" to "Match Win %" is the whole league since 2015, and everything
-         * from "Confirmed Kills" rightwards is the eight events PickEm scores. The
-         * caption above the table is what says so — there is nowhere else to put it in
-         * a header row this dense.
+         * TWO SCOPES IN ONE TABLE, exactly as on the career page: "Event Wins" through
+         * "Match Win %" is the whole league since 2015, and everything from "Confirmed
+         * Kills" rightwards is the eight events PickEm scores. Nothing in the header row
+         * says so now that the columns are no longer NXL-prefixed, so the caption above
+         * the table is carrying it alone.
          *
          * An em-dash, never a zero, for the 93 players we hold no NXL id for. A zero in
-         * "NXL Wins" is a real and interesting fact about a player who has one; for a
+         * "Event Wins" is a real and interesting fact about a player who has one; for a
          * player we simply cannot look up it would be a fabrication.
          */
         ...(s.nxl
           ? {
-              "NXL Events": s.nxl.tournaments,
-              "NXL Wins": s.nxl.titles,
-              "Win %": s.nxl.titleRate != null ? +s.nxl.titleRate.toFixed(1) : "\u2014",
-              Sundays: s.nxl.sundays,
+              "Event Wins": s.nxl.titles,
               Record: `${s.nxl.matchW}\u2013${s.nxl.matchL}`,
+              "Event Win %": s.nxl.titleRate != null ? +s.nxl.titleRate.toFixed(1) : "\u2014",
               "Match Win %": s.nxl.matchWinPct != null ? +s.nxl.matchWinPct.toFixed(1) : "\u2014",
             }
           : {
-              "NXL Events": "\u2014",
-              "NXL Wins": "\u2014",
-              "Win %": "\u2014",
-              Sundays: "\u2014",
+              "Event Wins": "\u2014",
               Record: "\u2014",
+              "Event Win %": "\u2014",
               "Match Win %": "\u2014",
             }),
         "Confirmed Kills": +s.totalKills.toFixed(2),

@@ -207,6 +207,19 @@ async function patchAllTime(write) {
   }
 
   const NONE = "\u2014";
+  /**
+   * Every league column this script has ever written, including the ones since retired.
+   *
+   * Stripped from each stored row before the current set is written back, because a
+   * rename leaves the old key behind otherwise: "NXL Wins" and "Event Wins" would both
+   * sit in the document, and the table's allowlist would quietly render whichever it
+   * still recognised. Firestore replaces an array wholesale rather than merging it
+   * element-wise, so rebuilding each row is what actually removes them.
+   */
+  const LEAGUE_KEYS = [
+    "NXL Events", "NXL Wins", "Win %", "Sundays", // retired 5 Sep
+    "Event Wins", "Record", "Event Win %", "Match Win %",
+  ];
   let withRecord = 0;
   const players = stored.map((row) => {
     const lid = leagueIdOf.get(String(row.player_id)) ?? null;
@@ -219,21 +232,21 @@ async function patchAllTime(write) {
     if (n) withRecord++;
     const league = n
       ? {
-          "NXL Events": n.tournaments,
-          "NXL Wins": n.titles,
-          "Win %": n.titleRate != null ? +n.titleRate.toFixed(1) : NONE,
-          Sundays: n.sundays,
+          "Event Wins": n.titles,
           Record: `${n.matchW}\u2013${n.matchL}`,
+          "Event Win %": n.titleRate != null ? +n.titleRate.toFixed(1) : NONE,
           "Match Win %": n.matchWinPct != null ? +n.matchWinPct.toFixed(1) : NONE,
         }
       : {
-          "NXL Events": NONE, "NXL Wins": NONE, "Win %": NONE,
-          Sundays: NONE, Record: NONE, "Match Win %": NONE,
+          "Event Wins": NONE, Record: NONE, "Event Win %": NONE, "Match Win %": NONE,
         };
 
     // Order matters: the table's column allowlist is order-independent, but keeping the
     // league block ahead of the kills makes the stored document readable too.
-    const { "Confirmed Kills": kills, ...identity } = row;
+    const { "Confirmed Kills": kills, ...rest } = row;
+    const identity = Object.fromEntries(
+      Object.entries(rest).filter(([k]) => !LEAGUE_KEYS.includes(k)),
+    );
     return { ...identity, ...league, "Confirmed Kills": kills };
   });
 
@@ -241,7 +254,7 @@ async function patchAllTime(write) {
   const bad = [];
   players.forEach((p, i) => {
     diff(stored[i], p).forEach((path) => {
-      if (!["NXL Events", "NXL Wins", "Win %", "Sundays", "Record", "Match Win %"].includes(path)) {
+      if (!LEAGUE_KEYS.includes(path)) {
         bad.push(`${stored[i].Player}: ${path}`);
       }
     });
@@ -252,7 +265,7 @@ async function patchAllTime(write) {
     console.error(`❌ would change fields outside the league block: ${bad.slice(0, 5).join(", ")}`);
     process.exit(1);
   }
-  console.log(`✅ Only the six league columns change.`);
+  console.log(`✅ Only the league columns change (added, renamed or removed).`);
   if (!write) return;
   await ref.set({ ...snap.data(), players }, { merge: true });
   console.log(`Patched aggregates/allTime.`);

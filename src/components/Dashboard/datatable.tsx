@@ -76,19 +76,15 @@ type StatHeaderLayout =
  */
 function getStatHeaderLayout(displayKey: string): StatHeaderLayout {
   switch (displayKey) {
-    // ── The NXL block: the whole league since 2015, not PickEm's eight events ──
-    case "NXL Events":
-      return { kind: "two", line1: "NXL", line2: "Events", title: "Tournaments played in the NXL since 2015" };
-    case "NXL Wins":
-      return { kind: "two", line1: "NXL", line2: "Wins", title: "Tournaments won" };
-    case "Win %":
-      return { kind: "one", label: "Win %", title: "Share of tournaments won" };
-    case "Sundays":
-      return { kind: "one", label: "Sundays", title: "Tournaments where the team reached the knockout bracket" };
+    // ── The league block: the whole NXL since 2015, not PickEm's eight events ──
+    case "Event Wins":
+      return { kind: "two", line1: "Event", line2: "Wins", title: "NXL tournaments won since 2015" };
     case "Record":
-      return { kind: "one", label: "Record", title: "Matches won and lost" };
+      return { kind: "one", label: "Record", title: "NXL matches won and lost since 2015" };
+    case "Event Win %":
+      return { kind: "two", line1: "Event", line2: "Win %", title: "Share of NXL tournaments won" };
     case "Match Win %":
-      return { kind: "two", line1: "Match", line2: "Win %", title: "Share of matches won" };
+      return { kind: "two", line1: "Match", line2: "Win %", title: "Share of NXL matches won" };
     case "Confirmed Kills":
       return {
         kind: "two",
@@ -844,11 +840,9 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       "Player",
       "Team",
       "Number",
-      "NXL Events",
-      "NXL Wins",
-      "Win %",
-      "Sundays",
+      "Event Wins",
       "Record",
+      "Event Win %",
       "Match Win %",
       "Confirmed Kills",
       "Gunfights",
