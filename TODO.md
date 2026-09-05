@@ -346,8 +346,12 @@ Vercel.
       - ⚠️ Worth confirming before committing: the league's own data uses `SDA` for
         Aftermath, and `Player_Roster_Historic.csv` keys on it. Renaming ours means our
         codes stop matching theirs when reconciling rosters against their team sheets.
-- [ ] **Long-data backfill — 7 events.** Only `mid_west_open_2026` has kill-by-kill rows
-      loaded. Each remaining event needs row ids stamped, validating, uploading and
+- [x] **DONE — long-data backfill, all 8 events.** All eight PickEm events now carry
+      kill-by-kill rows (18,271 of them); `scripts/nxl-history/validate.mjs` resolves
+      400/400 games against the league fixture list. The note below is kept for the
+      shape of the process.
+
+      ~~Only `mid_west_open_2026` has kill-by-kill rows loaded.~~ Each remaining event needs row ids stamped, validating, uploading and
       verifying. **The Matches tab on the player page is already built and waiting** —
       each event lights up the moment its long data lands, no code change needed. Until
       then those events show a "no kill-by-kill data loaded yet" note.

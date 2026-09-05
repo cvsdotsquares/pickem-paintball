@@ -38,7 +38,10 @@ Preview URLs (throwaway docs, no existing document touched — delete with
       alternative is ranking by match win % instead, which is a performance stat rather
       than a longevity one. Your call.
 
-- [ ] **The career won-lost record is no longer anywhere on the page for tiers A and B.**
+- [ ] **The career won-lost record is not on the career-page hero for tiers A and B.**
+      (Partly eased since: the all-time table and the leader cards both carry a Record
+      column now, so the figure exists on the site — just not beside the win rate it is
+      the denominator for.)
       Removing "224-72" from under the match win % (4 Sep, your call, and it is what made
       every tile the same height) leaves that tile without a visible denominator — those
       two tiers show no match count at all, since "Career matches" is the bottom tier's
@@ -65,17 +68,14 @@ Preview URLs (throwaway docs, no existing document touched — delete with
       page honest. Prefixing "NXL ·" and "Pick&rsquo;Em ·" puts it back in one line;
       say the word.
 
-- [ ] **The "All-time leaders" cards are SELECTED by kills but now LEAD with wins.**
-      They read 7, 7, 6, 16, 7, 12 down the row, so a reader sees Wins as the headline
-      figure and takes the row to be ranked by it. Ordering them by wins instead is one
-      line in `buildAggregates`; leaving them on kills is defensible if "all-time
-      leaders" is meant to mean top scorers, but nothing on the card says so any more
-      now that kills have left it.
+- [x] **RESOLVED 5 Sep — the leaders row is now ordered by wins, then win rate.** It was
+      selected by kills while leading with wins. Fixing it also exposed the photo
+      pre-check bug recorded below.
 
-- [ ] **Dropping Rank from those cards cost the photo rule its alibi.** A player without
-      a usable photo is skipped rather than shown as a placeholder, and the rank was what
-      made the skip visible — the sequence read 1st, 2nd, 4th. Six cards with no
-      positions look like a definitive top six.
+- [x] **ACCEPTED 5 Sep — dropping Rank from those cards cost the photo rule its alibi.**
+      A player without a usable photo is skipped, and the rank was what made the skip
+      visible. Six unnumbered cards look like a definitive top six. James: "photo thing
+      is fine."
 
 - [x] **FIXED 5 Sep — the landing page's other two rows were about to be blanked.**
       `buildAggregates` scoped the event-leaders and most-picked rows to the NEWEST
