@@ -2569,14 +2569,6 @@ const nxlShortLabel = (label: string, year: string) => {
   return `${initials} ${year.slice(2)}`;
 };
 
-/**
- * "2015-2026", or just "2025" for a single season.
- *
- * A range whose ends are equal reads as a mistake — "2025-2025" is the kind of detail
- * that makes a reader distrust the numbers beside it.
- */
-const yearSpan = (from: string | null, to: string | null) =>
-  from && to && from !== to ? `${from}\u2013${to}` : (to ?? from ?? "\u2014");
 
 
 /**
@@ -2686,18 +2678,15 @@ function NxlRecordPanel({ nxl }: { nxl: NxlCareer }) {
         <div>
           <h2 className={SECTION_HEADING}>NXL record</h2>
           {/*
-            The caption does two jobs and both are load-bearing: it states the span,
-            because this panel alone covers more than a decade while the rest of the
-            page covers eight events; and it states that the record belongs to the
-            team, because "76%" beside a portrait will otherwise be read as the
-            player's own.
+            Shortened to the label alone, 5 Sep.
+            ⚠️ This was the LAST place on the site saying these results belong to the
+            TEAMS a player turned out for rather than to the player — the all-time
+            table's caption lost the same clause on 4 Sep. A win rate printed beside a
+            portrait now reads as the player's own everywhere it appears. Flagged in
+            CAREER_PAGE_REVIEW.md; the span it also carried is on the hero strip above.
           */}
           <p className="mt-2.5 max-w-[62ch] text-[11px] leading-relaxed text-gray-500 dark:text-white/40">
-            Match win rate by season, from the league&rsquo;s own results,{" "}
-            {yearSpan(nxl.firstYear, nxl.lastYear)}. These are the results of the{" "}
-            <b className="font-bold text-gray-700 dark:text-white/60">teams</b> they played
-            for, at the tournaments they took the field at &mdash; not a measure of what
-            any one player did in a match.
+            Match win rate by season
           </p>
         </div>
         {/*

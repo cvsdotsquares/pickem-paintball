@@ -116,10 +116,14 @@ Preview URLs (throwaway docs, no existing document touched — delete with
 
 ## 2. Known limits — no action unless you disagree
 
-- [ ] **A win here is the TEAM's, at an event the player took the field for.** Not a
-      measure of individual contribution. The panel caption says so in as many words.
-      Per-point lineups are the only way to do better and pbleagues publishes those
-      reliably for 2023 alone — absent entirely in 2021, 2022 and 2024.
+- [ ] **⚠️ NOTHING ON THE SITE NOW SAYS THESE ARE TEAM RESULTS.** A win here is the
+      TEAM's, at an event the player took the field for — not a measure of individual
+      contribution. The NXL panel's caption said so in as many words until 5 Sep, when it
+      was cut to "Match win rate by season"; the all-time table's caption lost the same
+      clause on 4 Sep. A win rate printed beside a portrait now reads as the player's own
+      everywhere it appears, and a 76% next to a face is the most quotable number on the
+      page. Per-point lineups are the only way to make it literally true, and pbleagues
+      publishes those reliably for 2023 alone.
 
 - [ ] **233 of 328 players have an NXL record.** The other 95 are overwhelmingly
       one-event players; 90 simply have no `league_id` in Firestore and 5 have one that
