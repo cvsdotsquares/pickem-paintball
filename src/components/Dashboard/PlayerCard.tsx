@@ -69,7 +69,15 @@ export interface CardPlayer {
 function Stat({ value, suffix, label, sublabel }: CardStat) {
   return (
     <div className="border-r border-black/[0.07] px-0 pb-2 pt-1.5 text-center last:border-r-0 sm:px-1.5 sm:pb-2.5 sm:pt-2 dark:border-white/[0.08]">
-      <div className="pickem-numeric text-[12px] font-black leading-none text-gray-900 sm:text-[15px] lg:text-[17px] dark:text-white">
+      {/*
+        `whitespace-nowrap`, because a value can now contain a dash.
+        "203–92" broke after the en-dash on a 375px phone, which made that one card's
+        stat block a line taller than the five beside it and threw the whole row out.
+        The mobile step drops to 11px so six characters still fit the ~35px cell without
+        the break — every other value on the card is one to four characters and loses
+        nothing by matching.
+      */}
+      <div className="pickem-numeric whitespace-nowrap text-[11px] font-black leading-none text-gray-900 sm:text-[15px] lg:text-[17px] dark:text-white">
         {value}
         {suffix && (
           <span className="ml-0.5 text-[9px] font-bold text-gray-500 sm:text-[10px] dark:text-white/50">

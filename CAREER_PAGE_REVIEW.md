@@ -77,6 +77,17 @@ Preview URLs (throwaway docs, no existing document touched — delete with
       made the skip visible — the sequence read 1st, 2nd, 4th. Six cards with no
       positions look like a definitive top six.
 
+- [ ] **The all-time leader cards are SELECTED by career kills but no longer show it.**
+      The three stats are now Wins, Record, Kills/Event (your call, 5 Sep), so the
+      leading figure is Wins while the row is ordered by kills — 7, 7, 6, 16, 7, 12
+      today. A reader takes the first number to be the ranking. Ordering by wins instead
+      is one line in `buildAggregates`; it is a product call, not a technical one.
+
+- [ ] **Dropping the rank from those cards also cost the photo rule its alibi.** A player
+      without a usable photo is skipped rather than shown as a placeholder, and the rank
+      was what made that visible — the row read 1st, 2nd, 4th and you could see someone
+      was missing. Six cards with no positions look like a definitive top six.
+
 - [ ] **The trophy is a colour emoji** — 🏆 on winning events in the table, and above
       title-winning seasons in the chart. The only emoji on a deliberately austere page.
       It reads in both themes and does not depend on colour to carry meaning, but it is
