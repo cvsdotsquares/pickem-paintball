@@ -859,6 +859,15 @@ export default function PlayerPage() {
               const p = row.pickem;
               const absent = p ? missedEvent(p) : false;
               const noStats = !p || absent;
+              /**
+               * A team result belongs on this row only if the player was there.
+               *
+               * League-only rows (no PickEm appearance at all) DO show it: they exist
+               * precisely to carry the league history, and we hold no participation
+               * verdict for them either way. It is the events we DO know they sat out
+               * that must not display a win.
+               */
+              const showRecord = Boolean(row.record) && !absent;
               const pick = noStats ? null : (ownership?.get(p.eventId) ?? null);
               // Kept so the existing cells below read unchanged where they can.
               const a = p;
@@ -897,29 +906,39 @@ export default function PlayerPage() {
                     won it. A title is the single most important thing an event row can
                     say, and it costs no extra column: "7–0" already sits here, so the
                     fact that it was the winning run is carried by the styling rather
-                    than by yet another 50px of table. */}
+                    than by yet another 50px of table.
+
+                    SUPPRESSED WHERE THE PLAYER DID NOT PLAY. `eventRecord` looks up the
+                    TEAM's result and knows nothing about participation, so a DNP row was
+                    showing the trophy for a tournament the player sat out — Ivan Lopez
+                    read 2 wins here against 1 in the hero and 1 on the chart, because
+                    Red Legion won Midwest Open 2025 while he was marked absent. The hero
+                    and the chart both come from `nxl`, which drops absences; this column
+                    is the one that never got the rule. */}
                 <div
                   className={cn(
                     "text-right text-[12px] pickem-numeric",
-                    row.record?.champion
-                      ? "font-black text-[#1a3c6e] dark:text-[#00f976]"
-                      : row.record
-                        ? "font-semibold text-gray-600 dark:text-white/60"
-                        : "text-gray-300 dark:text-white/25",
+                    showRecord
+                      ? row.record!.champion
+                        ? "font-black text-[#1a3c6e] dark:text-[#00f976]"
+                        : "font-semibold text-gray-600 dark:text-white/60"
+                      : "text-gray-300 dark:text-white/25",
                   )}
                   title={
-                    row.record
-                      ? `${row.team} finished ${row.record.champion ? "as winners" : `at the ${row.record.finish.toLowerCase()}`} — ${row.record.w} won, ${row.record.l} lost`
-                      : "The league has no results for this event yet"
+                    showRecord
+                      ? `${row.team} finished ${row.record!.champion ? "as winners" : `at the ${row.record!.finish.toLowerCase()}`} — ${row.record!.w} won, ${row.record!.l} lost`
+                      : absent
+                        ? `${row.team} played this event; ${career.name} did not, so their result is not counted here`
+                        : "The league has no results for this event yet"
                   }
                 >
-                  {row.record ? (
+                  {showRecord ? (
                     <>
-                      {row.record.champion && <span className="mr-0.5" aria-hidden="true">🏆</span>}
-                      {row.record.w}–{row.record.l}
+                      {row.record!.champion && <span className="mr-0.5" aria-hidden="true">🏆</span>}
+                      {row.record!.w}–{row.record!.l}
                     </>
                   ) : (
-                    "—"
+                    "\u2014"
                   )}
                 </div>
                 <div />

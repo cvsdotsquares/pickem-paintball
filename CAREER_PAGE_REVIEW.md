@@ -161,6 +161,24 @@ Preview URLs (throwaway docs, no existing document touched — delete with
       their raw record implies. That is the right way round — it never credits an absence
       — and the gap is at most a place or two.
 
+## 2c. Bugs found and fixed
+
+- [x] **The event table credited tournament wins to players who sat the event out.**
+      Found by James on Ivan Lopez, 5 Sep: hero said 1 win, chart said 1, the event
+      table showed 2. `eventRecord()` looks up the TEAM's result and knows nothing about
+      participation, so a DNP row displayed the team's W-L and trophy — Red Legion won
+      Midwest Open 2025 while Lopez was marked absent. The hero and chart both read
+      `nxl`, which drops absences; this column never got the rule.
+
+      Blast radius: **125 DNP rows across 91 players** were showing a team record, of
+      which **5 displayed a trophy** — Panlilio (Mid West 26), Luckau (Tampa Bay 25 and
+      Atlantic City 25), Botsolas (Mid Atlantic 26), Lopez (Midwest 25). Those rows now
+      show a dash, with a tooltip saying the team played and the player did not.
+
+      League-only rows still show their record: they exist to carry the league history
+      and we hold no participation verdict for them either way. It is only the events we
+      KNOW someone sat out that must not display a win.
+
 ## 2b. Failure modes — checked 4 Sep
 
 **Ruled out with evidence**
