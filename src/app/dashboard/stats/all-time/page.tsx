@@ -83,18 +83,18 @@ export default function AllTimeStatsPage() {
           </h1>
           {/*
             TWO SCOPES IN ONE TABLE, and the header row has nowhere to say so.
-            Everything from NXL Events to Match Win % is the league since 2015; the kill
-            columns are the eight events PickEm scores. Without this line a reader takes
-            "16 wins" and "144 kills" to be measured over the same span, which gives an
-            impossible player.
+            Event Wins through Match Win % is the league since 2015; the kill columns are
+            the eight events PickEm scores. Without these two lines a reader takes "16
+            wins" and "144 kills" to be measured over the same span, which describes a
+            player who does not exist.
+
+            One line each, because they are two separate facts about two separate sets of
+            columns — run together as a paragraph, neither attached to anything.
           */}
-          <p className="mt-1.5 max-w-[70ch] pl-3 text-[11px] leading-relaxed text-gray-500 dark:text-white/40">
-            League results are tracked from 2015 and are the record of the{" "}
-            <b className="font-bold text-gray-600 dark:text-white/60">teams</b> a player
-            turned out for. Pick&rsquo;Em started tracking confirmed kills in 2025 &mdash;
-            those columns cover far fewer events. A dash means we hold no NXL id for that
-            player.
-          </p>
+          <div className="mt-1.5 pl-3 text-[11px] leading-relaxed text-gray-500 dark:text-white/40">
+            <p>League results tracked from NXL inception in 2015</p>
+            <p>Pick&rsquo;Em started tracking confirmed kills in 2025</p>
+          </div>
         </div>
         <PlayerSearch className="w-full sm:w-64" />
       </div>
