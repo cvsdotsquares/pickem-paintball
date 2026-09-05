@@ -183,6 +183,7 @@ console.log(`\n✅ Every change is one of the ${ALLOWED.size} allowed fields. No
 
 const write = process.argv.includes("--write");
 await patchAllTime(write);
+await patchSpotlight(write);
 
 if (!write) {
   console.log(`\nNo --write flag, so nothing was written.\n`);
@@ -269,6 +270,63 @@ async function patchAllTime(write) {
   if (!write) return;
   await ref.set({ ...snap.data(), players }, { merge: true });
   console.log(`Patched aggregates/allTime.`);
+}
+
+/**
+ * The career-stats landing page reads `aggregates/spotlight`, whose "All-time leaders"
+ * cards carry three pre-formatted figures. They now read Wins / Record / Kills-per-event
+ * instead of Rank / Kills / Kills-per-event, so the stored cards need rewriting.
+ *
+ * Only `allTimeLeaders` is touched. The event-leader and most-picked rows in the same
+ * document keep their own stats, which are scoped to an event rather than a career.
+ */
+async function patchSpotlight(write) {
+  const ref = db.doc("aggregates/spotlight");
+  const snap = await ref.get();
+  const data = snap.data();
+  const leaders = data?.allTimeLeaders ?? [];
+  if (!leaders.length) {
+    console.log(`\naggregates/spotlight: no all-time leaders, nothing to patch.`);
+    return;
+  }
+
+  const byId = new Map(summaries.docs.map((d) => [d.id, d.data()]));
+  const updated = leaders.map((c) => {
+    const sum = byId.get(String(c.id));
+    const n = sum?.nxl ?? null;
+    const avg = c.stats?.[2] ?? { value: "\u2014", label: "Kills", sublabel: "/Event" };
+    return {
+      ...c,
+      stats: [
+        { value: n ? String(n.titles) : "\u2014", label: "Wins" },
+        { value: n ? `${n.matchW}\u2013${n.matchL}` : "\u2014", label: "Record" },
+        // Carried across untouched — it was already the third figure and its formatting
+        // belongs to the builder that produced it.
+        avg,
+      ],
+    };
+  });
+
+  const changed = updated.filter((c, i) => stable(c) !== stable(leaders[i]));
+  const bad = [];
+  updated.forEach((c, i) => {
+    diff(leaders[i], c).forEach((path) => {
+      if (!path.startsWith("stats")) bad.push(`${c.name}: ${path}`);
+    });
+  });
+
+  console.log(`\naggregates/spotlight: ${leaders.length} all-time leader cards, ${changed.length} to patch`);
+  if (bad.length) {
+    console.error(`❌ would change something other than the card stats: ${bad.slice(0, 5).join(", ")}`);
+    process.exit(1);
+  }
+  console.log(`✅ Only the card stats change.`);
+  updated.slice(0, 3).forEach((c) =>
+    console.log(`   ${c.name}: ${c.stats.map((x) => `${x.value} ${x.label}${x.sublabel ?? ""}`).join("  |  ")}`),
+  );
+  if (!write) return;
+  await ref.set({ ...data, allTimeLeaders: updated }, { merge: true });
+  console.log(`Patched aggregates/spotlight.`);
 }
 
 const BATCH = 200;

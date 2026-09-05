@@ -808,11 +808,20 @@ async function buildAggregates(db, summaries, { events: preloadedEvents = null }
   const ROW = 6;
 
   /**
-   * All-time leaders — career kills, highest first.
+   * All-time leaders — SELECTED by career kills, highest first.
    *
-   * The photo rule still applies, so a player without one is skipped rather than shown
-   * as a placeholder. That is honest here only because the card carries its RANK: a
-   * skipped player leaves a visible gap in the sequence rather than a silent one.
+   * ⚠️ The cards no longer SHOW kills, so nothing on them explains their order: a
+   * reader sees Wins as the leading figure and reasonably takes the row to be ranked
+   * by it, which it is not (7, 7, 6, 16, 7, 12 today). Ordering them by wins instead
+   * is one line — `b.nxl?.titles - a.nxl?.titles` — and is a product call, not a
+   * technical one.
+   *
+   * ⚠️ Dropping the rank also costs the photo rule its alibi. A player without a
+   * usable photo is skipped rather than shown as a placeholder, and the rank was what
+   * made that visible — the sequence read 1st, 2nd, 4th and a reader could see someone
+   * was missing. Six cards with no positions on them look like a definitive top six.
+   *
+   * Both flagged in CAREER_PAGE_REVIEW.md.
    */
   const allTimeLeaders = summaries
     .filter((s) => s.playedCount > 0 && hasPhoto(s))
@@ -820,8 +829,11 @@ async function buildAggregates(db, summaries, { events: preloadedEvents = null }
     .slice(0, ROW)
     .map((s) =>
       card(s, "Career stats", [
-        rankStat(s.careerRank),
-        { value: fmtK(s.totalKills), label: "Kills" },
+        { value: s.nxl ? String(s.nxl.titles) : "\u2014", label: "Wins" },
+        {
+          value: s.nxl ? `${s.nxl.matchW}\u2013${s.nxl.matchL}` : "\u2014",
+          label: "Record",
+        },
         { value: s.avgKills.toFixed(1), label: "Kills", sublabel: "/Event" },
       ]),
     );

@@ -65,6 +65,18 @@ Preview URLs (throwaway docs, no existing document touched — delete with
       page honest. Prefixing "NXL ·" and "Pick&rsquo;Em ·" puts it back in one line;
       say the word.
 
+- [ ] **The "All-time leaders" cards are SELECTED by kills but now LEAD with wins.**
+      They read 7, 7, 6, 16, 7, 12 down the row, so a reader sees Wins as the headline
+      figure and takes the row to be ranked by it. Ordering them by wins instead is one
+      line in `buildAggregates`; leaving them on kills is defensible if "all-time
+      leaders" is meant to mean top scorers, but nothing on the card says so any more
+      now that kills have left it.
+
+- [ ] **Dropping Rank from those cards cost the photo rule its alibi.** A player without
+      a usable photo is skipped rather than shown as a placeholder, and the rank was what
+      made the skip visible — the sequence read 1st, 2nd, 4th. Six cards with no
+      positions look like a definitive top six.
+
 - [ ] **The trophy is a colour emoji** — 🏆 on winning events in the table, and above
       title-winning seasons in the chart. The only emoji on a deliberately austere page.
       It reads in both themes and does not depend on colour to carry meaning, but it is

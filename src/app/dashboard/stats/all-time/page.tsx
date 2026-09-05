@@ -92,7 +92,7 @@ export default function AllTimeStatsPage() {
             columns — run together as a paragraph, neither attached to anything.
           */}
           <div className="mt-1.5 pl-3 text-[11px] leading-relaxed text-gray-500 dark:text-white/40">
-            <p>League results tracked from NXL inception in 2015</p>
+            <p>Win / Loss records tracked from NXL inception in 2015</p>
             <p>Pick&rsquo;Em started tracking confirmed kills in 2025</p>
           </div>
         </div>
