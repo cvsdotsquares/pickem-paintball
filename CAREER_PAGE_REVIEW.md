@@ -179,6 +179,22 @@ Preview URLs (throwaway docs, no existing document touched — delete with
       and we hold no participation verdict for them either way. It is only the events we
       KNOW someone sat out that must not display a win.
 
+- [x] **The team builder preferred a stale `player_id` field over the document id.**
+      Spotted 5 Sep while answering a question about Ivan Lopez's DNP. The August
+      identity fix moved 26 players to new document ids and left the inner `player_id`
+      on its old value — Lopez lives at `100403` and the field still reads `100149`.
+      `pick-em/page.tsx` read `r.player_id != null ? String(r.player_id) : r.id`, so it
+      would have written the old id into a pick that scoring then resolves against the
+      doc id and cannot find.
+
+      NO LIVE IMPACT: all 26 are on locked 2025 events, every 2026 roster is clean, and
+      the page only ever loads the live event. Fixed anyway — the doc id is now
+      authoritative — because it is a silent scoring bug the first time a renumbered
+      player appears on an open roster.
+
+      The 26 stale fields are still in Firestore. Nothing reads them now; worth tidying
+      with the next roster pass rather than a migration of its own.
+
 ## 2b. Failure modes — checked 4 Sep
 
 **Ruled out with evidence**
