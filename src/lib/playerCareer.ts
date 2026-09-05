@@ -93,6 +93,15 @@ export interface CareerAppearance {
   cost: number;
   status: string | null;
   participation: Participation;
+  /**
+   * WHY the participation verdict was reached — "scored", "off team sheet",
+   * "roster flag: Injured". See `scripts/participation-plan.mjs`.
+   *
+   * Load-bearing, not diagnostic: "off team sheet" and "roster flag: X" are both
+   * absences and mean opposite things. The first is a player who was never at the
+   * event; the second is one who was there and did not take the field.
+   */
+  participationReason: string | null;
   kind: AppearanceKind;
   types: Record<KillType, number>;
   /**
@@ -371,6 +380,7 @@ export async function fetchPlayerCareer(playerId: string): Promise<PlayerCareer 
             cost: 0,
             status: null,
             participation: "absent" as Participation,
+            participationReason: null,
             kind: "not-rostered" as AppearanceKind,
             teamKills: 0,
             shareOfTeam: null,
@@ -408,6 +418,7 @@ export async function fetchPlayerCareer(playerId: string): Promise<PlayerCareer 
           cost,
           status: (d.Status as string) ?? null,
           participation: ((d.participation as Participation) ?? "unknown"),
+          participationReason: (d.participationReason as string) ?? null,
           kind: (isAbsent(d.participation as Participation) ? "dnp" : "played") as AppearanceKind,
           types,
           costPerKill: cost > 0 && kills > 0 ? cost / kills : null,

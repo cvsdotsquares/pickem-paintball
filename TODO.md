@@ -176,6 +176,39 @@ Vercel.
 
 ## Data
 
+- [ ] **Work back from the root cause of the player-identity problem, rather than
+      patching instances.** Raised 5 Sep. We have now fixed the same underlying issue at
+      least four times in different clothes, each time as a one-off:
+
+      | When | Symptom | Patch |
+      |---|---|---|
+      | 22 Aug | 26 docs at colliding ids, 8 duplicate people | `apply-identity-fix.mjs`, 104 ops |
+      | 22 Aug | 199 players missing `team_id` | `fix-team-ids.mjs` |
+      | 4 Sep | 90 players with no `league_id`, so no NXL record | read it from ANY event rather than the latest |
+      | 5 Sep | 26 docs whose inner `player_id` ≠ their own doc id | team builder now trusts the doc id |
+
+      Each fix was correct and none addressed why it keeps happening. The root cause is
+      recorded in ROSTER_IDENTITY.md and [[pickem-player-identity-defects]]: **rosters
+      are keyed on player NAME and new ids are minted at event boundaries**, so the same
+      person acquires a new id whenever a name is typed differently. Everything above is
+      downstream of that.
+
+      What "backworking" it should mean:
+      - **One identity, minted once.** `syncRoster()` should resolve an incoming roster
+        row to an EXISTING player by `league_id`, and never mint a new id for someone
+        who already has one. `scripts/player-identity-registry.json` is the seed —
+        328 players, 322 of whom the pbleagues crawl confirms.
+      - **Make the document id the only identity.** The stored `player_id` field is now
+        redundant and, on 26 documents, wrong. Either drop it or write it from the doc
+        id on every sync; a field that can disagree with its own key will disagree again.
+      - **A standing check, not another audit.** The cross-checks written on 4-5 Sep
+        (crawl club vs our team, 746/746; shared `league_id`, 0; doc id vs inner field,
+        26 bad) are one-off scripts. They should run on a schedule and alert, so the
+        next instance surfaces in a day rather than when someone notices a wrong number
+        on a career page.
+
+      Worth doing before the next roster load, not after.
+
 - [ ] **Review the data pipeline as a whole — we now ingest several streams and pull
       each one by hand.** Raised 4 Sep 2026. Not a bug; a shape problem that is starting
       to cost. What currently feeds the site, and how each arrives:

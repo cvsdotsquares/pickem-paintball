@@ -92,7 +92,27 @@ export async function fetchPlayerSummary(playerId: string): Promise<PlayerSummar
   if (!snap.exists()) return null;
   const d = snap.data() as SummaryDoc;
 
-  const appearances: CareerAppearance[] = (d.events ?? []).map((r) => ({
+  /**
+   * A player who was OFF THE OFFICIAL TEAM SHEET was not at the event at all, and does
+   * not get a row.
+   *
+   * This used to render as a DNP, which claims something stronger and different: that
+   * they were there and did not take the field. Two independent sources say otherwise —
+   * the NXL team sheet the verdict comes from, and the pbleagues roster crawl, which
+   * agrees on all 30 of these that can be cross-checked and disagrees on none. What it
+   * actually records is a PickEm roster that listed someone the league never registered.
+   *
+   * `roster flag: …` absences are kept. Those players ARE on the sheet and our own
+   * roster says they sat it out — a real DNP, which is a fact about the event rather
+   * than about our data.
+   *
+   * Display only. The stored verdict is evidence and stays; every career total already
+   * excluded these rows, so no number moves.
+   */
+  const OFF_SHEET = "off team sheet";
+  const appearances: CareerAppearance[] = (d.events ?? [])
+    .filter((r) => !(r.participation === "absent" && r.participationReason === OFF_SHEET))
+    .map((r) => ({
     eventId: r.eventId,
     eventName: r.eventName,
     shortLabel: eventAxisLabel({ id: r.eventId, name: r.eventName, year: r.year }),
@@ -113,6 +133,7 @@ export async function fetchPlayerSummary(playerId: string): Promise<PlayerSummar
     shareOfTeam: r.shareOfTeam ?? null,
     record: r.record ?? null,
     start: r.start ?? null,
+    participationReason: r.participationReason ?? null,
   }));
 
   const ownership = new Map<string, number>();

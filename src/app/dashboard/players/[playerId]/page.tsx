@@ -414,7 +414,21 @@ export default function PlayerPage() {
       });
     }
 
-    return rows.sort((x, y) => y.start.localeCompare(x.start));
+    /**
+     * A row has to carry at least one fact.
+     *
+     * The table used to be played-events-only; opening it to the whole league career
+     * let in PickEm events the player was never rostered for, which have no result to
+     * show either — Ivan Lopez had two rows reading "— — —" across every column. A
+     * league row with a W-L earns its place, and so does a genuine DNP; a row that
+     * knows nothing does not.
+     *
+     * The kills chart still keeps every missed event on its axis, which is where a gap
+     * in a career reads as a shape rather than as blank cells.
+     */
+    return rows
+      .filter((r) => r.record != null || (r.pickem != null && r.pickem.kind !== "not-rostered"))
+      .sort((x, y) => y.start.localeCompare(x.start));
   })();
 
   const historyRows = timeline;
