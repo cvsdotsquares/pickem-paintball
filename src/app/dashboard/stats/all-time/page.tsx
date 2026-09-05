@@ -25,7 +25,21 @@ interface SortConfig {
 
 export default function AllTimeStatsPage() {
   const [rows, setRows] = useState<Record<string, unknown>[] | null>(null);
-  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  /**
+   * Opens on tournament wins, highest first.
+   *
+   * The stored rows arrive ordered by career kills, which is the wrong headline for a
+   * table whose first column is now Event Wins — the top row would have been whoever
+   * has scored most since 2025 rather than whoever has won most since 2015.
+   *
+   * Ties keep the kills order underneath, for free: the sort below is stable and the
+   * document is already in that order, so two players level on wins fall out by kills
+   * rather than arbitrarily.
+   */
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>({
+    key: "Event Wins",
+    direction: "descending",
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -119,6 +133,11 @@ export default function AllTimeStatsPage() {
             sortConfig={sortConfig}
             onSortChange={(c: SortConfig | null) => setSortConfig(c)}
             showMyPicks={false}
+            /* No rank column: the rows are ordered by tournament wins, and a "#" beside
+               them would be read as a position on THAT order. It is not — it is the
+               player's rank by career kills, which is a different measure and now sits
+               several columns to the right. */
+            showRank={false}
           />
         )}
       </section>

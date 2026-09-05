@@ -290,6 +290,18 @@ type MatchupTableProps = {
   myPicks?: Set<string>;
   /** Set false where a picks filter is meaningless (e.g. the all-time table). */
   showMyPicks?: boolean;
+  /**
+   * Render the sticky rank column.
+   *
+   * False on the all-time table, where the rows are ordered by tournament wins and a
+   * "#" beside them would be read as a ranking ON that order — it is not; it is the
+   * player's position by career kills, which is a different column entirely and now
+   * several to the right.
+   *
+   * A prop rather than a data change because this column is structural: it is the
+   * first sticky cell, and the Player column's `left` offset is measured from it.
+   */
+  showRank?: boolean;
   currentEventId?: string; // Add this
   isSeasonView?: boolean; // Add this to identify season totals view
   /** Season view: event column keys, most recent first (matches stats page event order) */
@@ -327,6 +339,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   onSortChange,
   myPicks,
   showMyPicks = true,
+  showRank = true,
   currentEventId,
   isSeasonView = false,
   seasonEventColumnOrder = [],
@@ -949,6 +962,16 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     return baseHeaders;
   }, [data, isSeasonView, seasonEventColumnOrder]);
 
+  /**
+   * Where the Player column starts sticking.
+   *
+   * It sits immediately right of the rank column, so its `left` has to match the rank
+   * column's width — 20px mobile, 40px desktop. With the rank column hidden it butts
+   * against the edge instead. Hard-coded in two places (header and body) before this,
+   * which is exactly the kind of pair that drifts.
+   */
+  const playerStickyLeft = showRank ? "left-5 md:left-10" : "left-0 md:left-0";
+
   const dynamicHeaders = useMemo(
     () => headers.filter((h) => !FIXED_IDENTITY_DISPLAY_KEYS.has(h.displayKey)),
     [headers],
@@ -1254,12 +1277,13 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               horizontally scrolled stats show between Rank and Player.
             */}
             <colgroup>
-              <col className="w-5 md:w-10" />
+              {showRank && <col className="w-5 md:w-10" />}
               <col className="max-md:w-[min(25vw,6rem)] md:w-[200px]" />
             </colgroup>
           <thead>
             <tr className={`min-h-[3.25rem] md:min-h-[3.25rem] ${themeClasses.headerBg}`}>
               {/* Rank Column - Smaller on mobile */}
+              {showRank && (
               <th
                 scope="col"
                 className={`sticky left-0 z-[50] box-border px-0 py-2 text-center text-[10px] font-medium font-azonix uppercase tracking-wider md:px-2 md:text-[12px] md:border-r w-5 min-w-5 max-w-5 border-b border-gray-300/80 shadow-[0_1px_0_0_rgba(0,0,0,0.06)] md:w-10 md:min-w-10 md:max-w-10 dark:border-white/10 ${sortConfig?.key === "Rank"
@@ -1277,11 +1301,12 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                   <span className="inline-flex shrink-0 leading-none">{getSortIcon("Rank")}</span>
                 </div>
               </th>
+              )}
 
               {/* Player Column - Optimized for mobile */}
               <th
                 scope="col"
-                className={`sticky left-5 z-[52] box-border min-w-0 max-w-[min(25vw,6rem)] w-[min(25vw,6rem)] border-b border-r border-gray-300/80 border-r-black/10 dark:border-r-white/10 pl-1.5 pr-0.5 text-left text-[10px] font-medium font-azonix uppercase tracking-wider [will-change:transform] [transform:translateZ(0)] dark:border-b-white/10 md:left-10 md:max-w-none md:min-w-[200px] md:w-[200px] md:pl-4 md:pr-1 md:text-[12px] ${sortConfig?.key === "Player"
+                className={`sticky ${playerStickyLeft} z-[52] box-border min-w-0 max-w-[min(25vw,6rem)] w-[min(25vw,6rem)] border-b border-r border-gray-300/80 border-r-black/10 dark:border-r-white/10 pl-1.5 pr-0.5 text-left text-[10px] font-medium font-azonix uppercase tracking-wider [will-change:transform] [transform:translateZ(0)] dark:border-b-white/10 md:max-w-none md:min-w-[200px] md:w-[200px] md:pl-4 md:pr-1 md:text-[12px] ${sortConfig?.key === "Player"
                   ? darkMode
                     ? "cursor-pointer bg-blue-800 text-blue-100"
                     : "cursor-pointer bg-blue-600 text-white"
@@ -1346,7 +1371,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
           >
           <table className="w-full min-w-[960px] table-fixed border-separate border-spacing-0 md:min-w-0">
             <colgroup>
-              <col className="w-5 md:w-10" />
+              {showRank && <col className="w-5 md:w-10" />}
               <col className="max-md:w-[min(25vw,6rem)] md:w-[200px]" />
             </colgroup>
           <tbody className={` divide-y ${themeClasses.border}`}>
@@ -1360,6 +1385,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                 className={`${themeClasses.hover} ${themeClasses.bg} ${themeClasses.text} `}
               >
                 {/* Rank Column - Smaller on mobile */}
+                {showRank && (
                 <td
                   className={`sticky left-0 z-[20] box-border px-0 py-2 whitespace-nowrap md:border-r ${themeClasses.border} ${themeClasses.bg} w-5 min-w-5 max-w-5 md:w-10 md:min-w-10 md:max-w-10`}
                 >
@@ -1373,10 +1399,11 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                     )}
                   </div>
                 </td>
+                )}
 
                 {/* Player Column - Compact mobile layout */}
                 <td
-                  className={`sticky left-5 z-[21] box-border min-w-0 max-w-[min(25vw,6rem)] w-[min(25vw,6rem)] p-1 md:max-w-none md:whitespace-nowrap md:left-10 md:min-w-[200px] md:w-[200px] md:p-2 [will-change:transform] [transform:translateZ(0)] border-r border-black/10 dark:border-white/10 ${themeClasses.bg}`}
+                  className={`sticky ${playerStickyLeft} z-[21] box-border min-w-0 max-w-[min(25vw,6rem)] w-[min(25vw,6rem)] p-1 md:max-w-none md:whitespace-nowrap md:min-w-[200px] md:w-[200px] md:p-2 [will-change:transform] [transform:translateZ(0)] border-r border-black/10 dark:border-white/10 ${themeClasses.bg}`}
                 >
                   <div className="flex min-w-0 items-center gap-1.5 md:gap-0">
                     <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-600 md:mr-4">
