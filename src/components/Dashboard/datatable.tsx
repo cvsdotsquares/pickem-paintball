@@ -46,6 +46,58 @@ type TableRow = {
   stats: number[];
 };
 
+/**
+ * How one stat cell compares to another, for every sortable column in this table.
+ *
+ * THIS IS THE ONLY SORT THAT RUNS. The pages that host this table keep their own
+ * `sortConfig` and some of them also sort the array they pass in — but the component
+ * re-sorts what it is given, so whatever it does here is what a reader sees. A fix
+ * applied on the page side is silently discarded.
+ *
+ * Three rules the plain string/number comparison got wrong:
+ *
+ *   A WON-LOST RECORD sorts on WINS, not as text. "224-72" against "94-36" compared
+ *   character by character puts 94 above 224, and a click on Record produced
+ *   99-110, 94-106, 9-6, 9-20, 83-39 — an ordering with no meaning at all. Ties on
+ *   wins break on the fewer losses.
+ *
+ *   MISSING DATA sorts last in BOTH directions. An em-dash means "we cannot look this
+ *   up"; compared as text it lands at one end ascending and the other descending,
+ *   which reads as a ranking and would put the ninety-odd players with no NXL id at
+ *   the top of the all-time table for tournament wins. Absent is not a high score or
+ *   a low one.
+ *
+ *   NUMBERS compare numerically, as before.
+ */
+const NO_DATA = "\u2014";
+/** "224-72", with an en-dash, em-dash or hyphen. */
+const RECORD_RE = /^\s*(\d+)\s*[\u2013\u2014-]\s*(\d+)\s*$/;
+
+function compareCells(
+  a: unknown,
+  b: unknown,
+  direction: "ascending" | "descending",
+): number {
+  const aMissing = a == null || a === "" || a === NO_DATA;
+  const bMissing = b == null || b === "" || b === NO_DATA;
+  if (aMissing || bMissing) return aMissing && bMissing ? 0 : aMissing ? 1 : -1;
+
+  const ar = typeof a === "string" ? a.match(RECORD_RE) : null;
+  const br = typeof b === "string" ? b.match(RECORD_RE) : null;
+  if (ar && br) {
+    const byWins = Number(ar[1]) - Number(br[1]);
+    const cmp = byWins !== 0 ? byWins : Number(br[2]) - Number(ar[2]);
+    return direction === "ascending" ? cmp : -cmp;
+  }
+
+  if (typeof a === "number" && typeof b === "number") {
+    return direction === "ascending" ? a - b : b - a;
+  }
+  return direction === "ascending"
+    ? String(a).localeCompare(String(b))
+    : String(b).localeCompare(String(a));
+}
+
 /** Columns rendered as fixed # / Player cells; remainder follow `headers` order */
 const FIXED_IDENTITY_DISPLAY_KEYS = new Set([
   "Rank",
@@ -509,22 +561,12 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       );
     }
 
-    // Apply sorting if sortConfig exists
+    // Apply sorting if sortConfig exists. See `compareCells` — records sort on wins,
+    // and missing data sorts last whichever way the column points.
     if (sortConfig) {
-      filtered.sort((a, b) => {
-        const aValue = a[sortConfig.key];
-        const bValue = b[sortConfig.key];
-
-        if (typeof aValue === "number" && typeof bValue === "number") {
-          return sortConfig.direction === "ascending"
-            ? aValue - bValue
-            : bValue - aValue;
-        }
-
-        return sortConfig.direction === "ascending"
-          ? String(aValue).localeCompare(String(bValue))
-          : String(bValue).localeCompare(String(aValue));
-      });
+      filtered.sort((a, b) =>
+        compareCells(a[sortConfig.key], b[sortConfig.key], sortConfig.direction),
+      );
     }
 
     return filtered;

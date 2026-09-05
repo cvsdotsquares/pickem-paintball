@@ -212,6 +212,14 @@ people rather than bad ids.
   goes inline after the value (`1st /699`) or not at all. Tiles carrying a third line
   were 94px against 73px for those that did not, so the NXL row and the PickEm row kept
   different rhythms; all eight now match and the numbers land on one grid.
+- **`MatchupTable` re-sorts whatever array it is given, and that is the only sort that
+  runs.** A page can hold its own `sortConfig` and sort before passing rows in — the
+  all-time page did — and the component silently discards it. The dash-handling written
+  on the page side was never in effect; it took a bug report about the Record column to
+  find that out. Sorting rules now live in `compareCells` in the component, and the page
+  passes rows unsorted.
+- **A won-lost record sorts on WINS, not as text.** "224-72" against "94-36" compared
+  character by character put 94 above 224. Ties on wins break on the fewer losses.
 - **The two headers are FIXED for every player** — "Tracked 2015 to date" and "Tracked
   2025 to date". They describe where OUR DATA starts, not the player's career: paintball
   goes back much further than 2015 and those results are hard to come by, so saying where

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/src/lib/firebaseClient";
 import { MatchupTable } from "@/src/components/Dashboard/datatable";
@@ -32,9 +32,9 @@ export default function AllTimeStatsPage() {
    * table whose first column is now Event Wins — the top row would have been whoever
    * has scored most since 2025 rather than whoever has won most since 2015.
    *
-   * Ties keep the kills order underneath, for free: the sort below is stable and the
-   * document is already in that order, so two players level on wins fall out by kills
-   * rather than arbitrarily.
+   * Ties keep the kills order underneath, for free: the table's sort is stable and the
+   * stored document is already in that order, so two players level on wins fall out by
+   * kills rather than arbitrarily.
    */
   const [sortConfig, setSortConfig] = useState<SortConfig | null>({
     key: "Event Wins",
@@ -58,33 +58,14 @@ export default function AllTimeStatsPage() {
   }, []);
 
   /**
-   * An em-dash means "we cannot look this up", and it sorts LAST in both directions.
+   * No sorting here on purpose.
    *
-   * 93 of the 325 players have no NXL id, so their league columns are dashes. Left to
-   * the string comparison below they would land at one end of an ascending sort and the
-   * other end of a descending one — which reads as a ranking, putting a hundred players
-   * "top of the table" for tournament wins. Absent data is not a low score or a high
-   * one; it belongs at the bottom whichever way the column is pointing.
+   * `MatchupTable` re-sorts whatever array it is handed, using its own `compareCells`,
+   * so a second sort on this side is at best duplicated work and at worst a lie: the
+   * dash-handling and won-lost-record rules written here were simply discarded, and it
+   * took a bug report about the Record column to notice. One sort, in the component
+   * that renders.
    */
-  const NO_DATA = "\u2014";
-
-  const sorted = useMemo(() => {
-    if (!rows) return [];
-    if (!sortConfig) return rows;
-    return [...rows].sort((a, b) => {
-      const av = a[sortConfig.key];
-      const bv = b[sortConfig.key];
-      const aMissing = av === NO_DATA || av == null;
-      const bMissing = bv === NO_DATA || bv == null;
-      if (aMissing || bMissing) return aMissing && bMissing ? 0 : aMissing ? 1 : -1;
-      if (typeof av === "number" && typeof bv === "number") {
-        return sortConfig.direction === "ascending" ? av - bv : bv - av;
-      }
-      return sortConfig.direction === "ascending"
-        ? String(av).localeCompare(String(bv))
-        : String(bv).localeCompare(String(av));
-    });
-  }, [rows, sortConfig]);
 
   return (
     <div className="mx-auto mt-2 max-w-7xl px-4 md:px-6" style={{ paddingBottom: 80 }}>
@@ -129,7 +110,7 @@ export default function AllTimeStatsPage() {
           </p>
         ) : (
           <MatchupTable
-            data={sorted as never}
+            data={rows as never}
             sortConfig={sortConfig}
             onSortChange={(c: SortConfig | null) => setSortConfig(c)}
             showMyPicks={false}
