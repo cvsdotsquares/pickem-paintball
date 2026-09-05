@@ -84,6 +84,8 @@ async function loadEvents(db) {
         year,
         brandColor: d.get("brand_color") ?? null,
         lockSeconds: d.get("lockDate")?.seconds ?? 0,
+        /** When the tournament finishes. Only the 2026 events carry one. */
+        endsAtSeconds: d.get("eventEndsAt")?.seconds ?? null,
       };
     })
     .filter((e) => e.year !== "2024" && e.year.length === 4)
@@ -636,7 +638,34 @@ async function buildAggregates(db, summaries, { events: preloadedEvents = null }
   // Loaded again here rather than threaded out of buildAll — one extra read, and it
   // keeps buildAll's return value as just the summaries.
   const events = preloadedEvents ?? (await loadEvents(db));
-  const LATEST = events.at(-1)?.id ?? null;
+  /**
+   * The latest COMPLETED event — not simply the newest one.
+   *
+   * Every row on the landing page except the all-time leaders is scoped to this, and
+   * taking the newest event outright pointed all of them at `lone_star_open_2026`:
+   * rostered since August, played on 18-21 September. No player has a `played` row for
+   * it and nobody has picked it, so both rows came out EMPTY and a rebuild would have
+   * blanked two thirds of the page.
+   *
+   * `eventEndsAt` is the authority, but only the 2026 events carry one. For the rest
+   * the end is estimated from `lockDate`, which lands about a day before the first
+   * game, plus the five days that covers the longest format. The estimate errs LATE on
+   * purpose: calling an event finished before it is would put a half-scored leaderboard
+   * on the front page, while being a day slow just shows last month's a little longer.
+   *
+   * Falls back to the newest event of all only if nothing qualifies, which would mean
+   * a season where no event has finished yet — better a live event's empty row than no
+   * row at all, and it cannot happen with nine events on file.
+   */
+  const FIVE_DAYS = 5 * 24 * 60 * 60;
+  const endOf = (ev) =>
+    ev.endsAtSeconds ?? (ev.lockSeconds ? ev.lockSeconds + FIVE_DAYS : null);
+  const nowSeconds = Date.now() / 1000;
+  const completed = events.filter((ev) => {
+    const end = endOf(ev);
+    return end != null && end < nowSeconds;
+  });
+  const LATEST = completed.at(-1)?.id ?? events.at(-1)?.id ?? null;
   const pickAt = (s, ev) => s.events.find((e) => e.eventId === ev)?.pickPct ?? null;
   /**
    * A real headshot, not a placeholder.
@@ -656,8 +685,31 @@ async function buildAggregates(db, summaries, { events: preloadedEvents = null }
    * live photo and takes the first six.
    */
   const played = summaries.filter((s) => s.playedCount > 0);
+
+  /**
+   * How the all-time leaders row is ordered — tournament wins, then win rate, then
+   * kills as a stable last resort.
+   *
+   * ⚠️ DEFINED HERE, ABOVE `orderings`, AND USED IN BOTH PLACES. The photo pre-check
+   * below only probes the first `DEPTH` candidates of each ordering, so an ordering
+   * that disagrees with the row it feeds silently deletes players: they never get their
+   * photo checked, `hasPhoto` is therefore false, and they drop off the page with no
+   * error anywhere. Changing the row's sort and leaving this one on kills did exactly
+   * that — Stanczak (2nd by wins), Leival, Vanderbyl, Yachimec and Greenspan all
+   * vanished, and the row silently backfilled from further down.
+   *
+   * A player with no league record sorts last (-1) rather than as a zero: they are
+   * unranked here, not bottom.
+   */
+  const leagueRank = (s) => [s.nxl?.titles ?? -1, s.nxl?.titleRate ?? -1, s.totalKills];
+  const byLeagueRecord = (a, b) => {
+    const [aw, ar, ak] = leagueRank(a);
+    const [bw, br, bk] = leagueRank(b);
+    return bw - aw || br - ar || bk - ak;
+  };
+
   const orderings = [
-    [...played].sort((a, b) => b.totalKills - a.totalKills),
+    [...played].sort(byLeagueRecord),
     [...played]
       .filter((s) => s.events.some((e) => e.eventId === LATEST && e.kind === "played"))
       .sort((a, b) => {
@@ -808,24 +860,27 @@ async function buildAggregates(db, summaries, { events: preloadedEvents = null }
   const ROW = 6;
 
   /**
-   * All-time leaders — SELECTED by career kills, highest first.
+   * All-time leaders — tournament wins, then win rate.
    *
-   * ⚠️ The cards no longer SHOW kills, so nothing on them explains their order: a
-   * reader sees Wins as the leading figure and reasonably takes the row to be ranked
-   * by it, which it is not (7, 7, 6, 16, 7, 12 today). Ordering them by wins instead
-   * is one line — `b.nxl?.titles - a.nxl?.titles` — and is a product call, not a
-   * technical one.
+   * Ordered by the figure the cards LEAD with, which they were not before: the row was
+   * selected by career kills while showing Wins first, so the top card had 7 and the
+   * fourth had 16. Whatever a card puts in its first cell is what a reader takes the
+   * order to mean.
    *
-   * ⚠️ Dropping the rank also costs the photo rule its alibi. A player without a
-   * usable photo is skipped rather than shown as a placeholder, and the rank was what
-   * made that visible — the sequence read 1st, 2nd, 4th and a reader could see someone
-   * was missing. Six cards with no positions on them look like a definitive top six.
+   * Win RATE breaks the tie rather than kills, because it answers the same question at
+   * finer grain — 7 wins from 51 tournaments is a different career from 7 from 38, and
+   * both sit on the row today. Kills are the last resort, purely so the order is stable
+   * when two players match on both.
    *
-   * Both flagged in CAREER_PAGE_REVIEW.md.
+   * A player with no league record sorts last (-1) rather than as a zero: they are
+   * unranked here, not bottom.
+   *
+   * The photo rule still skips a player without a usable image, and with the rank gone
+   * from the cards that skip is now invisible — accepted 5 Sep.
    */
   const allTimeLeaders = summaries
     .filter((s) => s.playedCount > 0 && hasPhoto(s))
-    .sort((a, b) => b.totalKills - a.totalKills)
+    .sort(byLeagueRecord)
     .slice(0, ROW)
     .map((s) =>
       card(s, "Career stats", [

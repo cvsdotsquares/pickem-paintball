@@ -77,16 +77,25 @@ Preview URLs (throwaway docs, no existing document touched — delete with
       made the skip visible — the sequence read 1st, 2nd, 4th. Six cards with no
       positions look like a definitive top six.
 
-- [ ] **The all-time leader cards are SELECTED by career kills but no longer show it.**
-      The three stats are now Wins, Record, Kills/Event (your call, 5 Sep), so the
-      leading figure is Wins while the row is ordered by kills — 7, 7, 6, 16, 7, 12
-      today. A reader takes the first number to be the ranking. Ordering by wins instead
-      is one line in `buildAggregates`; it is a product call, not a technical one.
+- [x] **FIXED 5 Sep — the landing page's other two rows were about to be blanked.**
+      `buildAggregates` scoped the event-leaders and most-picked rows to the NEWEST
+      event, which is `lone_star_open_2026` — rostered since August, played 18-21
+      September. Neither row had anyone in it, so any rebuild would have emptied two
+      thirds of the page. `LATEST` is now the latest COMPLETED event, from `eventEndsAt`
+      where it exists and `lockDate + 5 days` for the 2025 events that have none (the
+      estimate errs late on purpose). A full build now reproduces the stored document
+      exactly.
 
-- [ ] **Dropping the rank from those cards also cost the photo rule its alibi.** A player
-      without a usable photo is skipped rather than shown as a placeholder, and the rank
-      was what made that visible — the row read 1st, 2nd, 4th and you could see someone
-      was missing. Six cards with no positions look like a definitive top six.
+- [x] **FIXED 5 Sep — the leader row is now ordered by tournament wins**, win rate
+      breaking ties, and the photo pre-check shares that ordering. It did not before:
+      the check only probes the top ~25 of each ordering, so re-sorting the row by wins
+      while the ordering stayed on kills silently dropped Stanczak (2nd all-time),
+      Leival, Vanderbyl, Yachimec and Greenspan — no error, the row just backfilled from
+      further down.
+
+- [x] **Dropping the rank from those cards cost the photo rule its alibi** — a skipped
+      player is now invisible rather than showing as a gap in the numbering. Accepted
+      5 Sep.
 
 - [ ] **The trophy is a colour emoji** — 🏆 on winning events in the table, and above
       title-winning seasons in the chart. The only emoji on a deliberately austere page.

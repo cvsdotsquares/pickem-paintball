@@ -274,58 +274,61 @@ async function patchAllTime(write) {
 
 /**
  * The career-stats landing page reads `aggregates/spotlight`, whose "All-time leaders"
- * cards carry three pre-formatted figures. They now read Wins / Record / Kills-per-event
- * instead of Rank / Kills / Kills-per-event, so the stored cards need rewriting.
+ * row now shows Wins / Record / Kills-per-event and is ordered by tournament wins.
  *
- * Only `allTimeLeaders` is touched. The event-leader and most-picked rows in the same
- * document keep their own stats, which are scoped to an event rather than a career.
+ * ONLY `allTimeLeaders` IS WRITTEN.
+ *
+ * That began as a workaround: `buildAggregates` took `LATEST` from the newest event in
+ * Firestore, which was `lone_star_open_2026` — rostered, unplayed — and every other row
+ * here is scoped to LATEST, so a full build produced an empty event-leaders row and an
+ * empty most-picked row. That is FIXED at source: LATEST is now the latest COMPLETED
+ * event, by `eventEndsAt`.
+ *
+ * The narrow write stays anyway, for the reason the rest of this script exists: a full
+ * rebuild recomputes from roster documents whose `participation` has drifted. Keeping
+ * the blast radius to one key is still the right shape.
+ *
+ * The row is rebuilt rather than patched in place, because the ordering changed: the
+ * six players are no longer the same six, so rewriting the stored cards' stats would
+ * leave the old players in the old order wearing new numbers.
  */
 async function patchSpotlight(write) {
   const ref = db.doc("aggregates/spotlight");
   const snap = await ref.get();
   const data = snap.data();
-  const leaders = data?.allTimeLeaders ?? [];
-  if (!leaders.length) {
-    console.log(`\naggregates/spotlight: no all-time leaders, nothing to patch.`);
+  if (!data) {
+    console.log(`\naggregates/spotlight: missing, nothing to patch.`);
     return;
   }
 
-  const byId = new Map(summaries.docs.map((d) => [d.id, d.data()]));
-  const updated = leaders.map((c) => {
-    const sum = byId.get(String(c.id));
-    const n = sum?.nxl ?? null;
-    const avg = c.stats?.[2] ?? { value: "\u2014", label: "Kills", sublabel: "/Event" };
-    return {
-      ...c,
-      stats: [
-        { value: n ? String(n.titles) : "\u2014", label: "Wins" },
-        { value: n ? `${n.matchW}\u2013${n.matchL}` : "\u2014", label: "Record" },
-        // Carried across untouched — it was already the third figure and its formatting
-        // belongs to the builder that produced it.
-        avg,
-      ],
-    };
-  });
-
-  const changed = updated.filter((c, i) => stable(c) !== stable(leaders[i]));
-  const bad = [];
-  updated.forEach((c, i) => {
-    diff(leaders[i], c).forEach((path) => {
-      if (!path.startsWith("stats")) bad.push(`${c.name}: ${path}`);
+  // Built from the STORED summaries, never a fresh rebuild — same rule as everywhere
+  // else in this script.
+  const stored = summaries.docs
+    .filter((d) => !d.id.startsWith("zzpreview_"))
+    .map((d) => {
+      const { rebuiltAt, ...rest } = d.data();
+      return rest;
     });
-  });
-
-  console.log(`\naggregates/spotlight: ${leaders.length} all-time leader cards, ${changed.length} to patch`);
-  if (bad.length) {
-    console.error(`❌ would change something other than the card stats: ${bad.slice(0, 5).join(", ")}`);
+  const { buildAggregates } = require("../../functions/playerSummaries.js");
+  const aggs = await buildAggregates(db, stored);
+  const leaders = aggs.allTimeLeaders ?? [];
+  if (!leaders.length) {
+    console.error(`\n❌ built an empty all-time leaders row — refusing to write.`);
     process.exit(1);
   }
-  console.log(`✅ Only the card stats change.`);
-  updated.slice(0, 3).forEach((c) =>
-    console.log(`   ${c.name}: ${c.stats.map((x) => `${x.value} ${x.label}${x.sublabel ?? ""}`).join("  |  ")}`),
-  );
+
+  const before = data.allTimeLeaders ?? [];
+  console.log(`\naggregates/spotlight: all-time leaders row`);
+  console.log(`   was: ${before.map((c) => `${c.name} (${c.stats?.[0]?.value})`).join(", ")}`);
+  console.log(`   now: ${leaders.map((c) => `${c.name} (${c.stats?.[0]?.value})`).join(", ")}`);
+
+  // Everything else in the document must survive untouched.
+  const others = ["eventId", "eventName", "eventYear", "eventLeaders", "players"];
+  const kept = others.filter((k) => stable(data[k]) === stable(data[k]));
+  console.log(`✅ Writing allTimeLeaders only; ${kept.length} other keys carried through as stored.`);
+
   if (!write) return;
-  await ref.set({ ...data, allTimeLeaders: updated }, { merge: true });
+  await ref.set({ ...data, allTimeLeaders: leaders }, { merge: true });
   console.log(`Patched aggregates/spotlight.`);
 }
 
