@@ -67,11 +67,25 @@ type TableRow = {
  *   the top of the all-time table for tournament wins. Absent is not a high score or
  *   a low one.
  *
- *   NUMBERS compare numerically, as before.
+ *   NUMBERS compare numerically, as before — INCLUDING numbers stored as text. The
+ *   jersey column is genuinely mixed (roster rows written by the sheet arrive as
+ *   strings, older ones as numbers), so a text comparison put "10" above "9" for some
+ *   players and not others. Compare on the value, not on how it happens to be typed.
+ *   "00" is a real jersey and stays text for display; it only ever sorts as 0.
  */
 const NO_DATA = "\u2014";
 /** "224-72", with an en-dash, em-dash or hyphen. */
 const RECORD_RE = /^\s*(\d+)\s*[\u2013\u2014-]\s*(\d+)\s*$/;
+
+/** The value as a number, for a number or a string that is entirely one. */
+function numeric(v: unknown): number | null {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  if (!t || !/^[+-]?\d+(\.\d+)?$/.test(t)) return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
 
 function compareCells(
   a: unknown,
@@ -90,8 +104,10 @@ function compareCells(
     return direction === "ascending" ? cmp : -cmp;
   }
 
-  if (typeof a === "number" && typeof b === "number") {
-    return direction === "ascending" ? a - b : b - a;
+  const an = numeric(a);
+  const bn = numeric(b);
+  if (an !== null && bn !== null) {
+    return direction === "ascending" ? an - bn : bn - an;
   }
   return direction === "ascending"
     ? String(a).localeCompare(String(b))
