@@ -168,7 +168,20 @@ function allTimeStandings() {
   const sundays = [];
   const matches = [];
 
-  for (const appearances of Object.values(HISTORY.appearances)) {
+  /**
+   * Both key spaces, one population.
+   *
+   * A player with no photo has no numeric id and so lives in `appearancesByEpid`. If the
+   * standings ignored them, everybody above them would be ranked one place too high and
+   * they would be unrankable themselves — Carlos Cortes has 45 appearances since 2015
+   * and would be invisible to a ranking he belongs near the top of.
+   */
+  const everyCareer = [
+    ...Object.values(HISTORY.appearances),
+    ...Object.values(HISTORY.appearancesByEpid ?? {}),
+  ];
+
+  for (const appearances of everyCareer) {
     let t = 0;
     let s = 0;
     let m = 0;
@@ -190,7 +203,7 @@ function allTimeStandings() {
     titles: desc(titles),
     sundays: desc(sundays),
     matches: desc(matches),
-    population: Object.keys(HISTORY.appearances).length,
+    population: everyCareer.length,
   };
   return standings;
 }
@@ -218,9 +231,22 @@ function rankIn(sortedDesc, value) {
  * @param {string|number|null} leagueId
  * @param {{absentEventIds?: Set<string>}} opts
  */
-function nxlCareer(leagueId, { absentEventIds = new Set() } = {}) {
+function nxlCareer(leagueId, { epid = null, absentEventIds = new Set() } = {}) {
+  /**
+   * Numeric id first, profile EPID second.
+   *
+   * The numeric id is read off the avatar filename, so a player the club never
+   * photographed has none — eleven people across 2015-2026, one of whom (Carlos Cortes,
+   * 45 appearances) is on a current roster. The EPID is the profile slug and is just as
+   * permanent; it is the fallback rather than the primary only because the numeric id
+   * is what our rosters already carry.
+   *
+   * Never both: a player found by numeric id is not looked up again by EPID, so a
+   * career cannot be counted twice.
+   */
   const key = leagueId == null ? null : String(leagueId);
-  const appearances = key ? HISTORY.appearances[key] : null;
+  let appearances = key ? HISTORY.appearances[key] : null;
+  if (!appearances && epid) appearances = (HISTORY.appearancesByEpid ?? {})[String(epid)];
   if (!appearances || appearances.length === 0) return null;
 
   const events = [];
@@ -328,7 +354,7 @@ function nxlCareer(leagueId, { absentEventIds = new Set() } = {}) {
   }
 
   return {
-    leagueId: key,
+    leagueId: key ?? (epid ? `epid:${epid}` : null),
     events,
     tournaments: events.length,
     titles,

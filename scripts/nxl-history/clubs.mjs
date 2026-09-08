@@ -122,3 +122,25 @@ export const CLUB_TEAM_ID = {
   Xtreme: "NYX",
   "ac DIESEL": "ACD",
 };
+
+/**
+ * Our `player_id` → the pbleagues profile EPID, for players the crawler cannot number.
+ *
+ * The numeric league id is read off the avatar filename, so a player the club never
+ * photographed has none. Eleven such people appear across 2015-2026; only one is on a
+ * current PickEm roster.
+ *
+ * ⚠️ NAME IS THE ONLY LINK between our roster and an EPID, which is exactly the fragile
+ * path the rest of this pipeline avoids — so each entry is verified the same way a club
+ * alias is, by checking that the league puts the player on the team our own roster says,
+ * at every overlapping event. An entry without that evidence does not belong here.
+ *
+ * Carlos Cortes, EPID alKcjMJZiJAUBJrp — 45 crawl appearances 2015-2026, one EPID for
+ * the name and no "Cortes" in the numbered file at all. All NINE overlapping events
+ * agree, including the mid-2025 move: ac DIESEL at Tampa Bay, Atlantic City and Midwest
+ * 2025 (our ACD), then X-Factor from Lone Star 2025 onward (our XFA). A coincidental
+ * match on a team-switch pattern is not credible.
+ */
+export const PLAYER_EPID = {
+  100053: "alKcjMJZiJAUBJrp", // Carlos Cortes
+};

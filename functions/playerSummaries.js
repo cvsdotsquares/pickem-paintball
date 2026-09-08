@@ -464,6 +464,17 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
      * same person's permanent id whichever row it comes from, so the first one found is
      * as good as any. Taken newest-first purely so a stale value never wins.
      */
+    /**
+     * The profile EPID, for a player the crawler could not give a numeric id — they have
+     * no photo, so there is no avatar filename to read one from. Same "any event that
+     * carries it" rule as `leagueId` above.
+     */
+    const leagueEpid = span
+      .filter((r) => r.kind !== "not-rostered")
+      .reverse()
+      .map((r) => rosters.get(r.eventId).get(playerId)?.league_epid)
+      .find((v) => v != null && String(v).trim() !== "") ?? null;
+
     const leagueId = span
       .filter((r) => r.kind !== "not-rostered")
       .reverse()
@@ -527,6 +538,7 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
        * history a roster appearance is the only evidence there is.
        */
       nxl: nxlCareer(leagueId, {
+        epid: leagueEpid,
         absentEventIds: new Set(span.filter((r) => r.kind !== "played").map((r) => r.eventId)),
       }),
     });

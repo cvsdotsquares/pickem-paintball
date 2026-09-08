@@ -11,6 +11,9 @@
  *      league record on the site.
  *   2. The inner `player_id` where it disagrees with the document id. 26 rows, left
  *      behind when the August identity fix moved players to new ids.
+ *   3. `league_epid` for the players the crawler cannot give a numeric id, because they
+ *      have no photo. See PLAYER_EPID in nxl-history/clubs.mjs for the evidence behind
+ *      each one.
  *
  * WHY THE REGISTRY IS THE SOURCE
  * `scripts/player-identity-registry.json` is the durable record of who is who, not a
@@ -36,6 +39,7 @@ import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
 const HISTORY = require("../functions/data/nxlHistory.json");
+const { PLAYER_EPID } = await import("./nxl-history/clubs.mjs");
 
 const WRITE = process.argv.includes("--write");
 
@@ -62,6 +66,7 @@ const conflicts = [];
 const teamDisagreements = [];
 let leagueFills = 0;
 let idFixes = 0;
+let epidFills = 0;
 let teamChecked = 0;
 const perEvent = new Map();
 
@@ -107,6 +112,19 @@ for (const eventId of eventIds) {
       }
     }
 
+    /**
+     * The profile EPID, for a player with no numeric league id.
+     *
+     * A second key rather than a value in `league_id`: that field means the NXL's
+     * NUMERIC id — the photo-filename regex `/players/(\d+)[-_]/` depends on it being
+     * digits — and putting a slug in it would break that quietly.
+     */
+    const wantEpid = PLAYER_EPID[d.id];
+    if (wantEpid && String(d.get("league_epid") ?? "") !== wantEpid) {
+      patch.league_epid = wantEpid;
+      epidFills++;
+    }
+
     const inner = d.get("player_id");
     if (inner != null && String(inner) !== d.id) {
       // Set rather than delete. Every reader was fixed on 5 Sep to use the document id,
@@ -127,6 +145,7 @@ for (const eventId of eventIds) {
 console.log(`\nIdentity backfill — ${eventIds.length} events\n`);
 console.log(`  league_id to fill in    ${leagueFills} rows`);
 console.log(`  stale player_id to fix  ${idFixes} rows`);
+console.log(`  league_epid to set      ${epidFills} rows`);
 console.log(`  documents to touch      ${writes.length}\n`);
 
 for (const [ev, c] of perEvent) {

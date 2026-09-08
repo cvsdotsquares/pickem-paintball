@@ -46,6 +46,16 @@ const REPO = path.resolve(HERE, "../..");
 
 const FIXTURES = "/Users/jamesgreen/Documents/PickEm Paintball/historic data/NXL_Power_Rankings_2026_v17.xlsx";
 const ROSTERS = "/Users/jamesgreen/Documents/nxl-pro-players/Player_Roster_Historic.csv";
+/**
+ * The crawler's second output: appearances it could not give a numeric id to.
+ *
+ * The numeric id comes from the avatar filename, so a player with no photo has none —
+ * 138 rows, 11 people, all of whom DO have a stable profile EPID. Carlos Cortes is the
+ * one who matters: 45 appearances 2015-2026 and no photo in the entire library, so
+ * without this he has no league record at all despite being a current X-Factor player.
+ */
+const ROSTERS_REVIEW =
+  "/Users/jamesgreen/Documents/nxl-pro-players/Player_Roster_Historic_review.csv";
 const OUT = path.join(REPO, "functions/data/nxlHistory.json");
 
 /**
@@ -77,9 +87,29 @@ const norm = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
 /** Event names, with the league prefix and any year stripped so the two sources meet. */
 const normEvent = (s) => norm(String(s ?? "").replace(/\bNXL\b/gi, "").replace(/\b20\d\d\b/g, ""));
 
+/**
+ * A spreadsheet date cell -> YYYY-MM-DD, INDEPENDENT OF THE BUILDER'S TIMEZONE.
+ *
+ * `xlsx` with `cellDates` hands back a Date built in LOCAL time, so
+ * `toISOString().slice(0, 10)` silently subtracts a day anywhere east of UTC: midnight
+ * on 11 November in CET is 23:00 UTC on the 10th. This file is committed, so that made
+ * the artefact depend on where it was built — nine events moved by a day between two
+ * builds on the same machine, purely because its timezone setting had changed, and the
+ * diff looked like the workbook had been edited.
+ *
+ * Reading the local calendar fields gives back exactly the date the cell displays,
+ * which is the only thing the workbook is actually asserting.
+ */
 const iso = (v) => {
-  if (v instanceof Date) return v.toISOString().slice(0, 10);
-  if (typeof v === "number") return new Date(Math.round((v - 25569) * 86400000)).toISOString().slice(0, 10);
+  const fromDate = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  if (v instanceof Date) return fromDate(v);
+  // A serial number is days since the 1900 epoch, with no timezone in it at all — build
+  // the Date in UTC and read it back in UTC so nothing local can shift it.
+  if (typeof v === "number") {
+    const d = new Date(Math.round((v - 25569) * 86400000));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+  }
   const m = String(v ?? "").match(/^\d{4}-\d{2}-\d{2}/);
   return m ? m[0] : null;
 };
@@ -107,7 +137,22 @@ function readCsv(file) {
 // -- 1. Matches, grouped into events ------------------------------------------
 
 function loadEvents() {
-  const wb = XLSX.readFile(FIXTURES, { cellDates: true });
+  /**
+   * `cellDates: false` ON PURPOSE — read the raw serial number, not a Date.
+   *
+   * With `cellDates` the library builds the Date in local time, and it does not merely
+   * shift the instant, it lands on a different local CALENDAR DAY depending on the
+   * offset: the 2021 World Cup reads 11 November under London and 10 November under
+   * Paris. Reading the Date's local fields does not help, because the Date is already
+   * wrong. Since this file is committed, that made the artefact depend on where it was
+   * built — nine events moved by a day between two builds on this machine, purely
+   * because its timezone had changed, and the diff looked like the workbook had been
+   * edited.
+   *
+   * A serial is a count of days with no timezone in it. Converting it ourselves in UTC
+   * is the only reading that is the same everywhere.
+   */
+  const wb = XLSX.readFile(FIXTURES, { cellDates: false });
   const raw = XLSX.utils.sheet_to_json(wb.Sheets["5. Historic Results (Input)"], {
     range: 2, defval: null, raw: true,
   });
@@ -246,6 +291,7 @@ function resolveEvents(year, fixtureLabels, crawlerLabels) {
 function build() {
   const { events, badRounds } = loadEvents();
   const roster = readCsv(ROSTERS);
+  const reviewRoster = readCsv(ROSTERS_REVIEW);
 
   const warnings = { badRounds, byYear: [], noResults: [], coachOnly: 0, noNumericId: 0 };
 
@@ -326,6 +372,33 @@ function build() {
   }
 
   /**
+   * The same pass again, for the players the crawler could not number.
+   *
+   * Keyed on EPID rather than numeric id, in a SEPARATE index. Merging the two would
+   * mean one map with two kinds of key and no way to tell which a lookup used; keeping
+   * them apart makes the fallback explicit at the call site.
+   *
+   * Everything else is identical — same event and club resolution, same Player-only
+   * filter — so an EPID career is built to exactly the same standard as a numeric one.
+   */
+  const appearancesByEpid = new Map();
+  const epidNames = new Map();
+  for (const r of reviewRoster) {
+    if (r.role !== "Player") continue;
+    if (!r.epid) continue;
+    if (r.numeric_id) continue; // it has a real id; the main pass already has it
+    const L = lookup.get(r.year);
+    const fixtureLabel = L?.events.get(r.event);
+    const club = L?.teams.get(r.team);
+    if (!fixtureLabel || !club) continue;
+    const key = `${r.year}|${fixtureLabel}`;
+    if (!events.has(key)) continue;
+    if (!appearancesByEpid.has(r.epid)) appearancesByEpid.set(r.epid, new Map());
+    appearancesByEpid.get(r.epid).set(key, club);
+    epidNames.set(r.epid, r.name);
+  }
+
+  /**
    * Chronological, oldest first — the order a career reads in.
    *
    * The crawler emits rows grouped by event id, which is neither alphabetical nor
@@ -334,12 +407,15 @@ function build() {
    * without each one having to re-derive it.
    */
   const startOf = new Map(out.map((e) => [e.key, e.start ?? ""]));
-  const appearanceOut = {};
-  for (const [id, m] of appearances) {
-    appearanceOut[id] = [...m]
+  const byStart = (m) =>
+    [...m]
       .sort((a, b) => (startOf.get(a[0]) ?? "").localeCompare(startOf.get(b[0]) ?? ""))
       .map(([k, club]) => [k, club]);
-  }
+
+  const appearanceOut = {};
+  for (const [id, m] of appearances) appearanceOut[id] = byStart(m);
+  const appearanceByEpidOut = {};
+  for (const [epid, m] of appearancesByEpid) appearanceByEpidOut[epid] = byStart(m);
 
   return {
     generated: new Date().toISOString(),
@@ -347,8 +423,9 @@ function build() {
     clubTeamId: CLUB_TEAM_ID,
     events: out,
     appearances: appearanceOut,
+    appearancesByEpid: appearanceByEpidOut,
     warnings,
-    names: Object.fromEntries(names),
+    names: Object.fromEntries([...names, ...epidNames]),
   };
 }
 
@@ -360,6 +437,7 @@ const w = data.warnings;
 console.log(`\nEvents with results   ${data.events.length}`);
 console.log(`Matches               ${data.events.reduce((a, e) => a + e.matches.length, 0)}`);
 console.log(`Players with a record ${Object.keys(data.appearances).length}`);
+console.log(`  ...plus, by EPID    ${Object.keys(data.appearancesByEpid).length} with no photo, so no numeric id`);
 console.log(`Appearances joined    ${Object.values(data.appearances).reduce((a, x) => a + x.length, 0)}`);
 console.log(`Coach rows skipped    ${w.coachOnly}`);
 console.log(`No numeric id         ${w.noNumericId}`);

@@ -102,12 +102,19 @@ const trackedFrom = eventYears.sort()[0] ?? null;
  * their whole league history.
  */
 const leagueIdOf = new Map();
+const leagueEpidOf = new Map();
 for (const [eventId] of startOf) {
   const roster = await db.collection(`events/${eventId}/players`).get();
   roster.docs.forEach((d) => {
     const v = d.get("league_id");
-    if (v == null || String(v).trim() === "") return;
-    if (!leagueIdOf.has(d.id)) leagueIdOf.set(d.id, String(v).trim());
+    if (v != null && String(v).trim() !== "" && !leagueIdOf.has(d.id)) {
+      leagueIdOf.set(d.id, String(v).trim());
+    }
+    // The fallback key, for players with no photo and so no numeric id.
+    const e = d.get("league_epid");
+    if (e != null && String(e).trim() !== "" && !leagueEpidOf.has(d.id)) {
+      leagueEpidOf.set(d.id, String(e).trim());
+    }
   });
 }
 
@@ -153,14 +160,25 @@ for (const doc of summaries.docs) {
     (stored.events ?? []).filter((e) => e.kind && e.kind !== "played").map((e) => e.eventId),
   );
 
-  const nxl = nxlCareer(leagueIdOf.get(doc.id) ?? stored.leagueId ?? null, { absentEventIds });
+  const nxl = nxlCareer(leagueIdOf.get(doc.id) ?? stored.leagueId ?? null, {
+    epid: leagueEpidOf.get(doc.id) ?? null,
+    absentEventIds,
+  });
   if (nxl) withNxl++;
 
   const patched = { ...stored, nxl, trackedFrom, events, matches };
   const changed = diff(stored, patched);
   if (changed.length === 0) { unchanged++; continue; }
 
-  const bad = changed.filter((p) => !ALLOWED.has(p));
+  /**
+   * `nxl` is owned by this script in its entirety, so anything beneath it is allowed.
+   *
+   * The diff recurses into nested objects, so a change inside the block reports as
+   * `nxl.events[].start` rather than `nxl` — and the guard refused the whole run. The
+   * point of the allowlist is to protect the fields this script does NOT own (kills,
+   * participation, kind, rank); it should not also police the one it computes.
+   */
+  const bad = changed.filter((p) => !ALLOWED.has(p) && !p.startsWith("nxl."));
   if (bad.length) offLimits.set(doc.id, bad);
 
   patches.push({ id: doc.id, patch: { nxl, trackedFrom, events, matches }, changed });
@@ -232,7 +250,7 @@ async function patchAllTime(write) {
     const absentEventIds = new Set(
       ((summary?.get("events") ?? []).filter((e) => e.kind && e.kind !== "played")).map((e) => e.eventId),
     );
-    const n = nxlCareer(lid, { absentEventIds });
+    const n = nxlCareer(lid, { epid: leagueEpidOf.get(String(row.player_id)) ?? null, absentEventIds });
     if (n) withRecord++;
     const league = n
       ? {
