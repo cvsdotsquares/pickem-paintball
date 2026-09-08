@@ -234,6 +234,30 @@ Vercel.
       - **What triggers a pull?** An event finishing is the natural hook for both the
         roster crawl and the results import, and `eventEndsAt` already exists as a Cloud
         Task trigger for the badge recalculation.
+
+        **Checked 8 Sep — the trigger is the easy part; only one of the two pulls can
+        actually use it.**
+
+        | Layer | Automatable at `eventEndsAt`? |
+        |---|---|
+        | The schedule itself | **Yes.** `scheduleBadgeRecalc` already enqueues a Cloud Task at `eventEndsAt` (padded ~1h), with dedup state and a 30-day deferral. A second task is an addition, not new infrastructure. |
+        | Roster crawl | **Yes.** `crawl.js` is plain HTTP against public pbleagues pages — no login, no browser, one dependency (`node-html-parser`), 150ms politeness delay. |
+        | Results import | **No.** See below. |
+        | Publishing either result | **No.** See the bundling item below. |
+
+        On crawl volume: the full 2015-2026 pass is 1,032 roster pages, ~4-8 min, which is
+        uncomfortably close to the 540s gen-1 ceiling. After a single event you only need
+        that event's ~20 team pages, so the scheduled job should crawl INCREMENTALLY and
+        leave the full historic pass as a manual reconciliation.
+
+        Why the results import cannot be scheduled: `scripts/nxl-history/build.mjs:47`
+        reads `NXL_Power_Rankings_2026_v17.xlsx` from James's Documents folder — a
+        hand-maintained workbook with a version number in the filename. Nothing in the
+        cloud can see it, and more fundamentally the data does not exist until a human has
+        entered it. No trigger fixes waiting on a person. It only becomes automatable if
+        the workbook moves somewhere fetchable (Google Sheets API) or stops being the
+        source — which is what the "where does match-result truth live" question below is
+        really asking.
       - **Where does match-result truth live?** Today it is a spreadsheet James maintains.
         pbleagues publishes the same results and the crawl is documented
         (`.claude/skills/pbleagues-match-data`), so the workbook could become a fallback
@@ -248,6 +272,27 @@ Vercel.
         still holding the good values) was caught by accident, by a diff written for an
         unrelated reason. `scripts/nxl-history/safety-diff.mjs` is that diff — running it
         on a schedule and alerting on a `CHANGED` bucket would have caught it in a day.
+
+- [ ] **`nxlHistory.json` is baked into the function bundle — this blocks BOTH pulls.**
+      Found 8 Sep while scoping the automation above, and worth doing first because it
+      blocks the work regardless of which pull gets automated.
+
+      `functions/nxlHistory.js:24` does `require("./data/nxlHistory.json")`, so the 560KB
+      history is part of the deployment artefact. A scheduled job cannot rewrite it; only
+      `firebase deploy --only functions` can. Automating the crawl and the import would
+      therefore produce fresher data that never reaches the site.
+
+      Fix: read it at runtime from Cloud Storage, cached per instance. **Storage rather
+      than a Firestore doc** — 560KB fits under the 1 MiB document limit today, but it
+      grows with every event, so a doc builds in a cliff we would hit mid-season.
+
+      Two things to keep when moving it:
+      - The build must still fail closed. `build.mjs` aborts on anything it cannot
+        resolve and `validate.mjs` checks the join against long data (400/400 today).
+        A runtime fetch must not become a path that quietly serves a half-built file.
+      - A missing or unreadable object must degrade to "no league record", not to wrong
+        records. The career page already handles a player with no `league_id`; the same
+        empty-state should cover the whole file being unavailable.
 
 - [x] **Live data loss on the 2026 events — projection is currently the only copy.**
       Found 4 Sep 2026 by `scripts/nxl-history/safety-diff.mjs`. **Resolved 8 Sep 2026**,
