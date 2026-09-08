@@ -249,11 +249,13 @@ Vercel.
         unrelated reason. `scripts/nxl-history/safety-diff.mjs` is that diff — running it
         on a schedule and alerting on a `CHANGED` bucket would have caught it in a day.
 
-- [ ] **Live data loss on the 2026 events — projection is currently the only copy.**
-      Found 4 Sep 2026 by `scripts/nxl-history/safety-diff.mjs`. Nothing is broken on the
-      site *yet* because `projections/playerSummaries.staleSince` is unset, so no rebuild
-      has run. The next upload sets that marker and the scheduled function publishes all
-      of it within five minutes.
+- [x] **Live data loss on the 2026 events — projection is currently the only copy.**
+      Found 4 Sep 2026 by `scripts/nxl-history/safety-diff.mjs`. **Resolved 8 Sep 2026**,
+      before the marker was ever set — see the note under the table.
+
+      Nothing was broken on the site because `projections/playerSummaries.staleSince`
+      stayed unset, so no rebuild ran. The next upload would have set that marker and the
+      scheduled function would have published all of it within five minutes.
 
       | Event | `participation` on roster docs | `brand_color` |
       |---|---|---|
@@ -267,10 +269,25 @@ Vercel.
       DNP to "played"**, and the field size behind every rank at that event inflates from
       180 to 218, moving ranks and averages for everyone.
 
-      Fix is to re-run `scripts/apply-participation.mjs` for `mid_west_open_2026` and
-      restore `brand_color` on both 2026 events, then rebuild. Worth finding out what
-      removed them first — `syncRoster()` owns a different field set and uses an update
-      mask, so it should not have been able to.
+      **What was done, 8 Sep 2026.** `scripts/restore-midwest-participation.mjs` put back
+      `participation`, `participationReason`, `eventId` and `playerId` for all 218 Mid
+      West players from the pre-sync snapshot — 180 played / 38 absent, matching the
+      snapshot exactly, filling blanks only. `participationAt` and `recomputedAt` do not
+      come back: the snapshot serialised both as empty strings.
+
+      `brand_color` was recomputed rather than restored. It is a cache — `onEventLogoChanged`
+      derives it by averaging the logo to one pixel — so `scripts/recompute-brand-color.mjs`
+      runs that same derivation by hand. Mid West `#929889`, Mid Atlantic `#64666b`. Note
+      the trigger CANNOT self-heal this: it fires on the logo URL changing, and the logo
+      never changed. Any future wipe needs the script.
+
+      Then one clean rebuild, and `safety-diff` now reports 325/325 identical with both
+      aggregates identical — the projection and its source finally agree.
+
+      ⚠️ **Still unexplained: what removed them.** `syncRoster()` owns a different field
+      set and uses an update mask, so it should not have been able to. Until that is
+      understood the same loss can recur, which is what the scheduled-`safety-diff` idea
+      above is for.
 
 - [ ] **Long Data stores player NAMES, not ids — fix at source.** Every data problem in
       the 31 Aug backfill traced to this. The scorer types a name, and the id is derived
