@@ -1,0 +1,728 @@
+/**
+ * The shareable career graphic — 1080x1920 PNG, rendered on demand.
+ *
+ *   /api/share/career?player=100016
+ *   /api/share/career?player=100016&scope=season&year=2026
+ *   /api/share/career?player=100016&scope=event&key=2015%7CGreat%20Lakes%20Open
+ *
+ * WHAT IS ACTUALLY SHARED IS THIS IMAGE. The fantasy card set the pattern: the share
+ * sheet is handed a PNG and no URL, because a link makes WhatsApp and Discord unfurl a
+ * second copy of the card underneath it. So the image has to stand on its own — every
+ * caveat, the branding and the call to action are baked in, because nothing travels
+ * alongside it.
+ *
+ * ⚠️ THE LEAGUE RECORD IS THE TEAM'S, and the card says so under the block rather than
+ * leaving it implied. On the site that caveat is a section away; here there is no site.
+ *
+ * Layout is a single column of bands so Satori never has to make a decision: a header, an
+ * identity block, the headline figure beside the photo, then one band per stat family,
+ * then the CTA. Heights are fixed and add to 1920 — nothing is allowed to reflow, because
+ * a card that overflows silently loses its footer.
+ */
+
+import { ImageResponse } from "next/og";
+import { NextRequest } from "next/server";
+import { db } from "@/src/lib/firebaseClient";
+import { doc, getDoc } from "firebase/firestore";
+import { buildShareCard, num, type ShareCard, type ShareScope } from "@/src/lib/careerShareCard";
+import { dataUriCached, loadFontsCached, toPngCached } from "@/src/lib/shareRender";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const W = 1080;
+const H = 1920;
+const PAD = 56;
+const INNER = W - PAD * 2;
+
+const GREEN = "#00f976";
+const INK = "#000";
+const PANEL = "#0d0d0d";
+const HAIR = "rgba(255,255,255,0.10)";
+const MUTE = "rgba(255,255,255,0.42)";
+
+/**
+ * Fixed heights for the parts that must not move, and MINIMUMS for the stat bands.
+ *
+ * The bands grow to share whatever is left, because the number of them varies: a career
+ * card carries three, a single-season card one. Fixed heights would leave a player with
+ * no PickEm history staring at 400px of black above the footer, which reads as a broken
+ * card rather than a sparse one.
+ */
+const HEADER_H = 118;
+const NAME_H = 254;
+const HERO_H = 404;
+const BLOCK_MIN = 300;
+const STRIP_MIN = 320;
+const FOOTER_H = 122;
+const PHOTO_W = 324;
+const PHOTO_H = 344;
+
+const row = (extra: Record<string, unknown> = {}) => ({
+  display: "flex" as const,
+  ...extra,
+});
+
+/** Section rule + title, the same on every band so the card reads as one system. */
+function BandTitle({ title, caption, accent }: { title: string; caption: string; accent: string }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", width: INNER }}>
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <div style={{ display: "flex", width: 8, height: 8, backgroundColor: accent, marginRight: 14 }} />
+        <div
+          style={{
+            display: "flex",
+            color: "#fff",
+            fontSize: 26,
+            fontWeight: 700,
+            letterSpacing: 3.2,
+            textTransform: "uppercase",
+          }}
+        >
+          {title}
+        </div>
+      </div>
+      {caption ? (
+        <div style={{ display: "flex", color: MUTE, fontSize: 21, marginTop: 8, letterSpacing: 0.6 }}>
+          {caption}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Four figures across, the card's basic unit. Numbers in Hitmarker, labels in Industry. */
+function StatRow({ stats }: { stats: ShareCard["league"]["stats"] }) {
+  const n = Math.max(stats.length, 1);
+  const colW = Math.floor((INNER - (n - 1) * 16) / n);
+  return (
+    <div style={{ display: "flex", width: INNER, marginTop: 26 }}>
+      {stats.map((s, i) => (
+        <div
+          key={s.label}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "flex-end",
+            width: colW,
+            height: 150,
+            marginRight: i === n - 1 ? 0 : 16,
+            padding: "0 20px 20px 20px",
+            backgroundColor: PANEL,
+            border: `1px solid ${HAIR}`,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "baseline" }}>
+            <div
+              style={{
+                display: "flex",
+                color: "#fff",
+                fontSize: 54,
+                fontFamily: "Hitmarker",
+                fontWeight: 300,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {s.value}
+            </div>
+            {s.sub ? (
+              <div style={{ display: "flex", color: MUTE, fontSize: 21, marginLeft: 8, whiteSpace: "nowrap" }}>
+                {s.sub}
+              </div>
+            ) : null}
+          </div>
+          {/*
+            One line, always. These tiles bottom-align their contents, so a label that
+            wraps pushes its own value up and breaks the row's baseline — one tile sitting
+            proud of the other three reads as a rendering fault. Long labels step down a
+            size instead.
+          */}
+          <div
+            style={{
+              display: "flex",
+              color: MUTE,
+              fontSize: s.label.length > 13 ? 16 : 19,
+              marginTop: 8,
+              letterSpacing: s.label.length > 13 ? 1.1 : 1.6,
+              textTransform: "uppercase",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {s.label}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Season by season — the one graphic that carries both stat families at once.
+ *
+ * Bar height is the league match win rate; a season PickEm also scored gets a bright cap
+ * on top of the bar. A career that predates 2025 still draws a full strip and simply has
+ * no caps, which is the honest picture rather than an empty panel.
+ */
+function SeasonStrip({ seasons, accent }: { seasons: ShareCard["seasons"]; accent: string }) {
+  const n = seasons.length;
+  const gap = n > 10 ? 8 : 12;
+  const barW = Math.floor((INNER - (n - 1) * gap) / n);
+  const MAX = 132;
+  return (
+    <div style={{ display: "flex", width: INNER, marginTop: 26, alignItems: "flex-end", height: 176 }}>
+      {seasons.map((s, i) => {
+        const h = s.winPct == null ? 4 : Math.max(6, Math.round((s.winPct / 100) * MAX));
+        return (
+          <div
+            key={s.year}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              width: barW,
+              marginRight: i === n - 1 ? 0 : gap,
+            }}
+          >
+            {/* Title marker: a diamond, not an emoji — Satori has no colour emoji font. */}
+            {s.titles > 0 ? (
+              <div
+                style={{
+                  display: "flex",
+                  width: 12,
+                  height: 12,
+                  backgroundColor: accent,
+                  transform: "rotate(45deg)",
+                  marginBottom: 10,
+                }}
+              />
+            ) : null}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "flex-start",
+                width: barW,
+                height: h,
+                backgroundColor: s.titles > 0 ? accent : "rgba(0,249,118,0.45)",
+              }}
+            >
+              {s.kills != null ? (
+                <div style={{ display: "flex", width: barW, height: 6, backgroundColor: "#fff" }} />
+              ) : null}
+            </div>
+            <div style={{ display: "flex", color: MUTE, fontSize: 18, marginTop: 10, fontFamily: "Hitmarker" }}>
+              {s.year.slice(2)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** A single stacked bar of kill types — the shape of how a player scores. */
+function TypeBar({ types, accent }: { types: { type: string; share: number }[]; accent: string }) {
+  if (!types.length) return null;
+  const total = types.reduce((s, t) => s + t.share, 0) || 1;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", width: INNER, marginTop: 22 }}>
+      <div style={{ display: "flex", width: INNER, height: 22 }}>
+        {types.map((t, i) => (
+          <div
+            key={t.type}
+            style={{
+              display: "flex",
+              width: Math.max(2, Math.round((t.share / total) * INNER) - 3),
+              height: 22,
+              marginRight: i === types.length - 1 ? 0 : 3,
+              backgroundColor: accent,
+              opacity: 1 - i * 0.16,
+            }}
+          />
+        ))}
+      </div>
+      <div style={{ display: "flex", width: INNER, marginTop: 12, flexWrap: "wrap" }}>
+        {types.map((t) => (
+          <div key={t.type} style={{ display: "flex", alignItems: "center", marginRight: 24 }}>
+            <div style={{ display: "flex", color: "#fff", fontSize: 19 }}>{t.type}</div>
+            <div style={{ display: "flex", color: MUTE, fontSize: 19, marginLeft: 7, fontFamily: "Hitmarker" }}>
+              {Math.round(t.share)}%
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** A row per tournament in a season, or per match at an event. Same rhythm for both. */
+function ListRow({
+  left,
+  sub,
+  mid,
+  right,
+  accent,
+  win,
+}: {
+  left: string;
+  sub?: string;
+  mid?: string;
+  right?: string;
+  accent: string;
+  win?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        width: INNER,
+        height: 62,
+        borderBottom: `1px solid ${HAIR}`,
+      }}
+    >
+      {win != null ? (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 38,
+            height: 30,
+            marginRight: 20,
+            backgroundColor: win ? accent : "rgba(255,255,255,0.13)",
+            color: win ? "#000" : "rgba(255,255,255,0.75)",
+            fontSize: 19,
+            fontWeight: 800,
+          }}
+        >
+          {win ? "W" : "L"}
+        </div>
+      ) : null}
+      <div style={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
+        <div style={{ display: "flex", color: "#fff", fontSize: 25 }}>{left}</div>
+        {sub ? (
+          <div style={{ display: "flex", color: MUTE, fontSize: 17, marginTop: 3, letterSpacing: 1.2 }}>
+            {sub}
+          </div>
+        ) : null}
+      </div>
+      {mid ? (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            width: 200,
+            color: "#fff",
+            fontSize: 25,
+            fontFamily: "Hitmarker",
+          }}
+        >
+          {mid}
+        </div>
+      ) : null}
+      {right ? (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            width: 150,
+            color: accent,
+            fontSize: 25,
+            fontFamily: "Hitmarker",
+          }}
+        >
+          {right}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export async function GET(request: NextRequest) {
+  const sp = request.nextUrl.searchParams;
+  const playerId = sp.get("player") || "";
+  const kind = (sp.get("scope") || "career") as ShareScope["kind"];
+  const scope: ShareScope =
+    kind === "season"
+      ? { kind: "season", year: sp.get("year") || "" }
+      : kind === "event"
+        ? { kind: "event", key: sp.get("key") || "" }
+        : { kind: "career" };
+
+  const [logoUri, fonts] = await Promise.all([
+    dataUriCached("logo-dark.svg", "image/svg+xml"),
+    loadFontsCached(),
+  ]);
+
+  const snap = playerId ? await getDoc(doc(db, "playerSummaries", playerId)) : null;
+  const card = snap?.exists() ? buildShareCard(snap.data(), scope) : null;
+
+  if (!card) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  const accent = card.accent || GREEN;
+  const photo = card.imgUrl ? await toPngCached(card.imgUrl, 520, { w: PHOTO_W, h: PHOTO_H }) : "";
+
+  // Surname on its own line at display size; a mononym keeps the whole name there.
+  const parts = card.name.trim().split(/\s+/);
+  const surname = (parts.length > 1 ? parts.slice(1).join(" ") : parts[0]).toUpperCase();
+  const forename = parts.length > 1 ? parts[0].toUpperCase() : "";
+
+  /**
+   * Which bands this card carries.
+   *
+   * A season or event card has fewer stat blocks than a career card, so it earns its
+   * height back with a list of what actually happened — the tournaments that year, or the
+   * matches at that event. The first draft instead let two bands stretch to fill 1920 and
+   * the result read as a broken card rather than a sparse one.
+   */
+  const bands: ("league" | "pickem" | "strip" | "events" | "matches")[] = [
+    "league",
+    ...(card.seasons.length >= 2 ? (["strip"] as const) : []),
+    ...(card.events.length ? (["events"] as const) : []),
+    ...(card.matches.length ? (["matches"] as const) : []),
+    ...(card.pickem ? (["pickem"] as const) : []),
+  ];
+  const showKills = card.matches.some((m) => m.kills != null);
+
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: W,
+          height: H,
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: INK,
+          fontFamily: "Industry",
+        }}
+      >
+        {/* HEADER */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            height: HEADER_H,
+            padding: `0 ${PAD}px`,
+            borderBottom: `1px solid ${HAIR}`,
+          }}
+        >
+          {logoUri ? (
+            <img src={logoUri} height={54} />
+          ) : (
+            <div style={{ display: "flex", color: "#fff", fontSize: 30, fontWeight: 800 }}>
+              PICKEM PAINTBALL
+            </div>
+          )}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+            <div
+              style={{
+                display: "flex",
+                color: accent,
+                fontSize: 25,
+                fontWeight: 700,
+                letterSpacing: 3.4,
+                textTransform: "uppercase",
+              }}
+            >
+              {card.scopeLabel}
+            </div>
+            {card.scopeRange ? (
+              <div style={{ display: "flex", color: MUTE, fontSize: 20, marginTop: 5, fontFamily: "Hitmarker" }}>
+                {card.scopeRange}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        {/* NAME */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            height: NAME_H,
+            padding: `0 ${PAD}px`,
+          }}
+        >
+          {forename ? (
+            <div
+              style={{
+                display: "flex",
+                color: MUTE,
+                fontSize: 42,
+                fontWeight: 700,
+                letterSpacing: 5,
+              }}
+            >
+              {forename}
+            </div>
+          ) : null}
+          <div
+            style={{
+              display: "flex",
+              color: "#fff",
+              fontSize: surname.length > 11 ? 92 : 118,
+              fontWeight: 800,
+              lineHeight: 1,
+              marginTop: 6,
+            }}
+          >
+            {surname}
+          </div>
+          {card.team ? (
+            <div
+              style={{
+                display: "flex",
+                color: accent,
+                fontSize: 26,
+                fontWeight: 700,
+                letterSpacing: 3.4,
+                marginTop: 16,
+                textTransform: "uppercase",
+              }}
+            >
+              {card.team}
+            </div>
+          ) : null}
+        </div>
+
+        {/* PHOTO + HEADLINE */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            height: HERO_H,
+            padding: `0 ${PAD}px`,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              width: PHOTO_W,
+              height: PHOTO_H,
+              backgroundColor: PANEL,
+              borderLeft: `3px solid ${accent}`,
+              overflow: "hidden",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {photo ? (
+              <img src={photo} width={PHOTO_W} height={PHOTO_H} />
+            ) : (
+              <div style={{ display: "flex", color: "rgba(255,255,255,0.25)", fontSize: 104, fontWeight: 800 }}>
+                {surname.slice(0, 2)}
+              </div>
+            )}
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              marginLeft: 44,
+              flexGrow: 1,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                color: accent,
+                fontSize: card.headline.value.length > 5 ? 116 : 188,
+                fontFamily: "Hitmarker",
+                fontWeight: 700,
+                lineHeight: 1,
+              }}
+            >
+              {card.headline.value}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                color: "#fff",
+                fontSize: 32,
+                fontWeight: 700,
+                letterSpacing: 3,
+                marginTop: 14,
+                textTransform: "uppercase",
+              }}
+            >
+              {card.headline.label}
+            </div>
+            {card.headline.sub ? (
+              <div style={{ display: "flex", color: MUTE, fontSize: 23, marginTop: 10 }}>
+                {card.headline.sub}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        {/* STAT BANDS */}
+        {bands.map((b) => {
+          if (b === "events" || b === "matches") {
+            const rows =
+              b === "events"
+                ? card.events.slice(0, 6).map((e) => ({
+                    left: e.label,
+                    sub: undefined,
+                    mid: e.record,
+                    right: e.kills != null ? `${num(e.kills)} k` : undefined,
+                    win: undefined as boolean | undefined,
+                    finish: e.finish,
+                  }))
+                : card.matches.slice(0, 8).map((m) => ({
+                    left: m.opponent,
+                    sub: m.round.toUpperCase(),
+                    mid: `${m.f}–${m.a}`,
+                    right: showKills && m.kills != null ? `${num(m.kills)} k` : undefined,
+                    win: m.win,
+                    finish: undefined as string | undefined,
+                  }));
+            return (
+              <div
+                key={b}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  padding: `28px ${PAD}px`,
+                  borderTop: `1px solid ${HAIR}`,
+                }}
+              >
+                <BandTitle
+                  title={b === "events" ? "Tournaments" : "Every match"}
+                  caption={
+                    b === "events"
+                      ? "Finish and the team's record"
+                      : showKills
+                        ? "Score, and this player's kills"
+                        : "The team's score in each match"
+                  }
+                  accent={accent}
+                />
+                <div style={{ display: "flex", flexDirection: "column", marginTop: 18 }}>
+                  {rows.map((r, i) => (
+                    <ListRow
+                      key={`${r.left}-${i}`}
+                      left={r.left}
+                      sub={r.sub ?? r.finish?.toUpperCase()}
+                      mid={r.mid}
+                      right={r.right}
+                      win={r.win}
+                      accent={accent}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          }
+          if (b === "strip") {
+            return (
+              <div
+                key="strip"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  flexGrow: 1,
+                  minHeight: STRIP_MIN,
+                  justifyContent: "center",
+                  padding: `24px ${PAD}px`,
+                  borderTop: `1px solid ${HAIR}`,
+                }}
+              >
+                <BandTitle
+                  title="Season by season"
+                  caption="Match win rate by season"
+                  accent={accent}
+                />
+                <SeasonStrip seasons={card.seasons} accent={accent} />
+                <div style={{ display: "flex", alignItems: "center", marginTop: 18 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      width: 11,
+                      height: 11,
+                      backgroundColor: accent,
+                      transform: "rotate(45deg)",
+                      marginRight: 12,
+                    }}
+                  />
+                  <div style={{ display: "flex", color: MUTE, fontSize: 19 }}>Won a title</div>
+                  <div style={{ display: "flex", width: 22, height: 5, backgroundColor: "#fff", margin: "0 12px 0 32px" }} />
+                  <div style={{ display: "flex", color: MUTE, fontSize: 19 }}>PickEm scored this season</div>
+                </div>
+              </div>
+            );
+          }
+          const block = b === "league" ? card.league : card.pickem!;
+          return (
+            <div
+              key={b}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                flexGrow: 1,
+                minHeight: BLOCK_MIN,
+                justifyContent: "center",
+                padding: `24px ${PAD}px`,
+                borderTop: `1px solid ${HAIR}`,
+              }}
+            >
+              <BandTitle title={block.title} caption={block.caption} accent={accent} />
+              <StatRow stats={block.stats} />
+              {b === "pickem" && card.pickem ? (
+                <TypeBar types={card.pickem.types} accent={accent} />
+              ) : null}
+            </div>
+          );
+        })}
+
+        {/* FOOTER CTA */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            height: FOOTER_H,
+            padding: `0 ${PAD}px`,
+            backgroundColor: GREEN,
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", color: "rgba(0,0,0,0.7)", fontSize: 22, fontWeight: 700 }}>
+              Every NXL career at
+            </div>
+            <div
+              style={{
+                display: "flex",
+                color: "#000",
+                fontSize: 34,
+                fontWeight: 800,
+                letterSpacing: 0.5,
+              }}
+            >
+              PICKEMPAINTBALL.COM
+            </div>
+          </div>
+          <div style={{ display: "flex", color: "rgba(0,0,0,0.65)", fontSize: 22, fontWeight: 700 }}>
+            @pickempaintball
+          </div>
+        </div>
+      </div>
+    ),
+    {
+      width: W,
+      height: H,
+      fonts,
+      headers: {
+        "Cache-Control": "public, max-age=0, s-maxage=300, stale-while-revalidate=900",
+      },
+    },
+  );
+}

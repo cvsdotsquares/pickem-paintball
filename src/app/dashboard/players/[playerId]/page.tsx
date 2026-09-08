@@ -18,6 +18,7 @@ import { displayRound, type PlayerMatch } from "@/src/lib/playerMatches";
 import { individualEventDisplayName } from "@/src/lib/eventDisplayName";
 import { useTheme } from "@/src/contexts/ThemeContext";
 import PlayerSearch from "@/src/components/Dashboard/PlayerSearch";
+import ShareCareerButton, { type ShareScopeOption } from "@/src/components/Dashboard/ShareCareerButton";
 import { cn } from "@/src/lib/utils";
 
 /** Shared column template — header and rows must use the same constant (style guide). */
@@ -369,6 +370,36 @@ export default function PlayerPage() {
    * not-found states, and a hook called after a conditional return breaks React's hook
    * ordering. Fifty rows of array work per render is not worth the risk of moving it.
    */
+  /**
+   * What the share picker offers: the career, then each season, then each event.
+   *
+   * Built from the league record rather than PickEm's eight events, so a player can share
+   * a 2017 title we have results for but never scored. Seasons and events are listed
+   * newest first — the thing someone wants to post is almost always the most recent one,
+   * or the best one, and both are nearer the top than the bottom.
+   */
+  const shareScopes: ShareScopeOption[] = (() => {
+    const out: ShareScopeOption[] = [
+      { id: "career", label: "Career", query: "scope=career", group: "Career" },
+    ];
+    const nxlEvents = career.nxl?.events ?? [];
+    const years = Array.from(new Set(nxlEvents.map((e) => e.year))).sort((a, b) =>
+      b.localeCompare(a),
+    );
+    for (const y of years) {
+      out.push({ id: `y${y}`, label: `${y} season`, query: `scope=season&year=${y}`, group: "Seasons" });
+    }
+    for (const e of nxlEvents.slice().reverse()) {
+      out.push({
+        id: `e${e.key}`,
+        label: `${e.label} ${e.year}${e.finishRank === 1 ? " · Winner" : ""}`,
+        query: `scope=event&key=${encodeURIComponent(e.key)}`,
+        group: "Events",
+      });
+    }
+    return out;
+  })();
+
   const timeline: TimelineRow[] = (() => {
     const byPickemId = new Map(labelled.map((a) => [a.eventId, a]));
     const used = new Set<string>();
@@ -535,7 +566,16 @@ export default function PlayerPage() {
           <span className="text-gray-300 dark:text-white/25">›</span>
           <span className="text-gray-600 dark:text-white/60">{career.name}</span>
         </nav>
-        <PlayerSearch className="w-full sm:w-64" />
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <PlayerSearch className="w-full sm:w-64" />
+          <ShareCareerButton
+            playerId={career.playerId}
+            playerName={career.name}
+            scopes={shareScopes}
+            className="shrink-0 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-[12px] font-bold uppercase tracking-[0.14em] text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/[0.09]"
+            labelClassName="hidden sm:inline"
+          />
+        </div>
       </div>
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
