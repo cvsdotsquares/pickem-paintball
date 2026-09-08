@@ -131,8 +131,13 @@ Preview URLs (throwaway docs, no existing document touched — delete with
       identity registry (0 conflicts) and corrected the 26 stale inner `player_id`
       fields. Every backfilled id was cross-checked against the league first: 772/772
       agreed on the team, taking the validated total to 1,518 appearances with none
-      disagreeing. The seven remaining have no usable id — Cortes, Liljeblad, Schaedel,
-      Reitemyer, Portillo, Petrucelli, Helgeson.
+      disagreeing. Cortes was then recovered separately via his profile EPID (below),
+      taking coverage to 319. The six remaining are Liljeblad, Schaedel, Reitemyer,
+      Portillo and Petrucelli — one event each, zero kills, and absent from the league's
+      roster for that team, which is the same signature as the 119 off-team-sheet rows —
+      and Helgeson, whom the league lists as a COACH at Aftershock, so the Player-only
+      filter excludes him. Worth a look at the TonTon (World Cup 25) and PaintballFIT
+      (Tampa Bay 26) rosters.
 
 - [ ] ~~233 of 328 players have an NXL record.~~ The other 95 are overwhelmingly
       one-event players; 90 simply have no `league_id` in Firestore and 5 have one that
@@ -171,6 +176,23 @@ Preview URLs (throwaway docs, no existing document touched — delete with
       — and the gap is at most a place or two.
 
 ## 2c. Bugs found and fixed
+
+- [x] **A player with no photo could not have a league record at all.** The numeric
+      league id is read off the avatar filename, so eleven people across 2015-2026 have
+      none. Carlos Cortes is the one on a current roster: 44 tournaments, 12 seasons,
+      125-104, and nothing on the page until 5 Sep. `nxlCareer` now falls back to the
+      profile EPID, which the crawler already captures; `PLAYER_EPID` in clubs.mjs holds
+      the mapping with its evidence, since name is the only link. All nine overlapping
+      events agree on the team, including the mid-2025 ac DIESEL to X-Factor move.
+
+- [x] **The reference build depended on the builder's timezone.** `xlsx` with
+      `cellDates` constructs a Date in local time and lands on a different calendar DAY
+      by offset — the 2021 World Cup read 11 November under London and 10 November under
+      Paris. Nine event dates had already moved between two builds on this machine
+      because its timezone setting changed, and the diff looked like the workbook had
+      been edited. The build reads raw serials and converts in UTC; verified
+      byte-identical across six timezones, and 400/400 games still resolve.
+
 
 - [x] **The event table credited tournament wins to players who sat the event out.**
       Found by James on Ivan Lopez, 5 Sep: hero said 1 win, chart said 1, the event
