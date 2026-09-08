@@ -193,6 +193,13 @@ Vercel.
       person acquires a new id whenever a name is typed differently. Everything above is
       downstream of that.
 
+      **Progress 5 Sep:** `scripts/identity-audit.mjs` is the standing check asked for
+      below — read-only, exits non-zero on a critical failure. It found `league_id`
+      missing from every row of the three earliest 2025 events; `identity-backfill.mjs`
+      filled 848 rows from the registry and fixed the 26 stale inner `player_id`s. All
+      five critical checks now pass. STILL OUTSTANDING: the cause — `syncRoster` does
+      not stamp `league_id` on every row, and nothing stops it minting a fresh id.
+
       What "backworking" it should mean:
       - **One identity, minted once.** `syncRoster()` should resolve an incoming roster
         row to an EXISTING player by `league_id`, and never mint a new id for someone

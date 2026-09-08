@@ -125,7 +125,16 @@ Preview URLs (throwaway docs, no existing document touched — delete with
       page. Per-point lineups are the only way to make it literally true, and pbleagues
       publishes those reliably for 2023 alone.
 
-- [ ] **233 of 328 players have an NXL record.** The other 95 are overwhelmingly
+- [x] **RESOLVED 5 Sep — 318 of 325 players now have an NXL record**, up from 233.
+      `league_id` was absent from every row of the three earliest 2025 events, so 88
+      players had one nowhere. `scripts/identity-backfill.mjs` filled 848 rows from the
+      identity registry (0 conflicts) and corrected the 26 stale inner `player_id`
+      fields. Every backfilled id was cross-checked against the league first: 772/772
+      agreed on the team, taking the validated total to 1,518 appearances with none
+      disagreeing. The seven remaining have no usable id — Cortes, Liljeblad, Schaedel,
+      Reitemyer, Portillo, Petrucelli, Helgeson.
+
+- [ ] ~~233 of 328 players have an NXL record.~~ The other 95 are overwhelmingly
       one-event players; 90 simply have no `league_id` in Firestore and 5 have one that
       is not in the crawl (Cortes, Portillo, Petrucelli, Brinkman, Raffield). Only 9
       regulars are affected. Self-heals as `syncRoster` stamps ids. Those players still
