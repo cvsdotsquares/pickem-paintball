@@ -273,6 +273,40 @@ Vercel.
         unrelated reason. `scripts/nxl-history/safety-diff.mjs` is that diff — running it
         on a schedule and alerting on a `CHANGED` bucket would have caught it in a day.
 
+- [ ] **Six roster rows describe nobody — two deleted, four hidden. The sheet still has them.**
+      Found 8 Sep. All six carry no NXL record (missing `league_id`, or one the 2015-2026
+      crawl has never seen) AND have never scored, so a career page for them is a column
+      of zeros — a claim about our data that reads as a claim about the player.
+
+      | Player | league_id | Picked by | Action |
+      |---|---|---|---|
+      | Norman Reitemyer | — | nobody | **deleted** |
+      | Matthew Helgeson | 840 | nobody | **deleted** |
+      | Henry Portillo | 206876 | 8 users, 1 captain | hidden |
+      | Joey Petrucelli | 206976 | 2 users | hidden |
+      | Jonathan Liljeblad | 224174 | 1 user | hidden |
+      | Nicholas Schaedel | — | 1 user | hidden |
+
+      Hiding is a RULE in `functions/playerSummaries.js` — no league record and no kills —
+      not a list of names, so anyone who scores or gets a correct id reappears on their
+      own. It could not be a flag on the roster document: `syncRoster()` rewrites those
+      from the sheet and would wipe it. Their roster rows are untouched, so picks still
+      score; 17,837 picks across 1,602 users all resolve after the change.
+
+      ⚠️ **STILL OPEN — the two deletions are not permanent.** `syncRoster()` builds
+      rosters from the Google Sheet, so Reitemyer and Helgeson come back on the next
+      roster upload unless they are removed from the sheet too. Backup of all five deleted
+      documents is at `scripts/backups/phantom-players-pre-delete.json`.
+
+      ⚠️ Helgeson's `league_id` is **840**, far below the range of every other id here
+      (206876, 224174). That looks like a wrong id on a real player rather than a phantom,
+      and James has said he expects Helgeson to have kills. Worth resolving before the
+      next event rather than after.
+
+      Also spotted: Portillo and Petrucelli carry a `league_id` but their participation
+      reason still reads "no league id" — those verdicts predate the identity backfill, so
+      participation reasons generally may be stale relative to it.
+
 - [ ] **`nxlHistory.json` is baked into the function bundle — this blocks BOTH pulls.**
       Found 8 Sep while scoping the automation above, and worth doing first because it
       blocks the work regardless of which pull gets automated.

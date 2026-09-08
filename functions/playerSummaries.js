@@ -544,7 +544,36 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
     });
   }
 
-  return summaries;
+  /**
+   * Drop the people we know nothing about.
+   *
+   * A handful of roster rows carry no NXL record — their `league_id` is missing, or is
+   * not one the 2015-2026 crawl has ever seen — AND have never scored a kill. There is
+   * nothing to put on a career page for them: the league half is blank because we cannot
+   * identify them, and the PickEm half is blank because they have not scored. What the
+   * page renders instead is a column of zeros, which reads as "never won anything" — a
+   * claim about the player, when the truth is a claim about our data.
+   *
+   * A RULE, NOT A LIST OF NAMES. The moment one of them scores, or we find their league
+   * id, they reappear on their own; a hardcoded list would have to be remembered and
+   * would rot. It also cannot be a flag on the roster document, because `syncRoster()`
+   * rewrites those from the Google Sheet and would wipe it on the next upload.
+   *
+   * ⚠️ THEIR ROSTER ROWS STAY. Four of these players are on real user teams — one was
+   * picked by eight people and captained by one — so the documents that scoring and the
+   * pick tables read are untouched. This hides them from the career pages, the player
+   * search and the all-time table; it does not remove them from the game.
+   */
+  const withNothingToShow = summaries.filter(
+    (s) => s.nxl == null && (s.totalKills ?? 0) === 0,
+  );
+  if (withNothingToShow.length) {
+    console.log(
+      `🙈 Hiding ${withNothingToShow.length} player(s) with no league record and no kills: ` +
+        withNothingToShow.map((s) => `${s.name} (${s.playerId})`).join(", "),
+    );
+  }
+  return summaries.filter((s) => !(s.nxl == null && (s.totalKills ?? 0) === 0));
 }
 
 /**
