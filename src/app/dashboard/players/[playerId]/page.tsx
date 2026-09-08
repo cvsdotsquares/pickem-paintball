@@ -371,31 +371,44 @@ export default function PlayerPage() {
    * ordering. Fifty rows of array work per render is not worth the risk of moving it.
    */
   /**
-   * What the share picker offers: the career, then each season, then each event.
+   * Three cards, not forty-eight.
    *
-   * Built from the league record rather than PickEm's eight events, so a player can share
-   * a 2017 title we have results for but never scored. Seasons and events are listed
-   * newest first — the thing someone wants to post is almost always the most recent one,
-   * or the best one, and both are nearer the top than the bottom.
+   * The first build listed every season and every event, which for a twelve-year career
+   * is a 48-item scrolling menu — a chore to read and, worse, a decision to make before
+   * you have seen anything. These are the three someone actually wants to post: how this
+   * season is going, the tournament that just finished, and the whole career.
+   *
+   * "This season" and "latest event" are the player's most recent, NOT the calendar's.
+   * A player who sat out 2026 would otherwise be offered an empty 2026 card; the league
+   * events list only carries tournaments they were rostered and played at, and it excludes
+   * events with no results, so its last entry is by definition the most recent one that
+   * finished.
    */
   const shareScopes: ShareScopeOption[] = (() => {
-    const out: ShareScopeOption[] = [
-      { id: "career", label: "Career", query: "scope=career", group: "Career" },
-    ];
     const nxlEvents = career.nxl?.events ?? [];
-    const years = Array.from(new Set(nxlEvents.map((e) => e.year))).sort((a, b) =>
-      b.localeCompare(a),
-    );
-    for (const y of years) {
-      out.push({ id: `y${y}`, label: `${y} season`, query: `scope=season&year=${y}`, group: "Seasons" });
-    }
-    for (const e of nxlEvents.slice().reverse()) {
+    const latest = nxlEvents.length ? nxlEvents[nxlEvents.length - 1] : null;
+    const out: ShareScopeOption[] = [];
+    if (latest) {
       out.push({
-        id: `e${e.key}`,
-        label: `${e.label} ${e.year}${e.finishRank === 1 ? " · Winner" : ""}`,
-        query: `scope=event&key=${encodeURIComponent(e.key)}`,
-        group: "Events",
+        id: "season",
+        label: `${latest.year} season`,
+        query: `scope=season&year=${latest.year}`,
+        group: "Career",
       });
+      out.push({
+        id: "event",
+        label: `${latest.label} ${latest.year}`,
+        query: `scope=event&key=${encodeURIComponent(latest.key)}`,
+        group: "Career",
+      });
+    }
+    /*
+     * "Full career" only when there IS one to show — a league record, or kills we scored.
+     * The renderer refuses to build a card out of zeros, so offering the option to a player
+     * we hold neither for would hand them a failed share instead of a graphic.
+     */
+    if (career.nxl || (career.totalKills ?? 0) > 0) {
+      out.push({ id: "career", label: "Full career", query: "scope=career", group: "Career" });
     }
     return out;
   })();
@@ -568,6 +581,7 @@ export default function PlayerPage() {
         </nav>
         <div className="flex w-full items-center gap-2 sm:w-auto">
           <PlayerSearch className="w-full sm:w-64" />
+          {shareScopes.length > 0 ? (
           <ShareCareerButton
             playerId={career.playerId}
             playerName={career.name}
@@ -575,6 +589,7 @@ export default function PlayerPage() {
             className="shrink-0 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-[12px] font-bold uppercase tracking-[0.14em] text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/[0.09]"
             labelClassName="hidden sm:inline"
           />
+          ) : null}
         </div>
       </div>
 

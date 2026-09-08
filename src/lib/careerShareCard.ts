@@ -54,8 +54,16 @@ export interface ShareCard {
   scopeRange: string;
   /** The single biggest true thing about this scope. */
   headline: { value: string; label: string; sub?: string };
-  /** League results. Always present — it is the spine that every player has. */
-  league: { title: string; caption: string; stats: ShareStat[] };
+  /**
+   * League results, or null for a player we hold no NXL record for.
+   *
+   * NULL RATHER THAN ZEROS. A card reading "0-0 / 0 tournaments / 0 Sundays" states that
+   * the player never won anything, when what is true is that we have no league id for
+   * them — a claim about our data dressed up as a claim about their career. The career
+   * page already refuses to do this; a graphic that travels without the page must refuse
+   * it harder.
+   */
+  league: { title: string; caption: string; stats: ShareStat[] } | null;
   /** PickEm scoring. Null when the scope has no scored events. */
   pickem: { title: string; caption: string; stats: ShareStat[]; types: { type: string; share: number }[] } | null;
   /** Career card only — one bar per season. */
@@ -145,8 +153,18 @@ const madeSunday = (e: AnyRec): boolean =>
 
 const isTitle = (e: AnyRec): boolean => e.finishRank === 1;
 
+/** Is there anything worth putting on a card? Used by the page to decide whether to offer one. */
+export function hasShareableCareer(summary: AnyRec): boolean {
+  if (!summary) return false;
+  const tournaments = Number(summary.nxl?.tournaments ?? 0);
+  const scored = (Array.isArray(summary.events) ? summary.events : []).some(
+    (e: AnyRec) => e.kind === "played" && Number(e.kills ?? 0) > 0,
+  );
+  return tournaments > 0 || scored;
+}
+
 export function buildShareCard(summary: AnyRec, scope: ShareScope): ShareCard | null {
-  if (!summary) return null;
+  if (!summary || !hasShareableCareer(summary)) return null;
   const nxl: AnyRec = summary.nxl ?? {};
   const leagueEvents: AnyRec[] = Array.isArray(nxl.events) ? nxl.events : [];
   const pickemEvents: AnyRec[] = Array.isArray(summary.events) ? summary.events : [];
@@ -209,35 +227,63 @@ function careerCard(
       }
     : null;
 
+  /**
+   * No league record: the card becomes a PickEm card rather than a league card with the
+   * numbers knocked out. The headline moves to kills, the league band goes entirely, and
+   * the scored events fill the space the season strip would have taken — a player with one
+   * season has no strip to draw either way.
+   */
+  const hasLeague = Number(nxl.tournaments ?? 0) > 0;
+  const scoredEvents = scored
+    .slice()
+    .sort((a, b) => String(a.start ?? "").localeCompare(String(b.start ?? "")))
+    .map((e) => ({
+      label: String(e.eventName ?? ""),
+      finish: e.rank ? `${ordinal(Number(e.rank))} for kills` : "",
+      record: "",
+      kills: Number(e.kills ?? 0),
+    }));
+
   return {
     ...base,
     accent: BRAND_GREEN,
-    scopeLabel: "NXL career",
-    scopeRange:
-      nxl.firstYear && nxl.lastYear
+    scopeLabel: hasLeague ? "NXL career" : "PickEm career",
+    scopeRange: !hasLeague
+      ? `${scored.length} ${scored.length === 1 ? "event" : "events"} scored`
+      : nxl.firstYear && nxl.lastYear
         ? nxl.firstYear === nxl.lastYear
           ? String(nxl.firstYear)
           : `${nxl.firstYear} — ${nxl.lastYear}`
         : "",
-    headline: headlineFor(
-      nxl,
-      {
-        titles: nxl.titles ?? 0,
-        sundays: nxl.sundays ?? 0,
-        matches: nxl.matches ?? 0,
-        w: nxl.matchW ?? 0,
-        l: nxl.matchL ?? 0,
-      },
-      true,
-    ),
-    league: {
-      title: "NXL record",
-      caption: `Team results, ${nxl.trackedFrom ?? "2015"} to date`,
-      stats: league,
-    },
+    headline: hasLeague
+      ? headlineFor(
+          nxl,
+          {
+            titles: nxl.titles ?? 0,
+            sundays: nxl.sundays ?? 0,
+            matches: nxl.matches ?? 0,
+            w: nxl.matchW ?? 0,
+            l: nxl.matchL ?? 0,
+          },
+          true,
+        )
+      : {
+          value: num(Number(summary.totalKills ?? 0)),
+          label: "Confirmed kills",
+          sub: summary.careerRank
+            ? `${ordinal(Number(summary.careerRank))} of ${summary.careerRankField ?? "—"}`
+            : undefined,
+        },
+    league: hasLeague
+      ? {
+          title: "NXL record",
+          caption: `Team results, ${nxl.trackedFrom ?? "2015"} to date`,
+          stats: league,
+        }
+      : null,
     pickem,
-    seasons: seasonBars(leagueEvents, pickemEvents),
-    events: [],
+    seasons: hasLeague ? seasonBars(leagueEvents, pickemEvents) : [],
+    events: hasLeague ? [] : scoredEvents,
     matches: [],
   };
 }

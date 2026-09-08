@@ -105,9 +105,38 @@ export function toPngCached(
       const res = await fetch(url);
       if (!res.ok) return "";
       const buf = Buffer.from(await res.arrayBuffer());
+      /**
+       * Find the subject before cropping to it.
+       *
+       * Player photos are shot at wildly different scales — some fill the frame, some sit
+       * small in a wide field of flat backdrop. Cropping the CANVAS from the top therefore
+       * gives a different result per player: a head-and-shoulders for one, a head floating
+       * under a band of empty backdrop for the next. Trimming the uniform border first
+       * makes the crop relative to the PERSON, so every card frames its subject the same
+       * way whatever the source did.
+       *
+       * The sanity check matters more than the trim. A photo shot against a busy
+       * background trims to nothing useful, and a trim that collapses the image would
+       * produce a garbage close-up; anything under half the original area is rejected and
+       * the untrimmed photo is used, which is exactly the old behaviour.
+       */
+      let src = buf;
+      if (cover) {
+        try {
+          const t = await sharp(buf).trim({ threshold: 12 }).toBuffer({ resolveWithObject: true });
+          const meta = await sharp(buf).metadata();
+          const areaBefore = (meta.width ?? 0) * (meta.height ?? 0);
+          const areaAfter = t.info.width * t.info.height;
+          if (t.info.width >= 96 && t.info.height >= 96 && areaBefore > 0 && areaAfter / areaBefore >= 0.5) {
+            src = t.data;
+          }
+        } catch {
+          /* not trimmable — the untrimmed photo is a perfectly good fallback */
+        }
+      }
       const pipeline = cover
-        ? sharp(buf).resize(cover.w, cover.h, { fit: "cover", position: "top" })
-        : sharp(buf).resize(width, null, { withoutEnlargement: true });
+        ? sharp(src).resize(cover.w, cover.h, { fit: "cover", position: "top" })
+        : sharp(src).resize(width, null, { withoutEnlargement: true });
       const out = await pipeline.png().toBuffer();
       return `data:image/png;base64,${out.toString("base64")}`;
     } catch {

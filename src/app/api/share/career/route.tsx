@@ -24,7 +24,13 @@ import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { db } from "@/src/lib/firebaseClient";
 import { doc, getDoc } from "firebase/firestore";
-import { buildShareCard, num, type ShareCard, type ShareScope } from "@/src/lib/careerShareCard";
+import {
+  buildShareCard,
+  num,
+  type ShareCard,
+  type ShareScope,
+  type ShareStat,
+} from "@/src/lib/careerShareCard";
 import { dataUriCached, loadFontsCached, toPngCached } from "@/src/lib/shareRender";
 
 export const runtime = "nodejs";
@@ -92,7 +98,7 @@ function BandTitle({ title, caption, accent }: { title: string; caption: string;
 }
 
 /** Four figures across, the card's basic unit. Numbers in Hitmarker, labels in Industry. */
-function StatRow({ stats }: { stats: ShareCard["league"]["stats"] }) {
+function StatRow({ stats }: { stats: ShareStat[] }) {
   const n = Math.max(stats.length, 1);
   const colW = Math.floor((INNER - (n - 1) * 16) / n);
   return (
@@ -166,10 +172,27 @@ function StatRow({ stats }: { stats: ShareCard["league"]["stats"] }) {
 function SeasonStrip({ seasons, accent }: { seasons: ShareCard["seasons"]; accent: string }) {
   const n = seasons.length;
   const gap = n > 10 ? 8 : 12;
-  const barW = Math.floor((INNER - (n - 1) * gap) / n);
+  /*
+   * Bars are CAPPED, not just divided.
+   *
+   * Dividing the full width by the number of seasons is right for a twelve-year career and
+   * absurd for a three-year one: three bars 330px wide read as a different chart entirely,
+   * and a low win rate turns them into wide flat slabs. Cap the width and centre the row,
+   * so a short career draws a short strip instead of a stretched one.
+   */
+  const barW = Math.min(76, Math.floor((INNER - (n - 1) * gap) / n));
   const MAX = 132;
   return (
-    <div style={{ display: "flex", width: INNER, marginTop: 26, alignItems: "flex-end", height: 176 }}>
+    <div
+      style={{
+        display: "flex",
+        width: INNER,
+        marginTop: 26,
+        alignItems: "flex-end",
+        justifyContent: n * (barW + gap) < INNER ? "flex-start" : "space-between",
+        height: 176,
+      }}
+    >
       {seasons.map((s, i) => {
         const h = s.winPct == null ? 4 : Math.max(6, Math.round((s.winPct / 100) * MAX));
         return (
@@ -363,7 +386,15 @@ export async function GET(request: NextRequest) {
     return new Response("Not found", { status: 404 });
   }
 
-  const accent = card.accent || GREEN;
+  /**
+   * Always the brand green, never the event's own colour.
+   *
+   * `brand_color` is derived by averaging an event logo to one pixel, so the stored values
+   * are desaturated greys — #929889, #b9a0a0. As a logo backdrop that is the point; as the
+   * accent on a black card it is mud, and it would make an event card look like a
+   * different product from the career card beside it in a feed.
+   */
+  const accent = GREEN;
   const photo = card.imgUrl ? await toPngCached(card.imgUrl, 520, { w: PHOTO_W, h: PHOTO_H }) : "";
 
   // Surname on its own line at display size; a mononym keeps the whole name there.
@@ -380,7 +411,7 @@ export async function GET(request: NextRequest) {
    * the result read as a broken card rather than a sparse one.
    */
   const bands: ("league" | "pickem" | "strip" | "events" | "matches")[] = [
-    "league",
+    ...(card.league ? (["league"] as const) : []),
     ...(card.seasons.length >= 2 ? (["strip"] as const) : []),
     ...(card.events.length ? (["events"] as const) : []),
     ...(card.matches.length ? (["matches"] as const) : []),
@@ -530,10 +561,18 @@ export async function GET(request: NextRequest) {
               flexGrow: 1,
             }}
           >
+            {/*
+              WHITE, NOT GREEN. The house style sets large stat numbers as white on black
+              and reserves #00f976 for the brand mark and for signals that carry meaning —
+              a win, a title, the CTA. The first draft had green doing all of it at once:
+              headline, markers, bars, W chips and footer, which left nothing for the eye
+              to rank. Size carries the hierarchy here — 188px against the tiles' 54px is
+              already a wide gap — so the colour does not have to.
+            */}
             <div
               style={{
                 display: "flex",
-                color: accent,
+                color: "#fff",
                 fontSize: card.headline.value.length > 5 ? 116 : 188,
                 fontFamily: "Hitmarker",
                 fontWeight: 700,
@@ -660,7 +699,7 @@ export async function GET(request: NextRequest) {
               </div>
             );
           }
-          const block = b === "league" ? card.league : card.pickem!;
+          const block = (b === "league" ? card.league : card.pickem)!;
           return (
             <div
               key={b}
