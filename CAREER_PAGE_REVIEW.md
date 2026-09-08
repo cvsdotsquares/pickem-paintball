@@ -279,33 +279,31 @@ people rather than bad ids.
       publishes the 2026 participation loss. Repairing that loss and deploying
       `functions/` is what makes this stick.
 
-- [ ] **Delete the preview documents**: `node scripts/nxl-history/preview.mjs --delete`
+- [x] **Delete the preview documents** — done 8 Sep, all 5 `zzpreview_*` removed.
 
 - [ ] **Vercel Deployment Protection is on**, so a preview link asks anyone you send it
       to for a Vercel login. Fine for screen-sharing; a blocker for handing out a URL.
 
-- [ ] **Deploy `functions/`** with `functions/nxlHistory.js` and
-      `functions/data/nxlHistory.json`. Until then the deployed Cloud Function would
-      strip the new fields on its next rebuild.
+- [x] **Deploy `functions/`** — done 8 Sep, all 10 functions updated. Note this was an
+      UPDATE, not an install: `rebuildPlayerSummaries` was already live on older code.
+      The deploy published nothing visible because the projection had been rebuilt to
+      match first — had it gone the other way round it would have moved 305 rows in
+      `aggregates/allTime` and 19 spotlight leaders, both of which the live site shows.
 
-- [ ] **Restore the 2 Sep data loss, then rebuild. BOTH LOSSES ARE RECOVERABLE EXACTLY**
-      — this is a much smaller job than it looked on 4 Sep:
-      - `participation` / `participationReason` / `participationAt` / `eventId` /
-        `playerId` / `recomputedAt` for all 218 `mid_west_open_2026` players sit intact
-        in `scripts/backups/midwest-pre-sync-2026-09-02.json` (180 played, 38 absent —
-        36 off-sheet, 1 Out, 1 Injured). No need to re-derive from team sheets.
-      - `mid_west_open_2026`'s `brand_color` was `#929889`; the stored projection still
-        remembers it.
-      - CORRECTION to what was written on 4 Sep: `mid_atlantic_open_2026` did NOT lose a
-        brand colour. It never had one. That is a gap to fill if wanted, not damage.
+- [x] **Restore the 2 Sep data loss, then rebuild** — done 8 Sep; see the note below the list.
 
-      Cause: the misdirected `syncRoster()` of 2 Sep that wrote the Lone Star roster into
-      the finished Mid West event — see `scripts/restore-midwest-roster.mjs`, which put
-      the roster-owned fields back but deliberately not participation, which it does not
-      own. NOT an id problem. All three Apps Script write paths use an `updateMask`, so a
-      routine sync cannot do this; the exact manual operation has not been identified.
+      All 218 Mid West players are back to 180 played / 38 absent, matching the snapshot
+      exactly. `participationAt` and `recomputedAt` do not return — the snapshot saved
+      both as empty strings. One clean rebuild followed, and `safety-diff` now reports
+      325/325 identical with both aggregates identical, which retires the patch scripts.
 
-- [ ] ~~Fix the 2026 data loss before any full projection rebuild.~~ See the Data section
+      ⚠️ Mid Atlantic's `brand_color` was FILLED, not restored — this doc is right that it
+      never had one. `#64666b`, recomputed from its logo by `scripts/recompute-brand-color.mjs`.
+      Revert if an empty colour was deliberate.
+
+      ⚠️ Still unexplained: what removed the fields. Until that is understood it recurs.
+
+- [x] ~~Fix the 2026 data loss before any full projection rebuild.~~ Done. See the Data section
       of TODO.md. `mid_west_open_2026` has lost `participation` on all 218 roster docs and
       both 2026 events have lost `brand_color`; the stale projection is currently the only
       place the good values exist. Rebuilding publishes the loss — 38 players flip from
