@@ -366,7 +366,21 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
         year: ev.year,
         brandColor: ev.brandColor,
         fieldSize: fieldSizes.get(ev.id),
-        pickPct: ownership.get(ev.id)?.byPlayer.get(playerId) ?? null,
+        /**
+         * ZERO IS A RESULT; NULL IS A GAP.
+         *
+         * The ownership map only lists players somebody picked, so falling through to null
+         * conflated two different things: "nobody chose them" and "we have no pick data".
+         * The first is a fact worth stating — it is most of the roster at most events — and
+         * rendering it blank made the site look like it had lost the number.
+         *
+         * Null survives for the two cases where there genuinely is nothing to say: an event
+         * with no picks recorded at all, and a player who was not on that roster and so
+         * could never have been picked.
+         */
+        pickPct: !d || !ownership.has(ev.id)
+          ? null
+          : (ownership.get(ev.id).byPlayer.get(playerId) ?? 0),
         /**
          * When the event happened, so the page can interleave these rows with the
          * league events PickEm does not score.
