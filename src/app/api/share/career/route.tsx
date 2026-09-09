@@ -167,7 +167,15 @@ function BandTitle({ title, caption, accent }: { title: string; caption: string;
 /** Four figures across, the card's basic unit. Numbers in Hitmarker, labels in Industry. */
 function StatRow({ stats }: { stats: ShareStat[] }) {
   const n = Math.max(stats.length, 1);
-  const colW = Math.floor((INNER - (n - 1) * 16) / n);
+  /*
+   * The tile width is FIXED at four across, whatever the row holds.
+   *
+   * Dividing the width by the tile count made a three-tile row's boxes a third wider than
+   * every other row's, so the bottom tier looked like a different template rather than the
+   * same one with less in it. Three tiles now occupy three quarters of the width and the
+   * row simply ends early, which is what having less to say looks like.
+   */
+  const colW = Math.floor((INNER - 3 * 16) / 4);
   return (
     <div style={{ display: "flex", width: INNER, marginTop: 26 }}>
       {stats.map((s, i) => (
