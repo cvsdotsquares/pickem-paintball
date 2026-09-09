@@ -221,26 +221,29 @@ function leagueTiles(
     label: "Match win %",
     value: decided > 0 ? pct((scoped.w / decided) * 100) : "—",
   };
-  /*
-   * No denominator. "1st" carries on its own and "1st of 710" spends a third of the tile
-   * restating a population the reader cannot do anything with — and at five tiles it was
-   * the thing crowding every label.
-   */
-  const rankTile = (label: string, value: number | null): ShareStat =>
-    ranks && value != null
-      ? { label, value: ordinal(value) }
-      : { label: "Record", value: record(scoped.w, scoped.l, scoped.t) };
-
-  /*
-   * The denominator is TOURNAMENTS PLAYED, full stop. Adding the wins to it gave 16/65
-   * and printed 25% beside a page showing 33% — the precise disagreement these tiles were
-   * changed to remove. `nxl.titleRate` is 16/49; this must reproduce it exactly.
-   */
   const played = nxl.__tournaments ?? 0;
+  /*
+   * ONLY THE WINS RANK EARNS ITS BOX.
+   *
+   * "1st all-time" beside a win count is the reason someone posts the card. "306th
+   * Sundays made rank" and "595th matches rank" are the same fact about a much larger
+   * population and read as a put-down, so the other two tiers show the won-lost record
+   * there instead — the one figure a reader actually wants beside a count of matches.
+   *
+   * The label names the scope on a career card only; a season card's header already says
+   * which season it is, so "Career record" there would be wrong.
+   */
+  const recordTile: ShareStat = {
+    label: ranks ? "Career record" : "Record",
+    value: record(scoped.w, scoped.l, scoped.t),
+  };
+
   if (scoped.titles > 0) {
     return [
       { label: "Wins", value: String(scoped.titles) },
-      rankTile("Wins rank", ranks?.titles ?? null),
+      ranks && ranks.titles != null
+        ? { label: "Wins rank", value: ordinal(ranks.titles) }
+        : recordTile,
       { label: "Win %", value: played > 0 ? pct((scoped.titles / played) * 100) : "—" },
       matchRate,
     ];
@@ -248,22 +251,21 @@ function leagueTiles(
   if (scoped.sundays > 0) {
     return [
       { label: "Sundays made", value: String(scoped.sundays) },
-      rankTile("Sundays made rank", ranks?.sundays ?? null),
+      recordTile,
       { label: "Sundays made %", value: played > 0 ? pct((scoped.sundays / played) * 100) : "—" },
       matchRate,
     ];
   }
   /*
-   * FOUR TILES, always. The bottom tier used to drop to three, which widened every box by
-   * a third — beside any other card in a feed it read as a different template rather than
-   * the same one saying less. The record fills the fourth slot; on this tier it is the one
-   * figure the other three do not already contain.
+   * Four tiles still. Dropping the rank leaves three, and a three-wide row is a different
+   * module beside every other card — tournaments played is the figure the other three do
+   * not already contain.
    */
   return [
     { label: "Matches", value: String(scoped.matches) },
-    rankTile("Matches rank", ranks?.matches ?? null),
+    recordTile,
     matchRate,
-    { label: "Record", value: record(scoped.w, scoped.l, scoped.t) },
+    { label: "Tournaments", value: String(played) },
   ];
 }
 
