@@ -587,9 +587,15 @@ function seasonCard(
           }
         : null,
     seasons: [],
+    /*
+     * NEWEST FIRST, like the career list, because the table is capped and truncation has
+     * to drop the least interesting end. Oldest-first cut the World Cup off a five-event
+     * season — the finale, and for one player the only tournament anyone picked him at, so
+     * the pick % column vanished from a card that had one.
+     */
     events: evs
       .slice()
-      .sort((a, b) => String(a.start ?? "").localeCompare(String(b.start ?? "")))
+      .sort((a, b) => String(b.start ?? "").localeCompare(String(a.start ?? "")))
       .map((e) => {
         const scored = pickemEvents.find(
           (p) => p.eventId === e.pickemEventId && p.kind === "played",
@@ -600,7 +606,12 @@ function seasonCard(
            * opener just "Open", which is meaningless once it is out of the context of a
            * year column — "Tampa Bay 2026" is the same event said usefully.
            */
-          label: String(scored?.eventName ?? e.label ?? ""),
+          /*
+           * No year on a SEASON card: the header already says which one, and the source
+           * names disagree about carrying it — "World Cup" sat beside "Lone Star Open
+           * 2025" in the same table. The career list keeps its years, where they matter.
+           */
+          label: String(scored?.eventName ?? e.label ?? "").replace(/\s+\d{4}$/, ""),
           finish: e.finishRank === 1 ? "Winner" : e.finishRank ? ordinal(Number(e.finishRank)) : String(e.finish ?? ""),
           record: record(Number(e.w ?? 0), Number(e.l ?? 0), Number(e.t ?? 0)),
           kills: scored ? Number(scored.kills ?? 0) : null,
