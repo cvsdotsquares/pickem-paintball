@@ -126,7 +126,7 @@ function headlineFor(
       label: scoped.titles === 1 ? "NXL win" : "NXL wins",
       sub:
         withAllTimeRank && nxl?.titlesRank && nxl?.rankField
-          ? `${ordinal(nxl.titlesRank)} all-time of ${nxl.rankField}`
+          ? `${ordinal(nxl.titlesRank)} all-time`
           : undefined,
     };
   }
@@ -136,7 +136,7 @@ function headlineFor(
       label: scoped.sundays === 1 ? "Sunday made" : "Sundays made",
       sub:
         withAllTimeRank && nxl?.sundaysRank && nxl?.rankField
-          ? `${ordinal(nxl.sundaysRank)} all-time of ${nxl.rankField}`
+          ? `${ordinal(nxl.sundaysRank)} all-time`
           : undefined,
     };
   }
@@ -174,9 +174,14 @@ function leagueTiles(
     label: "Match win %",
     value: decided > 0 ? pct((scoped.w / decided) * 100) : "—",
   };
+  /*
+   * No denominator. "1st" carries on its own and "1st of 710" spends a third of the tile
+   * restating a population the reader cannot do anything with — and at five tiles it was
+   * the thing crowding every label.
+   */
   const rankTile = (label: string, value: number | null): ShareStat =>
     ranks && value != null
-      ? { label, value: ordinal(value), sub: ranks.field ? `of ${ranks.field}` : undefined }
+      ? { label, value: ordinal(value) }
       : { label: "Record", value: record(scoped.w, scoped.l, scoped.t) };
 
   /*
@@ -290,22 +295,17 @@ function careerCard(
         title: "PickEm stats",
         caption: `Confirmed kills, ${summary.trackedFrom ?? "2025"} to date`,
         /*
-         * The same four figures the career page's PickEm hero shows, in the same order,
-         * plus pick %. Anything else and a player reads two different summaries of the
-         * same season depending on whether they are looking at the page or the picture.
+         * Drawn from the career page's PickEm hero so the two never disagree, with pick %
+         * in place of average event rank — four tiles, matching the NXL band beside it.
+         * Five made every label a size smaller and the band read as a different component.
          */
         stats: [
           { label: "Career kills", value: num(Number(summary.totalKills ?? 0)) },
           {
             label: "All-time rank",
             value: summary.careerRank ? ordinal(Number(summary.careerRank)) : "—",
-            sub: summary.careerRankField ? `of ${summary.careerRankField}` : undefined,
           },
           { label: "Kills per event", value: num(Number(summary.avgKills ?? 0)) },
-          {
-            label: "Average event rank",
-            value: summary.avgRank != null ? ordinal(Math.round(Number(summary.avgRank))) : "—",
-          },
           { label: "Picked by", value: careerPick != null ? pct(careerPick) : "—" },
         ] as ShareStat[],
         types: (summary.typeTotals ?? []).slice(0, 5).map((t: AnyRec) => ({
@@ -358,9 +358,7 @@ function careerCard(
       : {
           value: num(Number(summary.totalKills ?? 0)),
           label: "Confirmed kills",
-          sub: summary.careerRank
-            ? `${ordinal(Number(summary.careerRank))} of ${summary.careerRankField ?? "—"}`
-            : undefined,
+          sub: summary.careerRank ? `${ordinal(Number(summary.careerRank))} all-time` : undefined,
         },
     league: hasLeague
       ? {
@@ -461,7 +459,6 @@ function seasonCard(
               { label: "Kills", value: num(kills) },
               { label: "Best event rank", value: bestRank != null ? ordinal(bestRank) : "—" },
               { label: "Kills per event", value: num(kills / pe.length) },
-              { label: "Events scored", value: String(pe.length) },
               { label: "Picked by", value: meanPickPct(pe) != null ? pct(meanPickPct(pe)) : "—" },
             ],
             types: Array.from(types.entries())
@@ -526,13 +523,13 @@ function eventCard(
   const headline = le?.finish
     ? {
         value: le.finishRank === 1 ? "WINNER" : le.finishRank ? ordinal(Number(le.finishRank)) : String(le.finish),
-        label: le.fieldSize ? `of ${le.fieldSize} teams` : "Finish",
+        label: le.finishRank === 1 ? "Event winner" : "Finish",
         sub: undefined,
       }
     : {
         value: pe?.kills != null ? num(Number(pe.kills)) : "—",
         label: "Confirmed kills",
-        sub: pe?.rank ? `${ordinal(Number(pe.rank))} of ${pe.fieldSize}` : undefined,
+        sub: pe?.rank ? `${ordinal(Number(pe.rank))} for kills` : undefined,
       };
 
   return {
@@ -562,11 +559,7 @@ function eventCard(
               { label: "Record", value: record(w, l, t) },
               { label: "Match win %", value: w + l > 0 ? pct((w / (w + l)) * 100) : "—" },
               { label: "Kills", value: num(Number(pe.kills)) },
-              {
-                label: "Event rank",
-                value: pe.rank ? ordinal(Number(pe.rank)) : "—",
-                sub: pe.fieldSize ? `of ${pe.fieldSize}` : undefined,
-              },
+              { label: "Event rank", value: pe.rank ? ordinal(Number(pe.rank)) : "—" },
               { label: "Picked by", value: pe.pickPct != null ? pct(Number(pe.pickPct)) : "—" },
             ]
           : [
@@ -587,7 +580,6 @@ function eventCard(
               {
                 label: "Event rank",
                 value: pe.rank ? ordinal(Number(pe.rank)) : "—",
-                sub: pe.fieldSize ? `of ${pe.fieldSize}` : undefined,
               },
               { label: "% of team's", value: pe.shareOfTeam != null ? pct(Number(pe.shareOfTeam)) : "—" },
               { label: "Cost per kill", value: pe.costPerKill != null ? `$${Math.round(Number(pe.costPerKill)).toLocaleString("en-US")}` : "—" },

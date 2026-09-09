@@ -284,7 +284,12 @@ function SeasonStrip({ seasons, accent }: { seasons: ShareCard["seasons"]; accen
                 display: "flex",
                 width: barW,
                 height: h,
-                backgroundColor: s.titles > 0 ? accent : "rgba(0,249,118,0.45)",
+                /*
+                 * ONE COLOUR. Two shades encoded the same fact the diamond above already
+                 * marks, so the strip appeared to be saying something with colour that it
+                 * was not, and the reader had to work out which.
+                 */
+                backgroundColor: accent,
               }}
             />
             <div style={{ display: "flex", color: MUTE, fontSize: 18, marginTop: 10, fontFamily: "Hitmarker" }}>
@@ -800,19 +805,23 @@ export async function GET(request: NextRequest) {
                   accent={accent}
                 />
                 <SeasonStrip seasons={card.seasons} accent={accent} />
-                <div style={{ display: "flex", alignItems: "center", marginTop: 16 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      width: 11,
-                      height: 11,
-                      backgroundColor: accent,
-                      transform: "rotate(45deg)",
-                      marginRight: 12,
-                    }}
-                  />
-                  <div style={{ display: "flex", color: MUTE, fontSize: 19 }}>Won an event</div>
-                </div>
+                {/* Only explain the marker when there is one. A key to a symbol that does
+                    not appear reads as a missing element rather than an absent one. */}
+                {card.seasons.some((x) => x.titles > 0) ? (
+                  <div style={{ display: "flex", alignItems: "center", marginTop: 16 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        width: 11,
+                        height: 11,
+                        backgroundColor: accent,
+                        transform: "rotate(45deg)",
+                        marginRight: 12,
+                      }}
+                    />
+                    <div style={{ display: "flex", color: MUTE, fontSize: 19 }}>Won an event</div>
+                  </div>
+                ) : null}
               </div>
             );
           }
