@@ -59,7 +59,7 @@ const HEADER_H = 118;
 const NAME_H = 254;
 const HERO_H = 404;
 const BLOCK_MIN = 300;
-const STRIP_MIN = 320;
+const STRIP_MIN = 340;
 const FOOTER_H = 122;
 const PHOTO_W = 324;
 const PHOTO_H = 344;
@@ -93,7 +93,7 @@ const LIST_TITLE_H = 146;
  * them to the theoretical 300/400 is what made the budget confidently wrong.
  */
 const LEAGUE_BAND_H = 380;
-const PICKEM_BAND_H = 480;
+const PICKEM_BAND_H = 490;
 /**
  * A list card gives up some portrait to buy rows; it has more to say than a career card.
  *
@@ -165,7 +165,7 @@ function StatRow({ stats }: { stats: ShareStat[] }) {
               style={{
                 display: "flex",
                 color: "#fff",
-                fontSize: 54,
+                fontSize: n >= 5 ? 43 : 54,
                 fontFamily: "Hitmarker",
                 fontWeight: 300,
                 whiteSpace: "nowrap",
@@ -174,7 +174,7 @@ function StatRow({ stats }: { stats: ShareStat[] }) {
               {s.value}
             </div>
             {s.sub ? (
-              <div style={{ display: "flex", color: MUTE, fontSize: 21, marginLeft: 8, whiteSpace: "nowrap" }}>
+              <div style={{ display: "flex", color: MUTE, fontSize: n >= 5 ? 17 : 21, marginLeft: n >= 5 ? 5 : 8, whiteSpace: "nowrap" }}>
                 {s.sub}
               </div>
             ) : null}
@@ -189,7 +189,7 @@ function StatRow({ stats }: { stats: ShareStat[] }) {
             style={{
               display: "flex",
               color: MUTE,
-              fontSize: s.label.length > 13 ? 16 : 19,
+              fontSize: n >= 5 ? (s.label.length > 13 ? 14 : 16) : s.label.length > 13 ? 16 : 19,
               marginTop: 8,
               letterSpacing: s.label.length > 13 ? 1.1 : 1.6,
               textTransform: "uppercase",
@@ -223,7 +223,8 @@ function SeasonStrip({ seasons, accent }: { seasons: ShareCard["seasons"]; accen
    * so a short career draws a short strip instead of a stretched one.
    */
   const barW = Math.min(76, Math.floor((INNER - (n - 1) * gap) / n));
-  const MAX = 132;
+  /* Shorter bars: the number now sits above each one and needs the room. */
+  const MAX = 104;
   return (
     <div
       style={{
@@ -262,20 +263,30 @@ function SeasonStrip({ seasons, accent }: { seasons: ShareCard["seasons"]; accen
                 }}
               />
             ) : null}
+            {/*
+              The number, because the chart could not be read without it. Bar height alone
+              gives a shape but no value, and "roughly two thirds" is not what anyone wants
+              to post — the point of the strip is which seasons were good.
+            */}
             <div
               style={{
                 display: "flex",
-                flexDirection: "column",
-                justifyContent: "flex-start",
+                color: s.winPct == null ? MUTE : "#fff",
+                fontSize: n > 10 ? 17 : 19,
+                fontFamily: "Hitmarker",
+                marginBottom: 6,
+              }}
+            >
+              {s.winPct == null ? "—" : `${Math.round(s.winPct)}%`}
+            </div>
+            <div
+              style={{
+                display: "flex",
                 width: barW,
                 height: h,
                 backgroundColor: s.titles > 0 ? accent : "rgba(0,249,118,0.45)",
               }}
-            >
-              {s.kills != null ? (
-                <div style={{ display: "flex", width: barW, height: 6, backgroundColor: "#fff" }} />
-              ) : null}
-            </div>
+            />
             <div style={{ display: "flex", color: MUTE, fontSize: 18, marginTop: 10, fontFamily: "Hitmarker" }}>
               {s.year.slice(2)}
             </div>
@@ -785,11 +796,11 @@ export async function GET(request: NextRequest) {
               >
                 <BandTitle
                   title="Season by season"
-                  caption="Match win rate by season"
+                  caption="Match win % by season"
                   accent={accent}
                 />
                 <SeasonStrip seasons={card.seasons} accent={accent} />
-                <div style={{ display: "flex", alignItems: "center", marginTop: 18 }}>
+                <div style={{ display: "flex", alignItems: "center", marginTop: 16 }}>
                   <div
                     style={{
                       display: "flex",
@@ -800,9 +811,7 @@ export async function GET(request: NextRequest) {
                       marginRight: 12,
                     }}
                   />
-                  <div style={{ display: "flex", color: MUTE, fontSize: 19 }}>Won a title</div>
-                  <div style={{ display: "flex", width: 22, height: 5, backgroundColor: "#fff", margin: "0 12px 0 32px" }} />
-                  <div style={{ display: "flex", color: MUTE, fontSize: 19 }}>PickEm scored this season</div>
+                  <div style={{ display: "flex", color: MUTE, fontSize: 19 }}>Won an event</div>
                 </div>
               </div>
             );

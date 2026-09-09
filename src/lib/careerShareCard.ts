@@ -123,7 +123,7 @@ function headlineFor(
   if (scoped.titles > 0) {
     return {
       value: String(scoped.titles),
-      label: scoped.titles === 1 ? "NXL title" : "NXL titles",
+      label: scoped.titles === 1 ? "NXL win" : "NXL wins",
       sub:
         withAllTimeRank && nxl?.titlesRank && nxl?.rankField
           ? `${ordinal(nxl.titlesRank)} all-time of ${nxl.rankField}`
@@ -145,6 +145,73 @@ function headlineFor(
     label: "Match record",
     sub: scoped.matches > 0 ? `${scoped.matches} matches` : undefined,
   };
+}
+
+/**
+ * The four league figures, at whichever tier the player's record reaches.
+ *
+ * THIS IS `NxlHeroRow`'s LOGIC, deliberately duplicated in shape rather than approximated.
+ * The card used to show a fixed Record / Match win % / Tournaments / Sundays, which meant
+ * a shared graphic and the page it came from stated different things about the same
+ * player. The page leads with the highest rung actually reached — count, rank, rate, then
+ * match rate — because a zero is not a stat, and the card now does the same:
+ *
+ *   won a tournament   wins     · rank · win %        + match win %
+ *   reached a bracket  Sundays  · rank · Sunday %     + match win %
+ *   neither            matches  · rank · match win %  (no fourth — it would repeat)
+ *
+ * ⚠️ RANK IS A CAREER FIGURE. A season or event card passes `rank: null` and shows the
+ * won-lost record in its place: "1st all-time of 710" under a single season's total reads
+ * as a claim about that season, and is false.
+ */
+function leagueTiles(
+  nxl: AnyRec,
+  scoped: { titles: number; sundays: number; matches: number; w: number; l: number; t: number },
+  ranks: { titles: number | null; sundays: number | null; matches: number | null; field: number | null } | null,
+): ShareStat[] {
+  const decided = scoped.w + scoped.l;
+  const matchRate: ShareStat = {
+    label: "Match win %",
+    value: decided > 0 ? pct((scoped.w / decided) * 100) : "—",
+  };
+  const rankTile = (label: string, value: number | null): ShareStat =>
+    ranks && value != null
+      ? { label, value: ordinal(value), sub: ranks.field ? `of ${ranks.field}` : undefined }
+      : { label: "Record", value: record(scoped.w, scoped.l, scoped.t) };
+
+  /*
+   * The denominator is TOURNAMENTS PLAYED, full stop. Adding the wins to it gave 16/65
+   * and printed 25% beside a page showing 33% — the precise disagreement these tiles were
+   * changed to remove. `nxl.titleRate` is 16/49; this must reproduce it exactly.
+   */
+  const played = nxl.__tournaments ?? 0;
+  if (scoped.titles > 0) {
+    return [
+      { label: "Wins", value: String(scoped.titles) },
+      rankTile("Wins rank", ranks?.titles ?? null),
+      { label: "Win %", value: played > 0 ? pct((scoped.titles / played) * 100) : "—" },
+      matchRate,
+    ];
+  }
+  if (scoped.sundays > 0) {
+    return [
+      { label: "Sundays made", value: String(scoped.sundays) },
+      rankTile("Sundays made rank", ranks?.sundays ?? null),
+      { label: "Sundays made %", value: played > 0 ? pct((scoped.sundays / played) * 100) : "—" },
+      matchRate,
+    ];
+  }
+  return [
+    { label: "Matches", value: String(scoped.matches) },
+    rankTile("Matches rank", ranks?.matches ?? null),
+    matchRate,
+  ];
+}
+
+/** Mean pick % across the events in scope. Null when none of them carry one. */
+function meanPickPct(events: AnyRec[]): number | null {
+  const vals = events.map((e) => e.pickPct).filter((v) => v != null).map(Number);
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
 }
 
 /** A league event counts as a Sunday when its team reached the knockout bracket. */
@@ -198,27 +265,48 @@ function careerCard(
   leagueEvents: AnyRec[],
   pickemEvents: AnyRec[],
 ): ShareCard {
-  const league: ShareStat[] = [
-    { label: "Record", value: record(nxl.matchW ?? 0, nxl.matchL ?? 0, nxl.matchT ?? 0) },
-    { label: "Match win %", value: pct(nxl.matchWinPct) },
-    { label: "Tournaments", value: String(nxl.tournaments ?? 0) },
-    { label: "Sundays", value: String(nxl.sundays ?? 0) },
-  ];
+  const league: ShareStat[] = leagueTiles(
+    { __tournaments: nxl.tournaments ?? 0 },
+    {
+      titles: nxl.titles ?? 0,
+      sundays: nxl.sundays ?? 0,
+      matches: nxl.matches ?? 0,
+      w: nxl.matchW ?? 0,
+      l: nxl.matchL ?? 0,
+      t: nxl.matchT ?? 0,
+    },
+    {
+      titles: nxl.titlesRank ?? null,
+      sundays: nxl.sundaysRank ?? null,
+      matches: nxl.matchesRank ?? null,
+      field: nxl.rankField ?? null,
+    },
+  );
 
   const scored = pickemEvents.filter((e) => e.kind === "played" && (e.kills ?? 0) > 0);
+  const careerPick = meanPickPct(scored);
   const pickem = scored.length
     ? {
-        title: "PickEm scoring",
+        title: "PickEm stats",
         caption: `Confirmed kills, ${summary.trackedFrom ?? "2025"} to date`,
+        /*
+         * The same four figures the career page's PickEm hero shows, in the same order,
+         * plus pick %. Anything else and a player reads two different summaries of the
+         * same season depending on whether they are looking at the page or the picture.
+         */
         stats: [
-          { label: "Confirmed kills", value: num(Number(summary.totalKills ?? 0)) },
+          { label: "Career kills", value: num(Number(summary.totalKills ?? 0)) },
           {
-            label: "Kills rank",
+            label: "All-time rank",
             value: summary.careerRank ? ordinal(Number(summary.careerRank)) : "—",
             sub: summary.careerRankField ? `of ${summary.careerRankField}` : undefined,
           },
-          { label: "Per event", value: num(Number(summary.avgKills ?? 0)) },
-          { label: "Best event rank", value: summary.bestRank ? ordinal(Number(summary.bestRank)) : "—" },
+          { label: "Kills per event", value: num(Number(summary.avgKills ?? 0)) },
+          {
+            label: "Average event rank",
+            value: summary.avgRank != null ? ordinal(Math.round(Number(summary.avgRank))) : "—",
+          },
+          { label: "Picked by", value: careerPick != null ? pct(careerPick) : "—" },
         ] as ShareStat[],
         types: (summary.typeTotals ?? []).slice(0, 5).map((t: AnyRec) => ({
           type: String(t.type),
@@ -358,23 +446,23 @@ function seasonCard(
     league: {
       title: `${year} NXL record`,
       caption: "Team results",
-      stats: [
-        { label: "Record", value: record(w, l, t) },
-        { label: "Match win %", value: decided > 0 ? pct((w / decided) * 100) : "—" },
-        { label: "Tournaments", value: String(evs.length) },
-        { label: "Sundays", value: String(sundays) },
-      ],
+      stats: leagueTiles(
+        { __tournaments: evs.length },
+        { titles, sundays, matches: w + l + t, w, l, t },
+        null,
+      ),
     },
     pickem:
       pe.length && kills > 0
         ? {
-            title: "PickEm scoring",
+            title: "PickEm stats",
             caption: `${year} confirmed kills`,
             stats: [
-              { label: "Confirmed kills", value: num(kills) },
+              { label: "Kills", value: num(kills) },
               { label: "Best event rank", value: bestRank != null ? ordinal(bestRank) : "—" },
+              { label: "Kills per event", value: num(kills / pe.length) },
               { label: "Events scored", value: String(pe.length) },
-              { label: "Per event", value: num(kills / pe.length) },
+              { label: "Picked by", value: meanPickPct(pe) != null ? pct(meanPickPct(pe)) : "—" },
             ],
             types: Array.from(types.entries())
               .sort((a, b) => b[1] - a[1])
@@ -473,12 +561,13 @@ function eventCard(
           ? [
               { label: "Record", value: record(w, l, t) },
               { label: "Match win %", value: w + l > 0 ? pct((w / (w + l)) * 100) : "—" },
-              { label: "Confirmed kills", value: num(Number(pe.kills)) },
+              { label: "Kills", value: num(Number(pe.kills)) },
               {
                 label: "Event rank",
                 value: pe.rank ? ordinal(Number(pe.rank)) : "—",
                 sub: pe.fieldSize ? `of ${pe.fieldSize}` : undefined,
               },
+              { label: "Picked by", value: pe.pickPct != null ? pct(Number(pe.pickPct)) : "—" },
             ]
           : [
               { label: "Record", value: record(w, l, t) },
