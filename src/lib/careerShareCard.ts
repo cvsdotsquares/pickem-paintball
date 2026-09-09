@@ -140,10 +140,17 @@ function headlineFor(
           : undefined,
     };
   }
+  /*
+   * The COUNT, not the record — the career page's bottom rung leads with matches played
+   * and so must this. Leading with the record put "2-14" in the largest type on a card
+   * whose owner has no kills to fall back on, and a match count at least says they turned
+   * up. The record follows only when it is a winning one; there is no reason to volunteer
+   * a losing one twice, and it is still a tile in the band below either way.
+   */
   return {
-    value: record(scoped.w, scoped.l, 0),
-    label: "Match record",
-    sub: scoped.matches > 0 ? `${scoped.matches} matches` : undefined,
+    value: String(scoped.matches),
+    label: scoped.matches === 1 ? "Match played" : "Matches played",
+    sub: scoped.w >= scoped.l ? record(scoped.w, scoped.l, 0) : undefined,
   };
 }
 
@@ -176,11 +183,13 @@ function bestHeadline(
   kills: number,
   killRank: number | null,
   killField: number | null,
+  /** Names the scope: a season card must not label its own total "career kills". */
+  killLabel = "Career kills",
 ): { value: string; label: string; sub?: string } {
   if (!leagueIsLosing || kills <= 0) return leagueHead;
   return {
     value: num(kills),
-    label: "Career kills",
+    label: killLabel,
     sub: notableRank(killRank, killField) ? `${ordinal(Number(killRank))} all-time` : undefined,
   };
 }
@@ -528,6 +537,7 @@ function seasonCard(
       kills,
       null,
       null,
+      `${year} kills`,
     ),
     league: {
       title: `${year} NXL record`,
