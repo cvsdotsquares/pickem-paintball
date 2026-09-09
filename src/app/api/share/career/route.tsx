@@ -421,6 +421,11 @@ function ListRow({
   );
 }
 
+/** Stat bands and the strip — what the card has to say before any list is added. */
+function bandCount(card: ShareCard): number {
+  return (card.league ? 1 : 0) + (card.pickem ? 1 : 0) + (card.seasons.length >= 4 ? 1 : 0);
+}
+
 export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
   const playerId = sp.get("player") || "";
@@ -473,7 +478,12 @@ export async function GET(request: NextRequest) {
    */
   const bands: ("league" | "pickem" | "strip" | "events" | "matches")[] = [
     ...(card.league ? (["league"] as const) : []),
-    ...(card.seasons.length >= 2 ? (["strip"] as const) : []),
+    /*
+     * FOUR SEASONS MINIMUM. Two or three bars occupy a full band to say what the tiles
+     * above already say, and a strip that short reads as a chart that failed to load
+     * rather than a short career.
+     */
+    ...(card.seasons.length >= 4 ? (["strip"] as const) : []),
     ...(card.pickem ? (["pickem"] as const) : []),
     /*
      * THE LIST GOES LAST, and that is a layout requirement rather than a taste.
@@ -486,7 +496,12 @@ export async function GET(request: NextRequest) {
      *
      * Reading order survives the move: the stat bands summarise, the list is the detail.
      */
-    ...(card.events.length ? (["events"] as const) : []),
+    /*
+     * The tournament list appears only when the card would otherwise be short. A career
+     * with a full strip and both stat bands has plenty to say; one with a single band and
+     * no strip has 700px of black and needs this.
+     */
+    ...(card.events.length && bandCount(card) < 3 ? (["events"] as const) : []),
     ...(card.matches.length ? (["matches"] as const) : []),
   ];
   const showKills = card.matches.some((m) => m.kills != null);
@@ -648,7 +663,7 @@ export async function GET(request: NextRequest) {
               display: "flex",
               width: photoW,
               height: photoH,
-              backgroundColor: PANEL,
+              backgroundColor: photo ? PANEL : "rgba(0,249,118,0.06)",
               borderLeft: `3px solid ${accent}`,
               overflow: "hidden",
               alignItems: "center",
@@ -658,7 +673,8 @@ export async function GET(request: NextRequest) {
             {photo ? (
               <img src={photo} width={photoW} height={photoH} />
             ) : (
-              <div style={{ display: "flex", color: "rgba(255,255,255,0.25)", fontSize: 104, fontWeight: 800 }}>
+              /* 25% white on near-black was invisible; the box looked broken rather than empty. */
+              <div style={{ display: "flex", color: "rgba(255,255,255,0.45)", fontSize: 104, fontWeight: 800 }}>
                 {surname.slice(0, 2)}
               </div>
             )}
@@ -792,7 +808,7 @@ export async function GET(request: NextRequest) {
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  flexGrow: 1,
+                  flexGrow: 0,
                   minHeight: STRIP_MIN,
                   justifyContent: "center",
                   padding: `24px ${PAD}px`,
@@ -843,7 +859,14 @@ export async function GET(request: NextRequest) {
                  */
                 ...(hasList
                   ? { height: b === "league" ? LEAGUE_BAND_H : PICKEM_BAND_H, overflow: "hidden" }
-                  : { flexGrow: 1, minHeight: BLOCK_MIN }),
+                  /*
+                   * A modest grow, not an unbounded one. Letting each band take an equal
+                   * share of the leftover put ~200px of black above and below every band
+                   * on a two-band card, which reads as a layout fault rather than a sparse
+                   * player. Capping the growth leaves the surplus in one place — under the
+                   * last band, where it looks like margin.
+                   */
+                  : { flexGrow: 0, minHeight: BLOCK_MIN }),
                 justifyContent: "center",
                 padding: `24px ${PAD}px`,
                 borderTop: `1px solid ${HAIR}`,

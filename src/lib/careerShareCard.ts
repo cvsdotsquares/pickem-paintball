@@ -125,7 +125,7 @@ function headlineFor(
       value: String(scoped.titles),
       label: scoped.titles === 1 ? "NXL win" : "NXL wins",
       sub:
-        withAllTimeRank && nxl?.titlesRank && nxl?.rankField
+        withAllTimeRank && notableRank(nxl?.titlesRank, nxl?.rankField)
           ? `${ordinal(nxl.titlesRank)} all-time`
           : undefined,
     };
@@ -135,7 +135,7 @@ function headlineFor(
       value: String(scoped.sundays),
       label: scoped.sundays === 1 ? "Sunday made" : "Sundays made",
       sub:
-        withAllTimeRank && nxl?.sundaysRank && nxl?.rankField
+        withAllTimeRank && notableRank(nxl?.sundaysRank, nxl?.rankField)
           ? `${ordinal(nxl.sundaysRank)} all-time`
           : undefined,
     };
@@ -144,6 +144,44 @@ function headlineFor(
     value: record(scoped.w, scoped.l, 0),
     label: "Match record",
     sub: scoped.matches > 0 ? `${scoped.matches} matches` : undefined,
+  };
+}
+
+/**
+ * Is this rank worth printing under the headline?
+ *
+ * Half of any population is below its median, so "358th all-time" is both true and the
+ * reason a card does not get posted. The page can afford it — a reader went there to look
+ * a player up, and the rank sits among context that explains it. A graphic is chosen by
+ * its subject and shown to an audience, so a figure that reads as a put-down does not earn
+ * the line. Top quartile keeps it meaningful without being flattery: it still means
+ * something to be 150th of 710.
+ */
+const RANK_WORTH_SHOWING = 0.25;
+const notableRank = (rank: number | null | undefined, field: number | null | undefined): boolean =>
+  rank != null && field != null && field > 0 && rank / field <= RANK_WORTH_SHOWING;
+
+/**
+ * The best true thing about this player, across BOTH families.
+ *
+ * The league tiers were written for the career page, where the bottom rung — matches
+ * played and a won-lost record — sits among context. On a share graphic it puts a LOSING
+ * RECORD in the largest type on the canvas: "11-21" at 116px is nobody's post. So when the
+ * league record would lead with a losing one and the player has scored, the kills lead
+ * instead. Nothing is hidden: the record is still a tile in the band below.
+ */
+function bestHeadline(
+  leagueHead: { value: string; label: string; sub?: string },
+  leagueIsLosing: boolean,
+  kills: number,
+  killRank: number | null,
+  killField: number | null,
+): { value: string; label: string; sub?: string } {
+  if (!leagueIsLosing || kills <= 0) return leagueHead;
+  return {
+    value: num(kills),
+    label: "Career kills",
+    sub: notableRank(killRank, killField) ? `${ordinal(Number(killRank))} all-time` : undefined,
   };
 }
 
@@ -206,10 +244,17 @@ function leagueTiles(
       matchRate,
     ];
   }
+  /*
+   * FOUR TILES, always. The bottom tier used to drop to three, which widened every box by
+   * a third — beside any other card in a feed it read as a different template rather than
+   * the same one saying less. The record fills the fourth slot; on this tier it is the one
+   * figure the other three do not already contain.
+   */
   return [
     { label: "Matches", value: String(scoped.matches) },
     rankTile("Matches rank", ranks?.matches ?? null),
     matchRate,
+    { label: "Record", value: record(scoped.w, scoped.l, scoped.t) },
   ];
 }
 
@@ -335,7 +380,7 @@ function careerCard(
   return {
     ...base,
     accent: BRAND_GREEN,
-    scopeLabel: hasLeague ? "NXL career" : "PickEm career",
+    scopeLabel: "Career stats",
     scopeRange: !hasLeague
       ? `${scored.length} ${scored.length === 1 ? "event" : "events"} scored`
       : nxl.firstYear && nxl.lastYear
@@ -344,16 +389,22 @@ function careerCard(
           : `${nxl.firstYear} — ${nxl.lastYear}`
         : "",
     headline: hasLeague
-      ? headlineFor(
-          nxl,
-          {
-            titles: nxl.titles ?? 0,
-            sundays: nxl.sundays ?? 0,
-            matches: nxl.matches ?? 0,
-            w: nxl.matchW ?? 0,
-            l: nxl.matchL ?? 0,
-          },
-          true,
+      ? bestHeadline(
+          headlineFor(
+            nxl,
+            {
+              titles: nxl.titles ?? 0,
+              sundays: nxl.sundays ?? 0,
+              matches: nxl.matches ?? 0,
+              w: nxl.matchW ?? 0,
+              l: nxl.matchL ?? 0,
+            },
+            true,
+          ),
+          (nxl.titles ?? 0) === 0 && (nxl.sundays ?? 0) === 0 && (nxl.matchWinPct ?? 0) < 50,
+          Number(summary.totalKills ?? 0),
+          summary.careerRank ?? null,
+          summary.careerRankField ?? null,
         )
       : {
           value: num(Number(summary.totalKills ?? 0)),
@@ -369,9 +420,35 @@ function careerCard(
       : null,
     pickem,
     seasons: hasLeague ? seasonBars(leagueEvents, pickemEvents) : [],
-    events: hasLeague ? [] : scoredEvents,
+    /*
+     * The tournament list, for a career too short to fill the canvas any other way.
+     *
+     * A player with one stat band and a three-season strip leaves ~700px of black, and no
+     * amount of redistributing it makes that look deliberate — stretch the bands and the
+     * gaps read as a fault, collect the slack and it reads as a void. The answer is the
+     * same one the event card needed: give the space something true to hold. The renderer
+     * draws this only when the card is short of bands, so a twelve-season career is
+     * unaffected.
+     */
+    events: hasLeague ? careerEventList(leagueEvents, pickemEvents) : scoredEvents,
     matches: [],
   };
+}
+
+/** Tournaments newest first, with the finish, the team's record, and kills where scored. */
+function careerEventList(leagueEvents: AnyRec[], pickemEvents: AnyRec[]): ShareCard["events"] {
+  return leagueEvents
+    .slice()
+    .sort((a, b) => String(b.start ?? "").localeCompare(String(a.start ?? "")))
+    .map((e) => {
+      const scored = pickemEvents.find((p) => p.eventId === e.pickemEventId && p.kind === "played");
+      return {
+        label: `${scored?.eventName ?? e.label ?? ""} ${e.year}`.trim(),
+        finish: e.finishRank === 1 ? "Winner" : e.finishRank ? ordinal(Number(e.finishRank)) : String(e.finish ?? ""),
+        record: record(Number(e.w ?? 0), Number(e.l ?? 0), Number(e.t ?? 0)),
+        kills: scored ? Number(scored.kills ?? 0) : null,
+      };
+    });
 }
 
 /**
