@@ -257,15 +257,15 @@ function leagueTiles(
     ];
   }
   /*
-   * Four tiles still. Dropping the rank leaves three, and a three-wide row is a different
-   * module beside every other card — tournaments played is the figure the other three do
-   * not already contain.
+   * THREE TILES on this tier, deliberately. A fourth was added to keep the grid four wide
+   * across every card, but the only figure left to put there was tournaments played, and
+   * a box that exists to fill a row is worse than a shorter row. Three wider tiles read as
+   * a card with less to say, which is the truth about this tier.
    */
   return [
     { label: "Matches", value: String(scoped.matches) },
     recordTile,
     matchRate,
-    { label: "Tournaments", value: String(played) },
   ];
 }
 
