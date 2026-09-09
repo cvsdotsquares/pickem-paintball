@@ -686,9 +686,15 @@ function eventCard(
         : "The team's record at this event",
       stats: le
         ? scoredHere
-          ? [
+          ? /*
+             * FOUR, because the tiles are a fixed width and a fifth simply runs off the
+             * canvas — it does not wrap or shrink, it leaves. Match win % is the one to
+             * drop: it is the record beside it restated as a percentage, and over five
+             * matches that percentage is a coarse number anyway. Pick % cannot be derived
+             * from anything else on the card.
+             */
+            [
               { label: "Record", value: record(w, l, t) },
-              { label: "Match win %", value: w + l > 0 ? pct((w / (w + l)) * 100) : "—" },
               { label: "Kills", value: num(Number(pe.kills)) },
               { label: "Event rank", value: pe.rank ? ordinal(Number(pe.rank)) : "—" },
               { label: "Picked by", value: pe.pickPct != null ? pct(Number(pe.pickPct)) : "—" },
@@ -701,8 +707,29 @@ function eventCard(
             ]
         : [],
     },
-    pickem:
-      !scoredHere && pe && (pe.kills ?? 0) > 0
+    /*
+     * A scored event keeps its kill-type chart, even though its four figures merged into
+     * the band above. Merging was necessary — three bands and a match list do not fit —
+     * but throwing the chart away with them left the card 300-450px short, and how a
+     * player scored at an event is the most interesting thing PickEm knows about it.
+     * An empty `stats` array is the signal to draw the chart alone.
+     */
+    pickem: scoredHere && Object.keys(pe.types ?? {}).length
+      ? {
+          title: "Kill types",
+          caption: "How this player's kills broke down",
+          stats: [],
+          types: Object.entries(pe.types ?? {})
+            .map(([type, total]) => ({ type, total: Number(total) }))
+            .filter((t) => t.total > 0)
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 5)
+            .map(({ type, total }) => {
+              const grand = Object.values(pe.types ?? {}).reduce((x: number, v) => x + Number(v), 0);
+              return { type, share: grand > 0 ? (total / grand) * 100 : 0 };
+            }),
+        }
+      : !scoredHere && pe && (pe.kills ?? 0) > 0
         ? {
             title: "PickEm scoring",
             caption: "Confirmed kills at this event",

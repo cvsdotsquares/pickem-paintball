@@ -103,6 +103,8 @@ const BAND_PAD = 20;
  */
 const BAND_STATS = 372;
 const BAND_STATS_TYPES = 482;
+/** A band that is only the kill-type chart — no stat tiles above it. */
+const BAND_TYPES_ONLY = 196;
 const BAND_STRIP = 326;
 /** Below this a list band is not worth its own title, and is dropped instead of clipped. */
 const LIST_MIN_ROWS = 3;
@@ -651,12 +653,33 @@ export async function GET(request: NextRequest) {
    */
   const bandsNatural =
     (card.league ? BAND_STATS : 0) +
-    (card.pickem ? (card.pickem.types.length ? BAND_STATS_TYPES : BAND_STATS) : 0) +
+    (card.pickem
+      ? card.pickem.stats.length === 0
+        ? BAND_TYPES_ONLY
+        : card.pickem.types.length
+          ? BAND_STATS_TYPES
+          : BAND_STATS
+      : 0) +
     stripHeight(card);
-  const listSpace =
-    H - HEADER_H - COMPACT_NAME_H - COMPACT_HERO_H - FOOTER_H - bandsNatural;
+  /**
+   * The portrait only shrinks when shrinking BUYS something.
+   *
+   * It used to compact whenever a list was present, which was right when the list was
+   * competing with two stat bands and wrong the moment the event card collapsed to one:
+   * the card then had room for a full-size photo and gave it up for rows it did not need,
+   * leaving 300-450px of black under a short match list.
+   *
+   * So the full portrait is tried first, and kept if it still shows every row the list
+   * has. Compacting is a concession, not a default.
+   */
+  const listLength = card.matches.length || card.events.length;
   /* 20px of slack: these constants are measured, and measurement has a last pixel. */
-  const maxRows = Math.floor((listSpace - LIST_TITLE_H - 20) / ROW_H);
+  const rowsAt = (nameH: number, heroH: number) =>
+    Math.floor((H - HEADER_H - nameH - heroH - FOOTER_H - bandsNatural - LIST_TITLE_H - 20) / ROW_H);
+  const rowsFull = rowsAt(NAME_H, HERO_H);
+  const rowsCompact = rowsAt(COMPACT_NAME_H, COMPACT_HERO_H);
+  const fullFitsTheList = listLength > 0 && rowsFull >= listLength;
+  const maxRows = fullFitsTheList ? rowsFull : rowsCompact;
   const showEvents =
     card.events.length > 0 && card.matches.length === 0 && maxRows >= LIST_MIN_ROWS;
 
@@ -707,10 +730,10 @@ export async function GET(request: NextRequest) {
    * invisible to a check that only asks whether the footer is there. So the portrait is
    * sized from the actual remainder: full when there is room, compact when there is not.
    */
-  const portraitRoom =
-    H - HEADER_H - FOOTER_H - bandsNatural -
-    (hasList ? LIST_TITLE_H + Math.min(card.matches.length || card.events.length, Math.max(maxRows, 0)) * ROW_H : 0);
-  const roomy = !hasList && portraitRoom >= NAME_H + HERO_H;
+  const portraitRoom = H - HEADER_H - FOOTER_H - bandsNatural;
+  const roomy = hasList
+    ? fullFitsTheList
+    : portraitRoom >= NAME_H + HERO_H;
   const nameH = roomy ? NAME_H : COMPACT_NAME_H;
   const heroH = roomy ? HERO_H : COMPACT_HERO_H;
   const rowsShown = Math.min(
@@ -805,7 +828,7 @@ export async function GET(request: NextRequest) {
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
-            height: NAME_H,
+            height: nameH,
             padding: `0 ${PAD}px`,
           }}
         >
@@ -856,7 +879,7 @@ export async function GET(request: NextRequest) {
           style={{
             display: "flex",
             alignItems: "center",
-            height: HERO_H,
+            height: heroH,
             padding: `0 ${PAD}px`,
           }}
         >
@@ -1086,7 +1109,7 @@ export async function GET(request: NextRequest) {
               }}
             >
               <BandTitle title={block.title} caption={block.caption} accent={accent} />
-              <StatRow stats={block.stats} />
+              {block.stats.length ? <StatRow stats={block.stats} /> : null}
               {b === "pickem" && card.pickem ? (
                 <TypeBar types={card.pickem.types} accent={accent} />
               ) : null}

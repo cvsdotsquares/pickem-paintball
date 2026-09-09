@@ -28,6 +28,8 @@ const q = (s) => encodeURIComponent(s);
 const FOOTER_H = 122;
 /** How much background must sit between the last content and the footer. */
 const CLEARANCE = 14;
+const HEADER_H = 118;
+const PAD = 56;
 
 const CASES = [
   { name: "career, 12 seasons", q: "player=100016" },
@@ -85,10 +87,28 @@ for (const c of CASES) {
   }
   const clearPct = Math.round((1 - lit / cells) * 100);
 
-  const ok = footerPct > 85 && clearPct > 96;
+  /*
+   * 3. Nothing runs off the RIGHT edge.
+   *
+   * Tiles are a fixed width, so a row given one too many does not wrap or shrink — it
+   * simply continues past the canvas, and the part that leaves is gone. An event card
+   * carried five tiles for a while and lost the fifth without either of the checks above
+   * noticing, because both only look at the bottom.
+   */
+  let margin = 0, marginCells = 0;
+  for (let y = HEADER_H; y < info.height - FOOTER_H; y += 2) {
+    for (let x = info.width - PAD + 4; x < info.width; x += 2) {
+      const [r, g, b] = at(x, y);
+      marginCells++;
+      if (r > 26 || g > 26 || b > 26) margin++;
+    }
+  }
+  const marginPct = Math.round((1 - margin / marginCells) * 100);
+
+  const ok = footerPct > 85 && clearPct > 96 && marginPct >= 100;
   if (!ok) bad++;
   console.log(
-    `  ${ok ? "✅" : "❌"} footer ${String(footerPct).padStart(3)}%  clearance ${String(clearPct).padStart(3)}%   ${c.name}`,
+    `  ${ok ? "✅" : "❌"} footer ${String(footerPct).padStart(3)}%  clear ${String(clearPct).padStart(3)}%  margin ${String(marginPct).padStart(3)}%   ${c.name}`,
   );
 }
 
