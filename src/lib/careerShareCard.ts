@@ -432,6 +432,9 @@ function eventCard(
    * AND the block caption — the first draft printed "Impact" three times in one card.
    * The headline says where they finished and out of how many; nothing else.
    */
+  /** Scored here AND we have the per-match rows — the only case the merge is safe. */
+  const scoredHere = !!(le && pe && Number(pe.kills ?? 0) > 0);
+
   const headline = le?.finish
     ? {
         value: le.finishRank === 1 ? "WINNER" : le.finishRank ? ordinal(Number(le.finishRank)) : String(le.finish),
@@ -451,20 +454,42 @@ function eventCard(
     scopeLabel: label,
     scopeRange: year,
     headline,
+    /**
+     * ONE BAND, not two, when the match list is doing the work.
+     *
+     * An event card that carried "Team result" AND "PickEm scoring" AND a per-match list
+     * was saying the same thing three times — the list already gives kills game by game,
+     * which is the better version of a kills total. Collapsing them to four figures buys
+     * the room to show every match instead of the first four, and the card stops repeating
+     * itself. The finish and field size are not lost: they are the headline.
+     */
     league: {
-      title: "Team result",
-      caption: "The team's record at this event",
+      title: scoredHere ? "At this event" : "Team result",
+      caption: scoredHere
+        ? "The team's record, and this player's kills"
+        : "The team's record at this event",
       stats: le
-        ? [
-            { label: "Record", value: record(w, l, t) },
-            { label: "Match win %", value: w + l > 0 ? pct((w / (w + l)) * 100) : "—" },
-            { label: "Finish", value: le.finishRank ? ordinal(Number(le.finishRank)) : String(le.finish) },
-            { label: "Field", value: `${le.fieldSize} teams` },
-          ]
+        ? scoredHere
+          ? [
+              { label: "Record", value: record(w, l, t) },
+              { label: "Match win %", value: w + l > 0 ? pct((w / (w + l)) * 100) : "—" },
+              { label: "Confirmed kills", value: num(Number(pe.kills)) },
+              {
+                label: "Event rank",
+                value: pe.rank ? ordinal(Number(pe.rank)) : "—",
+                sub: pe.fieldSize ? `of ${pe.fieldSize}` : undefined,
+              },
+            ]
+          : [
+              { label: "Record", value: record(w, l, t) },
+              { label: "Match win %", value: w + l > 0 ? pct((w / (w + l)) * 100) : "—" },
+              { label: "Finish", value: le.finishRank ? ordinal(Number(le.finishRank)) : String(le.finish) },
+              { label: "Field", value: `${le.fieldSize} teams` },
+            ]
         : [],
     },
     pickem:
-      pe && (pe.kills ?? 0) > 0
+      !scoredHere && pe && (pe.kills ?? 0) > 0
         ? {
             title: "PickEm scoring",
             caption: "Confirmed kills at this event",

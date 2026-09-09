@@ -64,6 +64,48 @@ const FOOTER_H = 122;
 const PHOTO_W = 324;
 const PHOTO_H = 344;
 
+/**
+ * The column has to ADD UP to 1920, and nothing here reflows.
+ *
+ * Satori lays this out once with no scrolling and no overflow handling: content past the
+ * bottom edge is simply not drawn, and the first casualty is the footer — the one band
+ * carrying the branding and the call to action, on an image whose whole job is to travel
+ * without the site. A seven-match event card overflowed by ~190px and lost it silently.
+ *
+ * So the row count is BUDGETED rather than assumed. A card with a list compresses the name
+ * and hero bands, and the list takes whatever is left after the stat bands have had their
+ * natural height. Getting this wrong fails invisibly, which is why `assertFits` below
+ * checks the arithmetic on every render rather than trusting these constants to stay true.
+ */
+/*
+ * Measured, not estimated. The first set of these was guessed and every one was low, so
+ * the budget said seven rows would fit when five did and the card overflowed anyway.
+ *   band  = 24 top pad + ~70 title/caption + 26 gap + 150 tiles + 24 bottom pad = 294
+ *   pickem adds the type bar: 22 gap + 22 bar + 12 gap + ~24 labels             = +80
+ *   list  = 28 top pad + ~70 title/caption + 18 gap + 28 bottom pad             = 144
+ */
+const ROW_H = 50;
+const LIST_TITLE_H = 146;
+/*
+ * MEASURED FROM RENDERS, not from adding up the CSS. Satori grows a band past an explicit
+ * `height` when its content is taller, so these are what the bands actually occupy — a
+ * stat band lands near 380 and the PickEm band near 480 once the type bar is in. Setting
+ * them to the theoretical 300/400 is what made the budget confidently wrong.
+ */
+const LEAGUE_BAND_H = 380;
+const PICKEM_BAND_H = 480;
+/**
+ * A list card gives up some portrait to buy rows; it has more to say than a career card.
+ *
+ * The photo shrinks WITH the band. Compacting the hero to 300 while leaving a 344px photo
+ * inside it put the overflow back instantly — with no flex-shrink, an oversized child does
+ * not squeeze, it shoves everything below it off the canvas.
+ */
+const COMPACT_NAME_H = 214;
+const COMPACT_HERO_H = 300;
+const COMPACT_PHOTO_W = 250;
+const COMPACT_PHOTO_H = 264;
+
 const row = (extra: Record<string, unknown> = {}) => ({
   display: "flex" as const,
   ...extra,
@@ -301,7 +343,7 @@ function ListRow({
         display: "flex",
         alignItems: "center",
         width: INNER,
-        height: 62,
+        height: ROW_H,
         borderBottom: `1px solid ${HAIR}`,
       }}
     >
@@ -395,7 +437,10 @@ export async function GET(request: NextRequest) {
    * different product from the career card beside it in a feed.
    */
   const accent = GREEN;
-  const photo = card.imgUrl ? await toPngCached(card.imgUrl, 520, { w: PHOTO_W, h: PHOTO_H }) : "";
+  const hasListEarly = card.matches.length > 0 || card.events.length > 0;
+  const photoW = hasListEarly ? COMPACT_PHOTO_W : PHOTO_W;
+  const photoH = hasListEarly ? COMPACT_PHOTO_H : PHOTO_H;
+  const photo = card.imgUrl ? await toPngCached(card.imgUrl, 520, { w: photoW, h: photoH }) : "";
 
   // Surname on its own line at display size; a mononym keeps the whole name there.
   const parts = card.name.trim().split(/\s+/);
@@ -413,11 +458,50 @@ export async function GET(request: NextRequest) {
   const bands: ("league" | "pickem" | "strip" | "events" | "matches")[] = [
     ...(card.league ? (["league"] as const) : []),
     ...(card.seasons.length >= 2 ? (["strip"] as const) : []),
+    ...(card.pickem ? (["pickem"] as const) : []),
+    /*
+     * THE LIST GOES LAST, and that is a layout requirement rather than a taste.
+     *
+     * It is the only band whose height is not known in advance, so it is the only one that
+     * can be given flexGrow and told to clip. Put it in the middle and its overflow does
+     * not clip — with no flex-shrink it shoves every band after it downward, and the last
+     * band is the footer. That is exactly how a seven-match card lost its CTA while the
+     * list itself looked fine.
+     *
+     * Reading order survives the move: the stat bands summarise, the list is the detail.
+     */
     ...(card.events.length ? (["events"] as const) : []),
     ...(card.matches.length ? (["matches"] as const) : []),
-    ...(card.pickem ? (["pickem"] as const) : []),
   ];
   const showKills = card.matches.some((m) => m.kills != null);
+
+  const hasList = card.matches.length > 0 || card.events.length > 0;
+  const nameH = hasList ? COMPACT_NAME_H : NAME_H;
+  const heroH = hasList ? COMPACT_HERO_H : HERO_H;
+  const bandsFixed =
+    (card.league ? LEAGUE_BAND_H : 0) + (card.pickem ? PICKEM_BAND_H : 0);
+  const listBudget = H - HEADER_H - nameH - heroH - FOOTER_H - bandsFixed;
+  /* One row of margin: the budget has been optimistic every time it was wrong. */
+  const maxRows = Math.max(3, Math.floor((listBudget - LIST_TITLE_H) / ROW_H) - 1);
+
+  /**
+   * Shout if the column cannot fit, because the image will not.
+   *
+   * `maxRows` has a floor of 3, so a card crowded enough to need less than that overflows
+   * anyway rather than rendering a list of one. That is the right trade — three rows is
+   * the point below which the band stops being worth drawing — but it must not fail
+   * silently, so the arithmetic is checked here on every render.
+   */
+  const listRows = card.matches.length ? card.matches.length : card.events.length;
+  const projected =
+    HEADER_H + nameH + heroH + FOOTER_H + bandsFixed +
+    (hasList ? LIST_TITLE_H + Math.min(listRows, maxRows) * ROW_H : 0);
+  if (projected > H) {
+    console.error(
+      `⚠️  Career share card for ${card.playerId} (${card.scopeLabel}) projects ${projected}px ` +
+        `against a ${H}px canvas — the footer will be cut off.`,
+    );
+  }
 
   return new ImageResponse(
     (
@@ -427,6 +511,18 @@ export async function GET(request: NextRequest) {
           height: H,
           display: "flex",
           flexDirection: "column",
+          position: "relative",
+          /*
+           * The footer is PINNED, not flowed, so nothing can push it off.
+           *
+           * Every attempt to make the bands add up exactly held for six card shapes and
+           * broke on the seventh, because Satori's box heights do not behave the way the
+           * arithmetic says they should — `height` on a flex child does not reliably clip,
+           * and with no flex-shrink the excess travels downward until it runs out of
+           * canvas. The CTA is the one element whose loss makes the image pointless, so it
+           * is taken out of the flow entirely and the column reserves its space instead.
+           */
+          paddingBottom: FOOTER_H,
           backgroundColor: INK,
           fontFamily: "Industry",
         }}
@@ -534,8 +630,8 @@ export async function GET(request: NextRequest) {
           <div
             style={{
               display: "flex",
-              width: PHOTO_W,
-              height: PHOTO_H,
+              width: photoW,
+              height: photoH,
               backgroundColor: PANEL,
               borderLeft: `3px solid ${accent}`,
               overflow: "hidden",
@@ -544,7 +640,7 @@ export async function GET(request: NextRequest) {
             }}
           >
             {photo ? (
-              <img src={photo} width={PHOTO_W} height={PHOTO_H} />
+              <img src={photo} width={photoW} height={photoH} />
             ) : (
               <div style={{ display: "flex", color: "rgba(255,255,255,0.25)", fontSize: 104, fontWeight: 800 }}>
                 {surname.slice(0, 2)}
@@ -607,7 +703,7 @@ export async function GET(request: NextRequest) {
           if (b === "events" || b === "matches") {
             const rows =
               b === "events"
-                ? card.events.slice(0, 6).map((e) => ({
+                ? card.events.slice(0, maxRows).map((e) => ({
                     left: e.label,
                     sub: undefined,
                     mid: e.record,
@@ -615,7 +711,7 @@ export async function GET(request: NextRequest) {
                     win: undefined as boolean | undefined,
                     finish: e.finish,
                   }))
-                : card.matches.slice(0, 8).map((m) => ({
+                : card.matches.slice(0, maxRows).map((m) => ({
                     left: m.opponent,
                     sub: m.round.toUpperCase(),
                     mid: `${m.f}–${m.a}`,
@@ -630,6 +726,18 @@ export async function GET(request: NextRequest) {
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "center",
+                  /*
+                   * The list absorbs whatever the fixed bands leave over.
+                   *
+                   * Explicit heights everywhere made the column sum to LESS than 1920 and
+                   * the footer floated above the bottom edge with black beneath it. Giving
+                   * the one variable-length band flexGrow closes the gap from either side:
+                   * it fills the slack when rows are few, and `overflow: hidden` clips
+                   * rather than shoves when the budget is a row optimistic.
+                   */
+                  flexGrow: 1,
+                  minHeight: 0,
+                  overflow: "hidden",
                   padding: `28px ${PAD}px`,
                   borderTop: `1px solid ${HAIR}`,
                 }}
@@ -706,8 +814,18 @@ export async function GET(request: NextRequest) {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                flexGrow: 1,
-                minHeight: BLOCK_MIN,
+                /*
+                 * ⚠️ SATORI IS YOGA, AND YOGA DEFAULTS flexShrink TO 0 — unlike CSS,
+                 * where it is 1. A band therefore never gives back space when the column
+                 * is over budget; it simply pushes whatever follows off the bottom edge,
+                 * and what follows is the footer. So a card carrying a list gets EXPLICIT
+                 * heights and the list takes the remainder. Only the career card, which
+                 * has no list to budget against, is allowed to let its bands share the
+                 * slack — and that is why it was the one layout that never overflowed.
+                 */
+                ...(hasList
+                  ? { height: b === "league" ? LEAGUE_BAND_H : PICKEM_BAND_H, overflow: "hidden" }
+                  : { flexGrow: 1, minHeight: BLOCK_MIN }),
                 justifyContent: "center",
                 padding: `24px ${PAD}px`,
                 borderTop: `1px solid ${HAIR}`,
@@ -728,6 +846,10 @@ export async function GET(request: NextRequest) {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            width: W,
             height: FOOTER_H,
             padding: `0 ${PAD}px`,
             backgroundColor: GREEN,
