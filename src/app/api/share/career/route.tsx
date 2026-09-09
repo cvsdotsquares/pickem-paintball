@@ -472,6 +472,8 @@ function ListRow({
   sub,
   mid,
   right,
+  extra,
+  cols,
   accent,
   win,
 }: {
@@ -479,6 +481,17 @@ function ListRow({
   sub?: string;
   mid?: string;
   right?: string;
+  /** Pick %, which exists per event and so never appears on a match row. */
+  extra?: string;
+  /**
+   * Which columns this LIST has, not this row.
+   *
+   * A row that simply omitted an absent value shrank, and because the name column grows to
+   * fill, every column to its right slid over — so a table where one event has no pick %
+   * had three different right margins. The columns are decided once for the list and every
+   * row reserves all of them.
+   */
+  cols: { kills: boolean; extra: boolean };
   accent: string;
   win?: boolean;
 }) {
@@ -532,7 +545,7 @@ function ListRow({
           {mid}
         </div>
       ) : null}
-      {right ? (
+      {cols.kills ? (
         <div
           style={{
             display: "flex",
@@ -543,7 +556,22 @@ function ListRow({
             fontFamily: "Hitmarker",
           }}
         >
-          {right}
+          {right ?? ""}
+        </div>
+      ) : null}
+      {/* Muted, not accent: the green already means kills on this row. */}
+      {cols.extra ? (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            width: 172,
+            color: MUTE,
+            fontSize: 25,
+            fontFamily: "Hitmarker",
+          }}
+        >
+          {extra ?? ""}
         </div>
       ) : null}
     </div>
@@ -914,6 +942,7 @@ export async function GET(request: NextRequest) {
                     sub: undefined,
                     mid: e.record,
                     right: e.kills != null ? `${num(e.kills)} kills` : undefined,
+                    extra: e.pickPct != null ? `${Math.round(e.pickPct)}% picked` : undefined,
                     win: undefined as boolean | undefined,
                     finish: e.finish,
                   }))
@@ -922,6 +951,7 @@ export async function GET(request: NextRequest) {
                     sub: m.round.toUpperCase(),
                     mid: `${m.f}–${m.a}`,
                     right: showKills && m.kills != null ? `${num(m.kills)} kills` : undefined,
+                    extra: undefined as string | undefined,
                     win: m.win,
                     finish: undefined as string | undefined,
                   }));
@@ -966,6 +996,11 @@ export async function GET(request: NextRequest) {
                       sub={r.sub ?? r.finish?.toUpperCase()}
                       mid={r.mid}
                       right={r.right}
+                      extra={r.extra}
+                      cols={{
+                        kills: rows.some((x) => x.right),
+                        extra: rows.some((x) => x.extra),
+                      }}
                       win={r.win}
                       accent={accent}
                     />

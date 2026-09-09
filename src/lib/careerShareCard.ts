@@ -68,8 +68,19 @@ export interface ShareCard {
   pickem: { title: string; caption: string; stats: ShareStat[]; types: { type: string; share: number }[] } | null;
   /** Career card only — one bar per season. */
   seasons: ShareSeasonBar[];
-  /** Season card only — the tournaments that year. */
-  events: { label: string; finish: string; record: string; kills: number | null }[];
+  /**
+   * Season and career cards — the tournaments in scope.
+   *
+   * `pickPct` is per EVENT, which is the only level it exists at: there is no such thing
+   * as a pick % for a single match, so the event card's match list has no such column.
+   */
+  events: {
+    label: string;
+    finish: string;
+    record: string;
+    kills: number | null;
+    pickPct: number | null;
+  }[];
   /**
    * Event card only — every match the team played there.
    *
@@ -386,6 +397,7 @@ function careerCard(
       finish: e.rank ? `${ordinal(Number(e.rank))} for kills` : "",
       record: "",
       kills: Number(e.kills ?? 0),
+      pickPct: e.pickPct != null ? Number(e.pickPct) : null,
     }));
 
   return {
@@ -464,6 +476,7 @@ function careerEventList(leagueEvents: AnyRec[], pickemEvents: AnyRec[]): ShareC
         finish: e.finishRank === 1 ? "Winner" : e.finishRank ? ordinal(Number(e.finishRank)) : String(e.finish ?? ""),
         record: record(Number(e.w ?? 0), Number(e.l ?? 0), Number(e.t ?? 0)),
         kills: scored ? Number(scored.kills ?? 0) : null,
+        pickPct: scored?.pickPct != null ? Number(scored.pickPct) : null,
       };
     });
 }
@@ -591,6 +604,7 @@ function seasonCard(
           finish: e.finishRank === 1 ? "Winner" : e.finishRank ? ordinal(Number(e.finishRank)) : String(e.finish ?? ""),
           record: record(Number(e.w ?? 0), Number(e.l ?? 0), Number(e.t ?? 0)),
           kills: scored ? Number(scored.kills ?? 0) : null,
+          pickPct: scored?.pickPct != null ? Number(scored.pickPct) : null,
         };
       }),
     matches: [],
