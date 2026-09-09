@@ -56,8 +56,8 @@ const MUTE = "rgba(255,255,255,0.42)";
  * card rather than a sparse one.
  */
 const HEADER_H = 118;
-const NAME_H = 254;
-const HERO_H = 404;
+const NAME_H = 232;
+const HERO_H = 380;
 const BLOCK_MIN = 300;
 const STRIP_MIN = 340;
 const FOOTER_H = 122;
@@ -101,9 +101,9 @@ const BAND_PAD = 24;
  * low estimate hands the list rows there is no room for — which the pinned footer then
  * hides by clipping them, so the fault is invisible to the footer check.
  */
-const BAND_STATS = 368;
-const BAND_STATS_TYPES = 478;
-const BAND_STRIP = 322;
+const BAND_STATS = 380;
+const BAND_STATS_TYPES = 490;
+const BAND_STRIP = 334;
 /** Below this a list band is not worth its own title, and is dropped instead of clipped. */
 const LIST_MIN_ROWS = 3;
 /*
@@ -121,8 +121,8 @@ const PICKEM_BAND_H = 490;
  * inside it put the overflow back instantly — with no flex-shrink, an oversized child does
  * not squeeze, it shoves everything below it off the canvas.
  */
-const COMPACT_NAME_H = 214;
-const COMPACT_HERO_H = 300;
+const COMPACT_NAME_H = 202;
+const COMPACT_HERO_H = 288;
 const COMPACT_PHOTO_W = 250;
 const COMPACT_PHOTO_H = 264;
 
@@ -136,14 +136,19 @@ function BandTitle({ title, caption, accent }: { title: string; caption: string;
   return (
     <div style={{ display: "flex", flexDirection: "column", width: INNER }}>
       <div style={{ display: "flex", alignItems: "center" }}>
-        <div style={{ display: "flex", width: 8, height: 8, backgroundColor: accent, marginRight: 14 }} />
+        <div style={{ display: "flex", width: 10, height: 10, backgroundColor: accent, marginRight: 16 }} />
+        {/*
+          These are the only thing dividing one kind of number from another, and at 26px
+          they sat closer in weight to the captions under them than to the headings they
+          are. Bigger and wider-tracked, they read as the card's structure.
+        */}
         <div
           style={{
             display: "flex",
             color: "#fff",
-            fontSize: 26,
+            fontSize: 33,
             fontWeight: 700,
-            letterSpacing: 3.2,
+            letterSpacing: 4,
             textTransform: "uppercase",
           }}
         >
@@ -151,7 +156,7 @@ function BandTitle({ title, caption, accent }: { title: string; caption: string;
         </div>
       </div>
       {caption ? (
-        <div style={{ display: "flex", color: MUTE, fontSize: 21, marginTop: 8, letterSpacing: 0.6 }}>
+        <div style={{ display: "flex", color: MUTE, fontSize: 22, marginTop: 9, letterSpacing: 0.6 }}>
           {caption}
         </div>
       ) : null}
@@ -352,20 +357,21 @@ function SeasonRows({ seasons, accent }: { seasons: ShareCard["seasons"]; accent
             }}
           >
             {s.year}
-            {s.titles > 0 ? (
-              <div
-                style={{
-                  display: "flex",
-                  width: 10,
-                  height: 10,
-                  backgroundColor: accent,
-                  transform: "rotate(45deg)",
-                  marginLeft: 10,
-                }}
-              />
-            ) : null}
           </div>
-          <div style={{ display: "flex", width: TRACK, height: 22, backgroundColor: "rgba(255,255,255,0.06)" }}>
+          {/*
+            The marker sits at the END of the bar, not beside the year. Against the year it
+            read as a property of the season label; against the bar's end it reads as what
+            it is — the result that season reached.
+          */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              width: TRACK,
+              height: 22,
+              backgroundColor: "rgba(255,255,255,0.06)",
+            }}
+          >
             <div
               style={{
                 display: "flex",
@@ -374,6 +380,24 @@ function SeasonRows({ seasons, accent }: { seasons: ShareCard["seasons"]; accent
                 backgroundColor: accent,
               }}
             />
+            {/*
+              Inside the track and immediately after the fill, so it marks WHERE THE BAR
+              ENDS. Sitting outside the track it landed at 100% on every row regardless of
+              the season's rate, which made it look like a row-level tick rather than a
+              result pinned to that bar's value.
+            */}
+            {s.titles > 0 ? (
+              <div
+                style={{
+                  display: "flex",
+                  width: 11,
+                  height: 11,
+                  backgroundColor: accent,
+                  transform: "rotate(45deg)",
+                  marginLeft: 9,
+                }}
+              />
+            ) : null}
           </div>
           <div
             style={{
@@ -521,7 +545,7 @@ function stripHeight(card: ShareCard): number {
   if (n === 0) return 0;
   const legend = card.seasons.some((x) => x.titles > 0) ? 35 : 0;
   if (n >= STRIP_COLUMNS_FROM) return BAND_STRIP + legend - 35;
-  return BAND_PAD * 2 + 70 + 22 + n * 44 + legend;
+  return BAND_PAD * 2 + 82 + 22 + n * 44 + legend;
 }
 
 /** Stat bands and the strip — what the card has to say before any list is added. */
@@ -950,7 +974,7 @@ export async function GET(request: NextRequest) {
                 }}
               >
                 <BandTitle
-                  title="Season by season"
+                  title="Season stats"
                   caption="Match win % by season"
                   accent={accent}
                 />
