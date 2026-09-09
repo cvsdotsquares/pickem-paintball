@@ -25,6 +25,9 @@ const sharp = require("../functions/node_modules/sharp");
 const BASE =
   process.argv.find((a) => a.startsWith("--base="))?.slice(7) ?? "http://localhost:3000";
 const q = (s) => encodeURIComponent(s);
+const FOOTER_H = 122;
+/** How much background must sit between the last content and the footer. */
+const CLEARANCE = 14;
 
 const CASES = [
   { name: "career, 12 seasons", q: "player=100016" },
@@ -52,17 +55,41 @@ for (const c of CASES) {
 
   const { data, info } = await sharp(Buffer.from(await res.arrayBuffer()))
     .raw().toBuffer({ resolveWithObject: true });
-  let green = 0;
-  let sampled = 0;
+  const at = (x, y) => { const i = (y * info.width + x) * info.channels; return [data[i], data[i+1], data[i+2]]; };
+
+  // 1. The footer reaches the last row — nothing was pushed off, nothing floats above a gap.
+  let green = 0, sampled = 0;
   for (let x = 0; x < info.width; x += 4) {
-    const i = ((info.height - 2) * info.width + x) * info.channels;
+    const [r, g, b] = at(x, info.height - 2);
     sampled++;
-    if (data[i + 1] > 150 && data[i] < 130 && data[i + 2] < 170) green++;
+    if (g > 150 && r < 130 && b < 170) green++;
   }
-  const pct = Math.round((green / sampled) * 100);
-  const ok = pct > 85;
+  const footerPct = Math.round((green / sampled) * 100);
+
+  /*
+   * 2. Content CLEARS the footer.
+   *
+   * The footer is pinned, so an overflowing card no longer loses it — it slides the last
+   * band underneath instead, and check 1 still passes while the card shows half a row of
+   * text with a green bar through it. The band of pixels just above the footer has to be
+   * background for the layout to be honest.
+   */
+  const top = info.height - FOOTER_H - CLEARANCE;
+  let lit = 0, cells = 0;
+  for (let y = top; y < info.height - FOOTER_H; y++) {
+    for (let x = 0; x < info.width; x += 4) {
+      const [r, g, b] = at(x, y);
+      cells++;
+      if (r > 26 || g > 26 || b > 26) lit++;
+    }
+  }
+  const clearPct = Math.round((1 - lit / cells) * 100);
+
+  const ok = footerPct > 85 && clearPct > 96;
   if (!ok) bad++;
-  console.log(`  ${ok ? "✅" : "❌"} bottom row ${String(pct).padStart(3)}% green   ${c.name}`);
+  console.log(
+    `  ${ok ? "✅" : "❌"} footer ${String(footerPct).padStart(3)}%  clearance ${String(clearPct).padStart(3)}%   ${c.name}`,
+  );
 }
 
 console.log(

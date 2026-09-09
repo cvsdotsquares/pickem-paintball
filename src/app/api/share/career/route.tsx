@@ -94,16 +94,16 @@ const LIST_TITLE_H = 146;
  * content height, which makes the gaps equal by construction and lets the space left for a
  * list be worked out instead of guessed.
  */
-const BAND_PAD = 30;
+const BAND_PAD = 24;
 /*
  * MEASURED OFF RENDERS by finding the hairline separators, not derived from the CSS.
  * Every previous attempt to add these up from font sizes and margins came out low, and a
  * low estimate hands the list rows there is no room for — which the pinned footer then
  * hides by clipping them, so the fault is invisible to the footer check.
  */
-const BAND_STATS = 380;
-const BAND_STATS_TYPES = 490;
-const BAND_STRIP = 362;
+const BAND_STATS = 368;
+const BAND_STATS_TYPES = 478;
+const BAND_STRIP = 322;
 /** Below this a list band is not worth its own title, and is dropped instead of clipped. */
 const LIST_MIN_ROWS = 3;
 /*
@@ -244,7 +244,7 @@ function SeasonStrip({ seasons, accent }: { seasons: ShareCard["seasons"]; accen
    */
   const barW = Math.min(76, Math.floor((INNER - (n - 1) * gap) / n));
   /* Shorter bars: the number now sits above each one and needs the room. */
-  const MAX = 104;
+  const MAX = 84;
   return (
     <div
       style={{
@@ -318,6 +318,77 @@ function SeasonStrip({ seasons, accent }: { seasons: ShareCard["seasons"]; accen
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * The same data as rows rather than columns, for one to three seasons.
+ *
+ * Three columns in a full-width band are three lonely sticks with a lot of air around
+ * them — the chart reads as one that failed to load rather than a short career, which is
+ * why it used to be suppressed below four seasons. As rows it fills the width honestly at
+ * any count, so nobody loses their chart for having started recently.
+ *
+ * It does not scale the other way: twelve rows would be 530px, so columns take over at
+ * four. Same encoding either way — length is match win %, the diamond marks a win.
+ */
+function SeasonRows({ seasons, accent }: { seasons: ShareCard["seasons"]; accent: string }) {
+  const LABEL_W = 92;
+  const VALUE_W = 84;
+  const TRACK = INNER - LABEL_W - VALUE_W;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", width: INNER, marginTop: 22 }}>
+      {seasons.map((s) => (
+        <div key={s.year} style={{ display: "flex", alignItems: "center", height: 44 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              width: LABEL_W,
+              color: "#fff",
+              fontSize: 23,
+              fontFamily: "Hitmarker",
+            }}
+          >
+            {s.year}
+            {s.titles > 0 ? (
+              <div
+                style={{
+                  display: "flex",
+                  width: 10,
+                  height: 10,
+                  backgroundColor: accent,
+                  transform: "rotate(45deg)",
+                  marginLeft: 10,
+                }}
+              />
+            ) : null}
+          </div>
+          <div style={{ display: "flex", width: TRACK, height: 22, backgroundColor: "rgba(255,255,255,0.06)" }}>
+            <div
+              style={{
+                display: "flex",
+                width: s.winPct == null ? 0 : Math.max(3, Math.round((s.winPct / 100) * TRACK)),
+                height: 22,
+                backgroundColor: accent,
+              }}
+            />
+          </div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              width: VALUE_W,
+              color: s.winPct == null ? MUTE : "#fff",
+              fontSize: 22,
+              fontFamily: "Hitmarker",
+            }}
+          >
+            {s.winPct == null ? "—" : `${Math.round(s.winPct)}%`}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -441,6 +512,18 @@ function ListRow({
   );
 }
 
+/** Columns above this many seasons, rows at or below it. */
+const STRIP_COLUMNS_FROM = 4;
+
+/** What the season band occupies, in whichever form it takes. */
+function stripHeight(card: ShareCard): number {
+  const n = card.seasons.length;
+  if (n === 0) return 0;
+  const legend = card.seasons.some((x) => x.titles > 0) ? 35 : 0;
+  if (n >= STRIP_COLUMNS_FROM) return BAND_STRIP + legend - 35;
+  return BAND_PAD * 2 + 70 + 22 + n * 44 + legend;
+}
+
 /** Stat bands and the strip — what the card has to say before any list is added. */
 function bandCount(card: ShareCard): number {
   return (card.league ? 1 : 0) + (card.pickem ? 1 : 0) + (card.seasons.length >= 4 ? 1 : 0);
@@ -503,7 +586,7 @@ export async function GET(request: NextRequest) {
   const bandsNatural =
     (card.league ? BAND_STATS : 0) +
     (card.pickem ? (card.pickem.types.length ? BAND_STATS_TYPES : BAND_STATS) : 0) +
-    (card.seasons.length >= 4 ? BAND_STRIP : 0);
+    stripHeight(card);
   const listSpace =
     H - HEADER_H - COMPACT_NAME_H - COMPACT_HERO_H - FOOTER_H - bandsNatural;
   /* 20px of slack: these constants are measured, and measurement has a last pixel. */
@@ -526,7 +609,7 @@ export async function GET(request: NextRequest) {
      * above already say, and a strip that short reads as a chart that failed to load
      * rather than a short career.
      */
-    ...(card.seasons.length >= 4 ? (["strip"] as const) : []),
+    ...(card.seasons.length >= 1 ? (["strip"] as const) : []),
     ...(card.pickem ? (["pickem"] as const) : []),
     /*
      * THE LIST GOES LAST, and that is a layout requirement rather than a taste.
@@ -550,8 +633,20 @@ export async function GET(request: NextRequest) {
   const showKills = card.matches.some((m) => m.kills != null);
 
   const hasList = showEvents || card.matches.length > 0;
-  const nameH = hasList ? COMPACT_NAME_H : NAME_H;
-  const heroH = hasList ? COMPACT_HERO_H : HERO_H;
+  /**
+   * The portrait takes what is left, rather than a size chosen up front.
+   *
+   * A three-band career card wants ~2130px in a 1920px canvas, and with no flex-shrink the
+   * excess does not squeeze — it slides the last band under the pinned footer, where it is
+   * invisible to a check that only asks whether the footer is there. So the portrait is
+   * sized from the actual remainder: full when there is room, compact when there is not.
+   */
+  const portraitRoom =
+    H - HEADER_H - FOOTER_H - bandsNatural -
+    (hasList ? LIST_TITLE_H + Math.min(card.matches.length || card.events.length, Math.max(maxRows, 0)) * ROW_H : 0);
+  const roomy = !hasList && portraitRoom >= NAME_H + HERO_H;
+  const nameH = roomy ? NAME_H : COMPACT_NAME_H;
+  const heroH = roomy ? HERO_H : COMPACT_HERO_H;
   const rowsShown = Math.min(
     card.matches.length || card.events.length,
     Math.max(maxRows, 0),
@@ -859,7 +954,11 @@ export async function GET(request: NextRequest) {
                   caption="Match win % by season"
                   accent={accent}
                 />
-                <SeasonStrip seasons={card.seasons} accent={accent} />
+                {card.seasons.length >= STRIP_COLUMNS_FROM ? (
+                  <SeasonStrip seasons={card.seasons} accent={accent} />
+                ) : (
+                  <SeasonRows seasons={card.seasons} accent={accent} />
+                )}
                 {/* Only explain the marker when there is one. A key to a symbol that does
                     not appear reads as a missing element rather than an absent one. */}
                 {card.seasons.some((x) => x.titles > 0) ? (
