@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
 
 /**
@@ -45,6 +46,8 @@ export default function ShareCareerButton({
   labelClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [busy, setBusy] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ url: string; label: string } | null>(null);
   const blobRef = useRef<Blob | null>(null);
@@ -114,6 +117,19 @@ export default function ShareCareerButton({
 
   const groups: ShareScopeOption["group"][] = ["Career", "Seasons", "Events"];
 
+  /**
+   * Both overlays are portalled to <body>.
+   *
+   * Rendered in place they inherit whatever stacking context an ancestor of this button
+   * happens to create — a transform or a filter anywhere up the career page is enough —
+   * and then a z-index of 80 counts for nothing against the app's fixed chrome. The tips
+   * toast and the bottom nav were painting straight over the preview's action row.
+   *
+   * `mounted` keeps this off the server: document does not exist there.
+   */
+  const overlay = (node: ReactNode) =>
+    mounted ? createPortal(node, document.body) : null;
+
   return (
     <>
       <button
@@ -131,26 +147,32 @@ export default function ShareCareerButton({
       </button>
 
       {/* SCOPE PICKER */}
-      {open ? (
+      {open ? overlay(
         <div
           className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/70 p-0 sm:p-6"
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full sm:max-w-md max-h-[80vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-[#0d0d0d] border border-white/10 p-5"
+            /*
+             * pb-24 on mobile clears the bottom nav bar, which otherwise sits over the
+             * last option — the house pattern for any scrollable list on a phone.
+             */
+            className="w-full sm:max-w-md max-h-[80vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-gray-200 bg-white p-5 pb-24 sm:pb-5 dark:border-white/10 dark:bg-[#0d0d0d]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-white text-sm font-bold uppercase tracking-[0.18em] mb-1">
+            {/* Drag handle: signals the sheet is dismissable before anyone tries. */}
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-gray-300 sm:hidden dark:bg-white/20" />
+            <div className="mb-1 text-sm font-bold uppercase tracking-[0.18em] text-gray-900 dark:text-white">
               Share a card
             </div>
-            <div className="text-white/40 text-xs mb-4">{playerName}</div>
+            <div className="mb-4 text-xs text-gray-400 dark:text-white/40">{playerName}</div>
             {groups.map((g) => {
               const items = scopes.filter((s) => s.group === g);
               if (!items.length) return null;
               return (
                 <div key={g} className="mb-4">
                   {g !== "Career" ? (
-                    <div className="text-white/35 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">
+                    <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 dark:text-white/35">
                       {g}
                     </div>
                   ) : null}
@@ -161,11 +183,11 @@ export default function ShareCareerButton({
                         type="button"
                         disabled={!!busy}
                         onClick={() => generate(s)}
-                        className="flex items-center justify-between text-left rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] disabled:opacity-50 px-4 py-3 text-white text-sm"
+                        className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm text-gray-900 hover:bg-gray-100 disabled:opacity-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-white dark:hover:bg-white/[0.07]"
                       >
                         <span>{s.label}</span>
                         {busy === s.id ? (
-                          <span className="text-[#00f976] text-xs">Building…</span>
+                          <span className="text-xs font-bold text-green-600 dark:text-[#00f976]">Building…</span>
                         ) : null}
                       </button>
                     ))}
@@ -174,13 +196,13 @@ export default function ShareCareerButton({
               );
             })}
           </div>
-        </div>
+        </div>,
       ) : null}
 
       {/* PREVIEW + SHARE */}
-      {preview ? (
+      {preview ? overlay(
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/85 p-4"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/92 p-4"
           onClick={clearPreview}
         >
           <div
@@ -193,7 +215,7 @@ export default function ShareCareerButton({
               alt={`${playerName} — ${preview.label}`}
               className="max-h-[68vh] w-auto rounded-xl border border-white/10"
             />
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-3 pb-20 sm:pb-0">
               <button
                 type="button"
                 onClick={share}
@@ -217,7 +239,7 @@ export default function ShareCareerButton({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
       ) : null}
     </>
   );
