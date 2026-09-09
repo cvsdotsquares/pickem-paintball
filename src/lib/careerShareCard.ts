@@ -517,7 +517,18 @@ function seasonCard(
     accent: BRAND_GREEN,
     scopeLabel: `${year} season`,
     scopeRange: `${evs.length} ${evs.length === 1 ? "tournament" : "tournaments"}`,
-    headline: headlineFor(nxl, { titles, sundays, matches: w + l + t, w, l }, false),
+    /*
+     * Same rule as the career card: never lead with a losing record. This was fixed there
+     * and not here, so a season card was still putting "2-6" in the largest type on the
+     * canvas while the career card for the same player led with his kills.
+     */
+    headline: bestHeadline(
+      headlineFor(nxl, { titles, sundays, matches: w + l + t, w, l }, false),
+      titles === 0 && sundays === 0 && decided > 0 && w / decided < 0.5,
+      kills,
+      null,
+      null,
+    ),
     league: {
       title: `${year} NXL record`,
       caption: "Team results",
