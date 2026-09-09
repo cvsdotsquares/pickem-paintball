@@ -315,6 +315,13 @@ people rather than bad ids.
 
 ## 4. Settled — recorded so it is not relitigated
 
+- **Pick % of 0 is a value, not a gap.** The ownership map lists only players somebody
+  picked, so a player nobody chose used to fall through to `null` — the same value that
+  means "we have no pick data for this event". Zero is now written as zero, and `null`
+  survives only for an event with no picks recorded at all, or a player who was not on
+  that roster and so could never have been picked. Agreed 9 Sep; deployed.
+
+
 - **Full NXL history 2015–2026**, not just PickEm's eight events. Agreed 3 Sep.
 - **Rostered-and-played attribution**, using the existing `participation` verdict.
 - **Ties are excluded from win rate** rather than scored as half. One tie exists in 2,393
