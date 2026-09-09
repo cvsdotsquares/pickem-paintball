@@ -86,6 +86,26 @@ const PHOTO_H = 344;
  */
 const ROW_H = 50;
 const LIST_TITLE_H = 146;
+/**
+ * NATURAL band heights — what a band occupies with its own content and padding.
+ *
+ * Bands used to carry `minHeight: 300` and centre themselves inside it, so each one padded
+ * itself by a different amount and no two gaps on the card matched. They now sit at their
+ * content height, which makes the gaps equal by construction and lets the space left for a
+ * list be worked out instead of guessed.
+ */
+const BAND_PAD = 30;
+/*
+ * MEASURED OFF RENDERS by finding the hairline separators, not derived from the CSS.
+ * Every previous attempt to add these up from font sizes and margins came out low, and a
+ * low estimate hands the list rows there is no room for — which the pinned footer then
+ * hides by clipping them, so the fault is invisible to the footer check.
+ */
+const BAND_STATS = 380;
+const BAND_STATS_TYPES = 490;
+const BAND_STRIP = 362;
+/** Below this a list band is not worth its own title, and is dropped instead of clipped. */
+const LIST_MIN_ROWS = 3;
 /*
  * MEASURED FROM RENDERS, not from adding up the CSS. Satori grows a band past an explicit
  * `height` when its content is taller, so these are what the bands actually occupy — a
@@ -469,6 +489,29 @@ export async function GET(request: NextRequest) {
   const forename = parts.length > 1 ? parts[0].toUpperCase() : "";
 
   /**
+   * How much room a list would actually have.
+   *
+   * Worked out BEFORE the bands, because the answer decides whether there is a list at
+   * all. Gating on band count instead — which is what this did — put a tournament list on
+   * a card that already carried two full bands, and the footer then clipped it halfway
+   * through a row. A band showing one and a half tournaments looks like a fault; no band
+   * looks like a decision.
+   *
+   * The portrait is measured at its compact size because any card that ends up with a list
+   * uses that size, so the sum is self-consistent either way.
+   */
+  const bandsNatural =
+    (card.league ? BAND_STATS : 0) +
+    (card.pickem ? (card.pickem.types.length ? BAND_STATS_TYPES : BAND_STATS) : 0) +
+    (card.seasons.length >= 4 ? BAND_STRIP : 0);
+  const listSpace =
+    H - HEADER_H - COMPACT_NAME_H - COMPACT_HERO_H - FOOTER_H - bandsNatural;
+  /* 20px of slack: these constants are measured, and measurement has a last pixel. */
+  const maxRows = Math.floor((listSpace - LIST_TITLE_H - 20) / ROW_H);
+  const showEvents =
+    card.events.length > 0 && card.matches.length === 0 && maxRows >= LIST_MIN_ROWS;
+
+  /**
    * Which bands this card carries.
    *
    * A season or event card has fewer stat blocks than a career card, so it earns its
@@ -501,19 +544,18 @@ export async function GET(request: NextRequest) {
      * with a full strip and both stat bands has plenty to say; one with a single band and
      * no strip has 700px of black and needs this.
      */
-    ...(card.events.length && bandCount(card) < 3 ? (["events"] as const) : []),
+    ...(showEvents ? (["events"] as const) : []),
     ...(card.matches.length ? (["matches"] as const) : []),
   ];
   const showKills = card.matches.some((m) => m.kills != null);
 
-  const hasList = card.matches.length > 0 || card.events.length > 0;
+  const hasList = showEvents || card.matches.length > 0;
   const nameH = hasList ? COMPACT_NAME_H : NAME_H;
   const heroH = hasList ? COMPACT_HERO_H : HERO_H;
-  const bandsFixed =
-    (card.league ? LEAGUE_BAND_H : 0) + (card.pickem ? PICKEM_BAND_H : 0);
-  const listBudget = H - HEADER_H - nameH - heroH - FOOTER_H - bandsFixed;
-  /* One row of margin: the budget has been optimistic every time it was wrong. */
-  const maxRows = Math.max(3, Math.floor((listBudget - LIST_TITLE_H) / ROW_H) - 1);
+  const rowsShown = Math.min(
+    card.matches.length || card.events.length,
+    Math.max(maxRows, 0),
+  );
 
   /**
    * Shout if the column cannot fit, because the image will not.
@@ -523,10 +565,9 @@ export async function GET(request: NextRequest) {
    * the point below which the band stops being worth drawing — but it must not fail
    * silently, so the arithmetic is checked here on every render.
    */
-  const listRows = card.matches.length ? card.matches.length : card.events.length;
   const projected =
-    HEADER_H + nameH + heroH + FOOTER_H + bandsFixed +
-    (hasList ? LIST_TITLE_H + Math.min(listRows, maxRows) * ROW_H : 0);
+    HEADER_H + nameH + heroH + FOOTER_H + bandsNatural +
+    (hasList ? LIST_TITLE_H + rowsShown * ROW_H : 0);
   if (projected > H) {
     console.error(
       `⚠️  Career share card for ${card.playerId} (${card.scopeLabel}) projects ${projected}px ` +
@@ -735,7 +776,7 @@ export async function GET(request: NextRequest) {
           if (b === "events" || b === "matches") {
             const rows =
               b === "events"
-                ? card.events.slice(0, maxRows).map((e) => ({
+                ? card.events.slice(0, rowsShown).map((e) => ({
                     left: e.label,
                     sub: undefined,
                     mid: e.record,
@@ -743,7 +784,7 @@ export async function GET(request: NextRequest) {
                     win: undefined as boolean | undefined,
                     finish: e.finish,
                   }))
-                : card.matches.slice(0, maxRows).map((m) => ({
+                : card.matches.slice(0, rowsShown).map((m) => ({
                     left: m.opponent,
                     sub: m.round.toUpperCase(),
                     mid: `${m.f}–${m.a}`,
@@ -767,10 +808,9 @@ export async function GET(request: NextRequest) {
                    * it fills the slack when rows are few, and `overflow: hidden` clips
                    * rather than shoves when the budget is a row optimistic.
                    */
-                  flexGrow: 1,
-                  minHeight: 0,
+                  flexGrow: 0,
                   overflow: "hidden",
-                  padding: `28px ${PAD}px`,
+                  padding: `${BAND_PAD}px ${PAD}px`,
                   borderTop: `1px solid ${HAIR}`,
                 }}
               >
@@ -808,10 +848,9 @@ export async function GET(request: NextRequest) {
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  flexGrow: 0,
-                  minHeight: STRIP_MIN,
-                  justifyContent: "center",
-                  padding: `24px ${PAD}px`,
+                  ...(hasList ? { flexGrow: 0 } : { flexGrow: 1 }),
+                  justifyContent: "flex-start",
+                  padding: `${BAND_PAD}px ${PAD}px`,
                   borderTop: `1px solid ${HAIR}`,
                 }}
               >
@@ -857,18 +896,20 @@ export async function GET(request: NextRequest) {
                  * has no list to budget against, is allowed to let its bands share the
                  * slack — and that is why it was the one layout that never overflowed.
                  */
-                ...(hasList
-                  ? { height: b === "league" ? LEAGUE_BAND_H : PICKEM_BAND_H, overflow: "hidden" }
-                  /*
-                   * A modest grow, not an unbounded one. Letting each band take an equal
-                   * share of the leftover put ~200px of black above and below every band
-                   * on a two-band card, which reads as a layout fault rather than a sparse
-                   * player. Capping the growth leaves the surplus in one place — under the
-                   * last band, where it looks like margin.
-                   */
-                  : { flexGrow: 0, minHeight: BLOCK_MIN }),
-                justifyContent: "center",
-                padding: `24px ${PAD}px`,
+                /*
+                 * Content sits at the TOP of the band, always.
+                 *
+                 * These used to centre themselves inside a 300px minimum, so a band with
+                 * 200px of content padded itself by 50 top and bottom while its neighbour
+                 * padded itself by 10 — and no two gaps on the card matched. Top-aligned
+                 * with one padding value, the rhythm is even by construction.
+                 *
+                 * A card with no list then lets its bands share the leftover, which is
+                 * safe now that growth collects BELOW the content rather than around it.
+                 */
+                ...(hasList ? { flexGrow: 0 } : { flexGrow: 1 }),
+                justifyContent: "flex-start",
+                padding: `${BAND_PAD}px ${PAD}px`,
                 borderTop: `1px solid ${HAIR}`,
               }}
             >
@@ -880,6 +921,9 @@ export async function GET(request: NextRequest) {
             </div>
           );
         })}
+
+        {/* Only a list card needs a tail spacer; otherwise the bands absorb the slack. */}
+        {hasList ? <div style={{ display: "flex", flexGrow: 1 }} /> : null}
 
         {/* FOOTER CTA */}
         <div
