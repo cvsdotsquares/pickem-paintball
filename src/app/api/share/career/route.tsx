@@ -56,8 +56,8 @@ const MUTE = "rgba(255,255,255,0.42)";
  * card rather than a sparse one.
  */
 const HEADER_H = 118;
-const NAME_H = 232;
-const HERO_H = 380;
+const NAME_H = 214;
+const HERO_H = 364;
 const BLOCK_MIN = 300;
 const STRIP_MIN = 340;
 const FOOTER_H = 122;
@@ -94,16 +94,16 @@ const LIST_TITLE_H = 146;
  * content height, which makes the gaps equal by construction and lets the space left for a
  * list be worked out instead of guessed.
  */
-const BAND_PAD = 24;
+const BAND_PAD = 20;
 /*
  * MEASURED OFF RENDERS by finding the hairline separators, not derived from the CSS.
  * Every previous attempt to add these up from font sizes and margins came out low, and a
  * low estimate hands the list rows there is no room for — which the pinned footer then
  * hides by clipping them, so the fault is invisible to the footer check.
  */
-const BAND_STATS = 380;
-const BAND_STATS_TYPES = 490;
-const BAND_STRIP = 334;
+const BAND_STATS = 372;
+const BAND_STATS_TYPES = 482;
+const BAND_STRIP = 326;
 /** Below this a list band is not worth its own title, and is dropped instead of clipped. */
 const LIST_MIN_ROWS = 3;
 /*
@@ -121,8 +121,8 @@ const PICKEM_BAND_H = 490;
  * inside it put the overflow back instantly — with no flex-shrink, an oversized child does
  * not squeeze, it shoves everything below it off the canvas.
  */
-const COMPACT_NAME_H = 202;
-const COMPACT_HERO_H = 288;
+const COMPACT_NAME_H = 190;
+const COMPACT_HERO_H = 280;
 const COMPACT_PHOTO_W = 250;
 const COMPACT_PHOTO_H = 264;
 
@@ -247,7 +247,13 @@ function SeasonStrip({ seasons, accent }: { seasons: ShareCard["seasons"]; accen
    * and a low win rate turns them into wide flat slabs. Cap the width and centre the row,
    * so a short career draws a short strip instead of a stretched one.
    */
-  const barW = Math.min(76, Math.floor((INNER - (n - 1) * gap) / n));
+  /*
+   * Wider bars when there are few, and the group centred either way. Five columns capped
+   * at 76px left two thirds of the band empty and the chart looked abandoned in the
+   * corner; a cap that scales with the count fills the space without turning four seasons
+   * into four slabs.
+   */
+  const barW = Math.min(120, Math.floor((INNER - (n - 1) * gap) / n));
   /* Shorter bars: the number now sits above each one and needs the room. */
   const MAX = 84;
   return (
@@ -257,7 +263,7 @@ function SeasonStrip({ seasons, accent }: { seasons: ShareCard["seasons"]; accen
         width: INNER,
         marginTop: 26,
         alignItems: "flex-end",
-        justifyContent: n * (barW + gap) < INNER ? "flex-start" : "space-between",
+        justifyContent: "center",
         height: 176,
       }}
     >
@@ -523,7 +529,7 @@ function ListRow({
           style={{
             display: "flex",
             justifyContent: "flex-end",
-            width: 150,
+            width: 176,
             color: accent,
             fontSize: 25,
             fontFamily: "Hitmarker",
@@ -899,7 +905,7 @@ export async function GET(request: NextRequest) {
                     left: e.label,
                     sub: undefined,
                     mid: e.record,
-                    right: e.kills != null ? `${num(e.kills)} k` : undefined,
+                    right: e.kills != null ? `${num(e.kills)} kills` : undefined,
                     win: undefined as boolean | undefined,
                     finish: e.finish,
                   }))
@@ -907,7 +913,7 @@ export async function GET(request: NextRequest) {
                     left: m.opponent,
                     sub: m.round.toUpperCase(),
                     mid: `${m.f}–${m.a}`,
-                    right: showKills && m.kills != null ? `${num(m.kills)} k` : undefined,
+                    right: showKills && m.kills != null ? `${num(m.kills)} kills` : undefined,
                     win: m.win,
                     finish: undefined as string | undefined,
                   }));

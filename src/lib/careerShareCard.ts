@@ -452,7 +452,13 @@ function careerEventList(leagueEvents: AnyRec[], pickemEvents: AnyRec[]): ShareC
     .map((e) => {
       const scored = pickemEvents.find((p) => p.eventId === e.pickemEventId && p.kind === "played");
       return {
-        label: `${scored?.eventName ?? e.label ?? ""} ${e.year}`.trim(),
+        /*
+         * The PickEm name already carries the year ("Tampa Bay 2025"), so appending it
+         * gave "Tampa Bay 2025 2025". Only the league label, which does not, gets one.
+         */
+        label: scored?.eventName
+          ? String(scored.eventName)
+          : `${e.label ?? ""} ${e.year}`.trim(),
         finish: e.finishRank === 1 ? "Winner" : e.finishRank ? ordinal(Number(e.finishRank)) : String(e.finish ?? ""),
         record: record(Number(e.w ?? 0), Number(e.l ?? 0), Number(e.t ?? 0)),
         kills: scored ? Number(scored.kills ?? 0) : null,
