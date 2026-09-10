@@ -767,6 +767,68 @@ function eventCard(
 }
 
 /**
+ * Where a round sits in an event, low to high.
+ *
+ * TWO VOCABULARIES, and they never appear together: PickEm's own rows name the prelim
+ * DAYS and then the bracket, while the league's log names prelim GROUPS and uses the
+ * Spanish bracket names. `eventMatches` picks one source or the other for a given event,
+ * so both can share a table without the numbers needing to mean the same thing across it.
+ *
+ *   PickEm   Thursday · Friday · Saturday · Wildcard · Top 8 · Top 4 · Finals
+ *   League   A-E Prelims · Ochos · Quarters · Semifinals · Final
+ *
+ * "Ochos" is the round of SIXTEEN (octavos de final), so it precedes the quarters rather
+ * than being another name for them.
+ *
+ * A handful of 2022 World Cup rows carry a corrupted Round cell — a bare number where the
+ * name should be — and those are prelims; see CAREER_PAGE_REVIEW.md. Anything else
+ * unrecognised sorts last in the order it arrived, so a new round name appears at the
+ * bottom of the table rather than silently reordering the ones above it.
+ */
+const ROUND_RANK: Record<string, number> = {
+  thursday: 10,
+  friday: 11,
+  saturday: 12,
+  "a prelims": 10,
+  "b prelims": 11,
+  "c prelims": 12,
+  "d prelims": 13,
+  "e prelims": 14,
+  ochos: 20,
+  wildcard: 21,
+  wildcards: 21,
+  top8: 22,
+  quarters: 22,
+  top4: 23,
+  semifinals: 23,
+  finals: 24,
+  final: 24,
+};
+
+/**
+ * What the row SAYS, once it is in the right place.
+ *
+ * Every prelim reads "Prelims" — the day names and the group letters are both ways of
+ * saying "before the bracket", and neither is a distinction worth a column on a graphic.
+ * The order still comes from the raw value, so Thursday's games sit above Friday's; only
+ * the label is flattened, and only after sorting.
+ */
+function roundLabel(round: string): string {
+  if (roundRank(round) < 20) return "Prelims";
+  const key = String(round ?? "").trim().toLowerCase();
+  if (key === "top8") return "Top 8";
+  if (key === "top4") return "Top 4";
+  return String(round ?? "");
+}
+
+function roundRank(round: string): number {
+  const key = String(round ?? "").trim().toLowerCase();
+  if (key in ROUND_RANK) return ROUND_RANK[key];
+  if (/^\d+$/.test(key)) return 10; // corrupted Round cell — a prelim
+  return 99;
+}
+
+/**
  * Every match the team played at one event, oldest first.
  *
  * Prefers the scored rows, which carry the player's kills per game; falls back to the
@@ -779,26 +841,35 @@ function eventMatches(
   pe: AnyRec | null,
   matchLog: AnyRec[],
 ): ShareCard["matches"] {
+  /* Stable within a round: same round keeps the order the source gave it. */
+  const byRound = <T extends { round: string }>(rows: T[]): T[] =>
+    rows
+      .map((r, i) => ({ r, i }))
+      .sort((a, b) => roundRank(a.r.round) - roundRank(b.r.round) || a.i - b.i)
+      .map(({ r }) => ({ ...r, round: roundLabel(r.round) }));
+
   if (pe?.eventId) {
     const rows = matchLog.filter((m) => m.eventId === pe.eventId);
     if (rows.length) {
-      return rows.map((m) => ({
+      return byRound(rows.map((m) => ({
         opponent: String(m.opponent ?? ""),
         round: String(m.round ?? ""),
         f: Number(m.scoreFor ?? 0),
         a: Number(m.scoreAgainst ?? 0),
         win: m.result === "W",
         kills: m.kills != null ? Number(m.kills) : null,
-      }));
+      })));
     }
   }
   if (!le) return [];
-  return (Array.isArray(le.__log) ? le.__log : []).map((m: AnyRec) => ({
-    opponent: String(m.o ?? ""),
-    round: String(m.r ?? ""),
-    f: Number(m.f ?? 0),
-    a: Number(m.a ?? 0),
-    win: Number(m.f ?? 0) > Number(m.a ?? 0),
-    kills: null,
-  }));
+  return byRound(
+    (Array.isArray(le.__log) ? le.__log : []).map((m: AnyRec) => ({
+      opponent: String(m.o ?? ""),
+      round: String(m.r ?? ""),
+      f: Number(m.f ?? 0),
+      a: Number(m.a ?? 0),
+      win: Number(m.f ?? 0) > Number(m.a ?? 0),
+      kills: null,
+    })),
+  );
 }
