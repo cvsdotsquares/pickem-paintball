@@ -583,8 +583,20 @@ Vercel.
 
 - [ ] **Team pages** — same treatment as player pages. Team ids are clean since the
       August fix.
-- [ ] **Share graphics** — extend the existing `api/share/og/route.tsx` pipeline
-      (1,038 lines, `next/og`, 1080×1920 branded cards) rather than starting fresh.
+- [x] **Share graphics** — built 8-10 Sep. `api/share/career/route.tsx` renders career,
+      season and event cards at 1080x1920, shaped by `src/lib/careerShareCard.ts` so the
+      cards and the page cannot state different things about the same player. Shares the
+      PNG only, never a link: a URL makes WhatsApp and Discord unfurl a second copy of the
+      card beneath it, which is also why there is no landing page to build.
+
+      `scripts/verify-share-cards.mjs` guards nine card shapes on three axes — the footer
+      reaches the last row, content clears it, nothing runs off the right edge. All three
+      were bugs that shipped past a human review at least once, and the right-edge one
+      passed both of the other checks.
+
+      ⚠️ **The share sheet itself has never run.** `navigator.share()` with a file exists
+      only on iOS and Android, so every verification so far has exercised the DOWNLOAD
+      fallback. Needs one pass on a phone against the preview before this is really done.
 - [ ] **Public player pages?** Currently under `/dashboard` behind auth. Player names are
       exactly what fans search for, so there is a real SEO case — but it is a product
       call, and it decides whether the data needs precomputing for static rendering.
