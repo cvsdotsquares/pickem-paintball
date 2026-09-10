@@ -637,7 +637,12 @@ function eventCard(
   const pe = pickemEvents.find((e) => e.eventId === key || (le && e.eventId === le.pickemEventId)) ?? null;
   if (!le && !pe) return null;
 
-  const label = String(le?.label ?? pe?.eventName ?? "Event");
+  /*
+   * PickEm's name wins. The workbook calls the season opener just "Open", which is a
+   * heading in a year column and a mystery on a graphic — "Tampa Bay 2026" is the same
+   * event said usefully. The league label is the fallback for events PickEm never scored.
+   */
+  const label = String(pe?.eventName ?? le?.label ?? "Event");
   const year = String(le?.year ?? pe?.year ?? "");
   const w = Number(le?.w ?? 0);
   const l = Number(le?.l ?? 0);
@@ -700,10 +705,13 @@ function eventCard(
               { label: "Picked by", value: pe.pickPct != null ? pct(Number(pe.pickPct)) : "—" },
             ]
           : [
+              /*
+               * Two tiles. Finish and field size were both already the headline — "WINNER"
+               * and "3rd" above, out of a field the reader is not asked to weigh — so a
+               * tile for each said the same thing twice in a smaller size.
+               */
               { label: "Record", value: record(w, l, t) },
               { label: "Match win %", value: w + l > 0 ? pct((w / (w + l)) * 100) : "—" },
-              { label: "Finish", value: le.finishRank ? ordinal(Number(le.finishRank)) : String(le.finish) },
-              { label: "Field", value: `${le.fieldSize} teams` },
             ]
         : [],
     },

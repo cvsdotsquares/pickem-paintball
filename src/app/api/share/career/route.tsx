@@ -1001,7 +1001,7 @@ export async function GET(request: NextRequest) {
                 }}
               >
                 <BandTitle
-                  title={b === "events" ? "Tournaments" : "Every match"}
+                  title={b === "events" ? "Tournaments" : "Match record"}
                   caption={
                     b === "events"
                       ? "Finish and the team's record"
