@@ -138,9 +138,12 @@ export default function ShareCareerButton({
         className={`${className ?? ""} inline-flex items-center justify-center gap-2`}
       >
         <span className="shrink-0 inline-flex" aria-hidden="true">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-            <line x1="8.6" y1="10.5" x2="15.4" y2="6.5" /><line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+          {/* The system share glyph — a tray with an arrow leaving it. The three-node
+              graph reads as "network" or "branch"; this is the one people tap. */}
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 15V3" />
+            <path d="M8 7l4-4 4 4" />
+            <path d="M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6" />
           </svg>
         </span>
         <span className={labelClassName}>Share</span>

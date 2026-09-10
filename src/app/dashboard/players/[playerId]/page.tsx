@@ -388,27 +388,28 @@ export default function PlayerPage() {
     const nxlEvents = career.nxl?.events ?? [];
     const latest = nxlEvents.length ? nxlEvents[nxlEvents.length - 1] : null;
     const out: ShareScopeOption[] = [];
-    if (latest) {
-      out.push({
-        id: "season",
-        label: `${latest.year} season`,
-        query: `scope=season&year=${latest.year}`,
-        group: "Career",
-      });
-      out.push({
-        id: "event",
-        label: `${latest.label} ${latest.year}`,
-        query: `scope=event&key=${encodeURIComponent(latest.key)}`,
-        group: "Career",
-      });
-    }
     /*
      * "Full career" only when there IS one to show — a league record, or kills we scored.
      * The renderer refuses to build a card out of zeros, so offering the option to a player
      * we hold neither for would hand them a failed share instead of a graphic.
      */
+    /* Widest scope first: the career, then this season, then the event just finished. */
     if (career.nxl || (career.totalKills ?? 0) > 0) {
       out.push({ id: "career", label: "Full career", query: "scope=career", group: "Career" });
+    }
+    if (latest) {
+      out.push({
+        id: "season",
+        label: `Season stats - ${latest.year}`,
+        query: `scope=season&year=${latest.year}`,
+        group: "Career",
+      });
+      out.push({
+        id: "event",
+        label: `Last event - ${latest.label}`,
+        query: `scope=event&key=${encodeURIComponent(latest.key)}`,
+        group: "Career",
+      });
     }
     return out;
   })();
@@ -579,22 +580,26 @@ export default function PlayerPage() {
           <span className="text-gray-300 dark:text-white/25">›</span>
           <span className="text-gray-600 dark:text-white/60">{career.name}</span>
         </nav>
-        <div className="flex w-full items-center gap-2 sm:w-auto">
-          <PlayerSearch className="w-full sm:w-64" />
-          {shareScopes.length > 0 ? (
+        <PlayerSearch className="w-full sm:w-64" />
+      </div>
+
+      {/* ── Hero ─────────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden rounded-xl bg-[#101010]">
+        {/*
+          Share sits in the card it shares. The breadcrumb row put it beside the search
+          field, where it read as another page control rather than as an action on this
+          player. The hero is #101010 in both themes, so this one button is styled for that
+          ground instead of following the page.
+        */}
+        {shareScopes.length > 0 ? (
           <ShareCareerButton
             playerId={career.playerId}
             playerName={career.name}
             scopes={shareScopes}
-            className="shrink-0 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-[12px] font-bold uppercase tracking-[0.14em] text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/[0.09]"
+            className="absolute right-3 top-3 z-10 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-white backdrop-blur-sm hover:bg-white/20"
             labelClassName="hidden sm:inline"
           />
-          ) : null}
-        </div>
-      </div>
-
-      {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="overflow-hidden rounded-xl bg-[#101010]">
+        ) : null}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr]">
           {/*
             Portrait on top, identity underneath — a stacked block rather than a row.
