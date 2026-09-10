@@ -307,6 +307,35 @@ Vercel.
       reason still reads "no league id" — those verdicts predate the identity backfill, so
       participation reasons generally may be stale relative to it.
 
+- [ ] **We have no finishing position for teams knocked out in the prelims — crawl it.**
+      Found 10 Sep while ordering the match tables. The Power Rankings workbook records how
+      far a team GOT, not where it placed, and assigns nothing at all to a team that missed
+      the bracket:
+
+      | Finish | `finishRank` | Team-events |
+      |---|---|---|
+      | Winner | 1 | 51 |
+      | Runner-up | 2 | 51 |
+      | Semi-finals | 3 | 101 |
+      | Quarter-finals | 5 | 198 |
+      | Ochos | 9 | 84 |
+      | **Prelims** | **null** | **479** |
+
+      So 479 of 964 team-events — the majority — have no placing, and the share cards and
+      career page both fall back to the word "Prelims".
+
+      ⚠️ **DO NOT INFER IT.** The bracket size is implied by the deepest round an event ran,
+      so "joint 17th of 20" is calculable, and it would be wrong to publish: it is a guess
+      presented as a result, it gives every eliminated team the same number, and it would
+      be indistinguishable on the page from a placing the league actually awarded. The
+      existing ranks are standard competition ranking (joint 3rd, joint 5th, joint 9th),
+      which is a different thing from a full 1-to-N table.
+
+      The fix belongs in the crawl, not in a derivation: pbleagues publishes event standings,
+      so the roster crawler should pick up the final placing per team per event and
+      `build.mjs` should carry it into `nxlHistory.json` alongside `finishRank`. Do it with
+      the automation work above rather than as a separate pass.
+
 - [ ] **`nxlHistory.json` is baked into the function bundle — this blocks BOTH pulls.**
       Found 8 Sep while scoping the automation above, and worth doing first because it
       blocks the work regardless of which pull gets automated.
