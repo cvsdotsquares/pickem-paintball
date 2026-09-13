@@ -273,7 +273,7 @@ Vercel.
         unrelated reason. `scripts/nxl-history/safety-diff.mjs` is that diff — running it
         on a schedule and alerting on a `CHANGED` bucket would have caught it in a day.
 
-- [ ] **Six roster rows describe nobody — two deleted, four hidden. The sheet still has them.**
+- [x] **Six roster rows describe nobody — two deleted, four hidden.**
       Found 8 Sep. All six carry no NXL record (missing `league_id`, or one the 2015-2026
       crawl has never seen) AND have never scored, so a career page for them is a column
       of zeros — a claim about our data that reads as a claim about the player.
@@ -293,10 +293,11 @@ Vercel.
       from the sheet and would wipe it. Their roster rows are untouched, so picks still
       score; 17,837 picks across 1,602 users all resolve after the change.
 
-      ⚠️ **STILL OPEN — the two deletions are not permanent.** `syncRoster()` builds
-      rosters from the Google Sheet, so Reitemyer and Helgeson come back on the next
-      roster upload unless they are removed from the sheet too. Backup of all five deleted
-      documents is at `scripts/backups/phantom-players-pre-delete.json`.
+      ✅ **Removed from the sheet too (13 Sep), so the deletions now hold.** `syncRoster()`
+      builds rosters from the Google Sheet, so a Firestore delete alone would have been
+      undone by the next upload. Verified still absent from all three roster documents and
+      from `playerSummaries`. Backup of all five deleted documents remains at
+      `scripts/backups/phantom-players-pre-delete.json`.
 
       ⚠️ Helgeson's `league_id` is **840**, far below the range of every other id here
       (206876, 224174). That looks like a wrong id on a real player rather than a phantom,
