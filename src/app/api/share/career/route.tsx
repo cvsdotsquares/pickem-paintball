@@ -84,7 +84,12 @@ const PHOTO_H = 344;
  *   pickem adds the type bar: 22 gap + 22 bar + 12 gap + ~24 labels             = +80
  *   list  = 28 top pad + ~70 title/caption + 18 gap + 28 bottom pad             = 144
  */
-const ROW_H = 50;
+/*
+ * 56, not 50. A row carries a 25px name over a 17px sub-label, which needs about 53px —
+ * so every sub in the tournaments table was being cut off at its baseline. The ranks are
+ * the new content there ("18TH", "20TH"), which is how it finally showed.
+ */
+const ROW_H = 56;
 const LIST_TITLE_H = 146;
 /**
  * NATURAL band heights — what a band occupies with its own content and padding.

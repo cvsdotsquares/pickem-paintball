@@ -76,8 +76,28 @@ const text = (h) =>
  *
  * A block with no `dual_` teams is a single match and yields one row.
  */
-export function parseSchedule(html) {
-  const blocks = [...html.matchAll(/<div class="match[^"]*"[^>]*id="match-(\d+)"([\s\S]*?)(?=<div class="match |<\/body>)/g)];
+export function parseSchedule(html, { teams = null } = {}) {
+  const all = [...html.matchAll(/<div class="match[^"]*"[^>]*id="match-(\d+)"([\s\S]*?)(?=<div class="match |<\/body>)/g)];
+
+  /**
+   * ONE Pro competition per event, not every division whose name contains "Pro X-Ball".
+   *
+   * The World Cup runs two. In 2025 the schedule carries `Pro X-Ball™` — 24 teams, the NXL
+   * season's field — alongside a separate `Pro X-Ball` of another 24, the international
+   * bracket with Manawatu Titans and Wyldside Distortion in it. Both pass a name test, and
+   * taking both handed us 87 matches where the workbook has 57.
+   *
+   * So the divisions are grouped by their exact name and the LARGEST is the event's Pro
+   * competition. That also gathers the finals, which sit under a truncated `Pro X-Ball™|`
+   * but share the first segment.
+   */
+  const groups = new Map();
+  for (const b of all) {
+    const division = ((b[2].match(/data-division="([^"]*)"/) || [])[1] || "").split("|")[0];
+    if (!isPro(division)) continue;
+    (groups.get(division) ?? groups.set(division, []).get(division)).push(b);
+  }
+  const blocks = [...groups.values()].sort((a, b) => b.length - a.length)[0] ?? [];
   const out = [];
 
   const teamBy = (body, cls) => {
@@ -126,6 +146,14 @@ export function parseSchedule(html) {
 
     for (const p of pairs) {
       if (!p.teamA || !p.teamB || !p.score) continue;
+      /*
+       * A schedule ROW can pair two matches from DIFFERENT divisions, and `data-division`
+       * names only the first — so a Pro-labelled block whose dual partner is a women's
+       * 3v3 game yields "Femmes Fatale 4-3 Dallas Vibe" under Pro X-Ball. The division
+       * attribute cannot catch that; the event's own Pro ranking table can, because it
+       * lists exactly the teams that competed.
+       */
+      if (teams && (!teams.has(p.teamA) || !teams.has(p.teamB))) continue;
       out.push({
         blockId,
         matchId: p.matchId,
@@ -177,7 +205,9 @@ export async function crawlEvent(eventId) {
   ];
   const name = (schedule.match(/<title>\s*Schedule:\s*([^|<]*)/) || [])[1]?.trim() ?? `event ${eventId}`;
   const ranked = parseRankings(rankings);
-  return { eventId, name, matches: parseSchedule(schedule), division: ranked.division, rankings: ranked.rows };
+  /* The ranking table is the event's team list, and the only reliable one. */
+  const teams = ranked.rows.length ? new Set(ranked.rows.map((r) => r.team)) : null;
+  return { eventId, name, matches: parseSchedule(schedule, { teams }), division: ranked.division, rankings: ranked.rows };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
