@@ -1,4 +1,20 @@
 /**
+ * How far a team got, as the workbook words it.
+ *
+ * These sets are the vocabulary of `finish`, and every question about DEPTH is asked
+ * through them rather than through `finishRank`. The rank now comes from the league's own
+ * table — a strict 1 to N covering teams that never reached the bracket — so its old
+ * meaning as a bracket-only marker is gone, and code that still leaned on it read every
+ * appearance as a Sunday.
+ *
+ * The 2022 World Cup is the one event where the league ties two teams, at 3rd. Everything
+ * here counts labels, so a tie changes nothing.
+ */
+const MADE_BRACKET = new Set(["Winner", "Runner-up", "Semi-finals", "Quarter-finals", "Ochos"]);
+const TOP_FOUR = new Set(["Winner", "Runner-up", "Semi-finals"]);
+const FINALISTS = new Set(["Winner", "Runner-up"]);
+
+/**
  * A player's NXL win/loss record, read from `data/nxlHistory.json`.
  *
  * THIS IS REFERENCE DATA, NOT A PROJECTION
@@ -189,8 +205,9 @@ function allTimeStandings() {
       const e = EVENT_BY_KEY.get(eventKey);
       const r = e && e.teams[club];
       if (!r) continue;
-      if (r.finishRank === 1) t++;
-      if (r.finishRank != null) s++;
+      /* Same rule as the career figures above — depth is a label, not a rank. */
+      if (r.finish === "Winner") t++;
+      if (MADE_BRACKET.has(r.finish)) s++;
       m += r.w + r.l + r.t;
     }
     titles.push(t);
@@ -295,14 +312,19 @@ function nxlCareer(leagueId, { epid = null, absentEventIds = new Set() } = {}) {
    * third and no event ever produces a distinct 3rd place. "Top 3" cannot be computed
    * from a bracket that does not decide it; top four can, and is what the label says.
    */
-  const topFours = events.filter((x) => x.finishRank != null && x.finishRank <= 3).length;
-  const finals = events.filter((x) => x.finishRank != null && x.finishRank <= 2).length;
+  const topFours = events.filter((x) => TOP_FOUR.has(x.finish)).length;
+  const finals = events.filter((x) => FINALISTS.has(x.finish)).length;
 
   /**
    * SUNDAYS — tournaments where the team reached the knockout bracket.
    *
-   * `finishRank` is null for a team that went out in the group stage and a number for
-   * every bracket round, so "made the bracket" is simply a rank existing. At every NXL
+   * ⚠️ COUNTED FROM THE FINISH LABEL, NOT FROM A RANK EXISTING.
+   *
+   * That test used to work because the workbook only ranked the bracket, so a null rank
+   * meant the group stage. The rankings crawl fills every placing, 1 to N, and the same
+   * test then counted every appearance as a Sunday — one rebuild took 303 careers to a
+   * 100% Sunday rate. The label still says how far a team got, which is the thing this
+   * is actually asking about. At every NXL
    * event in the file the whole bracket is played on the final day, which is what the
    * sport means by making Sunday; the name is the paintball term rather than a claim
    * about the calendar, and a handful of finals have in fact fallen on a Saturday.
@@ -311,7 +333,7 @@ function nxlCareer(leagueId, { epid = null, absentEventIds = new Set() } = {}) {
    * title-less players with ten or more events it separates Tj Danner (84%) from Joel
    * Eaton (30%) — two records a "0 wins" tile calls identical.
    */
-  const sundays = events.filter((x) => x.finishRank != null).length;
+  const sundays = events.filter((x) => MADE_BRACKET.has(x.finish)).length;
 
   const years = events.map((x) => x.year).filter(Boolean);
   /**

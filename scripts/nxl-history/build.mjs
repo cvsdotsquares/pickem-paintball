@@ -203,6 +203,31 @@ function loadEvents() {
   return { events, badRounds };
 }
 
+/**
+ * Final placings crawled from pbleagues — see `crawl-rankings.mjs`.
+ *
+ * WHY THIS OVERRIDES WHAT WE DERIVE. The workbook records how FAR a team got, so the rank
+ * below comes from a fixed table keyed on the deepest knockout round reached: every beaten
+ * quarter-finalist is joint 5th, and a team that missed the bracket gets nothing at all.
+ * That is exactly half of every field, every year — 492 of 984 team-events with no placing.
+ *
+ * The league ranks all of them, 1 to N, back to 2015, and separates teams our table ties.
+ * So the crawled rank wins wherever we have one, and `finish` — the ROUND reached — stays
+ * derived, because the crawl has no equivalent for that word and "Sundays made" is computed
+ * from it.
+ *
+ * Absent the fixture the build still runs and falls back to the derived ranks.
+ */
+const RANKINGS_FIXTURE = new URL("./fixtures/event-rankings.json", import.meta.url);
+const CRAWLED_RANKS = (() => {
+  try {
+    const raw = JSON.parse(fs.readFileSync(RANKINGS_FIXTURE, "utf8"));
+    return new Map(raw.events.map((e) => [e.key, new Map(e.rankings.map((r) => [r.team, r.rank]))]));
+  } catch {
+    return new Map();
+  }
+})();
+
 /** Per-team record and finishing position at one event. */
 function scoreEvent(ev) {
   const rec = new Map(); // club -> {w,l,t,deepest}
@@ -339,6 +364,15 @@ function build() {
   const out = [];
   for (const ev of events.values()) {
     const { teams, champion } = scoreEvent(ev);
+
+    /* The league's own placing, where we crawled one. See CRAWLED_RANKS above. */
+    const crawled = CRAWLED_RANKS.get(ev.key);
+    if (crawled) {
+      for (const [club, t] of Object.entries(teams)) {
+        const rank = crawled.get(club);
+        if (rank != null) t.finishRank = rank;
+      }
+    }
     const dates = ev.matches.map((m) => m.date).filter(Boolean).sort();
     out.push({
       key: ev.key,
