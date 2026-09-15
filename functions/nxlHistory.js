@@ -10,7 +10,16 @@
  * The 2022 World Cup is the one event where the league ties two teams, at 3rd. Everything
  * here counts labels, so a tie changes nothing.
  */
-const MADE_BRACKET = new Set(["Winner", "Runner-up", "Semi-finals", "Quarter-finals", "Ochos"]);
+const MADE_BRACKET = new Set([
+  "Winner",
+  "Runner-up",
+  "Semi-finals",
+  "Quarter-finals",
+  "Ochos",
+  /* The round that decides who reaches the last 16. Reaching it IS making Sunday, which is
+     the entire point of correcting the 2022 World Cup's lost round. */
+  "Wildcard",
+]);
 const TOP_FOUR = new Set(["Winner", "Runner-up", "Semi-finals"]);
 const FINALISTS = new Set(["Winner", "Runner-up"]);
 

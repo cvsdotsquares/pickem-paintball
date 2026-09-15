@@ -72,7 +72,8 @@ const OUT = path.join(REPO, "functions/data/nxlHistory.json");
  * actually appears in, so a format change needs no special case. A bye straight into
  * the quarters is likewise just an absence from the Ochos.
  */
-const KNOCKOUT_DEPTH = { Final: 1, Semifinals: 2, Quarters: 3, Ochos: 4 };
+/* Wildcard is the shallowest bracket round — the one that decides who reaches the last 16. */
+const KNOCKOUT_DEPTH = { Final: 1, Semifinals: 2, Quarters: 3, Ochos: 4, Wildcard: 5 };
 
 /**
  * Where a run ended, and the position that implies.
@@ -87,6 +88,8 @@ const FINISH = {
   Semifinals: { rank: 3, label: "Semi-finals" },
   Quarters: { rank: 5, label: "Quarter-finals" },
   Ochos: { rank: 9, label: "Ochos" },
+  /* Rank is a fallback only — the crawled league table overrides it wherever we have one. */
+  Wildcard: { rank: 17, label: "Wildcard" },
   prelims: { rank: null, label: "Prelims" },
 };
 

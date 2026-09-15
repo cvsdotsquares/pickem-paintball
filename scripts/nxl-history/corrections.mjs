@@ -66,6 +66,27 @@ export const FIX_SCORES = [
   },
 ];
 
+/**
+ * A round the workbook records under the wrong name. Matched on the raw round string.
+ *
+ * The 2022 World Cup has two rounds whose Round cell is a corrupted Excel date serial. They
+ * are NOT the same thing, which is the trap: 11689 is six games among exactly four teams who
+ * play nobody else, a group stage, and stays as prelims. 42370 is two games sitting after A
+ * Prelims and before Ochos, whose winners went on and whose losers went out — a knockout.
+ * Leaving it as prelims denies DMG and Red Legion a Sunday they earned.
+ */
+export const FIX_ROUNDS = [
+  {
+    key: "2022|World Cup",
+    from: "42370",
+    to: "Wildcard",
+    why:
+      "A knockout round the workbook lost to a corrupted Round cell. pbleagues calls it 1/16; " +
+      "'Wildcard' is the league's own name for this round and the one the 2026 events use, so " +
+      "it needs no new vocabulary anywhere. Confirmed by James 15 Sep 2026.",
+  },
+];
+
 const pair = (a, b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
 /**
@@ -97,6 +118,15 @@ export function applyCorrections(eventKey, matches) {
     });
   }
 
+  for (const [i, r] of FIX_ROUNDS.entries()) {
+    if (r.key !== eventKey) continue;
+    out = out.map((m) => {
+      if (String(m.round) !== r.from) return m;
+      used.add(`round:${i}`);
+      return { ...m, round: r.to };
+    });
+  }
+
   for (const [i, f] of FIX_SCORES.entries()) {
     if (f.key !== eventKey) continue;
     out = out.map((m) => {
@@ -112,7 +142,8 @@ export function applyCorrections(eventKey, matches) {
 /** Every correction's id, so the build can name the ones that matched nothing. */
 export const ALL_CORRECTION_IDS = [
   ...DROP_MATCHES.map((d, i) => [`drop:${i}`, `${d.key} ${d.a} v ${d.b}`]),
+  ...FIX_ROUNDS.map((r, i) => [`round:${i}`, `${r.key} round ${r.from} -> ${r.to}`]),
   ...FIX_SCORES.map((f, i) => [`fix:${i}`, `${f.key} ${f.a} v ${f.b}`]),
 ];
 
-export const TOTAL_CORRECTIONS = DROP_MATCHES.length + FIX_SCORES.length;
+export const TOTAL_CORRECTIONS = DROP_MATCHES.length + FIX_ROUNDS.length + FIX_SCORES.length;
