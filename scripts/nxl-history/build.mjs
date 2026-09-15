@@ -31,6 +31,13 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { applyCorrections, ALL_CORRECTION_IDS } from "./corrections.mjs";
+
+/**
+ * Which corrections actually fired, at module scope so the report at the end of the build
+ * can read it. Declared inside the event loop it was invisible there, and the report threw.
+ */
+const correctionsUsed = new Set();
 import { fileURLToPath } from "node:url";
 import XLSX from "xlsx";
 import {
@@ -363,6 +370,15 @@ function build() {
   // Per-event records.
   const out = [];
   for (const ev of events.values()) {
+    /*
+     * Corrections BEFORE scoring, never after. The records, the finishes and the emitted
+     * match list are all derived from `ev.matches`, so a correction applied later would
+     * leave a team's win-loss disagreeing with the games listed beneath it.
+     */
+    const fixed = applyCorrections(ev.key, ev.matches);
+    ev.matches = fixed.matches;
+    for (const id of fixed.used) correctionsUsed.add(id);
+
     const { teams, champion } = scoreEvent(ev);
 
     /* The league's own placing, where we crawled one. See CRAWLED_RANKS above. */
@@ -524,6 +540,21 @@ if (hard) {
   console.error(`\n${hard} season(s) did not resolve cleanly. Fix scripts/nxl-history/clubs.mjs before writing.\n`);
   process.exit(1);
 }
+  /*
+   * Name any correction that matched nothing.
+   *
+   * A correction is a claim about a row in someone else's spreadsheet. When that row is
+   * fixed at source — or edited into a different shape — the entry here stops matching and
+   * silently does nothing, which is the worst outcome: the file still asserts a fix that is
+   * no longer being applied. Saying so on every build is what keeps the two in step.
+   */
+  const unused = ALL_CORRECTION_IDS.filter(([id]) => !correctionsUsed.has(id));
+  console.log(`\nCorrections: ${correctionsUsed.size} of ${ALL_CORRECTION_IDS.length} applied`);
+  if (unused.length) {
+    console.log(`  ⚠️  matched nothing — check the workbook has not changed under them:`);
+    unused.forEach(([, what]) => console.log(`       ${what}`));
+  }
+
 
 console.log(`\nChampions, most recent six:`);
 for (const e of data.events.slice(-6)) console.log(`  ${e.year} ${e.label.padEnd(22)} ${e.champion ?? "-"}`);

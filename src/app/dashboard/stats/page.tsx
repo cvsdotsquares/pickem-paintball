@@ -611,6 +611,10 @@ export default function Statistics() {
     setSelectedEvent(null);
     setShowSeasonTable(true);
     setSelectedSeasonYear(year);
+    // The season view builds its columns from whatever keys the rows carry, and the
+    // event view leaves raw Firestore docs in rowData. Without this the first render
+    // after the switch puts those raw docs under the season rules.
+    setRowData([]);
   };
 
   const statsNavBtn =
