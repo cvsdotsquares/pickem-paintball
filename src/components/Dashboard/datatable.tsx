@@ -16,6 +16,14 @@ import {
 } from "@/src/lib/resolveProfilePictureUrl";
 import { cn } from "@/src/lib/utils";
 
+/**
+ * Stat cells show scalars only. Player docs also carry Firestore Timestamps
+ * (`recomputedAt`, `StatusUpdatedAt`), and handing one to React throws #31, which
+ * takes down the whole page rather than just the cell.
+ */
+const renderCellValue = (value: unknown): React.ReactNode =>
+  typeof value === "string" || typeof value === "number" ? value : "";
+
 type ThemeClasses = {
   bg: string;
   text: string;
@@ -838,6 +846,16 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       }
     });
 
+    // Player docs carry bookkeeping fields alongside the stats — `recomputedAt` and
+    // `StatusUpdatedAt` are Firestore Timestamps. The season branch below turns every
+    // key it does not recognise into a column, so those have to be dropped by shape
+    // rather than by name: a new one added upstream must not become a column either.
+    const isScalarColumn = (k: string) =>
+      data.every((row) => {
+        const v = (row as unknown as Record<string, unknown>)[k];
+        return v == null || typeof v === "string" || typeof v === "number";
+      });
+
     // Season totals: Rank → Player → Team → Number → Confirmed Kills → event columns → category stats
     if (isSeasonView && data[0]) {
       const mapCol = (displayKey: string) =>
@@ -869,7 +887,8 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
         (k) =>
           !excludedKeys.has(k.toLowerCase()) &&
           !used.has(k) &&
-          !isStatCategory(k)
+          !isStatCategory(k) &&
+          isScalarColumn(k)
       );
 
       const orderRank = (k: string) => {
@@ -1430,7 +1449,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                       } ${getStatColumnWidthClass(displayKey)}`}
                   >
                     <span className="pickem-numeric">
-                      {(row[originalKey] ?? "") as React.ReactNode}
+                      {renderCellValue(row[originalKey])}
                     </span>
                   </td>
                 ))}
