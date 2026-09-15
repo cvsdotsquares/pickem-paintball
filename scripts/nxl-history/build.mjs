@@ -32,6 +32,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { applyCorrections, ALL_CORRECTION_IDS } from "./corrections.mjs";
+import { checkFingerprints, saveFingerprints } from "./history-fingerprint.mjs";
 
 /**
  * Which corrections actually fired, at module scope so the report at the end of the build
@@ -562,6 +563,41 @@ if (hard) {
 console.log(`\nChampions, most recent six:`);
 for (const e of data.events.slice(-6)) console.log(`  ${e.year} ${e.label.padEnd(22)} ${e.champion ?? "-"}`);
 
+/**
+ * A finished tournament that has changed stops the build.
+ *
+ * Adding an event is normal; history grows every season. Changing one that was already
+ * verified is not, and it is the failure mode that hides best - the two fabricated 2017
+ * games sat in the file for months because every internal check derived its numbers from
+ * the very rows that were wrong.
+ *
+ * `--bless-history` re-records the fingerprints, and is how a DELIBERATE correction is
+ * accepted. It should only ever be run alongside an entry in `corrections.mjs` saying what
+ * changed and why.
+ */
+{
+  const fp = checkFingerprints(data.events);
+  if (fp.missing) {
+    console.log(`\nHistory fingerprints: none recorded yet - run with --bless-history to set the baseline.`);
+  } else {
+    if (fp.added.length) console.log(`\nHistory: ${fp.added.length} new event(s) - ${fp.added.join(", ")}`);
+    if (fp.removed.length) console.log(`\n⚠️  History: ${fp.removed.length} event(s) have DISAPPEARED - ${fp.removed.join(", ")}`);
+    if (fp.changed.length || fp.removed.length) {
+      console.error(`\n❌ FINISHED EVENTS HAVE CHANGED since ${fp.generated}:`);
+      for (const c of fp.changed) {
+        console.error(`     ${c.key}  matches ${c.was} -> ${c.now}  (${c.wasHash} -> ${c.nowHash})`);
+      }
+      console.error(
+        `\n   These results were reconciled against the league and signed off. If the change is\n` +
+        `   deliberate, record it in corrections.mjs and re-run with --bless-history.\n`,
+      );
+      if (!process.argv.includes("--bless-history")) process.exit(1);
+    } else {
+      console.log(`\nHistory: ${Object.keys(fp).length ? "" : ""}unchanged since ${fp.generated}`);
+    }
+  }
+}
+
 if (!process.argv.includes("--write")) {
   console.log(`\nNo --write flag, so nothing was written.\n`);
   process.exit(0);
@@ -569,4 +605,9 @@ if (!process.argv.includes("--write")) {
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify(data));
+
+if (process.argv.includes("--bless-history")) {
+  const saved = saveFingerprints(data.events, process.argv.slice(2).join(" "));
+  console.log(`History fingerprints re-recorded for ${Object.keys(saved.events).length} events.`);
+}
 console.log(`\nWrote ${OUT} - ${(fs.statSync(OUT).size / 1024).toFixed(0)} KB\n`);
