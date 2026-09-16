@@ -8,6 +8,32 @@ Everything outstanding, newest work first. Companion docs:
 
 ## Next session
 
+### Lone Star live career pages — what is left
+
+The crawl, the merge and the preview gate are deployed and verified. Two things
+still have to happen by hand, and both are easy to forget.
+
+1. **Before the event (by 18 Sep 12:55 UTC): check the crawler's flags.**
+   `projections/liveEvent` must read `observeOnly: false` and carry NO
+   `ignoreWindow` field. Left on `observeOnly`, the crawler runs every ten
+   minutes all weekend and writes nothing — the feature silently does nothing
+   and nobody finds out until the event is over. `disabled: true` is the kill
+   switch if it misbehaves mid-event; it needs no deploy.
+
+2. **After the event: bless the crawled result into `functions/data/nxlHistory.json`
+   and fingerprint it.** The workbook will never carry Lone Star, so the crawl
+   becomes the system of record for it. Until that happens the event lives only
+   in `liveEvents/lone_star_open_2026` and is visible only in preview.
+   Once blessed, DELETE that overlay document — `nxlCareer` ignores an overlay
+   whose key the history already knows, so the numbers stay correct either way,
+   but leaving it means carrying a document nothing reads.
+
+Still unproven end to end: overlay → rebuild → rendered career page. Lone Star
+had no scores to crawl before the event, so the display half has only been tested
+with a synthetic overlay and a unit test of the gate, not with real crawled data
+flowing all the way through.
+
+
 Dark mode and mobile are both signed off on the player page.
 
 1. **Append long data for the 7 remaining events** (see Data below). The Matches tab
