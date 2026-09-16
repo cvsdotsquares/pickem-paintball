@@ -199,7 +199,16 @@ function scoreTeams(finalMatches, clubOf) {
        * before a ball is thrown, so trusting it mid-event would show a finishing position
        * for a tournament nobody has finished. The proper build sets it afterwards.
        */
-      finishRank: null,
+      /*
+       * NULL FOR EVERYONE EXCEPT THE CHAMPION.
+       *
+       * The league publishes a ranking table before a ball is thrown, so trusting it
+       * mid-event would show a finishing position for a tournament nobody has finished.
+       * The champion is the one placing that IS known the moment the final ends, and it
+       * has to be set because `titles` counts finishRank === 1 - without it a live
+       * champion carries the "Winner" label and a career title count of zero.
+       */
+      finishRank: club === champion ? 1 : null,
     };
   }
   return { teams, champion };

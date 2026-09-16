@@ -1,6 +1,7 @@
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/src/lib/firebaseClient";
 import { eventAxisLabel } from "@/src/lib/eventDisplayName";
+import { withLiveEvent } from "@/src/lib/liveEventView";
 import {
   KILL_TYPES,
   type AppearanceKind,
@@ -90,7 +91,8 @@ const emptyTypes = () =>
 export async function fetchPlayerSummary(playerId: string): Promise<PlayerSummary | null> {
   const snap = await getDoc(doc(db, "playerSummaries", playerId));
   if (!snap.exists()) return null;
-  const d = snap.data() as SummaryDoc;
+  // Preview builds see the tournament in progress; production sees the settled record.
+  const d = withLiveEvent(snap.data() as SummaryDoc);
 
   /**
    * A player who was OFF THE OFFICIAL TEAM SHEET was not at the event at all, and does

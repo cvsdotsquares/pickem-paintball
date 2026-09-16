@@ -257,7 +257,7 @@ function rankIn(sortedDesc, value) {
  * @param {string|number|null} leagueId
  * @param {{absentEventIds?: Set<string>}} opts
  */
-function nxlCareer(leagueId, { epid = null, absentEventIds = new Set() } = {}) {
+function nxlCareer(leagueId, { epid = null, absentEventIds = new Set(), liveEvent = null } = {}) {
   /**
    * Numeric id first, profile EPID second.
    *
@@ -273,11 +273,24 @@ function nxlCareer(leagueId, { epid = null, absentEventIds = new Set() } = {}) {
   const key = leagueId == null ? null : String(leagueId);
   let appearances = key ? HISTORY.appearances[key] : null;
   if (!appearances && epid) appearances = (HISTORY.appearancesByEpid ?? {})[String(epid)];
+  /**
+   * The event being played RIGHT NOW, if the crawler has seen this player on a roster.
+   *
+   * Threaded in as an argument rather than merged into HISTORY, because Cloud Functions
+   * reuse warm containers: mutating module state here would leak one rebuild's live,
+   * half-finished tournament into the next invocation's "static" history and never clear.
+   *
+   * Merged BEFORE the empty check below, or a player whose only event is this one - a
+   * debutant - returns null and gets no career page at all.
+   */
+  const liveClub = liveEvent && key ? (liveEvent.appearances || {})[key] : null;
+  if (liveClub) appearances = [...(appearances || []), [liveEvent.key, liveClub]];
+
   if (!appearances || appearances.length === 0) return null;
 
   const events = [];
   for (const [eventKey, club] of appearances) {
-    const e = EVENT_BY_KEY.get(eventKey);
+    const e = liveEvent && eventKey === liveEvent.key ? liveEvent : EVENT_BY_KEY.get(eventKey);
     if (!e) continue;
     if (e.pickemEventId && absentEventIds.has(e.pickemEventId)) continue;
     const r = e.teams[club];
@@ -297,6 +310,8 @@ function nxlCareer(leagueId, { epid = null, absentEventIds = new Set() } = {}) {
       finishRank: r.finishRank,
       fieldSize: e.fieldSize,
     });
+    /* Marks the row as a tournament still being played, so the UI can label it. */
+    if (liveEvent && e === liveEvent) events[events.length - 1].live = true;
   }
   if (events.length === 0) return null;
 
@@ -414,8 +429,11 @@ function nxlCareer(leagueId, { epid = null, absentEventIds = new Set() } = {}) {
 }
 
 /** The league's record for one team at one PickEm event — the event table's W-L cell. */
-function eventRecord(pickemEventId, teamId) {
-  const e = EVENT_BY_PICKEM_ID.get(pickemEventId);
+function eventRecord(pickemEventId, teamId, liveEvent = null) {
+  const e =
+    liveEvent && liveEvent.pickemEventId === pickemEventId
+      ? liveEvent
+      : EVENT_BY_PICKEM_ID.get(pickemEventId);
   if (!e || !teamId) return null;
   const club = TEAM_ID_CLUB.get(teamId);
   const r = club && e.teams[club];
@@ -424,7 +442,9 @@ function eventRecord(pickemEventId, teamId) {
 }
 
 /** True once the workbook carries results for this event; the W-L columns key off it. */
-const hasResults = (pickemEventId) => EVENT_BY_PICKEM_ID.has(pickemEventId);
+const hasResults = (pickemEventId, liveEvent = null) =>
+  EVENT_BY_PICKEM_ID.has(pickemEventId) ||
+  Boolean(liveEvent && liveEvent.pickemEventId === pickemEventId);
 
 module.exports = {
   nxlCareer,

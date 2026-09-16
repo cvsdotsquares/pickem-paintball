@@ -93,6 +93,88 @@ exports.rebuildPlayerSummaries = functions
     return null;
   });
 
+// ─── Live event crawler ────────────────────────────────────────────────────
+// Reads the pbleagues schedule while a tournament is being played and keeps
+// `liveEvents/{eventId}` up to date, so career pages can move during the event
+// instead of waiting for the workbook days later.
+//
+// Ten minutes, because that is roughly a match: faster would re-read a page that
+// has not changed, slower and a career page lags a round behind. The pass is one
+// document read plus two HTTP fetches when nothing has moved.
+exports.crawlLiveEvent = functions
+  .runWith({ timeoutSeconds: 120, memory: '256MB' })
+  .pubsub.schedule('every 10 minutes')
+  .onRun(async () => {
+    const { crawlLiveEvent, PBLEAGUES_EVENT } = require('./liveEvent');
+
+    // Kill switch and settings in one document, so the crawl can be stopped from the
+    // console without a deploy — the only control available mid-tournament.
+    const cfgSnap = await db.doc('projections/liveEvent').get();
+    const cfg = cfgSnap.exists ? cfgSnap.data() : {};
+    if (cfg.disabled) {
+      console.log('⏸  Live crawl disabled by projections/liveEvent.disabled.');
+      return null;
+    }
+
+    const eventId = cfg.eventId || Object.keys(PBLEAGUES_EVENT)[0];
+    const pbleaguesId = cfg.pbleaguesId || PBLEAGUES_EVENT[eventId];
+    if (!pbleaguesId) {
+      console.log(`⏭  No pbleagues id known for ${eventId}.`);
+      return null;
+    }
+
+    /**
+     * Only while the tournament is actually on.
+     *
+     * Outside the window this costs one read and stops. The window opens at the pick
+     * lock — the first matches follow within hours — and closes six hours after the
+     * published end, so a tournament running late still gets its final results.
+     */
+    const evSnap = await db.doc(`events/${eventId}`).get();
+    const lock = evSnap.get('lockDate');
+    const ends = evSnap.get('eventEndsAt');
+    const now = Date.now();
+    const from = lock ? lock.toDate().getTime() : null;
+    const until = ends ? ends.toDate().getTime() + 6 * 60 * 60 * 1000 : null;
+    if (!cfg.ignoreWindow && ((from && now < from) || (until && now > until))) {
+      return null;
+    }
+
+    const result = await crawlLiveEvent(db, {
+      eventId,
+      pbleaguesId,
+      observeOnly: cfg.observeOnly === true,
+    });
+
+    /**
+     * A club the crawl names but our history cannot place drops that team's whole
+     * record silently. Logged as an error so it shows up without being hunted for.
+     */
+    if (result.unresolvedClubs && result.unresolvedClubs.length) {
+      console.error(`❌ Unresolved club names: ${result.unresolvedClubs.join(', ')}`);
+    }
+    if (result.unresolved && result.unresolved.length) {
+      console.error(`❌ Roster rows with no club: ${result.unresolved.slice(0, 5).join(' | ')}`);
+    }
+
+    console.log(
+      `🎯 ${eventId}: ${result.parsed} parsed, ${result.played} played, ` +
+      `${result.final} final, ${result.clubs} clubs, ${result.appearances} appearances` +
+      `${result.wrote ? ' — overlay updated' : ` — no write (${result.reason})`}`,
+    );
+
+    // Hand off to the projection exactly the way an upload does, rather than rebuilding
+    // here: that keeps one rebuild path, and the 5-minute pass already collapses bursts.
+    if (result.wrote) {
+      await db.doc('projections/playerSummaries').set(
+        { staleSince: admin.firestore.FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+    }
+
+    return null;
+  });
+
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 // Lightweight stage timer. Cloud Functions logs give total invocation time but

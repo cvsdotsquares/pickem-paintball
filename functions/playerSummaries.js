@@ -243,8 +243,18 @@ function matchesForEvent(eventId, rows, teamOfPlayer) {
   return byPlayer;
 }
 
-async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null } = {}) {
+/**
+ * Roster statuses that mean the player did not take the field.
+ *
+ * During a live event `participation` is still "unknown" - that verdict comes from the
+ * manual sheet days later - so without this every rostered player reads as "played" the
+ * moment their team scores a single kill, including the ones sat out injured.
+ */
+const DNP_STATUS = new Set(["DNP", "Out", "Injured", "Dropped"]);
+
+async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null, liveEvent: preloadedLive = null } = {}) {
   const events = preloadedEvents ?? (await loadEvents(db));
+  const liveEvent = preloadedLive !== null ? preloadedLive : await loadLiveEvent(db);
 
   /**
    * Every read this needs, issued at once.
@@ -419,7 +429,20 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
       const participation = d.participation ?? "unknown";
       return {
         ...base,
-        kind: participation === "absent" ? "dnp" : "played",
+        /*
+         * The sheet's verdict wins when we have it. Until then: scoring proves presence,
+         * and a roster status that says they were not playing is taken at its word. A
+         * zero with no status is left as "played" because a player can legitimately
+         * score nothing.
+         */
+        kind:
+          participation === "absent"
+            ? "dnp"
+            : kills > 0
+              ? "played"
+              : DNP_STATUS.has(String(d.Status ?? "").trim())
+                ? "dnp"
+                : "played",
         participation,
         participationReason: d.participationReason ?? null,
         status: d.Status ?? null,
@@ -443,6 +466,13 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
          * and rows long before it has a bracket.
          */
         record: eventRecord(ev.id, d.team_id ?? null),
+        /*
+         * The same cell computed with the live crawl folded in. A SEPARATE FIELD, never
+         * merged into `record`: production and preview read one shared projection, so
+         * overwriting `record` would put a half-finished tournament in front of everyone.
+         * Only written while an event is actually being played.
+         */
+        ...(liveEvent ? { recordLive: eventRecord(ev.id, d.team_id ?? null, liveEvent) } : {}),
       };
     });
 
@@ -555,6 +585,25 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null 
         epid: leagueEpid,
         absentEventIds: new Set(span.filter((r) => r.kind !== "played").map((r) => r.eventId)),
       }),
+      /**
+       * The same career with the tournament in progress included.
+       *
+       * Written alongside `nxl`, never over it. `nxl` stays exactly what it is today, so
+       * deploying this cannot move a single number on the live site; the preview build
+       * reads this field instead, and production never asks for it. It disappears by
+       * itself when the event ends and the overlay goes away.
+       */
+      ...(liveEvent
+        ? {
+            nxlLive: nxlCareer(leagueId, {
+              epid: leagueEpid,
+              absentEventIds: new Set(
+                span.filter((r) => r.kind !== "played").map((r) => r.eventId),
+              ),
+              liveEvent,
+            }),
+          }
+        : {}),
     });
   }
 
@@ -1090,7 +1139,8 @@ async function rebuild(db, { now } = {}) {
   // Read the event list once and thread it through — both halves need it, and on a
   // slow link that one small query was costing well over a second twice.
   const events = await loadEvents(db);
-  const summaries = await buildAll(db, { events });
+  const liveEvent = await loadLiveEvent(db);
+  const summaries = await buildAll(db, { events, liveEvent });
   const tBuilt = Date.now();
   const aggregates = await buildAggregates(db, summaries, { events });
   const tAggs = Date.now();
@@ -1106,4 +1156,18 @@ async function rebuild(db, { now } = {}) {
   return { players: summaries.length, changed, unchanged, aggregates };
 }
 
-module.exports = { buildAll, buildAggregates, writeAll, rebuild };
+/**
+ * The overlay the live crawler maintains, or null when no event is being played.
+ *
+ * One read. Shaped to look like an entry in the history file so `nxlCareer` can treat it
+ * as just another event, which is why nothing downstream needs to know it is live.
+ */
+async function loadLiveEvent(db) {
+  const snap = await db.collection("liveEvents").where("live", "==", true).limit(1).get();
+  if (snap.empty) return null;
+  const d = snap.docs[0].data();
+  if (!d.teams || !d.appearances) return null;
+  return d;
+}
+
+module.exports = { buildAll, buildAggregates, writeAll, rebuild, loadLiveEvent, DNP_STATUS };
