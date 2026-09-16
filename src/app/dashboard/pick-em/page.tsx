@@ -628,22 +628,50 @@ export default function Pickems() {
     setCaptainId(null);
   };
 
+  /**
+   * The one write of the official picks — autosave, Confirm and the share
+   * button's flush all go through here, so they cannot drift apart.
+   */
+  const writeOfficialPicks = useCallback(async () => {
+    if (!user) return;
+    const picksIds = Array.from(new Map(temporaryPicks.map((p) => [String(p.player_id), p])).values()).map((p) => String(p.player_id));
+    await updateDoc(doc(db, "users", user.uid), {
+      [`pickems.${liveEvent.id}`]: picksIds,
+      [`pickems.${liveEvent.id}_captain`]: captainId ? String(captainId) : null,
+    });
+  }, [temporaryPicks, captainId, user, liveEvent?.id]);
+
   const confirmPicks = async () => {
     if (!user) { toast.error("Must be logged in"); return; }
     if (!isBeforeLockDate(liveEvent.lockDate)) { toast.error("Picks locked!"); return; }
     if (temporaryPicks.length < 10) { toast.warning("Select all 10 players first!"); return; }
     if (!captainId) { toast.warning("Select a captain first!"); return; }
     try {
-      const picksIds = Array.from(new Map(temporaryPicks.map((p) => [String(p.player_id), p])).values()).map((p) => String(p.player_id));
-      await updateDoc(doc(db, "users", user.uid), {
-        [`pickems.${liveEvent.id}`]: picksIds,
-        [`pickems.${liveEvent.id}_captain`]: captainId ? String(captainId) : null,
-      });
+      await writeOfficialPicks();
       setSaveStatus("saved");
       toast.success("Picks saved!");
       maybeShowSupportModal();
     } catch { toast.error("Failed to save picks."); }
   };
+
+  /**
+   * Save the team on screen NOW, rather than waiting out the 2s autosave
+   * debounce. The share card is rendered server-side from Firestore, so an
+   * unsaved edit would put the previous team on the card. Returns true when it
+   * actually wrote, so the caller knows to wait for its listener to catch up.
+   */
+  const flushOfficialPicks = useCallback(async (): Promise<boolean> => {
+    if (saveStatus !== "saving") return false;
+    if (!user || temporaryPicks.length < 10 || !captainId) return false;
+    if (!isBeforeLockDate(liveEvent?.lockDate)) return false;
+    try {
+      await writeOfficialPicks();
+      setSaveStatus("saved");
+      return true;
+    } catch {
+      return false;
+    }
+  }, [saveStatus, user, temporaryPicks, captainId, liveEvent?.lockDate, writeOfficialPicks]);
 
   const MODAL_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes, persisted in localStorage
   const MODAL_COOLDOWN_KEY = 'pickem_modal_last_shown';
@@ -669,11 +697,7 @@ export default function Pickems() {
     setSaveStatus("saving");
     const timer = setTimeout(async () => {
       try {
-        const picksIds = Array.from(new Map(temporaryPicks.map((p) => [String(p.player_id), p])).values()).map((p) => String(p.player_id));
-        await updateDoc(doc(db, "users", user.uid), {
-          [`pickems.${liveEvent.id}`]: picksIds,
-          [`pickems.${liveEvent.id}_captain`]: captainId ? String(captainId) : null,
-        });
+        await writeOfficialPicks();
         setSaveStatus("saved");
         maybeShowSupportModal();
       } catch {
@@ -682,7 +706,7 @@ export default function Pickems() {
       }
     }, 2000);
     return () => clearTimeout(timer);
-  }, [temporaryPicks, captainId, maybeShowSupportModal]);
+  }, [temporaryPicks, captainId, maybeShowSupportModal, writeOfficialPicks]);
 
   // Draft save with 3s debounce — saves partial picks so users don't lose
   // progress on refresh. Stored separately from official picks so it never
@@ -1013,6 +1037,7 @@ export default function Pickems() {
                 <ShareTeamButton
                   uid={user?.uid}
                   surface="pick-em"
+                  onBeforeShare={flushOfficialPicks}
                   className="flex-1 py-2 rounded-xl font-black uppercase tracking-widest text-sm whitespace-nowrap bg-[#00f976] text-neutral-950 hover:brightness-[0.95] active:scale-95 shadow-lg shadow-[#00f976]/35 transition-all"
                 />
               </div>

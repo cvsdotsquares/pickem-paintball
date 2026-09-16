@@ -2,6 +2,13 @@
 export const SHARE_COPY = {
   buttonLabel: "Share team",
   preparingLabel: "Preparing…",
+  /**
+   * Shown when the card is ready but the browser refused the share sheet
+   * because the tap's user-activation window had expired (the render is
+   * multi-second; Chrome allows ~5s, Safari less). The next tap carries fresh
+   * activation and the card is already in hand, so it opens instantly.
+   */
+  readyLabel: "Share now",
   title: "My PickEm Paintball team",
   /**
    * Caption for the native (image-only) share. User-driven — it's the player
