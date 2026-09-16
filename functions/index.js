@@ -137,6 +137,17 @@ exports.crawlLiveEvent = functions
     const from = lock ? lock.toDate().getTime() : null;
     const until = ends ? ends.toDate().getTime() + 6 * 60 * 60 * 1000 : null;
     if (!cfg.ignoreWindow && ((from && now < from) || (until && now > until))) {
+      /*
+       * Say so rather than returning in silence.
+       *
+       * Outside the window this is the ONLY thing the function does, so with no line here
+       * a healthy crawler and a crawler that never runs look identical in the logs — there
+       * is no way to tell the difference until the event starts and it is too late to fix.
+       */
+      console.log(
+        `💤 Outside the ${eventId} window — opens ${from ? new Date(from).toISOString() : '?'}, ` +
+        `closes ${until ? new Date(until).toISOString() : '?'}.`,
+      );
       return null;
     }
 

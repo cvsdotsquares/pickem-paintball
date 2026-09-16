@@ -283,6 +283,17 @@ function nxlCareer(leagueId, { epid = null, absentEventIds = new Set(), liveEven
    * Merged BEFORE the empty check below, or a player whose only event is this one - a
    * debutant - returns null and gets no career page at all.
    */
+  /*
+   * ONCE THE EVENT IS BLESSED INTO THE HISTORY FILE, THE OVERLAY IS IGNORED.
+   *
+   * Nothing deletes the overlay document when a tournament ends, so after the event is
+   * added to nxlHistory.json both sources would carry the same key and every player who
+   * was there would be credited with it TWICE — doubled matches, and a doubled title for
+   * the winners. It would not show during the event, only weeks later when the figures
+   * quietly stopped adding up. The blessed data is the settled one, so it wins.
+   */
+  if (liveEvent && EVENT_BY_KEY.has(liveEvent.key)) liveEvent = null;
+
   const liveClub = liveEvent && key ? (liveEvent.appearances || {})[key] : null;
   if (liveClub) appearances = [...(appearances || []), [liveEvent.key, liveClub]];
 
@@ -430,10 +441,10 @@ function nxlCareer(leagueId, { epid = null, absentEventIds = new Set(), liveEven
 
 /** The league's record for one team at one PickEm event — the event table's W-L cell. */
 function eventRecord(pickemEventId, teamId, liveEvent = null) {
+  /* Settled history first, for the same reason the career merge prefers it. */
   const e =
-    liveEvent && liveEvent.pickemEventId === pickemEventId
-      ? liveEvent
-      : EVENT_BY_PICKEM_ID.get(pickemEventId);
+    EVENT_BY_PICKEM_ID.get(pickemEventId) ||
+    (liveEvent && liveEvent.pickemEventId === pickemEventId ? liveEvent : undefined);
   if (!e || !teamId) return null;
   const club = TEAM_ID_CLUB.get(teamId);
   const r = club && e.teams[club];
