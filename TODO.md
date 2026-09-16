@@ -144,6 +144,15 @@ Needs no long-data backfill. It is independent of everything below.
 first step is creating the service-account key and adding it to `.env.local` **and**
 Vercel.
 
+> **Share tracking is waiting on this.** `shareEvents` (added 16 Sep 2026) had to be
+> given `allow create: if true` for exactly the same reason — `/api/share/track` runs on
+> the client SDK, so the rules cannot tell it apart from a stranger. Anyone holding a
+> shareId can therefore forge share rows, and the numbers in
+> `scripts/share-report.mjs` are only as trustworthy as that. Converting that one route
+> is small and self-contained (it does a single `addDoc`, no timestamps to normalise),
+> and it lets the rule close to `read, write: if false` — sealed outright, since nothing
+> client-side ever needs to read it back.
+
 ---
 
 ## Player page — design

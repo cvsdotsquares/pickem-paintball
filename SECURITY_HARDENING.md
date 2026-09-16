@@ -95,8 +95,12 @@ nor the Shared tab today** — confirmed 22 Aug. They must be created, not found
 
 ## Stage 2 — convert the server routes to Door 2
 
-**16 routes write to Firestore using the client SDK. They need converting to
+**17 routes write to Firestore using the client SDK. They need converting to
 `firebase-admin`.** 8 further routes only read and can stay as they are.
+
+(17 as of 16 Sep 2026: `share/track` was added after this count was taken. The table
+below still reflects the original 16 — the new route adds ~75 lines and none of the
+`FieldValue` conversions.)
 
 | | |
 |---|---|
@@ -119,7 +123,7 @@ response — `leagues/search/route.ts:43` — is a read-only route we're not con
 
 **Order to do it in, least risky first:**
 1. Leagues (10 routes)
-2. Notifications + share link (2)
+2. Notifications + share link + share track (3)
 3. Stripe: webhook, sync-subscription, cancel-subscription (3) — slowest, most care
 4. `user/create-pickem-data` (1)
 
@@ -129,6 +133,12 @@ import.
 
 **Testing reality:** there is no automated coverage — one Playwright visual spec, no API
 tests. Every converted route must be exercised by hand before shipping.
+
+**`share/track` is the easy one to go first.** It writes a single `addDoc` with no
+arrays, no timestamps and no response body worth normalising, and nothing client-side
+reads `shareEvents` back — so converting it lets that rule go straight to
+`read, write: if false` rather than the `allow create: if true` it carries today.
+Until then, share counts can be forged by anyone holding a shareId.
 
 ---
 
