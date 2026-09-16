@@ -571,7 +571,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between gap-4">
         <h3 className={sectionRowHeadingClass}>Live picks</h3>
         <div className="flex shrink-0 items-center gap-2">
-          <ShareTeamButton uid={user?.uid} className={sectionActionLinkClass} />
+          <ShareTeamButton uid={user?.uid} surface="dashboard" className={sectionActionLinkClass} />
           <Link href="/dashboard/pick-em" className={sectionActionLinkClass}>
             Edit team →
           </Link>

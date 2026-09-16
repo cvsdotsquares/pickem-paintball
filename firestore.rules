@@ -115,6 +115,17 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Share telemetry — one row per finished share attempt, written by
+    // /api/share/track. That route is on the client SDK too, so it is anonymous
+    // here and `create` has to stay open (stage 2 closes it). Everything else is
+    // shut: nobody can read back who shared what, or edit the record afterwards.
+    // scripts/share-report.mjs reads it with the Admin SDK, which bypasses rules.
+    match /shareEvents/{recordId} {
+      allow read: if false;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+
     // ── Default deny ─────────────────────────────────────────────────────────
     // Anything not named above is unreachable from a client. Adding a collection
     // means adding a rule for it.

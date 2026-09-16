@@ -305,6 +305,7 @@ export default function PostEventModal({
               {uid && (
                 <ShareTeamButton
                   uid={uid}
+                  surface="post-event"
                   icon={<IoShareOutline className="text-base" />}
                   className="flex-1 max-w-[50%] bg-[#00f976] hover:opacity-90 text-black font-black text-xs uppercase tracking-widest rounded-lg px-4 py-3"
                 />
