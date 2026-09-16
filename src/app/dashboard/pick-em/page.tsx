@@ -1005,6 +1005,7 @@ export default function Pickems() {
                 {/* Share — 25% */}
                 <ShareTeamButton
                   uid={user?.uid}
+                  surface="pick-em"
                   className="flex-1 py-2 rounded-xl font-black uppercase tracking-widest text-sm whitespace-nowrap bg-[#00f976] text-neutral-950 hover:brightness-[0.95] active:scale-95 shadow-lg shadow-[#00f976]/35 transition-all"
                 />
               </div>

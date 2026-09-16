@@ -1760,6 +1760,7 @@ function LeaderboardNewContent() {
                   <span onClick={(e) => e.stopPropagation()} className="inline-flex">
                     <ShareTeamButton
                       uid={currentUserId}
+                      surface="leaderboard"
                       icon={<IoShareOutline className="text-lg" />}
                       labelClassName="hidden sm:inline"
                       className="h-9 w-9 sm:h-auto sm:w-auto rounded-full bg-[#00f976] text-neutral-950 font-bold uppercase tracking-wide text-xs sm:px-4 sm:py-2 hover:brightness-95 active:scale-95 transition-all"

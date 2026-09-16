@@ -16,6 +16,7 @@ import {
   type UserBadges,
 } from "@/src/lib/badges";
 import { getBannerPhase } from "@/src/lib/bannerPhase";
+import { resolveCurrentEvent } from "@/src/lib/currentEvent";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
@@ -205,28 +206,6 @@ async function resolveAvatar(userData: AnyRec): Promise<string> {
   return "";
 }
 
-async function resolveEvent(eventIdParam: string | null): Promise<AnyRec | null> {
-  if (eventIdParam) {
-    const snap = await getDoc(doc(db, "events", eventIdParam));
-    if (snap.exists()) return { id: snap.id, ...(snap.data() as AnyRec) };
-  }
-  const all = await getDocs(collection(db, "events"));
-  const raw = all.docs.map((d) => ({ id: d.id, ...(d.data() as AnyRec) }));
-  const live = raw.find((e) => (e as { status?: string }).status === "live");
-  if (live) return live;
-  const upcoming = raw
-    .filter((e) => {
-      const lock = (e as { lockDate?: { toDate?: () => Date } }).lockDate;
-      return lock?.toDate && lock.toDate() > new Date();
-    })
-    .sort((a, b) => {
-      const la = (a as { lockDate?: { toMillis?: () => number } }).lockDate;
-      const lb = (b as { lockDate?: { toMillis?: () => number } }).lockDate;
-      return (la?.toMillis?.() ?? 0) - (lb?.toMillis?.() ?? 0);
-    });
-  return upcoming[0] ?? raw[0] ?? null;
-}
-
 // Status tick (top-right of a tile) — mirrors STATUS_META tones.
 const STATUS_TICK: Record<string, { bg: string; icon: string }> = {
   Confirmed: { bg: BRAND_GREEN, icon: "check" },
@@ -298,7 +277,7 @@ export async function GET(request: NextRequest) {
     loadFontsCached(),
   ]);
 
-  const event = await resolveEvent(eventIdParam);
+  const event = await resolveCurrentEvent(eventIdParam);
   const eventId = (event?.id as string) || "";
   const eventName = ((event?.name as string) || "EVENT").toUpperCase();
   const eventVenue =
