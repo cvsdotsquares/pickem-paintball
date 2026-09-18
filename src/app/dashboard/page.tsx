@@ -19,6 +19,8 @@ import { useDashboardNestedScrollHandler } from "@/src/contexts/DashboardMainScr
 import Link from "next/link";
 import { MonochromePillTabs } from "@/src/components/ui/monochrome-pill-tabs";
 import ShareTeamButton from "@/src/components/Dashboard/ShareTeamButton";
+import KillFeed from "@/src/components/Dashboard/KillFeed";
+import { getBannerPhase } from "@/src/lib/bannerPhase";
 import {
   getDisplayBadges,
   BADGE_DEFINITIONS,
@@ -184,6 +186,21 @@ export default function Dashboard() {
       cancelled = true;
     };
   }, [user?.uid]);
+
+  // The phase is clock-driven, so re-check each minute: a dashboard left open shows the
+  // kill feed when the event goes live and drops it when the event ends.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  const isEventLive =
+    !!liveEvent?.id &&
+    getBannerPhase(nowMs, {
+      lockDate: liveEvent.lockDate,
+      eventEndsAt: liveEvent.eventEndsAt ?? null,
+      nextPicksOpenAt: liveEvent.nextPicksOpenAt ?? null,
+    }) === "event_live";
 
   useEffect(() => {
     if (!liveEvent?.id) {
@@ -539,6 +556,12 @@ export default function Dashboard() {
     </div>
   );
 
+  // Only while the event is live — before lock and after the event it would be stale.
+  const killFeedBlock =
+    isEventLive && liveEvent?.id ? (
+      <KillFeed eventId={liveEvent.id} headingClassName={sectionRowHeadingClass} />
+    ) : null;
+
   const sectionColumnTitleClass =
     "hidden md:block font-azonix text-sm font-black uppercase tracking-widest text-gray-900 dark:text-white";
 
@@ -546,6 +569,7 @@ export default function Dashboard() {
     <div className="flex flex-col gap-4 p-4 md:p-6">
       <h2 className={sectionColumnTitleClass}>Live stats</h2>
       {confirmedKillsBlock}
+      {killFeedBlock}
     </div>
   );
 
@@ -737,6 +761,7 @@ export default function Dashboard() {
             <div className="flex flex-col gap-4 p-4 md:p-6">
               {livePicksBlock}
               {confirmedKillsBlock}
+              {killFeedBlock}
               {rosterUpdatesBlock}
             </div>
           )}
