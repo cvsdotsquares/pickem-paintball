@@ -222,7 +222,7 @@ function scoreTeams(finalMatches, clubOf) {
  * triggering one every ten minutes for four days when nothing has happened would be pure
  * waste.
  */
-async function crawlLiveEvent(db, { eventId, pbleaguesId, observeOnly = false }) {
+async function crawlLiveEvent(db, { eventId, pbleaguesId, observeOnly = false, start = null }) {
   const overlayRef = db.doc(`liveEvents/${eventId}`);
   const before = await overlayRef.get();
   const previous = before.exists ? before.get("scores") || {} : {};
@@ -259,6 +259,15 @@ async function crawlLiveEvent(db, { eventId, pbleaguesId, observeOnly = false })
     key: "2026|Lone Star",
     year: "2026",
     label: "Lone Star",
+    /**
+     * First day of play, as every event in the history file carries.
+     *
+     * Not decoration: `nxlCareer` copies it onto the career row, and Firestore rejects a
+     * document with an undefined field anywhere in it — so an overlay without this makes
+     * the whole rebuild fail, not just this row. Null is fine (the page falls back to
+     * January of that year for sorting); undefined is not.
+     */
+    start,
     pickemEventId: eventId,
     pbleaguesId,
     live: true,
@@ -289,7 +298,14 @@ async function crawlLiveEvent(db, { eventId, pbleaguesId, observeOnly = false })
     appearances,
   };
 
-  const hash = JSON.stringify([payload.teams, payload.matches, payload.appearances]);
+  /*
+   * The whole payload, not a chosen few fields.
+   *
+   * Hashing only teams/matches/appearances meant a fix to any other field could not
+   * reach a document whose results had not moved since — the crawl would compute the
+   * correction every ten minutes and decline to write it.
+   */
+  const hash = JSON.stringify(payload);
   const unchanged = before.exists && before.get("contentHash") === hash;
 
   const summary = {

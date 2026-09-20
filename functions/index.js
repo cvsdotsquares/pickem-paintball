@@ -155,6 +155,13 @@ exports.crawlLiveEvent = functions
       eventId,
       pbleaguesId,
       observeOnly: cfg.observeOnly === true,
+      /*
+       * First day of play. The pick lock is the morning of it, and the event document
+       * carries no other machine-readable start — `eventDate` is prose ("18-20
+       * September"). The overlay needs this because the history events it stands in for
+       * all have it.
+       */
+      start: lock ? lock.toDate().toISOString().slice(0, 10) : null,
     });
 
     /**
