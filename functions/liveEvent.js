@@ -265,7 +265,27 @@ async function crawlLiveEvent(db, { eventId, pbleaguesId, observeOnly = false })
     fieldSize: rankings.rows.length || Object.keys(teams).length,
     champion,
     teams,
-    matches: finalMatches.map((m) => [m.round, m.date, clubOf(m.teamA), clubOf(m.teamB), m.scoreA, m.scoreB]),
+    /**
+     * ⚠️ OBJECTS, NOT TUPLES. Firestore rejects an array whose elements are themselves
+     * arrays — "Nested arrays are not allowed" — so the `[round, date, a, b, sa, sb]`
+     * form the history file uses cannot be stored. Same restriction that shaped
+     * `matchLog` in `nxlHistory.js`, and short keys here for the same reason:
+     * r = round, d = date, a/b = the two clubs, sa/sb = their scores.
+     *
+     * `loadLiveEvent` turns these back into tuples, so everything downstream still reads
+     * an event shaped exactly like one from the history file.
+     *
+     * An empty overlay hid this: with no match final yet the array had no elements to
+     * nest, so the first writes of an event succeed and every later one fails.
+     */
+    matches: finalMatches.map((m) => ({
+      r: m.round,
+      d: m.date ?? null,
+      a: clubOf(m.teamA),
+      b: clubOf(m.teamB),
+      sa: m.scoreA,
+      sb: m.scoreB,
+    })),
     appearances,
   };
 

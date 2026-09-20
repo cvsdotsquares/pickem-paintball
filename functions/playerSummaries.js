@@ -1167,7 +1167,18 @@ async function loadLiveEvent(db) {
   if (snap.empty) return null;
   const d = snap.docs[0].data();
   if (!d.teams || !d.appearances) return null;
-  return d;
+  /*
+   * Matches back into the tuple form the history file uses.
+   *
+   * The crawl has to store them as objects — Firestore forbids an array inside an array
+   * — but every consumer downstream reads an event from `nxlHistory.js`. Converting here,
+   * once, keeps the overlay indistinguishable from a settled event rather than teaching
+   * each consumer a second shape.
+   */
+  return {
+    ...d,
+    matches: (d.matches || []).map((m) => [m.r, m.d, m.a, m.b, m.sa, m.sb]),
+  };
 }
 
 module.exports = { buildAll, buildAggregates, writeAll, rebuild, loadLiveEvent, DNP_STATUS };
