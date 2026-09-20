@@ -35,5 +35,23 @@ export function withLiveEvent<T>(summary: T): T {
       return row.recordLive ? { ...row, record: row.recordLive } : row;
     });
   }
+
+  /*
+   * The same swap on the match table: `resultLive` carries the result and both scores
+   * together, so a row can never end up with a W and no score beside it.
+   */
+  const matches = out.matches;
+  if (Array.isArray(matches)) {
+    out.matches = matches.map((m) => {
+      if (!m || typeof m !== "object") return m;
+      const row = m as Record<string, unknown>;
+      const live = row.resultLive as
+        | { result: "W" | "L" | "T"; for: number; against: number }
+        | undefined;
+      return live
+        ? { ...row, result: live.result, scoreFor: live.for, scoreAgainst: live.against }
+        : row;
+    });
+  }
   return out as T;
 }

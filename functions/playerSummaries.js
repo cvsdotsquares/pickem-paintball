@@ -140,8 +140,13 @@ function isoDate(v) {
   return m ? m[0] : null;
 }
 
-/** Match rows per player, per event, from long data. Empty for events not yet loaded. */
-function matchesForEvent(eventId, rows, teamOfPlayer) {
+/**
+ * Match rows per player, per event, from long data. Empty for events not yet loaded.
+ *
+ * `liveEvent` is the crawl's overlay, passed through so the tournament being played can
+ * answer its own fixtures; null outside an event.
+ */
+function matchesForEvent(eventId, rows, teamOfPlayer, liveEvent = null) {
   // gameId -> rows. A game is stored twice, directionally, so both halves land here.
   const games = new Map();
   for (const r of rows) {
@@ -203,6 +208,20 @@ function matchesForEvent(eventId, rows, teamOfPlayer) {
         opponentId,
       );
 
+      /**
+       * The same fixture answered by the live crawl, for the tournament being played.
+       *
+       * A SEPARATE FIELD for the same reason `recordLive` is one: production and preview
+       * read one shared projection, so writing a half-finished tournament's results into
+       * `result` would put them in front of everyone. Only computed for the live event —
+       * for a settled one `matchResult` prefers the blessed history anyway, and a
+       * duplicate field on all 400 settled rows would be dead weight.
+       */
+      const resultLive =
+        liveEvent && liveEvent.pickemEventId === eventId
+          ? matchResult(eventId, named.round, isoDate(named.date), teamId, opponentId, liveEvent)
+          : null;
+
       // Every player on this team gets a row, whether or not they scored — a quiet
       // game is a result, and building the list from a player's own kills would drop it.
       for (const [playerId, tid] of Array.from(teamOfPlayer)) {
@@ -231,6 +250,17 @@ function matchesForEvent(eventId, rows, teamOfPlayer) {
           result: result ? result.result : null,
           scoreFor: result ? result.for : null,
           scoreAgainst: result ? result.against : null,
+          /* One field rather than three, so the swap in `withLiveEvent` is a single
+           * decision and a row can never carry a live result without its score. */
+          ...(resultLive
+            ? {
+                resultLive: {
+                  result: resultLive.result,
+                  for: resultLive.for,
+                  against: resultLive.against,
+                },
+              }
+            : {}),
           types,
         });
       }
@@ -342,7 +372,7 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null,
     for (const [pid, o] of Array.from(rosters.get(ev.id))) {
       if (o.team_id) teamOfPlayer.set(pid, o.team_id);
     }
-    matchesByEvent.set(ev.id, matchesForEvent(ev.id, rows, teamOfPlayer));
+    matchesByEvent.set(ev.id, matchesForEvent(ev.id, rows, teamOfPlayer, liveEvent));
   }
 
   /**

@@ -87,7 +87,16 @@ const pairKey = (a, b) => [a, b].sort().join("|");
  */
 const matchIndexCache = new Map();
 function matchIndex(event) {
-  if (matchIndexCache.has(event.key)) return matchIndexCache.get(event.key);
+  /*
+   * A tournament in progress is never cached.
+   *
+   * The cache is keyed by event key, which is fixed for a settled event and fixed for
+   * the live overlay too — but the overlay's matches change every ten minutes. A warm
+   * function instance would answer from the first index it built and keep serving
+   * Friday's results through Sunday. Rebuilding ~40 rows per pass costs nothing.
+   */
+  const cacheable = !event.live;
+  if (cacheable && matchIndexCache.has(event.key)) return matchIndexCache.get(event.key);
 
   const byRound = new Map(); // "Final|DAM|IMP" -> [match]
   const byPrelimPair = new Map(); // "DAM|TON" -> [match]
@@ -110,7 +119,7 @@ function matchIndex(event) {
   }
 
   const idx = { byRound, byPrelimPair };
-  matchIndexCache.set(event.key, idx);
+  if (cacheable) matchIndexCache.set(event.key, idx);
   return idx;
 }
 
@@ -140,8 +149,12 @@ function matchIndex(event) {
  * @param {string} opponentId
  * @return {{result: "W"|"L"|"T", for: number, against: number, round: string}|null}
  */
-function matchResult(pickemEventId, round, date, teamId, opponentId) {
-  const event = EVENT_BY_PICKEM_ID.get(pickemEventId);
+function matchResult(pickemEventId, round, date, teamId, opponentId, liveEvent = null) {
+  /* Settled history first, exactly as `eventRecord` does: a blessed result outranks a
+   * crawled one, so an event in both places cannot read two ways. */
+  const event =
+    EVENT_BY_PICKEM_ID.get(pickemEventId) ||
+    (liveEvent && liveEvent.pickemEventId === pickemEventId ? liveEvent : undefined);
   if (!event || !teamId || !opponentId) return null;
 
   const { byRound, byPrelimPair } = matchIndex(event);

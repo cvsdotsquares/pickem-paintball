@@ -80,6 +80,13 @@ export interface PlayerMatch {
   /** Points scored by the player's team, and by their opponent. */
   scoreFor: number | null;
   scoreAgainst: number | null;
+  /**
+   * The same fixture from the live crawl, present only on the tournament being played.
+   *
+   * Never read directly: `withLiveEvent` swaps it into the three fields above where the
+   * build is allowed to show a tournament in progress, and production never asks for it.
+   */
+  resultLive?: { result: "W" | "L" | "T"; for: number; against: number };
   types: Record<KillType, number>;
 }
 
