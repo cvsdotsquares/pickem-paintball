@@ -37,8 +37,24 @@ const roundRank = (r: string) => {
   return i === -1 ? ROUND_ORDER.length : i;
 };
 
-/** The knockout stages. Everything else is a preliminary round. */
-const KNOCKOUT = new Set(["Wildcard", "Top8", "Top4", "Finals"]);
+/**
+ * The knockout stages, in both vocabularies, mapped to the one name the page shows.
+ * Everything else is a preliminary round.
+ *
+ * The league file names knockouts differently from our long data (Ochos, not Wildcard),
+ * and the career table shows both side by side. Before this map covered the league's
+ * names, every Ochos, Quarter, Semi and Final from a league event read as "Prelims".
+ */
+const KNOCKOUT: Record<string, string> = {
+  Wildcard: "Wildcard",
+  Ochos: "Wildcard",
+  Top8: "Top8",
+  Quarters: "Top8",
+  Top4: "Top4",
+  Semifinals: "Top4",
+  Finals: "Finals",
+  Final: "Finals",
+};
 
 /**
  * What a round is called on the page.
@@ -54,8 +70,7 @@ const KNOCKOUT = new Set(["Wildcard", "Top8", "Top4", "Finals"]);
  * a whole class of silent error off the page with it. Sorting still uses the stored
  * day, so prelims stay in the order they were played.
  */
-export const displayRound = (round: string) =>
-  KNOCKOUT.has(round) ? round : "Prelims";
+export const displayRound = (round: string) => KNOCKOUT[round] ?? "Prelims";
 
 export interface PlayerMatch {
   gameId: string;
@@ -80,13 +95,6 @@ export interface PlayerMatch {
   /** Points scored by the player's team, and by their opponent. */
   scoreFor: number | null;
   scoreAgainst: number | null;
-  /**
-   * The same fixture from the live crawl, present only on the tournament being played.
-   *
-   * Never read directly: `withLiveEvent` swaps it into the three fields above where the
-   * build is allowed to show a tournament in progress, and production never asks for it.
-   */
-  resultLive?: { result: "W" | "L" | "T"; for: number; against: number };
   types: Record<KillType, number>;
 }
 

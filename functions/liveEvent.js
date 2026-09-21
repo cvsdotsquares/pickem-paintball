@@ -1,14 +1,11 @@
 /**
- * The live event overlay: crawled results for a tournament that is still being played.
+ * The live crawl: results for a tournament that is still being played.
  *
- * Career pages take their NXL record from `data/nxlHistory.json`, which is BAKED INTO THIS
- * DEPLOYMENT and built from a workbook by hand. That is fine for finished seasons and
- * useless during an event: we cannot redeploy every ten minutes, and for Lone Star 2026 the
- * workbook is never being updated at all.
- *
- * So this writes one Firestore document per live event, and `nxlCareer` merges it over the
- * baked-in history at read time. History stays frozen and fingerprinted; only this document
- * moves. Once the event is over it is blessed into the history file and deleted.
+ * Writes the event's own document in `nxlEvents` — the same collection, and the same
+ * shape, as every finished event — flagged `live: true`. There is no separate overlay and
+ * nothing to copy across afterwards: at `eventEndsAt` the crawl stops and `lockNxlEvent`
+ * flips the flag, and the document is simply history from then on. A locked event is never
+ * written again.
  *
  * CONVERGENT, NOT CAUTIOUS. Each pass writes the whole current view rather than appending,
  * so a result published a little early is corrected by the next pass ten minutes later.
@@ -18,12 +15,7 @@
  */
 
 const { parseSchedule, parseRankings, resolveClub } = require("./pbleagues");
-const HISTORY = require("./data/nxlHistory.json");
-
-/** PickEm event id -> the pbleagues event to crawl for it. */
-const PBLEAGUES_EVENT = {
-  lone_star_open_2026: "9321",
-};
+const { COLLECTION, docIdFor, loadHistory } = require("./nxlEventsStore");
 
 const BASE = "https://pbleagues.com";
 const UA = { "User-Agent": "Mozilla/5.0 (pickem-live-crawler)" };
@@ -40,10 +32,6 @@ const FINISH_LABEL = {
   4: "Ochos",
   5: "Wildcard",
 };
-
-const clubByTeamId = new Map(
-  Object.entries(HISTORY.clubTeamId || {}).map(([club, id]) => [id, club]),
-);
 
 async function fetchText(path) {
   const res = await fetch(BASE + path, { headers: UA });
@@ -116,6 +104,87 @@ function decideFinal(matches, previous) {
   });
 }
 
+const MONTHS = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+
+/**
+ * "Friday, 18 Sep" -> "2026-09-18", the form every finished event's matches carry.
+ * The schedule gives no year, so it comes from the event. Unparseable dates stay null.
+ */
+function isoDay(text, year) {
+  const m = String(text || "").match(/(\d{1,2})\s+([A-Za-z]{3})/);
+  const mon = m && MONTHS[m[2].toLowerCase()];
+  if (mon == null) return null;
+  return new Date(Date.UTC(Number(year), mon, Number(m[1]))).toISOString().slice(0, 10);
+}
+
+/**
+ * Every team's finishing position, from the league's final ranking table.
+ *
+ * Only trusted once the event is over — mid-event the table exists before a ball is
+ * thrown. Returns null unless EVERY team in the event is ranked: a partial table means
+ * the league has not finished publishing it, and half a set of positions is worse than
+ * none.
+ */
+async function finalRanks(pbleaguesId, clubs) {
+  const { rows } = parseRankings(await fetchText(`/event/${pbleaguesId}/rankings`));
+  const vocab = [...clubs].sort((a, b) => b.length - a.length);
+  const ranks = {};
+  for (const r of rows) {
+    const club = resolveClub(r.team, vocab);
+    if (club) ranks[club] = r.rank;
+  }
+  const missing = clubs.filter((c) => ranks[c] == null);
+  return missing.length ? { ranks: null, missing } : { ranks, missing };
+}
+
+/**
+ * Lock an event's results at `eventEndsAt`: fill in every team's finishing position from
+ * the league's final rankings, and flip `live` off so the crawl never writes it again.
+ *
+ * Locks even when the rankings are not complete — the results are final either way — but
+ * says so loudly, since the positions then have to be filled in by hand.
+ * Returns the ids of the documents it locked.
+ */
+async function lockNxlEvent(db, pickemEventId, { collection = COLLECTION } = {}) {
+  const snap = await db
+    .collection(collection)
+    .where("pickemEventId", "==", pickemEventId)
+    .where("live", "==", true)
+    .get();
+  const locked = [];
+  for (const d of snap.docs) {
+    const e = d.data();
+    const update = { live: false, lockedAt: new Date().toISOString() };
+    const clubs = Object.keys(e.teams || {});
+    try {
+      const { ranks, missing } = await finalRanks(e.pbleaguesId, clubs);
+      if (ranks) {
+        // The whole map rather than dotted paths: a club name may contain a "."
+        update.teams = Object.fromEntries(
+          clubs.map((c) => [c, { ...e.teams[c], finishRank: ranks[c] }]),
+        );
+        const first = clubs.find((c) => ranks[c] === 1);
+        if (e.champion && first !== e.champion) {
+          console.error(`❌ ${e.key}: rankings put ${first} first but the Final was won by ${e.champion}.`);
+        }
+      } else {
+        console.error(`❌ ${e.key}: rankings missing ${missing.join(", ")} — finish positions left blank.`);
+      }
+    } catch (err) {
+      console.error(`❌ ${e.key}: could not read final rankings — finish positions left blank.`, err);
+    }
+    await d.ref.update(update);
+    locked.push(d.id);
+  }
+  return locked;
+}
+
+/** Same keys, same scores. Key order is not compared: Firestore does not keep it. */
+const sameScores = (a, b) => {
+  const ka = Object.keys(a || {});
+  return ka.length === Object.keys(b || {}).length && ka.every((k) => a[k] === b[k]);
+};
+
 const matchKey = (m) => `${m.round || "?"}|${m.teamA}|${m.teamB}`;
 
 /** Crawler's long club name -> the short name our history uses. */
@@ -139,7 +208,7 @@ function shortClub(name, allowFrom) {
  * would have silently dropped a whole team: our roster says "TonTon", the league says
  * "TonTons", and `nxlCareer` skips an unmatched club without a word.
  */
-async function deriveAppearances(db, pickemEventId) {
+async function deriveAppearances(db, pickemEventId, clubByTeamId) {
   const snap = await db.collection(`events/${pickemEventId}/players`).get();
   const appearances = {};
   const unresolved = [];
@@ -222,10 +291,23 @@ function scoreTeams(finalMatches, clubOf) {
  * triggering one every ten minutes for four days when nothing has happened would be pure
  * waste.
  */
-async function crawlLiveEvent(db, { eventId, pbleaguesId, observeOnly = false, start = null }) {
-  const overlayRef = db.doc(`liveEvents/${eventId}`);
+async function crawlLiveEvent(
+  db,
+  { eventId, pbleaguesId, label, observeOnly = false, start = null, collection = COLLECTION },
+) {
+  const year = String(start || "").slice(0, 4) || String(new Date().getUTCFullYear());
+  const key = `${year}|${label}`;
+  const overlayRef = db.collection(collection).doc(docIdFor(key));
   const before = await overlayRef.get();
+  /* Locked at eventEndsAt. Finished results are never rewritten by a late pass. */
+  if (before.exists && before.get("live") === false) {
+    return { wrote: false, reason: "locked", key };
+  }
   const previous = before.exists ? before.get("scores") || {} : {};
+  const history = await loadHistory(db);
+  const clubByTeamId = new Map(
+    Object.entries(history.clubTeamId || {}).map(([club, id]) => [id, club]),
+  );
 
   const rankings = parseRankings(await fetchText(`/event/${pbleaguesId}/rankings`));
   const allow = rankings.rows.length ? new Set(rankings.rows.map((r) => r.team)) : null;
@@ -235,7 +317,7 @@ async function crawlLiveEvent(db, { eventId, pbleaguesId, observeOnly = false, s
   const finalMatches = decided.filter((m) => m.final);
 
   /* The club vocabulary our history uses, so crawled long names collapse onto it. */
-  const clubs = [...new Set(HISTORY.events.flatMap((e) => Object.keys(e.teams || {})))].sort(
+  const clubs = [...new Set(history.events.flatMap((e) => Object.keys(e.teams || {})))].sort(
     (a, b) => b.length - a.length,
   );
   const clubOf = (name) => resolveClub(name, clubs);
@@ -248,7 +330,7 @@ async function crawlLiveEvent(db, { eventId, pbleaguesId, observeOnly = false, s
     ...new Set(parsed.flatMap((m) => [m.teamA, m.teamB]).filter((n) => !clubOf(n))),
   ];
 
-  const { appearances, unresolved, rosterSize } = await deriveAppearances(db, eventId);
+  const { appearances, unresolved, rosterSize } = await deriveAppearances(db, eventId, clubByTeamId);
   const { teams, champion } = scoreTeams(finalMatches, clubOf);
 
   /* Every score we saw this pass, so the next one can judge stability. */
@@ -256,9 +338,9 @@ async function crawlLiveEvent(db, { eventId, pbleaguesId, observeOnly = false, s
   for (const m of decided) if (m.played) scores[matchKey(m)] = `${m.scoreA}-${m.scoreB}`;
 
   const payload = {
-    key: "2026|Lone Star",
-    year: "2026",
-    label: "Lone Star",
+    key,
+    year,
+    label,
     /**
      * First day of play, as every event in the history file carries.
      *
@@ -281,21 +363,22 @@ async function crawlLiveEvent(db, { eventId, pbleaguesId, observeOnly = false, s
      * `matchLog` in `nxlHistory.js`, and short keys here for the same reason:
      * r = round, d = date, a/b = the two clubs, sa/sb = their scores.
      *
-     * `loadLiveEvent` turns these back into tuples, so everything downstream still reads
-     * an event shaped exactly like one from the history file.
+     * `historyFromDocs` turns these back into tuples, so everything downstream reads a
+     * live event exactly like a finished one.
      *
      * An empty overlay hid this: with no match final yet the array had no elements to
      * nest, so the first writes of an event succeed and every later one fails.
      */
     matches: finalMatches.map((m) => ({
       r: m.round,
-      d: m.date ?? null,
+      d: isoDay(m.date, year),
       a: clubOf(m.teamA),
       b: clubOf(m.teamB),
       sa: m.scoreA,
       sb: m.scoreB,
     })),
     appearances,
+    appearancesByEpid: {},
   };
 
   /*
@@ -306,7 +389,19 @@ async function crawlLiveEvent(db, { eventId, pbleaguesId, observeOnly = false, s
    * correction every ten minutes and decline to write it.
    */
   const hash = JSON.stringify(payload);
-  const unchanged = before.exists && before.get("contentHash") === hash;
+  /*
+   * The scores seen this pass count as a change too, even when no result has moved.
+   *
+   * They are what the NEXT pass judges stability against. Skipping the write whenever the
+   * results were unchanged also froze them, so a match in progress stayed recorded at its
+   * mid-game score forever. A match with a later slot survives that (the slot rule marks
+   * it final), but the last match of the event has no later slot — Lone Star 2026's Final
+   * was frozen at 0-2, never judged stable at 8-7, and never written.
+   */
+  const unchanged =
+    before.exists &&
+    before.get("contentHash") === hash &&
+    sameScores(previous, scores);
 
   const summary = {
     parsed: parsed.length,
@@ -334,7 +429,8 @@ async function crawlLiveEvent(db, { eventId, pbleaguesId, observeOnly = false, s
 
 module.exports = {
   crawlLiveEvent,
-  PBLEAGUES_EVENT,
+  lockNxlEvent,
+  isoDay,
   fetchText,
   decideFinal,
   matchKey,

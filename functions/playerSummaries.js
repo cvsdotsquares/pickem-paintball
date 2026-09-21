@@ -34,12 +34,13 @@
  */
 
 /**
- * The league's own results, 2015-2026 — see functions/nxlHistory.js.
+ * The league's own results, 2015 onwards — see functions/nxlHistory.js.
  *
- * A plain require of committed reference data, so it costs no reads and cannot drift
- * mid-rebuild the way a second collection could.
+ * Read from `nxlEvents` once at the start of each build and swapped in whole, so one
+ * build sees one consistent copy even if the crawler writes mid-rebuild.
  */
-const { eventRecord, matchResult, nxlCareer } = require("./nxlHistory");
+const { eventRecord, matchResult, nxlCareer, setHistory } = require("./nxlHistory");
+const { loadHistory } = require("./nxlEventsStore");
 
 const KILL_TYPES = [
   "Gunfights",
@@ -140,13 +141,8 @@ function isoDate(v) {
   return m ? m[0] : null;
 }
 
-/**
- * Match rows per player, per event, from long data. Empty for events not yet loaded.
- *
- * `liveEvent` is the crawl's overlay, passed through so the tournament being played can
- * answer its own fixtures; null outside an event.
- */
-function matchesForEvent(eventId, rows, teamOfPlayer, liveEvent = null) {
+/** Match rows per player, per event, from long data. Empty for events not yet loaded. */
+function matchesForEvent(eventId, rows, teamOfPlayer) {
   // gameId -> rows. A game is stored twice, directionally, so both halves land here.
   const games = new Map();
   for (const r of rows) {
@@ -208,20 +204,6 @@ function matchesForEvent(eventId, rows, teamOfPlayer, liveEvent = null) {
         opponentId,
       );
 
-      /**
-       * The same fixture answered by the live crawl, for the tournament being played.
-       *
-       * A SEPARATE FIELD for the same reason `recordLive` is one: production and preview
-       * read one shared projection, so writing a half-finished tournament's results into
-       * `result` would put them in front of everyone. Only computed for the live event —
-       * for a settled one `matchResult` prefers the blessed history anyway, and a
-       * duplicate field on all 400 settled rows would be dead weight.
-       */
-      const resultLive =
-        liveEvent && liveEvent.pickemEventId === eventId
-          ? matchResult(eventId, named.round, isoDate(named.date), teamId, opponentId, liveEvent)
-          : null;
-
       // Every player on this team gets a row, whether or not they scored — a quiet
       // game is a result, and building the list from a player's own kills would drop it.
       for (const [playerId, tid] of Array.from(teamOfPlayer)) {
@@ -250,17 +232,6 @@ function matchesForEvent(eventId, rows, teamOfPlayer, liveEvent = null) {
           result: result ? result.result : null,
           scoreFor: result ? result.for : null,
           scoreAgainst: result ? result.against : null,
-          /* One field rather than three, so the swap in `withLiveEvent` is a single
-           * decision and a row can never carry a live result without its score. */
-          ...(resultLive
-            ? {
-                resultLive: {
-                  result: resultLive.result,
-                  for: resultLive.for,
-                  against: resultLive.against,
-                },
-              }
-            : {}),
           types,
         });
       }
@@ -282,9 +253,12 @@ function matchesForEvent(eventId, rows, teamOfPlayer, liveEvent = null) {
  */
 const DNP_STATUS = new Set(["DNP", "Out", "Injured", "Dropped"]);
 
-async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null, liveEvent: preloadedLive = null } = {}) {
+async function buildAll(
+  db,
+  { onlyPlayer = null, events: preloadedEvents = null, history = null } = {},
+) {
+  setHistory(history ?? (await loadHistory(db)));
   const events = preloadedEvents ?? (await loadEvents(db));
-  const liveEvent = preloadedLive !== null ? preloadedLive : await loadLiveEvent(db);
 
   /**
    * Every read this needs, issued at once.
@@ -372,7 +346,7 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null,
     for (const [pid, o] of Array.from(rosters.get(ev.id))) {
       if (o.team_id) teamOfPlayer.set(pid, o.team_id);
     }
-    matchesByEvent.set(ev.id, matchesForEvent(ev.id, rows, teamOfPlayer, liveEvent));
+    matchesByEvent.set(ev.id, matchesForEvent(ev.id, rows, teamOfPlayer));
   }
 
   /**
@@ -496,13 +470,6 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null,
          * and rows long before it has a bracket.
          */
         record: eventRecord(ev.id, d.team_id ?? null),
-        /*
-         * The same cell computed with the live crawl folded in. A SEPARATE FIELD, never
-         * merged into `record`: production and preview read one shared projection, so
-         * overwriting `record` would put a half-finished tournament in front of everyone.
-         * Only written while an event is actually being played.
-         */
-        ...(liveEvent ? { recordLive: eventRecord(ev.id, d.team_id ?? null, liveEvent) } : {}),
       };
     });
 
@@ -615,25 +582,6 @@ async function buildAll(db, { onlyPlayer = null, events: preloadedEvents = null,
         epid: leagueEpid,
         absentEventIds: new Set(span.filter((r) => r.kind !== "played").map((r) => r.eventId)),
       }),
-      /**
-       * The same career with the tournament in progress included.
-       *
-       * Written alongside `nxl`, never over it. `nxl` stays exactly what it is today, so
-       * deploying this cannot move a single number on the live site; the preview build
-       * reads this field instead, and production never asks for it. It disappears by
-       * itself when the event ends and the overlay goes away.
-       */
-      ...(liveEvent
-        ? {
-            nxlLive: nxlCareer(leagueId, {
-              epid: leagueEpid,
-              absentEventIds: new Set(
-                span.filter((r) => r.kind !== "played").map((r) => r.eventId),
-              ),
-              liveEvent,
-            }),
-          }
-        : {}),
     });
   }
 
@@ -1169,8 +1117,7 @@ async function rebuild(db, { now } = {}) {
   // Read the event list once and thread it through — both halves need it, and on a
   // slow link that one small query was costing well over a second twice.
   const events = await loadEvents(db);
-  const liveEvent = await loadLiveEvent(db);
-  const summaries = await buildAll(db, { events, liveEvent });
+  const summaries = await buildAll(db, { events });
   const tBuilt = Date.now();
   const aggregates = await buildAggregates(db, summaries, { events });
   const tAggs = Date.now();
@@ -1186,29 +1133,4 @@ async function rebuild(db, { now } = {}) {
   return { players: summaries.length, changed, unchanged, aggregates };
 }
 
-/**
- * The overlay the live crawler maintains, or null when no event is being played.
- *
- * One read. Shaped to look like an entry in the history file so `nxlCareer` can treat it
- * as just another event, which is why nothing downstream needs to know it is live.
- */
-async function loadLiveEvent(db) {
-  const snap = await db.collection("liveEvents").where("live", "==", true).limit(1).get();
-  if (snap.empty) return null;
-  const d = snap.docs[0].data();
-  if (!d.teams || !d.appearances) return null;
-  /*
-   * Matches back into the tuple form the history file uses.
-   *
-   * The crawl has to store them as objects — Firestore forbids an array inside an array
-   * — but every consumer downstream reads an event from `nxlHistory.js`. Converting here,
-   * once, keeps the overlay indistinguishable from a settled event rather than teaching
-   * each consumer a second shape.
-   */
-  return {
-    ...d,
-    matches: (d.matches || []).map((m) => [m.r, m.d, m.a, m.b, m.sa, m.sb]),
-  };
-}
-
-module.exports = { buildAll, buildAggregates, writeAll, rebuild, loadLiveEvent, DNP_STATUS };
+module.exports = { buildAll, buildAggregates, writeAll, rebuild, DNP_STATUS };

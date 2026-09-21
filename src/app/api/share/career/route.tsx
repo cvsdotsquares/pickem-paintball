@@ -33,7 +33,6 @@ import {
 } from "@/src/lib/careerShareCard";
 import { dataUriCached, loadFontsCached, toPngCached } from "@/src/lib/shareRender";
 
-import { withLiveEvent } from "@/src/lib/liveEventView";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -620,9 +619,7 @@ export async function GET(request: NextRequest) {
   ]);
 
   const snap = playerId ? await getDoc(doc(db, "playerSummaries", playerId)) : null;
-  // Same gate as the career page: a shared card must never show more than the page it was
-  // shared from, or a preview-only tournament would escape as a PNG onto social media.
-  const card = snap?.exists() ? buildShareCard(withLiveEvent(snap.data()), scope) : null;
+  const card = snap?.exists() ? buildShareCard(snap.data(), scope) : null;
 
   if (!card) {
     return new Response("Not found", { status: 404 });

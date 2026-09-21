@@ -94,9 +94,9 @@ exports.rebuildPlayerSummaries = functions
   });
 
 // ─── Live event crawler ────────────────────────────────────────────────────
-// Reads the pbleagues schedule while a tournament is being played and keeps
-// `liveEvents/{eventId}` up to date, so career pages can move during the event
-// instead of waiting for the workbook days later.
+// Reads the pbleagues schedule while a tournament is being played and keeps the
+// event's `nxlEvents` document up to date (flagged live), so career pages move
+// during the event. Stops at `eventEndsAt`, when recalcBadgesTask locks it.
 //
 // Ten minutes, because that is roughly a match: faster would re-read a page that
 // has not changed, slower and a career page lags a round behind. The pass is one
@@ -105,7 +105,7 @@ exports.crawlLiveEvent = functions
   .runWith({ timeoutSeconds: 120, memory: '256MB' })
   .pubsub.schedule('every 10 minutes')
   .onRun(async () => {
-    const { crawlLiveEvent, PBLEAGUES_EVENT } = require('./liveEvent');
+    const { crawlLiveEvent } = require('./liveEvent');
 
     // Kill switch and settings in one document, so the crawl can be stopped from the
     // console without a deploy — the only control available mid-tournament.
@@ -116,26 +116,62 @@ exports.crawlLiveEvent = functions
       return null;
     }
 
-    const eventId = cfg.eventId || Object.keys(PBLEAGUES_EVENT)[0];
-    const pbleaguesId = cfg.pbleaguesId || PBLEAGUES_EVENT[eventId];
-    if (!pbleaguesId) {
-      console.log(`⏭  No pbleagues id known for ${eventId}.`);
-      return null;
+    /**
+     * Which event to crawl: the one being played now.
+     *
+     * Found from the events themselves — pick lock passed, `eventEndsAt` not yet reached,
+     * and a `pbleaguesId` entered at event setup — so nothing has to be switched over
+     * between tournaments. `cfg.eventId` still forces one, for testing.
+     */
+    let eventId = cfg.eventId || null;
+    if (!eventId) {
+      const upcoming = await db
+        .collection('events')
+        .where('eventEndsAt', '>', admin.firestore.Timestamp.now())
+        .get();
+      const now = Date.now();
+      const open = upcoming.docs
+        .filter((d) => d.get('lockDate') && d.get('lockDate').toDate().getTime() <= now)
+        .sort((a, b) => a.get('eventEndsAt').toMillis() - b.get('eventEndsAt').toMillis());
+      /*
+       * A forgotten pbleaguesId fails silently — the event simply never crawls — so it is
+       * reported every pass from the moment the event is set up, not discovered on Sunday.
+       */
+      for (const d of upcoming.docs) {
+        if (!d.get('pbleaguesId')) {
+          console.error(`❌ ${d.id} has no pbleaguesId: its results will not be crawled.`);
+        }
+      }
+      const live = open.filter((d) => d.get('pbleaguesId'));
+      if (live.length > 1) {
+        console.error(`❌ ${live.length} events are live at once: ${live.map((d) => d.id).join(', ')}. Crawling the first to end.`);
+      }
+      if (!live.length) {
+        console.log(`💤 No event being played. Upcoming: ${upcoming.docs.map((d) => d.id).join(', ') || 'none'}.`);
+        return null;
+      }
+      eventId = live[0].id;
     }
 
     /**
      * Only while the tournament is actually on.
      *
      * Outside the window this costs one read and stops. The window opens at the pick
-     * lock — the first matches follow within hours — and closes six hours after the
-     * published end, so a tournament running late still gets its final results.
+     * lock — the first matches follow within hours — and closes at `eventEndsAt`, the
+     * moment the results are locked. `eventEndsAt` is set about an hour past the real
+     * finish, which leaves the Final the two passes it needs to be judged settled.
      */
     const evSnap = await db.doc(`events/${eventId}`).get();
+    const pbleaguesId = String(cfg.pbleaguesId || evSnap.get('pbleaguesId') || '');
+    if (!pbleaguesId) {
+      console.error(`❌ ${eventId} has no pbleaguesId: nothing to crawl.`);
+      return null;
+    }
     const lock = evSnap.get('lockDate');
     const ends = evSnap.get('eventEndsAt');
     const now = Date.now();
     const from = lock ? lock.toDate().getTime() : null;
-    const until = ends ? ends.toDate().getTime() + 6 * 60 * 60 * 1000 : null;
+    const until = ends ? ends.toDate().getTime() : null;
     if (!cfg.ignoreWindow && ((from && now < from) || (until && now > until))) {
       /*
        * Say so rather than returning in silence.
@@ -155,6 +191,8 @@ exports.crawlLiveEvent = functions
       eventId,
       pbleaguesId,
       observeOnly: cfg.observeOnly === true,
+      // "Lone Star Open" -> key "2026|Lone Star Open". Overridable, to match an existing key.
+      label: cfg.label || evSnap.get('name') || eventId,
       /*
        * First day of play. The pick lock is the morning of it, and the event document
        * carries no other machine-readable start — `eventDate` is prose ("18-20
@@ -838,6 +876,27 @@ exports.recalcBadgesTask = onTaskDispatched(
     const apiKey = apiSecretKey.value();
     if (!apiKey) {
       throw new Error('API_SECRET_KEY is not configured for functions');
+    }
+
+    /*
+     * Lock the event's NXL results first: at eventEndsAt the live crawl stops and the
+     * event becomes history. Idempotent, so a retry of the badge half is harmless, and
+     * its own failure must not block the badges.
+     */
+    if (eventId) {
+      try {
+        const { lockNxlEvent } = require('./liveEvent');
+        const locked = (await lockNxlEvent(db, eventId)).length > 0;
+        if (locked) {
+          await db.doc('projections/playerSummaries').set(
+            { staleSince: admin.firestore.FieldValue.serverTimestamp() },
+            { merge: true },
+          );
+        }
+        console.log(`🔒 NXL results for ${eventId}: ${locked ? 'locked' : 'no live document'}`);
+      } catch (e) {
+        console.error(`❌ Could not lock NXL results for ${eventId}:`, e);
+      }
     }
 
     console.log(`🏅 Running scheduled badge recalc (event: ${eventId || 'n/a'})`);

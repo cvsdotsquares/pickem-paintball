@@ -532,19 +532,32 @@ export default function PlayerPage() {
   const pickemKeyOf = new Map(
     historyRows.filter((r) => r.pickem).map((r) => [r.pickem!.eventId, r.key]),
   );
+  /**
+   * Newest first all the way through: newest event, then latest round, then — within a
+   * round — the game played last.
+   *
+   * Neither source carries a kick-off time, but both arrive in the order the games were
+   * played: the league's fixtures are listed by date, and the projection builds PickEm's
+   * games in long-data row order, which is entry order. (Checked across all nine scored
+   * events: row order never puts a game before one from an earlier round.) So the stored
+   * position is the play order, and the last tiebreak reverses it. Sorting on round alone
+   * left each day oldest-first inside a newest-first list.
+   */
+  const playOrder = new Map(allCareerMatches.map((m, i) => [m, i]));
   const matches = (matchEvent
     ? allCareerMatches.filter(
         (m) => m.eventKey === matchEvent.key || pickemKeyOf.get(m.eventKey) === matchEvent.key,
       )
     : allCareerMatches.slice()
   ).sort((a, b) => {
-    // Newest event first, matching the events table; within an event, latest round first.
     const ka = pickemKeyOf.get(a.eventKey) ?? a.eventKey;
     const kb = pickemKeyOf.get(b.eventKey) ?? b.eventKey;
     const ea = eventOrder.get(ka) ?? 99;
     const eb = eventOrder.get(kb) ?? 99;
     if (ea !== eb) return ea - eb;
-    return roundRankOf(b.round) - roundRankOf(a.round);
+    const r = roundRankOf(b.round) - roundRankOf(a.round);
+    if (r !== 0) return r;
+    return playOrder.get(b)! - playOrder.get(a)!;
   });
   const active = hovered ? labelled.find((x) => x.eventId === hovered) : null;
 
@@ -1517,9 +1530,6 @@ function MatchTable({
 
   const total = matches.reduce((a, m) => a + (m.pickem?.kills ?? 0), 0);
   const events = new Set(matches.map((m) => m.eventKey)).size;
-  // How many of these rows PickEm actually scored. The kill total is only about those,
-  // and saying "205.5 kills across 296 matches" would divide by the wrong denominator.
-  const scored = matches.filter((m) => m.pickem).length;
   // Only the matches whose result we could identify. Counting the rest as losses would
   // be the one thing worse than leaving them out.
   const won = matches.filter((m) => m.result === "W").length;
@@ -1532,12 +1542,6 @@ function MatchTable({
         kills across{" "}
         <b className="pickem-numeric font-black text-gray-900 dark:text-white">{matches.length}</b>{" "}
         {matches.length === 1 ? "match" : "matches"}
-        {scored > 0 && scored < matches.length && (
-          <span className="text-gray-400 dark:text-white/30">
-            {" "}
-            ({scored} scored by PickEm)
-          </span>
-        )}
         {won + lost > 0 && (
           <>
             {" "}

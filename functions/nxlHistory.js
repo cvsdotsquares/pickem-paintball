@@ -24,12 +24,14 @@ const TOP_FOUR = new Set(["Winner", "Runner-up", "Semi-finals"]);
 const FINALISTS = new Set(["Winner", "Runner-up"]);
 
 /**
- * A player's NXL win/loss record, read from `data/nxlHistory.json`.
+ * A player's NXL win/loss record, read from the `nxlEvents` collection.
  *
- * THIS IS REFERENCE DATA, NOT A PROJECTION
- * The JSON is built offline by `scripts/nxl-history/build.mjs` from the league's own
- * results and the pbleagues roster crawl, and committed. Nothing here reads Firestore
- * and nothing writes back, so a rebuild costs no reads and a bad import is a revert.
+ * WHERE THE RESULTS COME FROM
+ * Events up to Midwest 2026 were seeded from `data/nxlHistory.json`, which was built
+ * offline from the league workbook and stays as a manual backup. From Lone Star 2026 on,
+ * the live crawler writes each event there directly, flagged `live` until `eventEndsAt`
+ * locks it. A live event is read exactly like a finished one; the flag only labels it.
+ * Nothing here writes back.
  *
  * TWO SCOPES ON ONE PAGE, DELIBERATELY
  * PickEm scores eight events. The league has been running since 2015. Kills therefore
@@ -46,18 +48,40 @@ const FINALISTS = new Set(["Winner", "Runner-up"]);
  * for 2023 alone.
  */
 
-const HISTORY = require("./data/nxlHistory.json");
-
+/**
+ * The history every function below reads. Each rebuild swaps in the Firestore copy with
+ * `setHistory` (see `nxlEventsStore.js`); the committed file is only the starting value,
+ * so the module works when required on its own by scripts.
+ */
+let HISTORY;
 /** club name -> our `team_id`, for the events PickEm also scores. */
-const CLUB_TEAM_ID = HISTORY.clubTeamId || {};
-const TEAM_ID_CLUB = new Map(Object.entries(CLUB_TEAM_ID).map(([club, id]) => [id, club]));
+let CLUB_TEAM_ID;
+let TEAM_ID_CLUB;
+let EVENT_BY_KEY;
+/** Firestore event id -> the league event it is, for the events PickEm scores. */
+let EVENT_BY_PICKEM_ID;
 
-const EVENT_BY_KEY = new Map(HISTORY.events.map((e) => [e.key, e]));
-
-/** Firestore event id -> the league event it is, for the eight PickEm scores. */
-const EVENT_BY_PICKEM_ID = new Map(
-  HISTORY.events.filter((e) => e.pickemEventId).map((e) => [e.pickemEventId, e]),
-);
+/**
+ * Replace the history wholesale, and every index and cache built from it.
+ *
+ * Wholesale, because Cloud Functions reuse warm containers: a rebuild that patched the
+ * previous history in place would carry one invocation's data into the next.
+ */
+function setHistory(history) {
+  if (!history || !Array.isArray(history.events) || history.events.length === 0) {
+    // An empty read must never pass for "no history": every career would rebuild as blank.
+    throw new Error("setHistory: refusing an empty NXL history");
+  }
+  HISTORY = history;
+  CLUB_TEAM_ID = HISTORY.clubTeamId || {};
+  TEAM_ID_CLUB = new Map(Object.entries(CLUB_TEAM_ID).map(([club, id]) => [id, club]));
+  EVENT_BY_KEY = new Map(HISTORY.events.map((e) => [e.key, e]));
+  EVENT_BY_PICKEM_ID = new Map(
+    HISTORY.events.filter((e) => e.pickemEventId).map((e) => [e.pickemEventId, e]),
+  );
+  matchIndexCache.clear();
+  standings = null;
+}
 
 /**
  * Our long-data round labels -> the league's.
@@ -149,12 +173,8 @@ function matchIndex(event) {
  * @param {string} opponentId
  * @return {{result: "W"|"L"|"T", for: number, against: number, round: string}|null}
  */
-function matchResult(pickemEventId, round, date, teamId, opponentId, liveEvent = null) {
-  /* Settled history first, exactly as `eventRecord` does: a blessed result outranks a
-   * crawled one, so an event in both places cannot read two ways. */
-  const event =
-    EVENT_BY_PICKEM_ID.get(pickemEventId) ||
-    (liveEvent && liveEvent.pickemEventId === pickemEventId ? liveEvent : undefined);
+function matchResult(pickemEventId, round, date, teamId, opponentId) {
+  const event = EVENT_BY_PICKEM_ID.get(pickemEventId);
   if (!event || !teamId || !opponentId) return null;
 
   const { byRound, byPrelimPair } = matchIndex(event);
@@ -270,7 +290,7 @@ function rankIn(sortedDesc, value) {
  * @param {string|number|null} leagueId
  * @param {{absentEventIds?: Set<string>}} opts
  */
-function nxlCareer(leagueId, { epid = null, absentEventIds = new Set(), liveEvent = null } = {}) {
+function nxlCareer(leagueId, { epid = null, absentEventIds = new Set() } = {}) {
   /**
    * Numeric id first, profile EPID second.
    *
@@ -286,35 +306,11 @@ function nxlCareer(leagueId, { epid = null, absentEventIds = new Set(), liveEven
   const key = leagueId == null ? null : String(leagueId);
   let appearances = key ? HISTORY.appearances[key] : null;
   if (!appearances && epid) appearances = (HISTORY.appearancesByEpid ?? {})[String(epid)];
-  /**
-   * The event being played RIGHT NOW, if the crawler has seen this player on a roster.
-   *
-   * Threaded in as an argument rather than merged into HISTORY, because Cloud Functions
-   * reuse warm containers: mutating module state here would leak one rebuild's live,
-   * half-finished tournament into the next invocation's "static" history and never clear.
-   *
-   * Merged BEFORE the empty check below, or a player whose only event is this one - a
-   * debutant - returns null and gets no career page at all.
-   */
-  /*
-   * ONCE THE EVENT IS BLESSED INTO THE HISTORY FILE, THE OVERLAY IS IGNORED.
-   *
-   * Nothing deletes the overlay document when a tournament ends, so after the event is
-   * added to nxlHistory.json both sources would carry the same key and every player who
-   * was there would be credited with it TWICE — doubled matches, and a doubled title for
-   * the winners. It would not show during the event, only weeks later when the figures
-   * quietly stopped adding up. The blessed data is the settled one, so it wins.
-   */
-  if (liveEvent && EVENT_BY_KEY.has(liveEvent.key)) liveEvent = null;
-
-  const liveClub = liveEvent && key ? (liveEvent.appearances || {})[key] : null;
-  if (liveClub) appearances = [...(appearances || []), [liveEvent.key, liveClub]];
-
   if (!appearances || appearances.length === 0) return null;
 
   const events = [];
   for (const [eventKey, club] of appearances) {
-    const e = liveEvent && eventKey === liveEvent.key ? liveEvent : EVENT_BY_KEY.get(eventKey);
+    const e = EVENT_BY_KEY.get(eventKey);
     if (!e) continue;
     if (e.pickemEventId && absentEventIds.has(e.pickemEventId)) continue;
     const r = e.teams[club];
@@ -335,7 +331,7 @@ function nxlCareer(leagueId, { epid = null, absentEventIds = new Set(), liveEven
       fieldSize: e.fieldSize,
     });
     /* Marks the row as a tournament still being played, so the UI can label it. */
-    if (liveEvent && e === liveEvent) events[events.length - 1].live = true;
+    if (e.live) events[events.length - 1].live = true;
   }
   if (events.length === 0) return null;
 
@@ -453,11 +449,8 @@ function nxlCareer(leagueId, { epid = null, absentEventIds = new Set(), liveEven
 }
 
 /** The league's record for one team at one PickEm event — the event table's W-L cell. */
-function eventRecord(pickemEventId, teamId, liveEvent = null) {
-  /* Settled history first, for the same reason the career merge prefers it. */
-  const e =
-    EVENT_BY_PICKEM_ID.get(pickemEventId) ||
-    (liveEvent && liveEvent.pickemEventId === pickemEventId ? liveEvent : undefined);
+function eventRecord(pickemEventId, teamId) {
+  const e = EVENT_BY_PICKEM_ID.get(pickemEventId);
   if (!e || !teamId) return null;
   const club = TEAM_ID_CLUB.get(teamId);
   const r = club && e.teams[club];
@@ -465,15 +458,15 @@ function eventRecord(pickemEventId, teamId, liveEvent = null) {
   return { w: r.w, l: r.l, t: r.t, finish: r.finish, finishRank: r.finishRank, champion: e.champion === club };
 }
 
-/** True once the workbook carries results for this event; the W-L columns key off it. */
-const hasResults = (pickemEventId, liveEvent = null) =>
-  EVENT_BY_PICKEM_ID.has(pickemEventId) ||
-  Boolean(liveEvent && liveEvent.pickemEventId === pickemEventId);
+/** True once `nxlEvents` carries results for this event; the W-L columns key off it. */
+const hasResults = (pickemEventId) => EVENT_BY_PICKEM_ID.has(pickemEventId);
+
+setHistory(require("./data/nxlHistory.json"));
 
 module.exports = {
+  setHistory,
   nxlCareer,
   matchResult,
   eventRecord,
   hasResults,
-  generated: HISTORY.generated,
 };
