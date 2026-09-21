@@ -300,12 +300,24 @@ function nxlCareer(leagueId, { epid = null, absentEventIds = new Set() } = {}) {
    * permanent; it is the fallback rather than the primary only because the numeric id
    * is what our rosters already carry.
    *
-   * Never both: a player found by numeric id is not looked up again by EPID, so a
-   * career cannot be counted twice.
+   * BOTH, merged by event. A player can be filed under each: Carlos Cortes's history is
+   * under his EPID, but Lone Star 2026's roster carried a numeric id, so the crawl filed
+   * that event under the number. Taking whichever id answered first found only Lone Star
+   * and dropped his other 44 events. An event listed under both ids is counted once, so a
+   * career still cannot be counted twice.
    */
   const key = leagueId == null ? null : String(leagueId);
-  let appearances = key ? HISTORY.appearances[key] : null;
-  if (!appearances && epid) appearances = (HISTORY.appearancesByEpid ?? {})[String(epid)];
+  const byKey = new Map();
+  for (const list of [
+    key ? HISTORY.appearances[key] : null,
+    epid ? (HISTORY.appearancesByEpid ?? {})[String(epid)] : null,
+  ]) {
+    for (const [eventKey, club] of list || []) if (!byKey.has(eventKey)) byKey.set(eventKey, club);
+  }
+  // Back into the history's event order, so a career still reads chronologically.
+  const appearances = HISTORY.events
+    .filter((e) => byKey.has(e.key))
+    .map((e) => [e.key, byKey.get(e.key)]);
   if (!appearances || appearances.length === 0) return null;
 
   const events = [];
