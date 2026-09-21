@@ -125,7 +125,9 @@ function matchIndex(event) {
   const byRound = new Map(); // "Final|DAM|IMP" -> [match]
   const byPrelimPair = new Map(); // "DAM|TON" -> [match]
 
-  for (const [round, date, a, b, sa, sb] of event.matches) {
+  for (const [rawRound, date, a, b, sa, sb] of event.matches) {
+    // One spelling for the last round, whichever source wrote the event.
+    const round = rawRound === "Finals" ? "Final" : rawRound;
     const ta = CLUB_TEAM_ID[a];
     const tb = CLUB_TEAM_ID[b];
     // A club with no team_id never played a PickEm event, so its games can never be

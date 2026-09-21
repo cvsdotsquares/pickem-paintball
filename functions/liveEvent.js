@@ -104,6 +104,14 @@ function decideFinal(matches, previous) {
   });
 }
 
+/**
+ * The live schedule's round label -> the one the finished events use. pbleagues calls the
+ * last round "Finals" live and "Final" in its results; the history (and so `matchResult`)
+ * says "Final". Stored as "Finals", Lone Star 2026's Final matched no fixture and all 41
+ * player rows for it had no result.
+ */
+const historyRound = (r) => (r === "Finals" ? "Final" : r);
+
 const MONTHS = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
 
 /**
@@ -370,7 +378,7 @@ async function crawlLiveEvent(
      * nest, so the first writes of an event succeed and every later one fails.
      */
     matches: finalMatches.map((m) => ({
-      r: m.round,
+      r: historyRound(m.round),
       d: isoDay(m.date, year),
       a: clubOf(m.teamA),
       b: clubOf(m.teamB),
