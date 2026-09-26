@@ -39,7 +39,7 @@
  * Read from `nxlEvents` once at the start of each build and swapped in whole, so one
  * build sees one consistent copy even if the crawler writes mid-rebuild.
  */
-const { eventRecord, matchResult, nxlCareer, setHistory } = require("./nxlHistory");
+const { eventRecord, matchResult, nxlCareer, ourRound, setHistory } = require("./nxlHistory");
 const { loadHistory } = require("./nxlEventsStore");
 
 const KILL_TYPES = [
@@ -221,7 +221,15 @@ function matchesForEvent(eventId, rows, teamOfPlayer) {
         if (!byPlayer.has(playerId)) byPlayer.set(playerId, []);
         byPlayer.get(playerId).push({
           gameId,
-          round: named.round ?? "—",
+          /*
+           * The league's round wins when the two disagree.
+           *
+           * Our sheet's knockout label is hand-typed and has been wrong — Lone Star
+           * 2026's Impact v Red Legion semi-final was scored as a Top8 — while the
+           * league's bracket is what actually happened. Only for knockouts: prelims are
+           * labelled by day here and by group there, so neither can correct the other.
+           */
+          round: (result && ourRound(result.round)) || named.round || "—",
           opponent,
           opponentId,
           points,

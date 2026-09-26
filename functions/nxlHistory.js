@@ -124,6 +124,7 @@ function matchIndex(event) {
 
   const byRound = new Map(); // "Final|DAM|IMP" -> [match]
   const byPrelimPair = new Map(); // "DAM|TON" -> [match]
+  const byKnockoutPair = new Map(); // "IMP|LEG" -> [match], across all knockout rounds
 
   for (const [rawRound, date, a, b, sa, sb] of event.matches) {
     // One spelling for the last round, whichever source wrote the event.
@@ -138,13 +139,16 @@ function matchIndex(event) {
     const rk = `${round}|${pair}`;
     if (!byRound.has(rk)) byRound.set(rk, []);
     byRound.get(rk).push(m);
-    if (!PLAYOFF_ROUND_SET.has(round)) {
+    if (PLAYOFF_ROUND_SET.has(round)) {
+      if (!byKnockoutPair.has(pair)) byKnockoutPair.set(pair, []);
+      byKnockoutPair.get(pair).push(m);
+    } else {
       if (!byPrelimPair.has(pair)) byPrelimPair.set(pair, []);
       byPrelimPair.get(pair).push(m);
     }
   }
 
-  const idx = { byRound, byPrelimPair };
+  const idx = { byRound, byPrelimPair, byKnockoutPair };
   if (cacheable) matchIndexCache.set(event.key, idx);
   return idx;
 }
@@ -179,11 +183,22 @@ function matchResult(pickemEventId, round, date, teamId, opponentId) {
   const event = EVENT_BY_PICKEM_ID.get(pickemEventId);
   if (!event || !teamId || !opponentId) return null;
 
-  const { byRound, byPrelimPair } = matchIndex(event);
+  const { byRound, byPrelimPair, byKnockoutPair } = matchIndex(event);
   const pair = pairKey(teamId, opponentId);
 
   const leagueRound = PLAYOFF_ROUND[round];
   let hits = leagueRound ? byRound.get(`${leagueRound}|${pair}`) : byPrelimPair.get(pair);
+
+  /*
+   * A knockout game whose ROUND our sheet gets wrong is still identified by its teams.
+   *
+   * A pair can meet at most once in a bracket — true across all 51 events — so the pair
+   * alone settles a knockout, and the league's round is the one to believe: Lone Star
+   * 2026's Impact v Red Legion SEMI-final was scored as a Top8, which left Impact with
+   * two Top8 rows and no result on either page. The returned `round` is the league's, so
+   * the caller can correct the label as well as fill in the score.
+   */
+  if (leagueRound && (!hits || hits.length !== 1)) hits = byKnockoutPair.get(pair);
 
   // The one case the pair cannot settle: two group meetings. Dates disagree by a day
   // between the sources, so allow that much slack and insist on a single survivor.
@@ -477,8 +492,14 @@ const hasResults = (pickemEventId) => EVENT_BY_PICKEM_ID.has(pickemEventId);
 
 setHistory(require("./data/nxlHistory.json"));
 
+/** The league's knockout label -> ours, e.g. "Semifinals" -> "Top4". Null for a group game. */
+const OUR_ROUND = Object.fromEntries(Object.entries(PLAYOFF_ROUND).map(([ours, league]) => [league, ours]));
+OUR_ROUND.Finals = "Finals";
+const ourRound = (leagueRound) => OUR_ROUND[leagueRound] ?? null;
+
 module.exports = {
   setHistory,
+  ourRound,
   nxlCareer,
   matchResult,
   eventRecord,
