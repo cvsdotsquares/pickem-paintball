@@ -81,9 +81,15 @@ const SUBHEAD = "mt-1 text-[11px] text-gray-500 dark:text-white/40 sm:text-xs";
  * edge and the first card looks like it has fallen off the page, which is what a
  * full-bleed row read as on a phone. The half-card at the right-hand edge is enough to
  * say "this scrolls" on its own.
+ *
+ * The padding-inside-negative-margin is what stops a hovered card's ring being sliced
+ * off. A ring is painted OUTSIDE the card, and a scroll container clips anything outside
+ * its own box — so the top edge and both ends of the row cut it. Four pixels of padding
+ * give it room, and the matching negative margin keeps the cards on the same line as the
+ * heading.
  */
 const ROW =
-  "flex snap-x snap-mandatory gap-2 overflow-x-auto pb-2 [scrollbar-width:thin] sm:gap-3";
+  "-m-1 flex snap-x snap-mandatory scroll-p-1 gap-2 overflow-x-auto p-1 pb-2 [scrollbar-width:thin] sm:gap-3";
 const CARD =
   "w-[calc((100%-1rem)/3)] shrink-0 snap-start sm:w-[calc((100%-2.25rem)/4)] lg:w-[calc((100%-3rem)/5)] xl:w-[calc((100%-3.75rem)/6)]";
 
