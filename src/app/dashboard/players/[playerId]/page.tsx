@@ -570,6 +570,32 @@ export default function PlayerPage() {
         ? "text-[19px] lg:text-[26px]"
         : "text-[17px] lg:text-[22px]";
 
+  /**
+   * Share, in the hero's top-right — ON the scope caption rather than over it.
+   *
+   * Floated into the corner it covered the caption and the first stat tile, because it
+   * had no ground of its own. It now IS the right-hand end of the caption band: the
+   * band's height, the band's type, and the same hairline divider the tiles below use,
+   * so it reads as a cell of the panel rather than a pill dropped on top of one.
+   *
+   * Inside that cell it is then the brightest thing on the band — a green glyph, a
+   * lighter label, a faint fill — because being structurally part of the panel is not
+   * the same as being invisible: the caption beside it is white/30 and this is white/75,
+   * so the eye still lands on the one thing here that does something.
+   *
+   * It rides the FIRST band, whichever that is — a player with no league record has no
+   * 2015 strip at all.
+   */
+  const shareAction =
+    shareScopes.length > 0 ? (
+      <ShareCareerButton
+        playerId={career.playerId}
+        playerName={career.name}
+        scopes={shareScopes}
+        className="shrink-0 self-stretch border-l border-white/[0.08] bg-white/[0.03] px-3.5 font-azonix text-[9px] font-black uppercase tracking-widest text-white/75 transition-colors [&_svg]:text-[#00f976] hover:bg-[#00f976]/10 hover:text-white"
+      />
+    ) : null;
+
   return (
     <div
       className="mx-auto mt-2 max-w-7xl px-4 md:px-6"
@@ -639,25 +665,6 @@ export default function PlayerPage() {
               </div>
             </div>
 
-            {/*
-              Share belongs with the identity, not over the numbers.
-
-              Floated into the hero's top-right corner it sat on top of the scope caption
-              and the first stat tile — a control with no ground of its own, covering the
-              two things the panel opens with. Here it is the last line of the block that
-              says WHO this is, which is what a reader shares, and it lands in the column's
-              own empty space rather than borrowing someone else's. `mt-auto` pins it to
-              the foot of the column on a wide screen, where the stats beside it are
-              taller; on a phone it simply follows the team name.
-            */}
-            {shareScopes.length > 0 ? (
-              <ShareCareerButton
-                playerId={career.playerId}
-                playerName={career.name}
-                scopes={shareScopes}
-                className="mt-auto rounded-lg border border-white/15 bg-white/[0.06] px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-white/80 transition-colors hover:border-white/25 hover:bg-white/[0.12] hover:text-white"
-              />
-            ) : null}
           </div>
 
           {/* Two scoped rows: what the player's TEAMS have done across the league's
@@ -682,12 +689,16 @@ export default function PlayerPage() {
                   two rows span 51 league events and PickEm's eight, and only the differing
                   years now hint at that. See CAREER_PAGE_REVIEW.md.
                 */}
-                <ScopeStrip>Tracked {career.nxl.trackedFrom ?? "2015"} to date</ScopeStrip>
+                <ScopeStrip action={shareAction}>
+                  Tracked {career.nxl.trackedFrom ?? "2015"} to date
+                </ScopeStrip>
                 <NxlHeroRow nxl={career.nxl} />
               </>
             )}
 
-            <ScopeStrip>Tracked {career.trackedFrom ?? "2025"} to date</ScopeStrip>
+            <ScopeStrip action={career.nxl ? undefined : shareAction}>
+              Tracked {career.trackedFrom ?? "2025"} to date
+            </ScopeStrip>
             {/* A player who never took the field has no career to average. Rendering
                 "0.0 average kills" would state a result for events they were not at —
                 the same false claim the participation work exists to remove. */}
@@ -1909,10 +1920,20 @@ function NxlHeroRow({ nxl }: { nxl: NxlCareer }) {
  * and "8 events" off the same block gives an impossible player. Labelling each row is
  * what makes two scopes honest rather than a trap.
  */
-function ScopeStrip({ children }: { children: React.ReactNode }) {
+/**
+ * The caption above a row of tiles — and, on the first one, the hero's one action.
+ *
+ * `items-stretch` rather than padding on the strip itself: the action has to be able to
+ * fill the band's full height and take a divider on its left, which is the same hairline
+ * the tiles below use. A control that keeps its own border and fill reads as an overlay
+ * however carefully it is positioned; one that inherits the band's height, its type and
+ * its dividers is part of the panel.
+ */
+function ScopeStrip({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div className="border-b border-white/[0.08] bg-white/[0.02] px-3.5 py-1.5 font-azonix text-[8px] font-black uppercase tracking-widest text-white/30">
-      {children}
+    <div className="flex min-h-[30px] items-stretch justify-between gap-3 border-b border-white/[0.08] bg-white/[0.02] font-azonix text-[8px] font-black uppercase tracking-widest text-white/30">
+      <span className="flex items-center px-3.5 py-1.5">{children}</span>
+      {action}
     </div>
   );
 }
