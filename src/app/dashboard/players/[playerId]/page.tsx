@@ -598,21 +598,6 @@ export default function PlayerPage() {
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden rounded-xl bg-[#101010]">
-        {/*
-          Share sits in the card it shares. The breadcrumb row put it beside the search
-          field, where it read as another page control rather than as an action on this
-          player. The hero is #101010 in both themes, so this one button is styled for that
-          ground instead of following the page.
-        */}
-        {shareScopes.length > 0 ? (
-          <ShareCareerButton
-            playerId={career.playerId}
-            playerName={career.name}
-            scopes={shareScopes}
-            className="absolute right-3 top-3 z-10 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-white backdrop-blur-sm hover:bg-white/20"
-            labelClassName="hidden sm:inline"
-          />
-        ) : null}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr]">
           {/*
             Portrait on top, identity underneath — a stacked block rather than a row.
@@ -653,6 +638,26 @@ export default function PlayerPage() {
                 <span className="text-[12px] text-white/50">{career.currentTeam}</span>
               </div>
             </div>
+
+            {/*
+              Share belongs with the identity, not over the numbers.
+
+              Floated into the hero's top-right corner it sat on top of the scope caption
+              and the first stat tile — a control with no ground of its own, covering the
+              two things the panel opens with. Here it is the last line of the block that
+              says WHO this is, which is what a reader shares, and it lands in the column's
+              own empty space rather than borrowing someone else's. `mt-auto` pins it to
+              the foot of the column on a wide screen, where the stats beside it are
+              taller; on a phone it simply follows the team name.
+            */}
+            {shareScopes.length > 0 ? (
+              <ShareCareerButton
+                playerId={career.playerId}
+                playerName={career.name}
+                scopes={shareScopes}
+                className="mt-auto rounded-lg border border-white/15 bg-white/[0.06] px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-white/80 transition-colors hover:border-white/25 hover:bg-white/[0.12] hover:text-white"
+              />
+            ) : null}
           </div>
 
           {/* Two scoped rows: what the player's TEAMS have done across the league's
