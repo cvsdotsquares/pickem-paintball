@@ -138,11 +138,11 @@ exports.crawlLiveEvent = functions
        * reported every pass from the moment the event is set up, not discovered on Sunday.
        */
       for (const d of upcoming.docs) {
-        if (!d.get('pbleaguesId')) {
+        if (!d.get('pbleaguesId') && !d.get('pbleaugesId')) {
           console.error(`❌ ${d.id} has no pbleaguesId: its results will not be crawled.`);
         }
       }
-      const live = open.filter((d) => d.get('pbleaguesId'));
+      const live = open.filter((d) => d.get('pbleaguesId') || d.get('pbleaugesId'));
       if (live.length > 1) {
         console.error(`❌ ${live.length} events are live at once: ${live.map((d) => d.id).join(', ')}. Crawling the first to end.`);
       }
@@ -162,7 +162,16 @@ exports.crawlLiveEvent = functions
      * finish, which leaves the Final the two passes it needs to be judged settled.
      */
     const evSnap = await db.doc(`events/${eventId}`).get();
-    const pbleaguesId = String(cfg.pbleaguesId || evSnap.get('pbleaguesId') || '');
+    /*
+     * Also accepts the transposed spelling the setup script shipped with.
+     * A crawl that finds no id does nothing at all, and the event is over by the time
+     * anybody notices, so this reads both and says which one it used.
+     */
+    const misspelt = evSnap.get('pbleaugesId');
+    if (misspelt && !evSnap.get('pbleaguesId')) {
+      console.error(`⚠️  ${eventId} spells the field "pbleaugesId"; it should be "pbleaguesId". Using it anyway.`);
+    }
+    const pbleaguesId = String(cfg.pbleaguesId || evSnap.get('pbleaguesId') || misspelt || '');
     if (!pbleaguesId) {
       console.error(`❌ ${eventId} has no pbleaguesId: nothing to crawl.`);
       return null;

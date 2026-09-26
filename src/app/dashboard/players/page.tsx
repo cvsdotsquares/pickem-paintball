@@ -59,6 +59,14 @@ const SECTION =
   "font-azonix text-xs uppercase tracking-wide text-gray-900 dark:text-white sm:text-sm";
 
 /**
+ * What the row is ordered by, under its heading.
+ *
+ * Each row leads with a different figure, and the heading alone does not say which —
+ * "leaders" at what? One line under it answers that before the cards have to.
+ */
+const SUBHEAD = "mt-1 text-[11px] text-gray-500 dark:text-white/40 sm:text-xs";
+
+/**
  * One row per section, scrolled sideways rather than wrapped.
  *
  * Six across at the widest, three on a phone — the same card sizes the grid had, because
@@ -90,12 +98,12 @@ const CARD =
 /** Every player reachable by search — the roster behind `aggregates/playerIndex`. */
 const TOTAL_PLAYERS = 325;
 
-function SearchCard({ total, onClick }: { total: number; onClick: () => void }) {
+function SearchCard({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex h-full w-full flex-col items-center justify-center gap-2.5 rounded-xl border border-dashed border-white/20 bg-[#101010] px-2 py-8 text-center transition-colors hover:border-white/40 hover:bg-[#161616]"
+      className="flex h-full w-full flex-col items-center justify-center gap-2.5 rounded-xl border border-dashed border-gray-300 bg-transparent px-2 py-8 text-center transition-colors hover:border-gray-400 hover:bg-black/[0.03] dark:border-white/20 dark:bg-[#101010] dark:hover:border-white/40 dark:hover:bg-[#161616]"
     >
       <svg
         viewBox="0 0 24 24"
@@ -103,16 +111,14 @@ function SearchCard({ total, onClick }: { total: number; onClick: () => void }) 
         stroke="currentColor"
         strokeWidth="2.2"
         strokeLinecap="round"
-        className="h-5 w-5 text-white/50"
+        className="h-5 w-5 text-gray-400 dark:text-white/50"
         aria-hidden
       >
         <circle cx="11" cy="11" r="7" />
         <path d="M20 20l-3.5-3.5" />
       </svg>
-      <span className="font-azonix text-[9px] uppercase leading-[1.4] tracking-[0.14em] text-white/60 sm:text-[10px]">
+      <span className="font-azonix text-[9px] uppercase leading-[1.4] tracking-[0.14em] text-gray-500 dark:text-white/60 sm:text-[10px]">
         Search all
-        <br />
-        {total ? `${total} players` : "players"}
       </span>
     </button>
   );
@@ -316,6 +322,7 @@ export default function CareerStatsPage() {
           {spotlight.allTimeLeaders.length > 0 && (
             <section>
               <h2 className={SECTION}>All-time leaders</h2>
+              <p className={SUBHEAD}>All-time NXL event wins</p>
               <div className={cn(ROW, "mt-3")}>
                 {spotlight.allTimeLeaders.map((p) => (
                   <div key={p.id} className={CARD}>
@@ -323,7 +330,7 @@ export default function CareerStatsPage() {
                   </div>
                 ))}
                 <div className={CARD}>
-                  <SearchCard total={TOTAL_PLAYERS} onClick={focusSearch} />
+                  <SearchCard onClick={focusSearch} />
                 </div>
               </div>
             </section>
@@ -333,6 +340,7 @@ export default function CareerStatsPage() {
           {spotlight.eventLeaders.length > 0 && (
             <section className="mt-8">
               <h2 className={SECTION}>{eventLabel} leaders</h2>
+              <p className={SUBHEAD}>Kill count leaders</p>
               <div className={cn(ROW, "mt-3")}>
                 {spotlight.eventLeaders.map((p) => (
                   <div key={p.id} className={CARD}>
@@ -340,7 +348,7 @@ export default function CareerStatsPage() {
                   </div>
                 ))}
                 <div className={CARD}>
-                  <SearchCard total={TOTAL_PLAYERS} onClick={focusSearch} />
+                  <SearchCard onClick={focusSearch} />
                 </div>
               </div>
             </section>
@@ -351,6 +359,7 @@ export default function CareerStatsPage() {
           {spotlight.players.length > 0 && (
             <section className="mt-8">
               <h2 className={SECTION}>{eventLabel} Pick&rsquo;Em leaders</h2>
+              <p className={SUBHEAD}>Highest pick %</p>
               <div className={cn(ROW, "mt-3")}>
                 {spotlight.players.map((p) => (
                   <div key={p.id} className={CARD}>
@@ -358,7 +367,7 @@ export default function CareerStatsPage() {
                   </div>
                 ))}
                 <div className={CARD}>
-                  <SearchCard total={TOTAL_PLAYERS} onClick={focusSearch} />
+                  <SearchCard onClick={focusSearch} />
                 </div>
               </div>
             </section>
