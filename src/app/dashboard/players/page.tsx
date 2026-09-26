@@ -59,41 +59,29 @@ const SECTION =
   "font-azonix text-xs uppercase tracking-wide text-gray-900 dark:text-white sm:text-sm";
 
 /**
- * Six across at the widest, three on a phone. The source portraits are 200px square, so
- * every column removed from the grid is resolution the browser has to invent. At six-up
- * a card is ~195px — under the source, so the image is downscaled rather than blown up.
- */
-const GRID = "grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-5 xl:grid-cols-6";
-
-/**
- * How many columns the grid is actually showing.
+ * One row per section, scrolled sideways rather than wrapped.
  *
- * Every section is capped to whole rows — two on a phone, one everywhere else — so the
- * page reads as three tidy strips rather than a wall. Mirrors the Tailwind breakpoints
- * in `GRID`.
+ * Six across at the widest, three on a phone — the same card sizes the grid had, because
+ * the source portraits are 200px square and every column removed is resolution the
+ * browser has to invent. What changes is that the row no longer stops at what fits: it
+ * carries twenty, and the rest are reached by scrolling rather than by searching.
+ *
+ * Widths are computed from the gaps so a card still lands on the same pixel it did in
+ * the grid, and snap points stop the scroll on a card edge rather than mid-face. The
+ * negative margin lets a phone's row bleed to both screen edges, which is what says
+ * "this scrolls" without a caption saying so.
  */
-function useColumns() {
-  const [cols, setCols] = useState(6);
-  useEffect(() => {
-    const read = () => {
-      const w = window.innerWidth;
-      setCols(w >= 1280 ? 6 : w >= 1024 ? 5 : w >= 640 ? 4 : 3);
-    };
-    read();
-    window.addEventListener("resize", read);
-    return () => window.removeEventListener("resize", read);
-  }, []);
-  return cols;
-}
+const ROW =
+  "-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:thin] sm:mx-0 sm:gap-3 sm:px-0";
+const CARD =
+  "w-[calc((100%-1rem)/3)] shrink-0 snap-start sm:w-[calc((100%-2.25rem)/4)] lg:w-[calc((100%-3rem)/5)] xl:w-[calc((100%-3.75rem)/6)]";
 
 export default function CareerStatsPage() {
   const [spotlight, setSpotlight] = useState<Spotlight | null>(null);
   const [index, setIndex] = useState<IndexRow[] | null>(null);
   const [q, setQ] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
-  const cols = useColumns();
   /** Two rows on a phone, one on tablet and desktop. */
-  const perSection = cols * (cols === 3 ? 2 : 1);
 
   /**
    * Cursor in the search box on arrival — but only where there is a real pointer.
@@ -279,9 +267,11 @@ export default function CareerStatsPage() {
           {spotlight.allTimeLeaders.length > 0 && (
             <section>
               <h2 className={SECTION}>All-time leaders</h2>
-              <div className={cn(GRID, "mt-3")}>
-                {spotlight.allTimeLeaders.slice(0, perSection).map((p) => (
-                  <PlayerCard key={p.id} p={p} />
+              <div className={cn(ROW, "mt-3")}>
+                {spotlight.allTimeLeaders.map((p) => (
+                  <div key={p.id} className={CARD}>
+                    <PlayerCard p={p} />
+                  </div>
                 ))}
               </div>
             </section>
@@ -291,9 +281,11 @@ export default function CareerStatsPage() {
           {spotlight.eventLeaders.length > 0 && (
             <section className="mt-8">
               <h2 className={SECTION}>{eventLabel} leaders</h2>
-              <div className={cn(GRID, "mt-3")}>
-                {spotlight.eventLeaders.slice(0, perSection).map((p) => (
-                  <PlayerCard key={p.id} p={p} />
+              <div className={cn(ROW, "mt-3")}>
+                {spotlight.eventLeaders.map((p) => (
+                  <div key={p.id} className={CARD}>
+                    <PlayerCard p={p} />
+                  </div>
                 ))}
               </div>
             </section>
@@ -304,9 +296,11 @@ export default function CareerStatsPage() {
           {spotlight.players.length > 0 && (
             <section className="mt-8">
               <h2 className={SECTION}>{eventLabel} Pick&rsquo;Em leaders</h2>
-              <div className={cn(GRID, "mt-3")}>
-                {spotlight.players.slice(0, perSection).map((p) => (
-                  <PlayerCard key={p.id} p={p} />
+              <div className={cn(ROW, "mt-3")}>
+                {spotlight.players.map((p) => (
+                  <div key={p.id} className={CARD}>
+                    <PlayerCard p={p} />
+                  </div>
                 ))}
               </div>
             </section>

@@ -46,7 +46,6 @@ export interface CardStat {
 export interface CardPlayer {
   id: string;
   name: string;
-  number: string | number | null;
   team: string;
   imgUrl: string | null;
   /** What the three figures below are — "Career stats", "Event stats", "Pick'Em stats". */
@@ -138,18 +137,6 @@ export default function PlayerCard({ p }: { p: CardPlayer }) {
         <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[#101010] via-[#101010]/90 to-transparent" />
 
         <div className="absolute inset-x-0 bottom-0 p-1.5 sm:p-3">
-          {/*
-            The jersey number is dropped at three-up, where a card is 109px and a
-            two-line name already puts the overlay across 70% of the portrait. Name
-            identifies and team contextualises; the number is the one of the three that
-            can go without costing recognition, and dropping it lifts the name clear of
-            the chin.
-          */}
-          {p.number != null && p.number !== "" && (
-            <div className="pickem-numeric hidden text-[9px] font-bold tracking-[0.18em] text-white/50 sm:block sm:text-[10px]">
-              #{p.number}
-            </div>
-          )}
           {/* Clamped rather than truncated: the surname is the half that identifies. */}
           <h3 className="mt-0.5 line-clamp-2 font-azonix text-[11px] font-black uppercase leading-[1.12] tracking-[0.02em] text-white sm:text-[13px]">
             {p.name}

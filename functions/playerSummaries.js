@@ -755,7 +755,24 @@ async function buildAggregates(db, summaries, { events: preloadedEvents = null }
     const end = endOf(ev);
     return end != null && end < nowSeconds;
   });
-  const LATEST = completed.at(-1)?.id ?? events.at(-1)?.id ?? null;
+  /*
+   * ...unless an event being played has kills on the board already.
+   *
+   * Waiting for the end left the page showing last month's tournament all weekend, which
+   * is the one time people look at it. Scored kills are the signal: they only exist once
+   * the macro has uploaded a session, so the rows fill rather than appearing empty, and
+   * they arrive within minutes of the first games. Picks are already in by then, so the
+   * Pick'Em row has its numbers too.
+   */
+  const scored = new Set();
+  for (const s of summaries) {
+    for (const e of s.events ?? []) if ((e.kills ?? 0) > 0) scored.add(e.eventId);
+  }
+  const LATEST =
+    [...events].reverse().find((ev) => scored.has(ev.id))?.id ??
+    completed.at(-1)?.id ??
+    events.at(-1)?.id ??
+    null;
   const pickAt = (s, ev) => s.events.find((e) => e.eventId === ev)?.pickPct ?? null;
   /**
    * A real headshot, not a placeholder.
@@ -940,14 +957,15 @@ async function buildAggregates(db, summaries, { events: preloadedEvents = null }
   const card = (s, statsLabel, stats) => ({
     id: s.playerId,
     name: s.name,
-    number: s.number,
     team: s.currentTeam,
     imgUrl: s.imgUrl,
     statsLabel,
     stats,
   });
 
-  const ROW = 6;
+  /* Twenty, not six: the rows scroll sideways now, so the cap is how far someone can
+     browse rather than how many fit across a screen. */
+  const ROW = 20;
 
   /**
    * All-time leaders — tournament wins, then win rate.
