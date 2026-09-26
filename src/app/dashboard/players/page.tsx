@@ -67,14 +67,56 @@ const SECTION =
  * carries twenty, and the rest are reached by scrolling rather than by searching.
  *
  * Widths are computed from the gaps so a card still lands on the same pixel it did in
- * the grid, and snap points stop the scroll on a card edge rather than mid-face. The
- * negative margin lets a phone's row bleed to both screen edges, which is what says
- * "this scrolls" without a caption saying so.
+ * the grid, and snap points stop the scroll on a card edge rather than mid-face.
+ *
+ * The row sits inside the page gutter rather than bleeding past it: run to the screen
+ * edge and the first card looks like it has fallen off the page, which is what a
+ * full-bleed row read as on a phone. The half-card at the right-hand edge is enough to
+ * say "this scrolls" on its own.
  */
 const ROW =
-  "-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:thin] sm:mx-0 sm:gap-3 sm:px-0";
+  "flex snap-x snap-mandatory gap-2 overflow-x-auto pb-2 [scrollbar-width:thin] sm:gap-3";
 const CARD =
   "w-[calc((100%-1rem)/3)] shrink-0 snap-start sm:w-[calc((100%-2.25rem)/4)] lg:w-[calc((100%-3rem)/5)] xl:w-[calc((100%-3.75rem)/6)]";
+
+/**
+ * The last card in every row: search.
+ *
+ * A row that stops at twenty needs to say what happens next, and the honest answer is
+ * "search reaches the other 305". Putting that at the END of the scroll — in the shape
+ * of a card, in the place the next card would be — means it is found by the gesture
+ * someone is already making, rather than by scrolling back up to the field.
+ */
+/** Every player reachable by search — the roster behind `aggregates/playerIndex`. */
+const TOTAL_PLAYERS = 325;
+
+function SearchCard({ total, onClick }: { total: number; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex h-full w-full flex-col items-center justify-center gap-2.5 rounded-xl border border-dashed border-white/20 bg-[#101010] px-2 py-8 text-center transition-colors hover:border-white/40 hover:bg-[#161616]"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        className="h-5 w-5 text-white/50"
+        aria-hidden
+      >
+        <circle cx="11" cy="11" r="7" />
+        <path d="M20 20l-3.5-3.5" />
+      </svg>
+      <span className="font-azonix text-[9px] uppercase leading-[1.4] tracking-[0.14em] text-white/60 sm:text-[10px]">
+        Search all
+        <br />
+        {total ? `${total} players` : "players"}
+      </span>
+    </button>
+  );
+}
 
 export default function CareerStatsPage() {
   const [spotlight, setSpotlight] = useState<Spotlight | null>(null);
@@ -143,6 +185,13 @@ export default function CareerStatsPage() {
         console.error("Failed to load player index:", e);
         setIndex([]);
       });
+  };
+
+  /* The card is a shortcut to the field, not a second search: one place types. */
+  const focusSearch = () => {
+    loadIndex();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    searchRef.current?.focus({ preventScroll: true });
   };
 
   const results = useMemo(() => {
@@ -216,7 +265,7 @@ export default function CareerStatsPage() {
               loadIndex();
               setQ(e.target.value);
             }}
-            placeholder="Search all 325 players…"
+            placeholder={`Search all ${TOTAL_PLAYERS} players\u2026`}
             aria-label="Search players"
             className="w-full rounded-full border border-gray-200 bg-gray-50 py-4 pl-14 pr-5 text-base outline-none placeholder-gray-400 focus-visible:border-[#1a3c6e] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-white/30 dark:focus-visible:border-[#00f976]"
           />
@@ -273,6 +322,9 @@ export default function CareerStatsPage() {
                     <PlayerCard p={p} />
                   </div>
                 ))}
+                <div className={CARD}>
+                  <SearchCard total={TOTAL_PLAYERS} onClick={focusSearch} />
+                </div>
               </div>
             </section>
           )}
@@ -287,6 +339,9 @@ export default function CareerStatsPage() {
                     <PlayerCard p={p} />
                   </div>
                 ))}
+                <div className={CARD}>
+                  <SearchCard total={TOTAL_PLAYERS} onClick={focusSearch} />
+                </div>
               </div>
             </section>
           )}
@@ -302,6 +357,9 @@ export default function CareerStatsPage() {
                     <PlayerCard p={p} />
                   </div>
                 ))}
+                <div className={CARD}>
+                  <SearchCard total={TOTAL_PLAYERS} onClick={focusSearch} />
+                </div>
               </div>
             </section>
           )}
