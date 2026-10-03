@@ -19,6 +19,7 @@ import { individualEventDisplayName } from "@/src/lib/eventDisplayName";
 import { useTheme } from "@/src/contexts/ThemeContext";
 import PlayerSearch from "@/src/components/Dashboard/PlayerSearch";
 import ShareCareerButton, { type ShareScopeOption } from "@/src/components/Dashboard/ShareCareerButton";
+import SubscriberBlur, { useBetaGate } from "@/src/components/Dashboard/SubscriberBlur";
 import { cn } from "@/src/lib/utils";
 
 /** Shared column template — header and rows must use the same constant (style guide). */
@@ -233,6 +234,9 @@ export default function PlayerPage() {
   const [hovered, setHovered] = useState<string | null>(null);
   const [styleScope, setStyleScope] = useState<StyleScope>("career");
   const [ownership, setOwnership] = useState<Map<string, number> | null>(null);
+  /* Beta gate — see SubscriberBlur. Sharing is a subscriber benefit for the beta. */
+  const { locked: betaLocked, showModal: showSubscribeModal } = useBetaGate();
+  const canShare = !betaLocked;
   const [killsMode, setKillsMode] = useState<"total" | "breakdown">("total");
   // Deliberately separate per panel — ticking one should not silently change the other.
   const [styleAccessible, setStyleAccessible] = useState(false);
@@ -586,15 +590,39 @@ export default function PlayerPage() {
    * It rides the FIRST band, whichever that is — a player with no league record has no
    * 2015 strip at all.
    */
+  /*
+   * The same cell either way, so the gate is a state of the control rather than its
+   * absence: a non-subscriber has to SEE that sharing exists for it to be a reason to
+   * subscribe, and a missing button is not an offer.
+   */
+  const SHARE_CELL =
+    "shrink-0 self-stretch border-l border-white/[0.08] bg-white/[0.03] px-3.5 font-azonix text-[9px] font-black uppercase tracking-widest text-white/75 transition-colors [&_svg]:text-[#00f976] hover:bg-[#00f976]/10 hover:text-white";
+
   const shareAction =
-    shareScopes.length > 0 ? (
+    shareScopes.length === 0 ? null : canShare ? (
       <ShareCareerButton
         playerId={career.playerId}
         playerName={career.name}
         scopes={shareScopes}
-        className="shrink-0 self-stretch border-l border-white/[0.08] bg-white/[0.03] px-3.5 font-azonix text-[9px] font-black uppercase tracking-widest text-white/75 transition-colors [&_svg]:text-[#00f976] hover:bg-[#00f976]/10 hover:text-white"
+        className={SHARE_CELL}
       />
-    ) : null;
+    ) : (
+      <button
+        type="button"
+        onClick={() => showSubscribeModal("soft-gate")}
+        className={cn(SHARE_CELL, "inline-flex items-center justify-center gap-2")}
+      >
+        <span className="inline-flex shrink-0" aria-hidden="true">
+          {/* A padlock rather than the share glyph: the cell has to say what it is now,
+              not what it would be. */}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="4" y="10" width="16" height="11" rx="2" />
+            <path d="M8 10V7a4 4 0 1 1 8 0v3" />
+          </svg>
+        </span>
+        Share
+      </button>
+    );
 
   return (
     <div
@@ -740,12 +768,13 @@ export default function PlayerPage() {
 
       {/* ── Kills by event ───────────────────────────────────────────── */}
       <section className={cn(PANEL, "mt-3.5 p-5")}>
+        <h2 className={SECTION_HEADING}>Kills by event</h2>
+        <SubscriberBlur className="mt-2.5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           {/* toggle sits directly under the title rather than below the whole header
               row, so the tall stat block beside it does not open a gap */}
           <div>
-            <h2 className={SECTION_HEADING}>Kills by event</h2>
-            <div className="mt-2.5 flex gap-1.5">
+            <div className="flex gap-1.5">
               {(["total", "breakdown"] as const).map((m) => (
                 <button
                   key={m}
@@ -805,13 +834,15 @@ export default function PlayerPage() {
             </div>
           )}
         </div>
+        </SubscriberBlur>
       </section>
 
       {/* ── Two-up ───────────────────────────────────────────────────── */}
       <div className="mt-3.5 grid grid-cols-1 gap-3.5 lg:grid-cols-2">
         <section className={cn(PANEL, "p-5")}>
-          <div className="flex min-h-[30px] flex-wrap items-center justify-between gap-3">
-            <h2 className={SECTION_HEADING}>Playing style</h2>
+          <h2 className={SECTION_HEADING}>Playing style</h2>
+          <SubscriberBlur className="mt-2">
+          <div className="flex min-h-[30px] flex-wrap items-center justify-end gap-3">
             {scopeOptions.length > 1 && (
               <label className="relative">
                 <span className="sr-only">Period</span>
@@ -837,27 +868,31 @@ export default function PlayerPage() {
             Confirmed Kills by type
           </p>
           <StyleDonut totals={scopedTypeTotals} accessible={styleAccessible} dark={dark} />
+          </SubscriberBlur>
         </section>
 
         <section className={cn(PANEL, "flex flex-col p-5")}>
           <div className="flex min-h-[30px] items-center">
             <h2 className={SECTION_HEADING}>PickEm stats</h2>
           </div>
-          <p className="mt-2 text-[12px] text-gray-500 dark:text-white/40">
-            Cost per kill and player Pick %
-          </p>
-          <PickemStats appearances={labelled} ownership={ownership} />
+          <SubscriberBlur compact>
+            <p className="mt-2 text-[12px] text-gray-500 dark:text-white/40">
+              Cost per kill and player Pick %
+            </p>
+            <PickemStats appearances={labelled} ownership={ownership} />
+          </SubscriberBlur>
         </section>
       </div>
 
       {/* ── History: events, or match detail within one event ─────────── */}
       <section className={cn(PANEL, "mt-3.5 p-5")}>
+        <h2 className={SECTION_HEADING}>
+          {historyTab === "events" ? "Event history" : "Match detail"}
+        </h2>
+        <SubscriberBlur className="mt-2.5" align="top">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className={SECTION_HEADING}>
-              {historyTab === "events" ? "Event history" : "Match detail"}
-            </h2>
-            <div className="mt-2.5 flex gap-1.5">
+            <div className="flex gap-1.5">
               {(["events", "matches"] as const).map((t) => (
                 <button
                   key={t}
@@ -1137,6 +1172,7 @@ export default function PlayerPage() {
           </div>
         </div>
         )}
+        </SubscriberBlur>
       </section>
 
     </div>
@@ -2821,7 +2857,7 @@ function NxlRecordPanel({ nxl }: { nxl: NxlCareer }) {
         */}
       </div>
 
-      <div className="mt-5">
+      <SubscriberBlur className="mt-5">
         <div className="relative">
           {/* An even record. The one reference line that means something here, drawn
               over the bars so a season can be read as above or below it at a glance. */}
@@ -2896,14 +2932,14 @@ function NxlRecordPanel({ nxl }: { nxl: NxlCareer }) {
             </span>
           ))}
         </div>
-      </div>
 
       {/* Fixed-height readout so the panel does not jump as the pointer crosses it.
           With nothing hovered it names the best season, which is the thing a reader
           would otherwise hunt along the line for. */}
-      <div className="mt-4 min-h-[18px] border-t border-gray-200/70 pt-3 dark:border-white/5">
-        <SeasonReadout season={active} seasons={seasons} />
-      </div>
+        <div className="mt-4 min-h-[18px] border-t border-gray-200/70 pt-3 dark:border-white/5">
+          <SeasonReadout season={active} seasons={seasons} />
+        </div>
+      </SubscriberBlur>
     </section>
   );
 }

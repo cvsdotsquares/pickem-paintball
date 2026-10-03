@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { FaUser, FaSearch } from "react-icons/fa";
 import {
@@ -378,6 +379,37 @@ type MatchupTableProps = {
    * first sticky cell, and the Player column's `left` offset is measured from it.
    */
   showRank?: boolean;
+  /**
+   * What the sticky "#" column holds.
+   *
+   * "value" prints each row's stored `Rank`, which is what the event tables have always
+   * shown. "rank" ranks the rows on `rankKey` instead — the all-time table's stored rank
+   * measures career kills while the table is ordered by event wins, which is the
+   * confusion that kept the column switched off.
+   */
+  rankMode?: "value" | "rank";
+  /**
+   * The column "rank" counts, e.g. "Event Wins", followed by the tie-breakers in
+   * `rankTieBreakers`. Every place is unique: level players are separated by the next
+   * measure rather than sharing a number.
+   *
+   * Fixed to a column rather than following the sort: it is a rank BY something, and a
+   * number that changes meaning when a reader clicks a header is worse than one that
+   * stays put.
+   */
+  rankKey?: string;
+  /** Columns that separate players level on `rankKey`, in order of precedence. */
+  rankTieBreakers?: string[];
+  /** Explains the ranking next to the "#" header, behind a ? that hovers or taps open. */
+  rankHelp?: string;
+  /**
+   * Column sorting. False renders the headers inert — no cursor, no arrows, no handler.
+   *
+   * TEMPORARY, AND BUILT TO BE UNDONE: the beta gate passes false for non-subscribers so
+   * a locked top-50 cannot be re-ordered into a claim it does not support. Launch to
+   * everyone by dropping the prop at the call site; nothing here needs to change.
+   */
+  sortable?: boolean;
   currentEventId?: string; // Add this
   isSeasonView?: boolean; // Add this to identify season totals view
   /** Season view: event column keys, most recent first (matches stats page event order) */
@@ -409,6 +441,82 @@ type TablePlayer = Player & {
   [key: string]: any;
 };
 
+/**
+ * The "?" beside a column head.
+ *
+ * Hover for a pointer, tap for a finger — a `title` alone is invisible on a phone, which
+ * is where most of this table is read. Positioned `fixed` from the button's own box
+ * because the header lives inside a horizontal scrollport that would clip an absolutely
+ * positioned bubble at the first column.
+ */
+const HeaderHelp: React.FC<{ text: string; dark: boolean }> = ({ text, dark }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLButtonElement | null>(null);
+  const [box, setBox] = useState<{ top: number; left: number } | null>(null);
+
+  /* Kept inside the window: the "#" header sits at the left edge and can sit low on the
+     screen, so an unclamped bubble would hang off the side or below the fold. */
+  const place = () => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    const WIDTH = 260;
+    const HEIGHT = 86;
+    const below = r.bottom + 6;
+    setBox({
+      top: below + HEIGHT > window.innerHeight ? Math.max(8, r.top - HEIGHT - 6) : below,
+      left: Math.min(Math.max(8, r.left - 8), Math.max(8, window.innerWidth - WIDTH - 8)),
+    });
+  };
+
+  return (
+    <>
+      <button
+        ref={ref}
+        type="button"
+        aria-label="How this ranking works"
+        className={`inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border text-[8px] leading-none ${
+          dark ? "border-white/40 text-white/70" : "border-current/40 text-current"
+        }`}
+        onClick={(e) => {
+          e.stopPropagation();
+          place();
+          setOpen((v) => !v);
+        }}
+        onMouseEnter={() => {
+          place();
+          setOpen(true);
+        }}
+        onMouseLeave={() => setOpen(false)}
+      >
+        ?
+      </button>
+      {/*
+        PORTALLED TO THE BODY, not just `position: fixed`.
+        The header lives inside a container carrying `translateZ(0)` for the frozen-header
+        scroll sync, and a transformed ancestor makes `fixed` resolve against IT rather
+        than the viewport — the bubble landed hundreds of pixels down the page.
+      */}
+      {open && box
+        ? createPortal(
+            <span
+              role="tooltip"
+              onClick={(e) => e.stopPropagation()}
+              style={{ top: box.top, left: box.left, width: 260 }}
+              className={`fixed z-[80] rounded-lg border px-3 py-2 text-left font-sans text-[11px] font-medium normal-case leading-relaxed tracking-normal shadow-lg ${
+                dark
+                  ? "border-white/10 bg-stone-800 text-white/80"
+                  : "border-gray-200 bg-white text-gray-700"
+              }`}
+            >
+              {text}
+            </span>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+};
+
 export const MatchupTable: React.FC<MatchupTableProps> = ({
   data,
   sortConfig: propSortConfig,
@@ -416,6 +524,11 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   myPicks,
   showMyPicks = true,
   showRank = true,
+  rankMode = "value",
+  rankKey,
+  rankTieBreakers = [],
+  rankHelp,
+  sortable = true,
   currentEventId,
   isSeasonView = false,
   seasonEventColumnOrder = [],
@@ -604,6 +717,34 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     isDataLoading, // Add this dependency
   ]);
 
+  /**
+   * Row -> its rank on `rankKey`, for `rankMode="rank"`.
+   *
+   * Computed from ALL the rows rather than the filtered page, so a team filter or a
+   * search does not renumber anybody: someone 7th overall is 7th while you are looking
+   * at their club alone.
+   *
+   * Every place is unique: players level on `rankKey` are separated by `rankTieBreakers`
+   * in turn, which is the order the table already shows them in. Sharing a place would
+   * leave the rows beneath it numbered differently from how they are stacked.
+   */
+  const positions = useMemo(() => {
+    const key = rankKey ?? sortConfig?.key;
+    if (rankMode !== "rank" || !key) return null;
+    const keys = [key, ...rankTieBreakers];
+    const list = [...typedData].filter((p) => p.participation !== "absent");
+    list.sort((a, b) => {
+      for (const k of keys) {
+        const c = compareCells(a[k], b[k], "descending");
+        if (c !== 0) return c;
+      }
+      return 0;
+    });
+    const byRow = new Map<string, number>();
+    list.forEach((p, i) => byRow.set(String(p.player_id ?? p.Player ?? i), i + 1));
+    return byRow;
+  }, [typedData, sortConfig, rankMode, rankKey, rankTieBreakers]);
+
   // Reset pagination when search or team filter changes
   useEffect(() => {
     setCurrentPage(1);
@@ -665,6 +806,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   // Ascending-first columns: ascending → descending → null (reset to default)
   // Descending-first columns: descending → ascending → null (reset to default)
   const requestSort = (displayText: string) => {
+    if (!sortable) return;
     const normalizedDisplay = normalizeHeaderKey(displayText);
     const actualKey = getActualDataKey(
       Object.keys(data[0] || {}),
@@ -861,7 +1003,11 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
     );
   };
 
+  /** Headers only look clickable when they are. */
+  const SORT_CURSOR = sortable ? "cursor-pointer" : "cursor-default";
+
   const getSortIcon = (key: string) => {
+    if (!sortable) return null;
     if (!sortConfig || !isSortActiveForKey(key)) {
       return <FaSort className={SORT_ICON_CLASS} aria-hidden />;
     }
@@ -1047,7 +1193,18 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
    * against the edge instead. Hard-coded in two places (header and body) before this,
    * which is exactly the kind of pair that drifts.
    */
-  const playerStickyLeft = showRank ? "left-5 md:left-10" : "left-0 md:left-0";
+  /**
+   * The rank column's geometry, in one place.
+   *
+   * It widens when a "?" shares the cell with the "#": at 20px the two glyphs were
+   * clipped by the sticky column's own max-width. The Player column's sticky offset is
+   * measured from this, so the two must move together — which is why they are derived
+   * here rather than written out at each of the four places they are used.
+   */
+  const rankCol = rankHelp
+    ? { col: "w-11 md:w-14", cell: "w-11 min-w-11 max-w-11 md:w-14 md:min-w-14 md:max-w-14", left: "left-11 md:left-14" }
+    : { col: "w-5 md:w-10", cell: "w-5 min-w-5 max-w-5 md:w-10 md:min-w-10 md:max-w-10", left: "left-5 md:left-10" };
+  const playerStickyLeft = showRank ? rankCol.left : "left-0 md:left-0";
 
   const dynamicHeaders = useMemo(
     () => headers.filter((h) => !FIXED_IDENTITY_DISPLAY_KEYS.has(h.displayKey)),
@@ -1354,7 +1511,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               horizontally scrolled stats show between Rank and Player.
             */}
             <colgroup>
-              {showRank && <col className="w-5 md:w-10" />}
+              {showRank && <col className={rankCol.col} />}
               <col className="max-md:w-[min(25vw,6rem)] md:w-[200px]" />
             </colgroup>
           <thead>
@@ -1363,11 +1520,11 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
               {showRank && (
               <th
                 scope="col"
-                className={`sticky left-0 z-[50] box-border px-0 py-2 text-center text-[10px] font-medium font-azonix uppercase tracking-wider md:px-2 md:text-[12px] md:border-r w-5 min-w-5 max-w-5 border-b border-gray-300/80 shadow-[0_1px_0_0_rgba(0,0,0,0.06)] md:w-10 md:min-w-10 md:max-w-10 dark:border-white/10 ${sortConfig?.key === "Rank"
+                className={`sticky left-0 z-[50] box-border px-0 py-2 text-center text-[10px] font-medium font-azonix uppercase tracking-wider md:px-2 md:text-[12px] md:border-r ${rankCol.cell} border-b border-gray-300/80 shadow-[0_1px_0_0_rgba(0,0,0,0.06)] dark:border-white/10 ${sortConfig?.key === "Rank"
                   ? darkMode
-                    ? "cursor-pointer bg-blue-800 text-blue-100"
-                    : "cursor-pointer bg-blue-600 text-white"
-                  : `${themeClasses.headerBg} ${themeClasses.headerText} cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600`
+                    ? `${SORT_CURSOR} bg-blue-800 text-blue-100`
+                    : `${SORT_CURSOR} bg-blue-600 text-white`
+                  : `${themeClasses.headerBg} ${themeClasses.headerText} ${SORT_CURSOR} ${sortable ? "hover:bg-gray-300 dark:hover:bg-gray-600" : ""}`
                   }`}
               >
                 <div
@@ -1375,6 +1532,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                   onClick={() => requestSort("Rank")}
                 >
                   <span className="leading-none">#</span>
+                  {rankHelp ? <HeaderHelp text={rankHelp} dark={darkMode} /> : null}
                   <span className="inline-flex shrink-0 leading-none">{getSortIcon("Rank")}</span>
                 </div>
               </th>
@@ -1385,9 +1543,9 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                 scope="col"
                 className={`sticky ${playerStickyLeft} z-[52] box-border min-w-0 max-w-[min(25vw,6rem)] w-[min(25vw,6rem)] border-b border-r border-gray-300/80 border-r-black/10 dark:border-r-white/10 pl-1.5 pr-0.5 text-left text-[10px] font-medium font-azonix uppercase tracking-wider [will-change:transform] [transform:translateZ(0)] dark:border-b-white/10 md:max-w-none md:min-w-[200px] md:w-[200px] md:pl-4 md:pr-1 md:text-[12px] ${sortConfig?.key === "Player"
                   ? darkMode
-                    ? "cursor-pointer bg-blue-800 text-blue-100"
-                    : "cursor-pointer bg-blue-600 text-white"
-                  : `${themeClasses.headerBg} ${themeClasses.headerText} cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600`
+                    ? `${SORT_CURSOR} bg-blue-800 text-blue-100`
+                    : `${SORT_CURSOR} bg-blue-600 text-white`
+                  : `${themeClasses.headerBg} ${themeClasses.headerText} ${SORT_CURSOR} ${sortable ? "hover:bg-gray-300 dark:hover:bg-gray-600" : ""}`
                   }`}
               >
                 <div
@@ -1410,9 +1568,9 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                   title={layout.title}
                   className={`relative z-[10] box-border p-0.5 px-0.5 text-center text-[10px] font-medium font-azonix uppercase tracking-wider md:p-1 md:px-1.5 md:text-[12px] border-b border-gray-300/80 shadow-[0_1px_0_0_rgba(0,0,0,0.06)] dark:border-white/10 ${statWidthClass} ${isSortActiveForKey(originalKey)
                     ? darkMode
-                      ? "cursor-pointer bg-blue-800 text-blue-100"
-                      : "cursor-pointer bg-blue-600 text-white"
-                    : `${themeClasses.headerBg} ${themeClasses.headerText} cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600`
+                      ? `${SORT_CURSOR} bg-blue-800 text-blue-100`
+                      : `${SORT_CURSOR} bg-blue-600 text-white`
+                    : `${themeClasses.headerBg} ${themeClasses.headerText} ${SORT_CURSOR} ${sortable ? "hover:bg-gray-300 dark:hover:bg-gray-600" : ""}`
                     }`}
                 >
                   <div
@@ -1448,7 +1606,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
           >
           <table className="w-full min-w-[960px] table-fixed border-separate border-spacing-0 md:min-w-0">
             <colgroup>
-              {showRank && <col className="w-5 md:w-10" />}
+              {showRank && <col className={rankCol.col} />}
               <col className="max-md:w-[min(25vw,6rem)] md:w-[200px]" />
             </colgroup>
           <tbody className={` divide-y ${themeClasses.border}`}>
@@ -1464,13 +1622,15 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                 {/* Rank Column - Smaller on mobile */}
                 {showRank && (
                 <td
-                  className={`sticky left-0 z-[20] box-border px-0 py-2 whitespace-nowrap md:border-r ${themeClasses.border} ${themeClasses.bg} w-5 min-w-5 max-w-5 md:w-10 md:min-w-10 md:max-w-10`}
+                  className={`sticky left-0 z-[20] box-border px-0 py-2 whitespace-nowrap md:border-r ${themeClasses.border} ${themeClasses.bg} ${rankCol.cell}`}
                 >
                   <div className="pickem-numeric text-center text-[10px] md:text-[12px] font-medium">
                     {/* A finishing position is as much a claim as a kill count, so an
                         absent player gets a dash rather than a rank they never earned. */}
                     {row.participation === "absent" ? (
                       <span className={darkMode ? "text-white/25" : "text-gray-300"}>—</span>
+                    ) : rankMode === "rank" ? (
+                      (positions?.get(String(row.player_id ?? row.Player ?? "")) ?? "—")
                     ) : (
                       row.Rank
                     )}

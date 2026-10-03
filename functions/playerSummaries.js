@@ -807,12 +807,22 @@ async function buildAggregates(db, summaries, { events: preloadedEvents = null }
    *
    * A player with no league record sorts last (-1) rather than as a zero: they are
    * unranked here, not bottom.
+   *
+   * ⚠️ ONE ORDER, TWO PLACES. These are the tie-breakers the all-time table ranks by
+   * (`RANK_ORDER` in `dashboard/stats/all-time`): tournament wins, event win %, match
+   * win %, confirmed kills. The landing row and the table show the same players, so a
+   * change here is a change there.
    */
-  const leagueRank = (s) => [s.nxl?.titles ?? -1, s.nxl?.titleRate ?? -1, s.totalKills];
+  const leagueRank = (s) => [
+    s.nxl?.titles ?? -1,
+    s.nxl?.titleRate ?? -1,
+    s.nxl?.matchWinPct ?? -1,
+    s.totalKills,
+  ];
   const byLeagueRecord = (a, b) => {
-    const [aw, ar, ak] = leagueRank(a);
-    const [bw, br, bk] = leagueRank(b);
-    return bw - aw || br - ar || bk - ak;
+    const [aw, ar, am, ak] = leagueRank(a);
+    const [bw, br, bm, bk] = leagueRank(b);
+    return bw - aw || br - ar || bm - am || bk - ak;
   };
 
   const orderings = [
@@ -968,17 +978,17 @@ async function buildAggregates(db, summaries, { events: preloadedEvents = null }
   const ROW = 20;
 
   /**
-   * All-time leaders — tournament wins, then win rate.
+   * All-time leaders — tournament wins, then the tie-breakers above.
    *
    * Ordered by the figure the cards LEAD with, which they were not before: the row was
    * selected by career kills while showing Wins first, so the top card had 7 and the
    * fourth had 16. Whatever a card puts in its first cell is what a reader takes the
    * order to mean.
    *
-   * Win RATE breaks the tie rather than kills, because it answers the same question at
+   * Event win RATE breaks the tie before kills, because it answers the same question at
    * finer grain — 7 wins from 51 tournaments is a different career from 7 from 38, and
-   * both sit on the row today. Kills are the last resort, purely so the order is stable
-   * when two players match on both.
+   * both sit on the row today. Then match win %, then kills as the last resort, purely
+   * so the order is stable when two players match on everything above it.
    *
    * A player with no league record sorts last (-1) rather than as a zero: they are
    * unranked here, not bottom.
