@@ -1,0 +1,227 @@
+BACKFILL — WRITING
+==============================================================================
+excluded  tampa_bay_2026: archive has only 5 long rows (file is named Broken)
+excluded  mid_west_open_2026: already loaded; archive has no row_ids so re-upload would duplicate
+
+
+══════════════════════════════════════════════════════════════════════════════
+tampa_bay_open_2025
+══════════════════════════════════════════════════════════════════════════════
+parsed 2527 usable rows from 199 roster entries
+
+DROPPED 2 rows (never uploaded):
+     2  no player
+     row 2529: no player — San Diego Dynasty v 1 
+     row 2530: no player — San Diego Dynasty v 1 
+
+ids remapped through the identity fix (3):
+     16  "Matthew Askren"  100052 → 100389
+      2  "Sebastian Ivan Lopez"  100149 → 100403
+      2  "Francis Antetomaso"  100145 → 100381
+
+resolved by name — not in the archive roster (1):
+      5  "Jackson Noodle Knees Frey"  →  matched "Jackson Frey"
+
+games derived: 49
+split games: 0 candidates → 0 correctable, 0 need a human
+points with no recorded kills: 4  (informational — the game is intact)
+     tampa_bay_open_2025_Saturday_IMF-UPR  missing points 9 of 10
+     tampa_bay_open_2025_Saturday_ACD-SDA  missing points 7 of 8
+     tampa_bay_open_2025_Saturday_HUR-NRG  missing points 5 of 6
+     tampa_bay_open_2025_Top8_ACD-IMP  missing points 7 of 8
+fixtures on record: 49   games not matching any fixture: 0   fixture pairs with no long data: 0
+
+GATE — recomputed vs published Confirmed Kills
+   roster 199 · players differing: 1 · long-data players not on roster: 0
+   Jackson Frey             published      0 → recomputed      5  (+5)
+
+⛔ SKIPPING tampa_bay_open_2025 — nothing written. Reasons: 1 stat deltas
+
+
+══════════════════════════════════════════════════════════════════════════════
+atlantic_city_2025
+══════════════════════════════════════════════════════════════════════════════
+parsed 2272 usable rows from 200 roster entries
+
+ids remapped through the identity fix (10):
+     12  "Austin Woodward"  100304 → 100311
+     10  "Conor Smith"  100307 → 100312
+     11  "Francis Antetomaso"  100145 → 100381
+      5  "Leonid Smotrov"  100314 → 100307
+     18  "Matthew Askren"  100052 → 100389
+      8  "Nathan Combs"  100312 → 100313
+      8  "Carter Donaldson"  100313 → 100207
+      1  "Jordan Rhodes"  100311 → 100315
+      2  "Ilia Pankov"  100308 → 100309
+      3  "James Whittington"  100309 → 100314
+
+games derived: 49
+   ok  FIT v XFA under Friday + Top8 — league records 2 meetings, not a split
+   ok  ACD v FIT under Saturday + Wildcard — league records 2 meetings, not a split
+split games: 2 candidates → 0 correctable, 0 need a human
+points with no recorded kills: 4  (informational — the game is intact)
+     atlantic_city_2025_Friday_IRN-SDA  missing points 9 of 10
+     atlantic_city_2025_Friday_ARS-HEA  missing points 7 of 8
+     atlantic_city_2025_Friday_HEA-NYX  missing points 6 of 7
+     atlantic_city_2025_Saturday_IRN-RCS  missing points 7 of 10
+fixtures on record: 49   games not matching any fixture: 0   fixture pairs with no long data: 0
+
+GATE — recomputed vs published Confirmed Kills
+   roster 200 · players differing: 0 · long-data players not on roster: 0
+
+✅ atlantic_city_2025 passes every check.
+   chunk 1: 400/2272 rows, 10 games — manifest written, recompute triggered
+   chunk 2: 800/2272 rows, 10 games — manifest written, recompute triggered
+   chunk 3: 1200/2272 rows, 12 games — manifest written, recompute triggered
+   chunk 4: 1600/2272 rows, 10 games — manifest written, recompute triggered
+   chunk 5: 2000/2272 rows, 10 games — manifest written, recompute triggered
+   chunk 6: 2272/2272 rows, 7 games — manifest written, recompute triggered
+
+
+══════════════════════════════════════════════════════════════════════════════
+midwest_open_2025
+══════════════════════════════════════════════════════════════════════════════
+parsed 1783 usable rows from 202 roster entries
+
+DROPPED 2 rows (never uploaded):
+     2  missing team or opponent
+     row 1767: missing team or opponent —  v  Movement
+     row 1768: missing team or opponent —  v  Trade
+
+ids remapped through the identity fix (3):
+      7  "Francis Antetomaso"  100145 → 100381
+     11  "Matthew Askren"  100052 → 100389
+      1  "Steve Pablo Wojnicz"  100305 → 100321
+
+resolved by name — not in the archive roster (1):
+      2  "Clay Hughes"  →  matched "Clayton Hughes"
+
+⚠ UNRESOLVED PLAYER NAMES (6) — these kills would score for nobody:
+      7  "Zone Coverage"  — no surname match
+      5  "Gunfight"  — no surname match
+      4  "Pressure"  — no surname match
+      2  "Steve Pablo Wojnicz FERMOSELLE"  — no surname match
+      2  "Movement"  — no surname match
+      1  "Other"  — no surname match
+
+⚠ teams with no team_id: 1, 2, 3
+
+games derived: 55
+   ok  AFT v TON under Friday + Top8 — league records 2 meetings, not a split
+   ok  IRN v XFA under Friday + Wildcard — league records 2 meetings, not a split
+   ok  LEG v TON under Saturday + Finals — league records 2 meetings, not a split
+split games: 3 candidates → 0 correctable, 0 need a human
+points with no recorded kills: 7  (informational — the game is intact)
+     midwest_open_2025_Saturday_HEA-UPR  missing points 3 of 4
+     midwest_open_2025_Friday_1-AFT  no point numbers
+     midwest_open_2025_Friday_1-IMP  no point numbers
+     midwest_open_2025_Friday_2-AFT  no point numbers
+     midwest_open_2025_Friday_2-IMP  no point numbers
+fixtures on record: 49   games not matching any fixture: 6   fixture pairs with no long data: 0
+   ✗ midwest_open_2025_Friday_1-AFT  1 v Aftershock  round=Friday dates= rows=5
+   ✗ midwest_open_2025_Friday_1-IMP  1 v Impact  round=Friday dates= rows=2
+   ✗ midwest_open_2025_Friday_2-AFT  2 v Aftershock  round=Friday dates= rows=3
+   ✗ midwest_open_2025_Friday_2-IMP  2 v Impact  round=Friday dates= rows=1
+   ✗ midwest_open_2025_Friday_3-AFT  3 v Aftershock  round=Friday dates= rows=6
+   ✗ midwest_open_2025_Friday_3-IMP  3 v Impact  round=Friday dates= rows=2
+
+GATE — recomputed vs published Confirmed Kills
+   roster 202 · players differing: 1 · long-data players not on roster: 0
+   Clayton Hughes           published     11 → recomputed     13  (+2)
+
+⛔ SKIPPING midwest_open_2025 — nothing written. Reasons: 1 stat deltas, 6 unresolved names, 6 unknown fixtures
+
+
+══════════════════════════════════════════════════════════════════════════════
+lonestar_open_2025
+══════════════════════════════════════════════════════════════════════════════
+parsed 1477 usable rows from 191 roster entries
+
+ids remapped through the identity fix (1):
+      6  "Matthew Askren"  100052 → 100389
+
+resolved by name — not in the archive roster (1):
+      1  "TJ Danner"  →  exact
+
+games derived: 49
+   ok  HUR v XFA under Saturday + Top4 — league records 2 meetings, not a split
+split games: 1 candidates → 0 correctable, 0 need a human
+points with no recorded kills: 1  (informational — the game is intact)
+     lonestar_open_2025_Saturday_ARS-IMF  missing points 3 of 4
+fixtures on record: 49   games not matching any fixture: 0   fixture pairs with no long data: 0
+
+GATE — recomputed vs published Confirmed Kills
+   roster 191 · players differing: 0 · long-data players not on roster: 0
+
+✅ lonestar_open_2025 passes every check.
+   chunk 1: 400/1477 rows, 14 games — manifest written, recompute triggered
+   chunk 2: 800/1477 rows, 16 games — manifest written, recompute triggered
+   chunk 3: 1200/1477 rows, 16 games — manifest written, recompute triggered
+   chunk 4: 1477/1477 rows, 9 games — manifest written, recompute triggered
+
+
+══════════════════════════════════════════════════════════════════════════════
+world_cup_2025
+══════════════════════════════════════════════════════════════════════════════
+parsed 2447 usable rows from 229 roster entries
+
+ids remapped through the identity fix (2):
+     10  "Matthew Askren"  100052 → 100389
+      2  "Mike Glen Zuppa"  100918 → 100200
+
+games derived: 59
+split games: 2 candidates → 1 correctable, 1 need a human
+   fix LEG v TON: Friday → Top8   (league: Quarters 2025-11-16)
+   ✗  HEA v UPR under Saturday + Friday + Top8 — league says 2 meetings on record
+   30 rows re-labelled; games now 58
+points with no recorded kills: 3  (informational — the game is intact)
+     world_cup_2025_Top8_HEA-UPR  missing points 1 of 5
+     world_cup_2025_Top8_LEG-TON  missing points 1,2,3,4 of 10
+     world_cup_2025_Top4_FIT-XFA  missing points 5 of 8
+fixtures on record: 57   games not matching any fixture: 1   fixture pairs with no long data: 0
+   ✗ world_cup_2025_Top8_HEA-UPR  Heat v Uprising  round=Top8 dates=2025-11-16 rows=24
+
+GATE — recomputed vs published Confirmed Kills
+   roster 229 · players differing: 0 · long-data players not on roster: 0
+
+⛔ SKIPPING world_cup_2025 — nothing written. Reasons: 1 split games, 1 unknown fixtures
+
+
+══════════════════════════════════════════════════════════════════════════════
+mid_atlantic_open_2026
+══════════════════════════════════════════════════════════════════════════════
+parsed 2437 usable rows from 211 roster entries
+
+⚠ UNRESOLVED PLAYER NAMES (1) — these kills would score for nobody:
+      1  "Alex DAcquisto"  — no surname match
+
+games derived: 50
+   ok  IMP v IRN under Friday + Top8 — league records 2 meetings, not a split
+   ok  DAM v HUR under Saturday + Top8 — league records 2 meetings, not a split
+   ok  DYN v FIT under Saturday + Top8 — league records 2 meetings, not a split
+split games: 4 candidates → 1 correctable, 0 need a human
+   fix AFT v HUR: Friday → Saturday   (league: D Prelims 2026-05-01)
+   47 rows re-labelled; games now 49
+points with no recorded kills: 4  (informational — the game is intact)
+     mid_atlantic_open_2026_Friday_FIT-JNG  missing points 7 of 8
+     mid_atlantic_open_2026_Friday_HEA-LEG  missing points 6 of 12
+     mid_atlantic_open_2026_Friday_AFT-HUR  missing points 1,2 of 10
+     mid_atlantic_open_2026_Saturday_LEG-RCS  missing points 1,2,3,4,5,6,7,8,9 of 12
+fixtures on record: 49   games not matching any fixture: 0   fixture pairs with no long data: 0
+
+GATE — recomputed vs published Confirmed Kills
+   roster 211 · players differing: 0 · long-data players not on roster: 0
+
+⛔ SKIPPING mid_atlantic_open_2026 — nothing written. Reasons: 1 unresolved names
+
+
+══════════════════════════════════════════════════════════════════════════════
+SUMMARY
+══════════════════════════════════════════════════════════════════════════════
+  skipped       tampa_bay_open_2025      2527 rows   [deltas 1, unresolved 0, splits 0, unknown fixtures 0]
+  uploaded      atlantic_city_2025       2272 rows
+  skipped       midwest_open_2025        1783 rows   [deltas 1, unresolved 6, splits 0, unknown fixtures 6]
+  uploaded      lonestar_open_2025       1477 rows
+  skipped       world_cup_2025           2447 rows   [deltas 0, unresolved 0, splits 1, unknown fixtures 1]
+  skipped       mid_atlantic_open_2026   2437 rows   [deltas 0, unresolved 1, splits 0, unknown fixtures 0]
+

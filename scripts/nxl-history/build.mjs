@@ -1,0 +1,613 @@
+/**
+ * Build `functions/data/nxlHistory.json` — the NXL win/loss record, 2015–2026.
+ *
+ *   node scripts/nxl-history/build.mjs          # report only, writes nothing
+ *   node scripts/nxl-history/build.mjs --write
+ *
+ * WHY A COMMITTED FILE RATHER THAN A COLLECTION
+ * This is static reference data about tournaments that have already happened. It changes
+ * three or four times a year, when an event finishes and the workbook is updated. Putting
+ * it in Firestore would add ~2,400 document reads to every projection rebuild to fetch
+ * numbers that had not moved; committing it means the diff is reviewable, the Cloud
+ * Function reads it for free, and a bad import is a revert rather than a migration.
+ *
+ * TWO INPUTS, JOINED
+ *   1. Power Rankings workbook, `5. Historic Results (Input)` — every match played,
+ *      2015–2026, with scores. The league is the authority on who won.
+ *   2. `Player_Roster_Historic.csv` from the pbleagues crawler — who was on which team
+ *      at which event, keyed on the permanent numeric player id.
+ *
+ * The join is team-and-event WITHIN A YEAR, which is what makes it safe: the field is
+ * only ~20 clubs wide in any season, so a suffix match is unambiguous where a global one
+ * would not be. Everything the automatic pass cannot pair is named in clubs.mjs with the
+ * evidence for it, and anything left over fails the run rather than being dropped.
+ *
+ * WHAT THIS DELIBERATELY DOES NOT DO
+ * It does not attempt per-point lineups. pbleagues carries them only for 2023 and about
+ * half of 2025-26, so a "matches actually played" figure would be blank for most of a
+ * career. A player is credited with their team's results at events they took the field
+ * for; `participation` decides that, downstream, from our own data.
+ */
+
+import fs from "node:fs";
+import path from "node:path";
+import { applyCorrections, ALL_CORRECTION_IDS } from "./corrections.mjs";
+import { checkFingerprints, saveFingerprints } from "./history-fingerprint.mjs";
+
+/**
+ * Which corrections actually fired, at module scope so the report at the end of the build
+ * can read it. Declared inside the event loop it was invisible there, and the report threw.
+ */
+const correctionsUsed = new Set();
+import { fileURLToPath } from "node:url";
+import XLSX from "xlsx";
+import {
+  CLUB_TEAM_ID,
+  CRAWLER_TEAM_ALIAS,
+  EVENTS_WITHOUT_RESULTS,
+  EVENT_ALIAS,
+  PICKEM_EVENT_ID,
+} from "./clubs.mjs";
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const REPO = path.resolve(HERE, "../..");
+
+const FIXTURES = "/Users/jamesgreen/Documents/PickEm Paintball/historic data/NXL_Power_Rankings_2026_v17.xlsx";
+const ROSTERS = "/Users/jamesgreen/Documents/nxl-pro-players/Player_Roster_Historic.csv";
+/**
+ * The crawler's second output: appearances it could not give a numeric id to.
+ *
+ * The numeric id comes from the avatar filename, so a player with no photo has none —
+ * 138 rows, 11 people, all of whom DO have a stable profile EPID. Carlos Cortes is the
+ * one who matters: 45 appearances 2015-2026 and no photo in the entire library, so
+ * without this he has no league record at all despite being a current X-Factor player.
+ */
+const ROSTERS_REVIEW =
+  "/Users/jamesgreen/Documents/nxl-pro-players/Player_Roster_Historic_review.csv";
+const OUT = path.join(REPO, "functions/data/nxlHistory.json");
+
+/**
+ * Knockout depth, shallowest number = deepest run.
+ *
+ * 2015-2017 had no Ochos round; a team's finish is read from the deepest round it
+ * actually appears in, so a format change needs no special case. A bye straight into
+ * the quarters is likewise just an absence from the Ochos.
+ */
+/* Wildcard is the shallowest bracket round — the one that decides who reaches the last 16. */
+const KNOCKOUT_DEPTH = { Final: 1, Semifinals: 2, Quarters: 3, Ochos: 4, Wildcard: 5 };
+
+/**
+ * Where a run ended, and the position that implies.
+ *
+ * There is no third-place match in this format, so the two beaten semi-finalists are
+ * joint third and no tournament produces a distinct 3rd place. That is why the page
+ * counts top-four finishes rather than podiums.
+ */
+const FINISH = {
+  winner: { rank: 1, label: "Winner" },
+  Final: { rank: 2, label: "Runner-up" },
+  Semifinals: { rank: 3, label: "Semi-finals" },
+  Quarters: { rank: 5, label: "Quarter-finals" },
+  Ochos: { rank: 9, label: "Ochos" },
+  /* Rank is a fallback only — the crawled league table overrides it wherever we have one. */
+  Wildcard: { rank: 17, label: "Wildcard" },
+  prelims: { rank: null, label: "Prelims" },
+};
+
+const norm = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+/** Event names, with the league prefix and any year stripped so the two sources meet. */
+const normEvent = (s) => norm(String(s ?? "").replace(/\bNXL\b/gi, "").replace(/\b20\d\d\b/g, ""));
+
+/**
+ * A spreadsheet date cell -> YYYY-MM-DD, INDEPENDENT OF THE BUILDER'S TIMEZONE.
+ *
+ * `xlsx` with `cellDates` hands back a Date built in LOCAL time, so
+ * `toISOString().slice(0, 10)` silently subtracts a day anywhere east of UTC: midnight
+ * on 11 November in CET is 23:00 UTC on the 10th. This file is committed, so that made
+ * the artefact depend on where it was built — nine events moved by a day between two
+ * builds on the same machine, purely because its timezone setting had changed, and the
+ * diff looked like the workbook had been edited.
+ *
+ * Reading the local calendar fields gives back exactly the date the cell displays,
+ * which is the only thing the workbook is actually asserting.
+ */
+const iso = (v) => {
+  const fromDate = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  if (v instanceof Date) return fromDate(v);
+  // A serial number is days since the 1900 epoch, with no timezone in it at all — build
+  // the Date in UTC and read it back in UTC so nothing local can shift it.
+  if (typeof v === "number") {
+    const d = new Date(Math.round((v - 25569) * 86400000));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+  }
+  const m = String(v ?? "").match(/^\d{4}-\d{2}-\d{2}/);
+  return m ? m[0] : null;
+};
+
+/** Minimal RFC-4180 reader — names can carry commas and a positional split loses them. */
+function readCsv(file) {
+  const text = fs.readFileSync(file, "utf8").split("\r\n").join("\n").trim();
+  const rows = [];
+  let row = [], cell = "", quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else quoted = false; }
+      else cell += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ",") { row.push(cell); cell = ""; }
+    else if (c === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += c;
+  }
+  row.push(cell); rows.push(row);
+  const head = rows[0];
+  return rows.slice(1).map((r) => Object.fromEntries(head.map((h, i) => [h, (r[i] ?? "").trim()])));
+}
+
+// -- 1. Matches, grouped into events ------------------------------------------
+
+function loadEvents() {
+  /**
+   * `cellDates: false` ON PURPOSE — read the raw serial number, not a Date.
+   *
+   * With `cellDates` the library builds the Date in local time, and it does not merely
+   * shift the instant, it lands on a different local CALENDAR DAY depending on the
+   * offset: the 2021 World Cup reads 11 November under London and 10 November under
+   * Paris. Reading the Date's local fields does not help, because the Date is already
+   * wrong. Since this file is committed, that made the artefact depend on where it was
+   * built — nine events moved by a day between two builds on this machine, purely
+   * because its timezone had changed, and the diff looked like the workbook had been
+   * edited.
+   *
+   * A serial is a count of days with no timezone in it. Converting it ourselves in UTC
+   * is the only reading that is the same everywhere.
+   */
+  const wb = XLSX.readFile(FIXTURES, { cellDates: false });
+  const raw = XLSX.utils.sheet_to_json(wb.Sheets["5. Historic Results (Input)"], {
+    range: 2, defval: null, raw: true,
+  });
+
+  const events = new Map(); // "{year}|{label}" -> event
+  const badRounds = [];
+
+  for (const r of raw) {
+    const year = String(r.Year ?? "").trim();
+    const label = String(r.Event ?? "").trim();
+    const round = String(r.Round ?? "").trim();
+    const a = String(r["Team 1"] ?? "").trim();
+    const b = String(r["Team 2"] ?? "").trim();
+    if (!year || !label || !a || !b) continue;
+
+    /**
+     * A Round cell we cannot read is a PRELIM, not a row to drop.
+     *
+     * The 2022 World Cup carries eight rows whose Round holds a corrupted date. Dropping
+     * them lost eight real results, so the evidence was checked instead: adding them back
+     * gives every one of the 24 teams exactly 3 or 4 group games, which is a complete
+     * stage — six of them are the top seeds' own group (Dynasty, Heat, Impact, TonTons,
+     * who play no other prelim), and two are play-ins for teams that then appear in the
+     * Ochos. None of the eight is a knockout tie.
+     *
+     * Treating them as prelims is therefore conservative in the only direction that
+     * matters: they count towards win/loss, and can never invent a bracket finish. Any
+     * such row is still reported, so a NEW unreadable round gets looked at rather than
+     * quietly absorbed.
+     */
+    const known = KNOCKOUT_DEPTH[round] != null || /prelim/i.test(round);
+    if (!known) badRounds.push({ year, label, round, a, b });
+
+    const key = `${year}|${label}`;
+    if (!events.has(key)) {
+      events.set(key, { key, year, label, matches: [], teams: new Set() });
+    }
+    const ev = events.get(key);
+    ev.matches.push({
+      round,
+      date: iso(r.Date),
+      a, b,
+      sa: Number(r["Score 1"]),
+      sb: Number(r["Score 2"]),
+    });
+    ev.teams.add(a); ev.teams.add(b);
+  }
+  return { events, badRounds };
+}
+
+/**
+ * Final placings crawled from pbleagues — see `crawl-rankings.mjs`.
+ *
+ * WHY THIS OVERRIDES WHAT WE DERIVE. The workbook records how FAR a team got, so the rank
+ * below comes from a fixed table keyed on the deepest knockout round reached: every beaten
+ * quarter-finalist is joint 5th, and a team that missed the bracket gets nothing at all.
+ * That is exactly half of every field, every year — 492 of 984 team-events with no placing.
+ *
+ * The league ranks all of them, 1 to N, back to 2015, and separates teams our table ties.
+ * So the crawled rank wins wherever we have one, and `finish` — the ROUND reached — stays
+ * derived, because the crawl has no equivalent for that word and "Sundays made" is computed
+ * from it.
+ *
+ * Absent the fixture the build still runs and falls back to the derived ranks.
+ */
+const RANKINGS_FIXTURE = new URL("./fixtures/event-rankings.json", import.meta.url);
+const CRAWLED_RANKS = (() => {
+  try {
+    const raw = JSON.parse(fs.readFileSync(RANKINGS_FIXTURE, "utf8"));
+    return new Map(raw.events.map((e) => [e.key, new Map(e.rankings.map((r) => [r.team, r.rank]))]));
+  } catch {
+    return new Map();
+  }
+})();
+
+/** Per-team record and finishing position at one event. */
+function scoreEvent(ev) {
+  const rec = new Map(); // club -> {w,l,t,deepest}
+  const take = (club) => {
+    if (!rec.has(club)) rec.set(club, { w: 0, l: 0, t: 0, deepest: null });
+    return rec.get(club);
+  };
+
+  let champion = null;
+  for (const m of ev.matches) {
+    const A = take(m.a), B = take(m.b);
+    if (m.sa > m.sb) { A.w++; B.l++; }
+    else if (m.sb > m.sa) { B.w++; A.l++; }
+    else { A.t++; B.t++; }
+
+    const depth = KNOCKOUT_DEPTH[m.round];
+    if (depth != null) {
+      for (const t of [A, B]) t.deepest = t.deepest == null ? depth : Math.min(t.deepest, depth);
+      if (m.round === "Final") champion = m.sa > m.sb ? m.a : m.b;
+    }
+  }
+
+  const teams = {};
+  for (const [club, r] of rec) {
+    const stage = Object.keys(KNOCKOUT_DEPTH).find((k) => KNOCKOUT_DEPTH[k] === r.deepest);
+    const f = club === champion ? FINISH.winner : (stage ? FINISH[stage] : FINISH.prelims);
+    teams[club] = { w: r.w, l: r.l, t: r.t, finishRank: f.rank, finish: f.label };
+  }
+  return { teams, champion };
+}
+
+// -- 2. Roster appearances, joined to those events -----------------------------
+
+/**
+ * Pair the crawler's team names to the fixture list's, one season at a time.
+ *
+ * MANY crawler names may map to ONE fixture club: a club is routinely listed under two
+ * names inside a single season (San Diego Aftermath and ASG Aftermath both appear in
+ * 2023, sharing 10 of 12 players). The reverse is never allowed — two fixture clubs
+ * collapsing into one crawler name would silently merge two teams' records.
+ */
+function resolveTeams(fixtureTeams, crawlerTeams) {
+  const map = new Map(); // crawler name -> fixture name
+  const left = [];
+
+  for (const c of crawlerTeams) {
+    const aliased = CRAWLER_TEAM_ALIAS[c];
+    if (aliased && fixtureTeams.includes(aliased)) { map.set(c, aliased); continue; }
+    const nc = norm(c);
+    const exact = fixtureTeams.filter((f) => norm(f) === nc || nc.endsWith(norm(f)));
+    if (exact.length === 1) { map.set(c, exact[0]); continue; }
+    const loose = fixtureTeams.filter((f) => nc.includes(norm(f)) || norm(f).includes(nc));
+    if (loose.length === 1) { map.set(c, loose[0]); continue; }
+    left.push({ crawler: c, candidates: exact.length ? exact : loose });
+  }
+
+  const covered = new Set(map.values());
+  return { map, unresolvedCrawler: left, unmatchedFixture: fixtureTeams.filter((f) => !covered.has(f)) };
+}
+
+function resolveEvents(year, fixtureLabels, crawlerLabels) {
+  const map = new Map(); // crawler label -> fixture label
+  const left = [];
+  const aliasTargets = new Map(
+    Object.entries(EVENT_ALIAS)
+      .filter(([k]) => k.startsWith(`${year}|`))
+      .map(([k, v]) => [v, k.slice(year.length + 1)]),
+  );
+
+  for (const c of crawlerLabels) {
+    const aliased = aliasTargets.get(c);
+    if (aliased && fixtureLabels.includes(aliased)) { map.set(c, aliased); continue; }
+    const nc = normEvent(c);
+    const exact = fixtureLabels.filter((f) => normEvent(f) === nc);
+    if (exact.length === 1) { map.set(c, exact[0]); continue; }
+    const loose = fixtureLabels.filter((f) => nc.includes(normEvent(f)) || normEvent(f).includes(nc));
+    if (loose.length === 1) { map.set(c, loose[0]); continue; }
+    left.push(c);
+  }
+  const covered = new Set(map.values());
+  return { map, unresolvedCrawler: left, unmatchedFixture: fixtureLabels.filter((f) => !covered.has(f)) };
+}
+
+// -- 3. Build ------------------------------------------------------------------
+
+function build() {
+  const { events, badRounds } = loadEvents();
+  const roster = readCsv(ROSTERS);
+  const reviewRoster = readCsv(ROSTERS_REVIEW);
+
+  const warnings = { badRounds, byYear: [], noResults: [], coachOnly: 0, noNumericId: 0 };
+
+  const fixtureByYear = new Map();
+  for (const ev of events.values()) {
+    if (!fixtureByYear.has(ev.year)) fixtureByYear.set(ev.year, []);
+    fixtureByYear.get(ev.year).push(ev);
+  }
+
+  const crawlerByYear = new Map();
+  for (const r of roster) {
+    if (!crawlerByYear.has(r.year)) crawlerByYear.set(r.year, []);
+    crawlerByYear.get(r.year).push(r);
+  }
+
+  // year -> { events: Map(crawlerLabel->fixtureLabel), teams: Map(crawlerTeam->club) }
+  const lookup = new Map();
+  const knownGaps = new Set(EVENTS_WITHOUT_RESULTS);
+
+  for (const [year, rows] of crawlerByYear) {
+    const evs = fixtureByYear.get(year) ?? [];
+    const fixtureLabels = evs.map((e) => e.label);
+    const fixtureTeams = [...new Set(evs.flatMap((e) => [...e.teams]))];
+    const crawlerLabels = [...new Set(rows.map((r) => r.event))];
+    const crawlerTeams = [...new Set(rows.map((r) => r.team))];
+
+    const E = resolveEvents(year, fixtureLabels, crawlerLabels);
+    const T = resolveTeams(fixtureTeams, crawlerTeams);
+
+    const unexplainedEvents = E.unresolvedCrawler.filter((c) => !knownGaps.has(`${year}|${c}`));
+    warnings.byYear.push({
+      year,
+      unresolvedEvents: unexplainedEvents,
+      unmatchedFixtureEvents: E.unmatchedFixture,
+      unresolvedTeams: T.unresolvedCrawler,
+      unmatchedFixtureTeams: T.unmatchedFixture,
+    });
+    for (const c of E.unresolvedCrawler) {
+      if (knownGaps.has(`${year}|${c}`)) warnings.noResults.push(`${year} ${c}`);
+    }
+    lookup.set(year, { events: E.map, teams: T.map });
+  }
+
+  // Per-event records.
+  const out = [];
+  for (const ev of events.values()) {
+    /*
+     * Corrections BEFORE scoring, never after. The records, the finishes and the emitted
+     * match list are all derived from `ev.matches`, so a correction applied later would
+     * leave a team's win-loss disagreeing with the games listed beneath it.
+     */
+    const fixed = applyCorrections(ev.key, ev.matches);
+    ev.matches = fixed.matches;
+    for (const id of fixed.used) correctionsUsed.add(id);
+
+    const { teams, champion } = scoreEvent(ev);
+
+    /* The league's own placing, where we crawled one. See CRAWLED_RANKS above. */
+    const crawled = CRAWLED_RANKS.get(ev.key);
+    if (crawled) {
+      for (const [club, t] of Object.entries(teams)) {
+        const rank = crawled.get(club);
+        if (rank != null) t.finishRank = rank;
+      }
+    }
+    const dates = ev.matches.map((m) => m.date).filter(Boolean).sort();
+    out.push({
+      key: ev.key,
+      year: ev.year,
+      label: ev.label,
+      start: dates[0] ?? null,
+      fieldSize: ev.teams.size,
+      champion,
+      pickemEventId: PICKEM_EVENT_ID[ev.key] ?? null,
+      teams,
+      matches: ev.matches.map((m) => [m.round, m.date, m.a, m.b, m.sa, m.sb]),
+    });
+  }
+  out.sort((a, b) => (a.start ?? "").localeCompare(b.start ?? "") || a.key.localeCompare(b.key));
+
+  // Appearances, keyed on the permanent numeric player id.
+  const appearances = new Map();
+  const names = new Map();
+  for (const r of roster) {
+    if (r.role !== "Player") { warnings.coachOnly++; continue; }
+    if (!r.numeric_id) { warnings.noNumericId++; continue; }
+    const L = lookup.get(r.year);
+    const fixtureLabel = L?.events.get(r.event);
+    const club = L?.teams.get(r.team);
+    if (!fixtureLabel || !club) continue; // an event with no results, already reported
+    const key = `${r.year}|${fixtureLabel}`;
+    if (!events.has(key)) continue;
+    if (!appearances.has(r.numeric_id)) appearances.set(r.numeric_id, new Map());
+    appearances.get(r.numeric_id).set(key, club);
+    names.set(r.numeric_id, r.name);
+  }
+
+  /**
+   * The same pass again, for the players the crawler could not number.
+   *
+   * Keyed on EPID rather than numeric id, in a SEPARATE index. Merging the two would
+   * mean one map with two kinds of key and no way to tell which a lookup used; keeping
+   * them apart makes the fallback explicit at the call site.
+   *
+   * Everything else is identical — same event and club resolution, same Player-only
+   * filter — so an EPID career is built to exactly the same standard as a numeric one.
+   */
+  const appearancesByEpid = new Map();
+  const epidNames = new Map();
+  for (const r of reviewRoster) {
+    if (r.role !== "Player") continue;
+    if (!r.epid) continue;
+    if (r.numeric_id) continue; // it has a real id; the main pass already has it
+    const L = lookup.get(r.year);
+    const fixtureLabel = L?.events.get(r.event);
+    const club = L?.teams.get(r.team);
+    if (!fixtureLabel || !club) continue;
+    const key = `${r.year}|${fixtureLabel}`;
+    if (!events.has(key)) continue;
+    if (!appearancesByEpid.has(r.epid)) appearancesByEpid.set(r.epid, new Map());
+    appearancesByEpid.get(r.epid).set(key, club);
+    epidNames.set(r.epid, r.name);
+  }
+
+  /**
+   * Chronological, oldest first — the order a career reads in.
+   *
+   * The crawler emits rows grouped by event id, which is neither alphabetical nor
+   * chronological, so an unsorted list put Tampa Bay third in a 2025 season it opened.
+   * Sorting here rather than downstream keeps every consumer honest about sequence
+   * without each one having to re-derive it.
+   */
+  const startOf = new Map(out.map((e) => [e.key, e.start ?? ""]));
+  const byStart = (m) =>
+    [...m]
+      .sort((a, b) => (startOf.get(a[0]) ?? "").localeCompare(startOf.get(b[0]) ?? ""))
+      .map(([k, club]) => [k, club]);
+
+  const appearanceOut = {};
+  for (const [id, m] of appearances) appearanceOut[id] = byStart(m);
+  const appearanceByEpidOut = {};
+  for (const [epid, m] of appearancesByEpid) appearanceByEpidOut[epid] = byStart(m);
+
+  return {
+    generated: new Date().toISOString(),
+    sources: { fixtures: path.basename(FIXTURES), rosters: path.basename(ROSTERS) },
+    clubTeamId: CLUB_TEAM_ID,
+    events: out,
+    appearances: appearanceOut,
+    appearancesByEpid: appearanceByEpidOut,
+    warnings,
+    names: Object.fromEntries([...names, ...epidNames]),
+  };
+}
+
+// -- 4. Report -----------------------------------------------------------------
+
+const data = build();
+const w = data.warnings;
+
+console.log(`\nEvents with results   ${data.events.length}`);
+console.log(`Matches               ${data.events.reduce((a, e) => a + e.matches.length, 0)}`);
+console.log(`Players with a record ${Object.keys(data.appearances).length}`);
+console.log(`  ...plus, by EPID    ${Object.keys(data.appearancesByEpid).length} with no photo, so no numeric id`);
+console.log(`Appearances joined    ${Object.values(data.appearances).reduce((a, x) => a + x.length, 0)}`);
+console.log(`Coach rows skipped    ${w.coachOnly}`);
+console.log(`No numeric id         ${w.noNumericId}`);
+
+let hard = 0;
+for (const y of w.byYear) {
+  const problems = [
+    y.unresolvedEvents.length && `events unpaired: ${y.unresolvedEvents.join(", ")}`,
+    y.unmatchedFixtureEvents.length && `fixture events with no roster: ${y.unmatchedFixtureEvents.join(", ")}`,
+    y.unresolvedTeams.length && `teams unpaired: ${y.unresolvedTeams.map((t) => t.crawler).join(", ")}`,
+    y.unmatchedFixtureTeams.length && `fixture teams with no roster: ${y.unmatchedFixtureTeams.join(", ")}`,
+  ].filter(Boolean);
+  if (problems.length) { hard++; console.log(`\n  ${y.year}  ${problems.join("\n        ")}`); }
+}
+
+/**
+ * A league event in a PickEm season that nobody mapped to a Firestore event id.
+ *
+ * THIS IS THE ONE THAT BITES SILENTLY. The career page merges the league's events with
+ * PickEm's, keyed on `pickemEventId`. An event with results and rosters but no mapping
+ * does not fail anything — it simply appears TWICE: once as a league-only row with
+ * dashes, and once as a PickEm row with kills. Every season boundary is a chance to
+ * forget, because adding the mapping is a hand edit in clubs.mjs.
+ *
+ * Every NXL event from 2025 on is a PickEm event, so an unmapped one is always a
+ * mistake rather than a judgement call.
+ */
+const pickemYears = Object.keys(PICKEM_EVENT_ID).map((k) => k.split("|")[0]);
+const firstPickemYear = pickemYears.length ? pickemYears.sort()[0] : null;
+const unmapped = firstPickemYear
+  ? data.events.filter((e) => e.year >= firstPickemYear && !e.pickemEventId)
+  : [];
+if (unmapped.length) {
+  console.log(`\n⚠️  League events in a PickEm season with no pickemEventId:`);
+  unmapped.forEach((e) => console.log(`  ${e.key}`));
+  console.log(`  These will render TWICE on a career page — once from each source.`);
+  console.log(`  Add them to PICKEM_EVENT_ID in scripts/nxl-history/clubs.mjs.`);
+}
+
+if (w.noResults.length) {
+  console.log(`\nKnown gaps (rostered, no results in the workbook):`);
+  w.noResults.forEach((e) => console.log(`  ${e}`));
+}
+if (w.badRounds.length) {
+  console.log(`\nRows with an unreadable Round, counted as prelims:`);
+  w.badRounds.forEach((r) => console.log(`  ${r.year} ${r.label}  "${String(r.round).slice(0, 24)}"  ${r.a} v ${r.b}`));
+}
+
+if (hard) {
+  console.error(`\n${hard} season(s) did not resolve cleanly. Fix scripts/nxl-history/clubs.mjs before writing.\n`);
+  process.exit(1);
+}
+  /*
+   * Name any correction that matched nothing.
+   *
+   * A correction is a claim about a row in someone else's spreadsheet. When that row is
+   * fixed at source — or edited into a different shape — the entry here stops matching and
+   * silently does nothing, which is the worst outcome: the file still asserts a fix that is
+   * no longer being applied. Saying so on every build is what keeps the two in step.
+   */
+  const unused = ALL_CORRECTION_IDS.filter(([id]) => !correctionsUsed.has(id));
+  console.log(`\nCorrections: ${correctionsUsed.size} of ${ALL_CORRECTION_IDS.length} applied`);
+  if (unused.length) {
+    console.log(`  ⚠️  matched nothing — check the workbook has not changed under them:`);
+    unused.forEach(([, what]) => console.log(`       ${what}`));
+  }
+
+
+console.log(`\nChampions, most recent six:`);
+for (const e of data.events.slice(-6)) console.log(`  ${e.year} ${e.label.padEnd(22)} ${e.champion ?? "-"}`);
+
+/**
+ * A finished tournament that has changed stops the build.
+ *
+ * Adding an event is normal; history grows every season. Changing one that was already
+ * verified is not, and it is the failure mode that hides best - the two fabricated 2017
+ * games sat in the file for months because every internal check derived its numbers from
+ * the very rows that were wrong.
+ *
+ * `--bless-history` re-records the fingerprints, and is how a DELIBERATE correction is
+ * accepted. It should only ever be run alongside an entry in `corrections.mjs` saying what
+ * changed and why.
+ */
+{
+  const fp = checkFingerprints(data.events);
+  if (fp.missing) {
+    console.log(`\nHistory fingerprints: none recorded yet - run with --bless-history to set the baseline.`);
+  } else {
+    if (fp.added.length) console.log(`\nHistory: ${fp.added.length} new event(s) - ${fp.added.join(", ")}`);
+    if (fp.removed.length) console.log(`\n⚠️  History: ${fp.removed.length} event(s) have DISAPPEARED - ${fp.removed.join(", ")}`);
+    if (fp.changed.length || fp.removed.length) {
+      console.error(`\n❌ FINISHED EVENTS HAVE CHANGED since ${fp.generated}:`);
+      for (const c of fp.changed) {
+        console.error(`     ${c.key}  matches ${c.was} -> ${c.now}  (${c.wasHash} -> ${c.nowHash})`);
+      }
+      console.error(
+        `\n   These results were reconciled against the league and signed off. If the change is\n` +
+        `   deliberate, record it in corrections.mjs and re-run with --bless-history.\n`,
+      );
+      if (!process.argv.includes("--bless-history")) process.exit(1);
+    } else {
+      console.log(`\nHistory: ${Object.keys(fp).length ? "" : ""}unchanged since ${fp.generated}`);
+    }
+  }
+}
+
+if (!process.argv.includes("--write")) {
+  console.log(`\nNo --write flag, so nothing was written.\n`);
+  process.exit(0);
+}
+
+fs.mkdirSync(path.dirname(OUT), { recursive: true });
+fs.writeFileSync(OUT, JSON.stringify(data));
+
+if (process.argv.includes("--bless-history")) {
+  const saved = saveFingerprints(data.events, process.argv.slice(2).join(" "));
+  console.log(`History fingerprints re-recorded for ${Object.keys(saved.events).length} events.`);
+}
+console.log(`\nWrote ${OUT} - ${(fs.statSync(OUT).size / 1024).toFixed(0)} KB\n`);

@@ -401,7 +401,14 @@ export default function Pickems() {
       try {
         const raw = await fetchFromFirestore(`events/${liveEvent.id}/players`);
         const players: Player[] = raw.map((r: any) => ({
-          player_id: r.player_id != null ? String(r.player_id) : r.id, league_id: r.league_id, Player: r.Player, Team: r.Team,
+          // THE DOCUMENT ID IS THE IDENTITY, never the stored `player_id` field.
+          // The August identity fix moved 26 players to new document ids and left the
+          // inner field on its old value — Ivan Lopez lives at 100403 and still says
+          // 100149. Preferring the field meant this page would hand the wrong id to a
+          // pick, which scoring then resolves against the doc id and cannot find.
+          // Harmless today (every mismatch is on a locked 2025 event and the live
+          // roster is clean) and a silent scoring bug the first time it is not.
+          player_id: r.id, league_id: r.league_id, Player: r.Player, Team: r.Team,
           Rank: r.Rank, team_id: r.team_id, Cost: r.Cost, img_url: r.img_url,
           picture: r.img_url?.trim() ? r.img_url : undefined,
           pictureLoading: !r.img_url?.trim(),
@@ -409,7 +416,7 @@ export default function Pickems() {
           StatusUpdatedAt: r.StatusUpdatedAt,
           elimsByEvent: Object.fromEntries(
             Object.entries(eventElimsRef.current)
-              .map(([eventId, elims]) => [eventId, elims[String(r.player_id)]] as [string, number])
+              .map(([eventId, elims]) => [eventId, elims[String(r.id)]] as [string, number])
               .filter(([, v]) => v != null)
           ),
         }));

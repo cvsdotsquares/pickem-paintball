@@ -1,0 +1,210 @@
+{
+  "generated": "2026-09-15T23:16:28.977Z",
+  "note": "--write --bless-history",
+  "events": {
+    "2015|Great Lakes Open": {
+      "hash": "8588bf9c07e3841e",
+      "matches": 39
+    },
+    "2015|NXL Virginia Beach Open": {
+      "hash": "8c8199d7de0894f3",
+      "matches": 39
+    },
+    "2015|NXL World Cup": {
+      "hash": "2fedcd634ff7dacf",
+      "matches": 39
+    },
+    "2016|NXL Las Vegas Open": {
+      "hash": "870583e13d2b969c",
+      "matches": 39
+    },
+    "2016|NXL Texas Open": {
+      "hash": "64e9f5e116a8244a",
+      "matches": 39
+    },
+    "2016|NXL Nashville Open": {
+      "hash": "fce07422cfcc38f4",
+      "matches": 39
+    },
+    "2016|Great Lakes Open": {
+      "hash": "a92131821a7d7d0e",
+      "matches": 39
+    },
+    "2016|NXL World Cup": {
+      "hash": "2c870268488a8f4d",
+      "matches": 39
+    },
+    "2017|NXL Las Vegas Open": {
+      "hash": "153c437c3658cefc",
+      "matches": 39
+    },
+    "2017|NXL Texas Open": {
+      "hash": "614f6c701ac7ea35",
+      "matches": 39
+    },
+    "2017|NXL Atlantic City Open": {
+      "hash": "db66cc58a16967be",
+      "matches": 39
+    },
+    "2017|NXL Chicago Open": {
+      "hash": "1a99dc5517badbfc",
+      "matches": 39
+    },
+    "2017|NXL World Cup": {
+      "hash": "00bdb78f5858e452",
+      "matches": 37
+    },
+    "2018|NXL Las Vegas Open": {
+      "hash": "a92740bda6075971",
+      "matches": 49
+    },
+    "2018|NXL Texas Open": {
+      "hash": "b7a68be3815de987",
+      "matches": 49
+    },
+    "2018|NXL Atlantic City Open": {
+      "hash": "c6bca0964be980bb",
+      "matches": 49
+    },
+    "2018|NXL Chicago Open": {
+      "hash": "fca23eeec637fcb5",
+      "matches": 49
+    },
+    "2018|NXL World Cup": {
+      "hash": "6bff818b3e8dee35",
+      "matches": 49
+    },
+    "2019|NXL Las Vegas Open": {
+      "hash": "5ec069d2c0a85f65",
+      "matches": 49
+    },
+    "2019|NXL Texas Open": {
+      "hash": "8a63ecc11f3723ce",
+      "matches": 49
+    },
+    "2019|NXL Philadelphia Open": {
+      "hash": "f6d616fcfed71db0",
+      "matches": 49
+    },
+    "2019|NXL Chicago Open": {
+      "hash": "72bc4b723c39519d",
+      "matches": 49
+    },
+    "2019|NXL World Cup": {
+      "hash": "a5a9f306ae699582",
+      "matches": 49
+    },
+    "2020|NXL Las Vegas Open": {
+      "hash": "441950ddb40557c6",
+      "matches": 49
+    },
+    "2020|NXL World Cup": {
+      "hash": "9d222d734e7d51d2",
+      "matches": 49
+    },
+    "2021|Sunshine State Major": {
+      "hash": "f5bd5535c2e0704d",
+      "matches": 49
+    },
+    "2021|Mid Atlantic Major": {
+      "hash": "ca58178130782b0b",
+      "matches": 49
+    },
+    "2021|Windy City Major": {
+      "hash": "ffa4496de4c0050c",
+      "matches": 49
+    },
+    "2021|World Cup": {
+      "hash": "74e8bbbef1471ab8",
+      "matches": 49
+    },
+    "2022|Sunshine State Major": {
+      "hash": "2344be6a01d2cd9a",
+      "matches": 49
+    },
+    "2022|Atlantic City Major": {
+      "hash": "f20165f29f4d6fc5",
+      "matches": 49
+    },
+    "2022|Windy City Major": {
+      "hash": "f63f8fdb394ed665",
+      "matches": 49
+    },
+    "2022|World Cup": {
+      "hash": "da47077f1cda9cb5",
+      "matches": 49
+    },
+    "2023|Sunshine State Major": {
+      "hash": "4a8e0b5c658321b7",
+      "matches": 49
+    },
+    "2023|Lone Star Major": {
+      "hash": "1595a9aa9805d8d3",
+      "matches": 49
+    },
+    "2023|Mid Atlantic Major": {
+      "hash": "93419184d90bd912",
+      "matches": 49
+    },
+    "2023|Windy City Major": {
+      "hash": "9417c75b84f9f819",
+      "matches": 49
+    },
+    "2023|World Cup": {
+      "hash": "a2c869481017d72e",
+      "matches": 57
+    },
+    "2024|Las Vegas Major": {
+      "hash": "f6fc6b88a88aa33e",
+      "matches": 49
+    },
+    "2024|Lone Star Major": {
+      "hash": "5f5074e3331a2808",
+      "matches": 49
+    },
+    "2024|Mid Atlantic Major": {
+      "hash": "cf77b3a01ae217a4",
+      "matches": 49
+    },
+    "2024|Windy City Open": {
+      "hash": "740af31b07057c9a",
+      "matches": 49
+    },
+    "2024|World Cup": {
+      "hash": "08376eeee100f2c4",
+      "matches": 57
+    },
+    "2025|Tamp Bay Open": {
+      "hash": "57f415bd2cb60d67",
+      "matches": 49
+    },
+    "2025|Atlantic City Open": {
+      "hash": "1d91d725917c07cd",
+      "matches": 49
+    },
+    "2025|Midwest Open": {
+      "hash": "57edde83939234b2",
+      "matches": 49
+    },
+    "2025|Lone Star": {
+      "hash": "2aee0f5255331212",
+      "matches": 49
+    },
+    "2025|NXL World Cup": {
+      "hash": "33a62467ebc66a46",
+      "matches": 57
+    },
+    "2026|Open": {
+      "hash": "f9f6f3f5dcaad720",
+      "matches": 49
+    },
+    "2026|Mid Atlantic Open": {
+      "hash": "cb700a818b481aeb",
+      "matches": 49
+    },
+    "2026|Midwest Open": {
+      "hash": "faba2f8054112b11",
+      "matches": 49
+    }
+  }
+}

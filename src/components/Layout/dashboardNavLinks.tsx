@@ -10,6 +10,12 @@ export type DashboardNavItem = {
   label: string;
   href: string;
   icon: ReactNode;
+  /**
+   * Sub-routes shown as a dropdown. `href` stays the item's own destination, so the
+   * link still works if the menu never opens — keyboard, touch and no-JS all land
+   * somewhere sensible rather than on a dead parent.
+   */
+  children?: { label: string; href: string; description?: string }[];
 };
 
 export const primaryDashboardLinks: DashboardNavItem[] = [
@@ -26,6 +32,23 @@ export const primaryDashboardLinks: DashboardNavItem[] = [
     icon: (
       <ImStatsBars className="h-5 w-5 shrink-0 text-gray-600 dark:text-neutral-200" />
     ),
+    children: [
+      {
+        label: "All time",
+        href: "/dashboard/stats/all-time",
+        description: "Every player, every event",
+      },
+      {
+        label: "Event stats",
+        href: "/dashboard/stats",
+        description: "One event at a time",
+      },
+      {
+        label: "Career stats",
+        href: "/dashboard/players",
+        description: "Browse players and their careers",
+      },
+    ],
   },
   {
     label: "Live PickEm",

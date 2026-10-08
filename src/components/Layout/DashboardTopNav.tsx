@@ -5,8 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ImMenu2 } from "react-icons/im";
-import { LuLogOut, LuX } from "react-icons/lu";
+import { LuChevronDown, LuLogOut, LuX } from "react-icons/lu";
 import { MdDarkMode, MdLightMode } from "react-icons/md";
+import { createPortal } from "react-dom";
 import { cn } from "@/src/lib/utils";
 import { useTheme } from "@/src/contexts/ThemeContext";
 import NotificationBell from "@/src/components/Notifications/NotificationBell";
@@ -229,61 +230,296 @@ function MobileSubscriptionBanner() {
   );
 }
 
+/**
+ * Which child route the current path is on.
+ *
+ * Longest match wins, because the children overlap: "Event stats" is `/dashboard/stats`
+ * and "All time" is `/dashboard/stats/all-time`, so a plain prefix test would light up
+ * both on the all-time page. The longest matching href is the one actually being viewed.
+ */
+function activeChildHref(
+  pathname: string | null,
+  children: NonNullable<DashboardNavItem["children"]>,
+): string | null {
+  let best: string | null = null;
+  for (const c of children) {
+    if (!isDashboardNavActive(pathname, c.href)) continue;
+    if (best === null || c.href.length > best.length) best = c.href;
+  }
+  return best;
+}
+
+const PILL_BASE =
+  "flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-gray-900 transition md:py-1 dark:text-neutral-200";
+const PILL_ACTIVE =
+  "border-l-[3px] border-[#00f976] bg-[#00f976]/10 pl-[5px] dark:bg-[#00f976]/15";
+const PILL_IDLE =
+  "border-l-[3px] border-transparent hover:bg-gray-100 dark:hover:bg-white/10";
+
+/**
+ * A row in the mobile panel.
+ *
+ * An item with `children` is a DISCLOSURE, not a link: tapping it expands its routes
+ * in place and pushes everything below down, rather than opening a second layer the
+ * user has to navigate back out of. In a panel this tall there is room to expand in
+ * flow, and staying in flow means the rest of the menu never leaves the screen.
+ *
+ * It deliberately does not navigate. Its own page is offered as one of the choices
+ * ("Event stats"), so a tap that both expanded AND went somewhere would move the user
+ * before they had chosen — the same rule the desktop row follows.
+ */
 function NavLinkPill({
   item,
   onNavigate,
   active,
+  pathname,
 }: {
   item: DashboardNavItem;
   onNavigate?: () => void;
   active?: boolean;
+  pathname?: string | null;
 }) {
+  const children = item.children ?? [];
+  const reduceMotion = useReducedMotion();
+  const onChild = children.length > 0 ? activeChildHref(pathname ?? null, children) : null;
+  // Opens already expanded when you are on one of its routes, so the menu shows where
+  // you are rather than making you find it again. The panel unmounts on close, so this
+  // is re-evaluated every time it opens.
+  const [open, setOpen] = useState(onChild !== null);
+  const panelId = `nav-sub-${item.label.replace(/\s+/g, "-").toLowerCase()}`;
+
+  if (children.length === 0) {
+    return (
+      <Link
+        href={item.href}
+        onClick={onNavigate}
+        aria-current={active ? "page" : undefined}
+        className={cn(PILL_BASE, active ? PILL_ACTIVE : PILL_IDLE)}
+      >
+        {item.icon}
+        <span className="font-azonix text-sm uppercase tracking-wide">{item.label}</span>
+      </Link>
+    );
+  }
+
   return (
-    <Link
-      href={item.href}
-      onClick={onNavigate}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "flex items-center gap-2 rounded-md px-2 py-2 text-gray-900 transition md:py-1 dark:text-neutral-200",
-        active
-          ? "border-l-[3px] border-[#00f976] bg-[#00f976]/10 pl-[5px] dark:bg-[#00f976]/15"
-          : "border-l-[3px] border-transparent hover:bg-gray-100 dark:hover:bg-white/10",
-      )}
-    >
-      {item.icon}
-      <span className="font-azonix text-sm uppercase tracking-wide">{item.label}</span>
-    </Link>
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls={panelId}
+        className={cn(PILL_BASE, onChild ? PILL_ACTIVE : PILL_IDLE)}
+      >
+        {item.icon}
+        <span className="font-azonix text-sm uppercase tracking-wide">{item.label}</span>
+        <LuChevronDown
+          className={cn(
+            "ml-auto h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 dark:text-white/40",
+            open && "rotate-180",
+            reduceMotion && "transition-none",
+          )}
+          aria-hidden
+        />
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            id={panelId}
+            initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            {/* Indented under the parent's icon, with a rule running down it — the line
+                is what makes the indent read as containment rather than a stray margin. */}
+            <div className="ml-[21px] flex flex-col border-l border-gray-200 pl-3 pt-1 dark:border-white/10">
+              {children.map((c) => {
+                const childActive = c.href === onChild;
+                return (
+                  <Link
+                    key={c.href}
+                    href={c.href}
+                    onClick={onNavigate}
+                    aria-current={childActive ? "page" : undefined}
+                    className={cn(
+                      "rounded-md px-2 py-2 font-azonix text-xs uppercase tracking-wide transition",
+                      childActive
+                        ? "bg-[#00f976]/10 text-gray-900 dark:bg-[#00f976]/15 dark:text-white"
+                        : "text-gray-600 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-white/10",
+                    )}
+                  >
+                    {c.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
+const NAV_LINK_CLASS =
+  "inline-block border-b-2 pb-0.5 font-azonix text-xs uppercase tracking-wide transition-colors sm:text-sm";
+
+/**
+ * A top-level nav item.
+ *
+ * Items with `children` toggle an expansion of the header itself rather than opening a
+ * floating panel. The panel is therefore NOT rendered here — it is a sibling of the
+ * whole nav row, full width, so this only reports which item is open.
+ *
+ * A parent with children does not navigate on click: its own page is offered as one of
+ * the choices ("Event stats"), so clicking the label would otherwise take you somewhere
+ * before you had chosen.
+ */
 function NavLinkInline({
   item,
   onNavigate,
   active,
+  expanded,
+  onToggle,
 }: {
   item: DashboardNavItem;
   onNavigate?: () => void;
   active?: boolean;
+  expanded?: boolean;
+  onToggle?: (label: string | null) => void;
 }) {
+  // The green underline means "you are here", so an expanded menu must not borrow it —
+  // it would mark Stats as the current page while you are still choosing. Expanded
+  // shows as full-strength ink and a turned chevron instead.
+  const linkClass = cn(
+    NAV_LINK_CLASS,
+    active
+      ? "border-[#00f976] text-gray-950 dark:text-white"
+      : cn(
+          "border-transparent",
+          expanded
+            ? "text-gray-950 dark:text-white"
+            : "text-gray-800 hover:text-gray-950 dark:text-neutral-200 dark:hover:text-white",
+        ),
+  );
+
+  if (!item.children?.length) {
+    return (
+      <Link href={item.href} onClick={onNavigate} aria-current={active ? "page" : undefined} className={linkClass}>
+        {item.label}
+      </Link>
+    );
+  }
+
   return (
-    <Link
-      href={item.href}
-      onClick={onNavigate}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "inline-block border-b-2 pb-0.5 font-azonix text-xs uppercase tracking-wide transition-colors sm:text-sm",
-        active
-          ? "border-[#00f976] text-gray-950 dark:text-white"
-          : "border-transparent text-gray-800 hover:text-gray-950 dark:text-neutral-200 dark:hover:text-white",
-      )}
+    <button
+      type="button"
+      data-nav-trigger={item.label}
+      aria-expanded={expanded}
+      aria-haspopup="true"
+      onClick={() => onToggle?.(expanded ? null : item.label)}
+      className={cn(linkClass, "inline-flex items-center gap-1")}
     >
       {item.label}
-    </Link>
+      <span aria-hidden className={cn("text-[8px] transition-transform", expanded && "rotate-180")}>
+        ▼
+      </span>
+    </button>
+  );
+}
+
+/**
+ * The expanded row, spanning the header.
+ *
+ * Sits below the nav row and outside the wrapper that collapses that row on scroll —
+ * anything inside it is clipped to the row height, which is what left the earlier
+ * floating panel zero pixels tall.
+ */
+function NavExpansionRow({
+  item,
+  onNavigate,
+}: {
+  item: DashboardNavItem;
+  onNavigate?: () => void;
+}) {
+  const pathname = usePathname();
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [padLeft, setPadLeft] = useState<number | null>(null);
+
+  /**
+   * Left-aligned to the item that opened it, not centred on the page.
+   *
+   * Sharing a left edge with the parent is what ties the two together — in LTR the eye
+   * returns to a margin to scan a list, and a midpoint gives it nothing to land on.
+   * It is also stable: centring would shift the whole row as options are added or
+   * renamed, while an anchor does not move.
+   *
+   * The nav row above is centred, so this sits deliberately off-centre. That asymmetry
+   * is the only cue pointing at WHICH item is open, so it is a feature rather than a
+   * blemish to be balanced away.
+   */
+  useEffect(() => {
+    const place = () => {
+      const row = rowRef.current;
+      const trigger = document.querySelector<HTMLElement>(
+        `[data-nav-trigger="${item.label}"]`,
+      );
+      if (!row || !trigger) return;
+      const left = trigger.getBoundingClientRect().left - row.getBoundingClientRect().left;
+      setPadLeft(Math.max(left, 0));
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [item.label]);
+
+  return (
+    <div
+      ref={rowRef}
+      className="border-t border-gray-200 bg-white dark:border-white/10 dark:bg-[#101010]"
+    >
+      <nav
+        className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5"
+        // Until measured, fall back to centred rather than flashing hard-left.
+        style={padLeft == null ? { justifyContent: "center" } : { paddingLeft: padLeft }}
+      >
+        {item.children?.map((c) => {
+          const here = pathname === c.href;
+          return (
+            <Link
+              key={c.href}
+              href={c.href}
+              onClick={onNavigate}
+              aria-current={here ? "page" : undefined}
+              className={cn(
+                "font-azonix text-[11px] uppercase tracking-wide transition-colors",
+                here
+                  ? "text-gray-950 dark:text-[#00f976]"
+                  : "text-gray-500 hover:text-gray-950 dark:text-neutral-400 dark:hover:text-white",
+              )}
+            >
+              {c.label}
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
   );
 }
 
 /** Desktop second row: primary routes + FAQ inline (Terms & Conditions stay in ☰ / mobile footer). */
-function DesktopMainNavRow({ onNavigate }: { onNavigate?: () => void }) {
+function DesktopMainNavRow({
+  onNavigate,
+  expanded,
+  onToggle,
+}: {
+  onNavigate?: () => void;
+  /** Label of the item whose row is open, if any. Owned by the header. */
+  expanded?: string | null;
+  onToggle?: (label: string | null) => void;
+}) {
   const pathname = usePathname();
   return (
     <nav
@@ -296,6 +532,8 @@ function DesktopMainNavRow({ onNavigate }: { onNavigate?: () => void }) {
           item={item}
           onNavigate={onNavigate}
           active={isDashboardNavActive(pathname, item.href)}
+          expanded={expanded === item.label}
+          onToggle={onToggle}
         />
       ))}
       <NavLinkInline
@@ -314,6 +552,24 @@ export default function DashboardTopNav({
   const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  /** Which nav item has expanded the header, by label. Null when collapsed. */
+  const [expandedNav, setExpandedNav] = useState<string | null>(null);
+  const expandedItem = primaryDashboardLinks.find(
+    (i) => i.label === expandedNav && i.children?.length,
+  );
+
+  // Collapse on navigation and on Escape — an expanded header that survives a route
+  // change reads as stuck rather than open.
+  const navPathname = usePathname();
+  useEffect(() => setExpandedNav(null), [navPathname]);
+  useEffect(() => {
+    if (!expandedNav) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setExpandedNav(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [expandedNav]);
   const { loading: subscriptionLoading } = useSubscription();
   const mainScrollTop = useDashboardMainScrollTop();
   const reduceMotion = useReducedMotion();
@@ -496,8 +752,17 @@ export default function DashboardTopNav({
           }}
           aria-hidden={desktopNavHideProgress >= 1}
         >
-          <DesktopMainNavRow />
+          <DesktopMainNavRow
+            expanded={expandedNav}
+            onToggle={setExpandedNav}
+            onNavigate={() => setExpandedNav(null)}
+          />
         </div>
+        {/* Outside the collapsing wrapper on purpose: that wrapper clips to the nav
+            row's height, which is what made a nested panel invisible. */}
+        {expandedItem && (
+          <NavExpansionRow item={expandedItem} onNavigate={() => setExpandedNav(null)} />
+        )}
       </div>
 
       {/* —— Mobile: full-height panel under fixed header; slides in from the left —— */}
@@ -554,6 +819,7 @@ export default function DashboardTopNav({
                         item={item}
                         onNavigate={closeAll}
                         active={isDashboardNavActive(pathname, item.href)}
+                        pathname={pathname}
                       />
                     ))}
                   </nav>

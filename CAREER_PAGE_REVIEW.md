@@ -1,0 +1,383 @@
+# Career page — NXL record: review log
+
+Running list of everything on the NXL win/loss work that needs James, kept so decisions
+are not rediscovered. Started 4 Sep 2026.
+
+Preview URLs (throwaway docs, no existing document touched — delete with
+`node scripts/nxl-history/preview.mjs --delete`):
+
+| URL | Case |
+|---|---|
+| `/dashboard/players/zzpreview_veteran` | Justin Rabackoff — 16 wins, tier A |
+| `/dashboard/players/zzpreview_titleless` | Tj Danner — 0 wins, 43 Sundays, tier B |
+| `/dashboard/players/zzpreview_nosunday` | Jordan Boyum — no bracket ever, tier C |
+| `/dashboard/players/zzpreview_rookie` | Dominic DeVivo — 1 season, panel hidden |
+| `/dashboard/players/zzpreview_norecord` | Nikolao Asabedo — no NXL id at all |
+
+---
+
+## 1. Decisions I need from you
+
+- [ ] **"Sunday" is defined as reaching the knockout bracket, not the calendar day.**
+      At every event in the file the whole bracket is played on the final day, and that
+      day has sometimes been a Saturday — Lone Star 2025 finished on Sat 13 September.
+      Kept your word because it is the sport's term; the gloss is now a hover tooltip
+      (see below). Say if you want it renamed.
+
+- [ ] **Ranks are against all 699 Pro players since 2015, not the ~233 on current PickEm
+      rosters.** "All-time" has to mean all-time or it inflates every year as veterans
+      retire. Consequence: a rank is out of 699 even though only 233 players have a page.
+
+- [ ] **The rank tile is labelled by what it ranks** — "Wins rank", "Sundays rank",
+      "Matches rank" — rather than "All-time rank", because the PickEm row directly below
+      already has an "All-time rank" on career kills and two tiles inches apart under the
+      same words would read as the same measurement.
+
+- [ ] **Tier C's middle tile is matches rank.** You said "just match statistics" without
+      specifying; I kept the shape consistent (count → rank of that count → rate). The
+      alternative is ranking by match win % instead, which is a performance stat rather
+      than a longevity one. Your call.
+
+- [ ] **The career won-lost record is not on the career-page hero for tiers A and B.**
+      (Partly eased since: the all-time table and the leader cards both carry a Record
+      column now, so the figure exists on the site — just not beside the win rate it is
+      the denominator for.)
+      Removing "224-72" from under the match win % (4 Sep, your call, and it is what made
+      every tile the same height) leaves that tile without a visible denominator — those
+      two tiers show no match count at all, since "Career matches" is the bottom tier's
+      lead tile. It is recoverable arithmetic and the NXL panel's readout gives a
+      per-season W-L on hover. If you want it back, the cheap version is an inline
+      `/296` on the match win % tile, mirroring the rank tile's `/699` and costing no
+      height.
+
+- [ ] **"Reached the bracket" moved from under the Sundays number to a hover tooltip.**
+      Same reason — it was the last thing making a tile taller than its neighbours. The
+      gloss on the one piece of jargon on the page is now only discoverable by hovering,
+      and not at all on touch.
+
+- [ ] **The season and tournament counts have left the NXL strip.** It now reads
+      "NXL career · 2015 to date" rather than "· 12 seasons · 49 tournaments". The
+      tournament count was the visible denominator behind the win % tile and is now only
+      on the rank tile's hover, so on touch there is nothing saying 33% is 16 of 49. The
+      NXL panel's own caption still names the span.
+
+- [ ] **⚠️ THE SCOPE NAMES ARE GONE FROM BOTH HEADERS.** They now read "Tracked 2015 to
+      date" and "Tracked 2025 to date" (your wording, 4 Sep). Nothing on screen says one
+      row is the whole league and the other is PickEm's eight events — the differing
+      start years are the only hint. This was the mechanism that made two scopes on one
+      page honest. Prefixing "NXL ·" and "Pick&rsquo;Em ·" puts it back in one line;
+      say the word.
+
+- [x] **RESOLVED 5 Sep — the leaders row is now ordered by wins, then win rate.** It was
+      selected by kills while leading with wins. Fixing it also exposed the photo
+      pre-check bug recorded below.
+
+- [x] **ACCEPTED 5 Sep — dropping Rank from those cards cost the photo rule its alibi.**
+      A player without a usable photo is skipped, and the rank was what made the skip
+      visible. Six unnumbered cards look like a definitive top six. James: "photo thing
+      is fine."
+
+- [x] **FIXED 5 Sep — the landing page's other two rows were about to be blanked.**
+      `buildAggregates` scoped the event-leaders and most-picked rows to the NEWEST
+      event, which is `lone_star_open_2026` — rostered since August, played 18-21
+      September. Neither row had anyone in it, so any rebuild would have emptied two
+      thirds of the page. `LATEST` is now the latest COMPLETED event, from `eventEndsAt`
+      where it exists and `lockDate + 5 days` for the 2025 events that have none (the
+      estimate errs late on purpose). A full build now reproduces the stored document
+      exactly.
+
+- [x] **FIXED 5 Sep — the leader row is now ordered by tournament wins**, win rate
+      breaking ties, and the photo pre-check shares that ordering. It did not before:
+      the check only probes the top ~25 of each ordering, so re-sorting the row by wins
+      while the ordering stayed on kills silently dropped Stanczak (2nd all-time),
+      Leival, Vanderbyl, Yachimec and Greenspan — no error, the row just backfilled from
+      further down.
+
+- [x] **Dropping the rank from those cards cost the photo rule its alibi** — a skipped
+      player is now invisible rather than showing as a gap in the numbering. Accepted
+      5 Sep.
+
+- [ ] **The trophy is a colour emoji** — 🏆 on winning events in the table, and above
+      title-winning seasons in the chart. The only emoji on a deliberately austere page.
+      It reads in both themes and does not depend on colour to carry meaning, but it is
+      a taste call.
+
+- [ ] **The NXL panel plots per season, not per event.** At ~7 matches an event a
+      per-event line moves in 14-point steps and reads as noise; seasons carry 25–35.
+      Events are still there on hover.
+
+- [ ] **The panel is hidden for players with fewer than two seasons.** One season is a
+      single full-width bar that reads as a progress meter, captioned "best season" of
+      one. The hero still carries their totals.
+
+- [ ] **`topFours` and `finals` are still computed but no longer have a hero tile** after
+      you replaced that row. They are used in the panel's season readout ("3 top-four
+      finishes" for a title-less season). Keep or drop?
+
+## 2. Known limits — no action unless you disagree
+
+- [ ] **⚠️ NOTHING ON THE SITE NOW SAYS THESE ARE TEAM RESULTS.** A win here is the
+      TEAM's, at an event the player took the field for — not a measure of individual
+      contribution. The NXL panel's caption said so in as many words until 5 Sep, when it
+      was cut to "Match win rate by season"; the all-time table's caption lost the same
+      clause on 4 Sep. A win rate printed beside a portrait now reads as the player's own
+      everywhere it appears, and a 76% next to a face is the most quotable number on the
+      page. Per-point lineups are the only way to make it literally true, and pbleagues
+      publishes those reliably for 2023 alone.
+
+- [x] **RESOLVED 5 Sep — 318 of 325 players now have an NXL record**, up from 233.
+      `league_id` was absent from every row of the three earliest 2025 events, so 88
+      players had one nowhere. `scripts/identity-backfill.mjs` filled 848 rows from the
+      identity registry (0 conflicts) and corrected the 26 stale inner `player_id`
+      fields. Every backfilled id was cross-checked against the league first: 772/772
+      agreed on the team, taking the validated total to 1,518 appearances with none
+      disagreeing. Cortes was then recovered separately via his profile EPID (below),
+      taking coverage to 319. The six remaining are Liljeblad, Schaedel, Reitemyer,
+      Portillo and Petrucelli — one event each, zero kills, and absent from the league's
+      roster for that team, which is the same signature as the 119 off-team-sheet rows —
+      and Helgeson, whom the league lists as a COACH at Aftershock, so the Player-only
+      filter excludes him. Worth a look at the TonTon (World Cup 25) and PaintballFIT
+      (Tampa Bay 26) rosters.
+
+- [ ] ~~233 of 328 players have an NXL record.~~ The other 95 are overwhelmingly
+      one-event players; 90 simply have no `league_id` in Firestore and 5 have one that
+      is not in the crawl (Cortes, Portillo, Petrucelli, Brinkman, Raffield). Only 9
+      regulars are affected. Self-heals as `syncRoster` stamps ids. Those players still
+      get per-event W–L and match results, which key off `team_id`.
+
+- [ ] **2022 Golden State Open and Lone Star Open have rosters but no results** in the
+      Power Rankings workbook. Players who attended are not counted as having played a
+      tournament there — a denominator we cannot fill would push their win rates down.
+
+- [ ] **The event table now scrolls horizontally below ~1300px viewport.** The W–L column
+      added 62px to a table that already overflowed at that width. Fits at 1440. TODO.md
+      already accepts the table scrolling on mobile; this makes it slightly worse.
+
+- [ ] **Pre-PickEm matches show the opponent's full club name, not a three-letter code.**
+      Those rows come from the league file, which has no `team_id` for a club that never
+      played a PickEm event, so `teamCode` falls back to the name. Fine at desktop;
+      truncated in a 46px column on a phone.
+
+- [ ] **Short event labels for league events are initials** — "WC 24" (World Cup) sits
+      near "WCO 24" (Windy City Open) and "WCM 23" (Windy City Major). Only shown on
+      narrow screens; desktop gets the full name. Checked: unique within every year.
+
+- [ ] **A long career is now ~300 match rows and ~50 event rows.** Both tables cap the
+      visible rows and scroll, and the whole lot is already on the summary document, so
+      there is no extra query — but it is a much longer page than the eight-event
+      version, and worth a look on a phone.
+
+- [ ] **A 3-tile NXL row does not align with the 4-tile PickEm row below it** (tier C
+      only). The scope strip separates them so they read as two blocks.
+
+- [ ] **Ranking population uses raw totals; a player's own figure drops events they sat
+      out.** So someone who missed a tournament their team won can sit a place lower than
+      their raw record implies. That is the right way round — it never credits an absence
+      — and the gap is at most a place or two.
+
+## 2c. Bugs found and fixed
+
+- [x] **A player with no photo could not have a league record at all.** The numeric
+      league id is read off the avatar filename, so eleven people across 2015-2026 have
+      none. Carlos Cortes is the one on a current roster: 44 tournaments, 12 seasons,
+      125-104, and nothing on the page until 5 Sep. `nxlCareer` now falls back to the
+      profile EPID, which the crawler already captures; `PLAYER_EPID` in clubs.mjs holds
+      the mapping with its evidence, since name is the only link. All nine overlapping
+      events agree on the team, including the mid-2025 ac DIESEL to X-Factor move.
+
+- [x] **The reference build depended on the builder's timezone.** `xlsx` with
+      `cellDates` constructs a Date in local time and lands on a different calendar DAY
+      by offset — the 2021 World Cup read 11 November under London and 10 November under
+      Paris. Nine event dates had already moved between two builds on this machine
+      because its timezone setting changed, and the diff looked like the workbook had
+      been edited. The build reads raw serials and converts in UTC; verified
+      byte-identical across six timezones, and 400/400 games still resolve.
+
+
+- [x] **The event table credited tournament wins to players who sat the event out.**
+      Found by James on Ivan Lopez, 5 Sep: hero said 1 win, chart said 1, the event
+      table showed 2. `eventRecord()` looks up the TEAM's result and knows nothing about
+      participation, so a DNP row displayed the team's W-L and trophy — Red Legion won
+      Midwest Open 2025 while Lopez was marked absent. The hero and chart both read
+      `nxl`, which drops absences; this column never got the rule.
+
+      Blast radius: **125 DNP rows across 91 players** were showing a team record, of
+      which **5 displayed a trophy** — Panlilio (Mid West 26), Luckau (Tampa Bay 25 and
+      Atlantic City 25), Botsolas (Mid Atlantic 26), Lopez (Midwest 25). Those rows now
+      show a dash, with a tooltip saying the team played and the player did not.
+
+      League-only rows still show their record: they exist to carry the league history
+      and we hold no participation verdict for them either way. It is only the events we
+      KNOW someone sat out that must not display a win.
+
+- [x] **The team builder preferred a stale `player_id` field over the document id.**
+      Spotted 5 Sep while answering a question about Ivan Lopez's DNP. The August
+      identity fix moved 26 players to new document ids and left the inner `player_id`
+      on its old value — Lopez lives at `100403` and the field still reads `100149`.
+      `pick-em/page.tsx` read `r.player_id != null ? String(r.player_id) : r.id`, so it
+      would have written the old id into a pick that scoring then resolves against the
+      doc id and cannot find.
+
+      NO LIVE IMPACT: all 26 are on locked 2025 events, every 2026 roster is clean, and
+      the page only ever loads the live event. Fixed anyway — the doc id is now
+      authoritative — because it is a silent scoring bug the first time a renumbered
+      player appears on an open roster.
+
+      The 26 stale fields are still in Firestore. Nothing reads them now; worth tidying
+      with the next roster pass rather than a migration of its own.
+
+## 2b. Failure modes — checked 4 Sep
+
+**Ruled out with evidence**
+
+| Risk | Check | Result |
+|---|---|---|
+| A player inherits someone else's career (bad `league_id`) | crawl's club vs our roster's team, every overlapping event | **746/746 agree** |
+| Two players share one `league_id` | scan all 9 event rosters | **0** |
+| Matches joined to the wrong fixture | `validate.mjs` against long data | **400/400 resolve** |
+| A club or event silently dropped | `build.mjs` fails the run on any residue | **0 unresolved / 51 events** |
+| Two events share a short label in one year | generated and compared per year | **none** |
+| Stripping "Major"/"Open" merges two events | compared per year | **none** |
+
+19 players' names differ between our roster and the crawl — all formal-vs-familiar
+("Matthew"/"Matt", "William (Billy)"), one mojibake (`ReppesgÃ¥rd`, a UTF-8 read as
+Latin-1 in the CSV). The team cross-check above is what proves these are the same
+people rather than bad ids.
+
+**Guarded — these fail loudly**
+
+- A new club or event the resolver cannot pair → `build.mjs` exits non-zero.
+- A PickEm-season event with no `pickemEventId` → warns; without it the event renders
+  TWICE, once from each source.
+- A match that cannot be identified beyond doubt → `null`, so the cell shows a dash.
+- An unreadable Round → counted as a prelim AND reported.
+
+**Live, unguarded**
+
+- [ ] **The pipeline has two manual steps and nothing enforces either.** After an event
+      the roster crawl and the workbook must BOTH be refreshed. If the crawl is stale,
+      new players get no NXL record and the new event appears in nobody's career; if the
+      workbook is stale, the event shows dashes in W-L. Neither is an error, so nothing
+      complains. This is the TODO.md pipeline item, and it is the most likely way this
+      feature goes quietly wrong.
+- [ ] **"Arsenal" names two unrelated clubs and the alias map is what keeps them apart.**
+      Baltimore Revo → Arsenal, and TonTon Arsenal → TonTons. Safe only because the
+      workbook retires "Arsenal" after 2025. If it ever uses "Arsenal" for the French
+      club, the map mis-assigns silently — no check would catch it.
+- [ ] **A tie renders in the loss styling.** `result === "W"` is green, everything else
+      grey, so a "T" reads as a loss. One tie exists in 2,393 matches (2015).
+- [ ] **Doc size is 49.6KB max, 4.7% of the 1 MiB limit**, growing roughly 1KB per player
+      per event. Years of headroom, but it is now the field that grows fastest.
+
+## 3. Before this ships
+
+- [x] **The NXL fields are live on all 325 summaries** (patched 4 Sep with
+      `scripts/nxl-history/patch-summaries.mjs --write`, additive only — 7 fields, and
+      125/125 DNP rows preserved). Every player's page works on the preview build.
+      ⚠️ NOT PERMANENT: any long-data upload sets `staleSince`, the scheduled function
+      rebuilds within five minutes, and that rebuild both strips these fields AND
+      publishes the 2026 participation loss. Repairing that loss and deploying
+      `functions/` is what makes this stick.
+
+- [x] **Delete the preview documents** — done 8 Sep, all 5 `zzpreview_*` removed.
+
+- [ ] **Vercel Deployment Protection is on**, so a preview link asks anyone you send it
+      to for a Vercel login. Fine for screen-sharing; a blocker for handing out a URL.
+
+- [x] **Deploy `functions/`** — done 8 Sep, all 10 functions updated. Note this was an
+      UPDATE, not an install: `rebuildPlayerSummaries` was already live on older code.
+      The deploy published nothing visible because the projection had been rebuilt to
+      match first — had it gone the other way round it would have moved 305 rows in
+      `aggregates/allTime` and 19 spotlight leaders, both of which the live site shows.
+
+- [x] **Restore the 2 Sep data loss, then rebuild** — done 8 Sep; see the note below the list.
+
+      All 218 Mid West players are back to 180 played / 38 absent, matching the snapshot
+      exactly. `participationAt` and `recomputedAt` do not return — the snapshot saved
+      both as empty strings. One clean rebuild followed, and `safety-diff` now reports
+      325/325 identical with both aggregates identical, which retires the patch scripts.
+
+      ⚠️ Mid Atlantic's `brand_color` was FILLED, not restored — this doc is right that it
+      never had one. `#64666b`, recomputed from its logo by `scripts/recompute-brand-color.mjs`.
+      Revert if an empty colour was deliberate.
+
+      ⚠️ Still unexplained: what removed the fields. Until that is understood it recurs.
+
+- [x] ~~Fix the 2026 data loss before any full projection rebuild.~~ Done. See the Data section
+      of TODO.md. `mid_west_open_2026` has lost `participation` on all 218 roster docs and
+      both 2026 events have lost `brand_color`; the stale projection is currently the only
+      place the good values exist. Rebuilding publishes the loss — 38 players flip from
+      correctly-marked DNP to "played". `scripts/nxl-history/safety-diff.mjs` is the check.
+
+- [ ] **Decide how these pulls get automated** — the roster crawl and the results import
+      are both "someone remembers to run a script after an event", and both are now
+      load-bearing for a page users see. Logged in TODO.md under Data.
+
+## 4. Settled — recorded so it is not relitigated
+
+- **Pick % of 0 is a value, not a gap.** The ownership map lists only players somebody
+  picked, so a player nobody chose used to fall through to `null` — the same value that
+  means "we have no pick data for this event". Zero is now written as zero, and `null`
+  survives only for an event with no picks recorded at all, or a player who was not on
+  that roster and so could never have been picked. Agreed 9 Sep; deployed.
+
+
+- **Full NXL history 2015–2026**, not just PickEm's eight events. Agreed 3 Sep.
+- **Rostered-and-played attribution**, using the existing `participation` verdict.
+- **Ties are excluded from win rate** rather than scored as half. One tie exists in 2,393
+  matches (2015), so any convention is arithmetically irrelevant.
+- **Prelims join on the team pair, not the date.** Our sheets and the workbook differ by
+  a day at four of the eight events. A pair meets twice in the group stage exactly once
+  across all 51 events (2017 World Cup, no long data). 400/400 games resolve.
+- **The 2022 World Cup's eight rows with a corrupted Round cell are prelims**, not junk
+  to drop: adding them back gives all 24 teams a clean 3-or-4 game group stage.
+- **Every hero tile is one number and one label, nothing between.** A supporting figure
+  goes inline after the value (`1st /699`) or not at all. Tiles carrying a third line
+  were 94px against 73px for those that did not, so the NXL row and the PickEm row kept
+  different rhythms; all eight now match and the numbers land on one grid.
+- **`MatchupTable` re-sorts whatever array it is given, and that is the only sort that
+  runs.** A page can hold its own `sortConfig` and sort before passing rows in — the
+  all-time page did — and the component silently discards it. The dash-handling written
+  on the page side was never in effect; it took a bug report about the Record column to
+  find that out. Sorting rules now live in `compareCells` in the component, and the page
+  passes rows unsorted.
+- **A won-lost record sorts on WINS, not as text.** "224-72" against "94-36" compared
+  character by character put 94 above 224. Ties on wins break on the fewer losses.
+- **The two headers are FIXED for every player** — "Tracked 2015 to date" and "Tracked
+  2025 to date". They describe where OUR DATA starts, not the player's career: paintball
+  goes back much further than 2015 and those results are hard to come by, so saying where
+  we begin is the transparent version of that. Both years are derived (earliest event in
+  the league file; earliest event PickEm scored), so backfilling an earlier season updates
+  the claim by itself. The per-player version was worse than untidy — "Tracked 2020" on a
+  player who debuted in 2020 turned a statement about coverage into one about them.
+- **"Major" and "Open" are stripped from the full event name** ("Windy City Open · 24"
+  -> "Windy City · 24"), and the name never wraps. The tier word described a ranking
+  status that changed between seasons for the same tournament, so it said nothing about
+  which event a row was while wrapping the column and doubling the row height. Checked
+  across all 51 events: no two events in a year collapse to the same name. It is KEPT in
+  the initials, where dropping it made "World Cup" and "Windy City Open" both "WC".
+- **The hero's tile rows carry `flex-1`** so the stats column always fills its side.
+  With the portrait stacked, the left column is the taller of the two and the leftover
+  height was collecting under the last row of tiles as an empty bar.
+- **Both tables carry the whole league career**, not just PickEm's eight events. Where
+  PickEm never scored an event the kill columns show a DASH, never a zero: a zero is a
+  measurement ("took the field, scored nothing") and printing one for a 2017 tournament
+  nobody was counting would invent a result. "DNP" is still used, but only where the
+  participation verdict actually says the player sat out.
+- **The jersey number is gone from the hero.** It changes between seasons, and it was
+  the first line read on a page about a decade-long career.
+- **The portrait is stacked above the name** rather than beside it, so both get the full
+  width of the column.
+- **`matchLog` uses single-letter object keys, not tuples.** Firestore rejects an array
+  whose elements are arrays — "Property nxl contains an invalid nested entity" — so the
+  compact tuple form is unavailable.
+- **The portrait was vertically centred and 148px at desktop**, up from 128px and
+  bottom-aligned. The column stretches to the stats column beside it (232px), and
+  `items-end` was putting all 84px of the slack above the photo and 20px below.
+- **Tile padding is top-heavy** (24px above the number, 11px below the label at desktop).
+  `justify-end` bottom-aligns content against the padding, and the padding used to be the
+  wrong way round — 12px above, 17px below — so every tile read as floating with a margin
+  underneath it rather than sitting on the floor of its box.
+- **An event where nobody has scored has not happened yet** and is excluded from the
+  projection. Lone Star 2026 had 188 rosters loaded for an event that locks on the 18th,
+  and was dragging every average down ~12%.

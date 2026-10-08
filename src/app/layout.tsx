@@ -50,6 +50,27 @@ const industryUltra = localFont({
   fallback: ["system-ui", "sans-serif"],
 });
 
+/**
+ * Variable Hitmarker — the only file with real `wght` / `wdth` axes.
+ *
+ * The three static faces below cannot hit the brand spec of wght 360 / wdth 25: 360
+ * falls between the declared 300 and 400 so CSS snaps it to 300, and there is no width
+ * axis at all. This VF exposes wght 300–900 and wdth 0–100.
+ *
+ * NOTE: this font's `wdth` axis is 0–100 (0 = Condensed, 30 = Normal), NOT the
+ * OpenType-standard percentage. `font-stretch` therefore does nothing useful — the axis
+ * must be driven through `font-variation-settings`.
+ *
+ * Rolling out surface by surface; see `[data-numeric="variable"]` in globals.css.
+ */
+const hitmarkerVariable = localFont({
+  src: "../../public/fonts/HitmarkerVF-CondensedLight.ttf",
+  weight: "300 900",
+  variable: "--font-hitmarker-vf",
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
+});
+
 /** Standalone numerals (countdown, currency, stats) — not mixed into body copy. */
 const hitmarkerCondensed = localFont({
   src: [
@@ -82,7 +103,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${industryDemi.variable} ${industryUltra.variable} ${hitmarkerCondensed.variable}`}
+      className={`${industryDemi.variable} ${industryUltra.variable} ${hitmarkerCondensed.variable} ${hitmarkerVariable.variable}`}
     >
       <body
         className="min-h-screen bg-background antialiased"

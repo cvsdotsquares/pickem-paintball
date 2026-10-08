@@ -1,0 +1,214 @@
+BACKFILL — DRY RUN, nothing will be written
+==============================================================================
+excluded  tampa_bay_2026: archive has only 5 long rows (file is named Broken)
+excluded  mid_west_open_2026: already loaded; archive has no row_ids so re-upload would duplicate
+
+
+══════════════════════════════════════════════════════════════════════════════
+tampa_bay_open_2025
+══════════════════════════════════════════════════════════════════════════════
+parsed 2527 usable rows from 199 roster entries
+
+DROPPED 2 rows (never uploaded):
+     2  no player
+     row 2529: no player — San Diego Dynasty v 1 
+     row 2530: no player — San Diego Dynasty v 1 
+
+name variants resolved (3):
+      5  "Jackson Noodle Knees Frey"  →  matched "Jackson Frey"
+     16  "Matthew Askren"  →  matched "Matt Askren"
+      2  "Sebastian Ivan Lopez"  →  matched "Ivan Lopez"
+
+⚠ UNRESOLVED PLAYER NAMES (1) — these kills would score for nobody:
+      2  "Francis Antetomaso"  — surname-only candidate "Frank Antetomaso" — needs confirming
+
+games derived: 49
+split games (one pair under two rounds): 0
+points with no recorded kills: 4  (informational — the game is intact)
+     tampa_bay_open_2025_Saturday_IMF-UPR  missing points 9 of 10
+     tampa_bay_open_2025_Saturday_ACD-SDA  missing points 7 of 8
+     tampa_bay_open_2025_Saturday_HUR-NRG  missing points 5 of 6
+     tampa_bay_open_2025_Top8_ACD-IMP  missing points 7 of 8
+fixtures on record: 49   games not matching any fixture: 0   fixture pairs with no long data: 0
+
+GATE — recomputed vs published Confirmed Kills
+   roster 199 · players differing: 2 · long-data players not on roster: 0
+   Jackson Frey             published      0 → recomputed      5  (+5)
+   Frank Antetomaso         published      2 → recomputed      0  (-2)
+
+⛔ SKIPPING tampa_bay_open_2025 — nothing written. Reasons: 2 stat deltas, 1 unresolved names
+
+
+══════════════════════════════════════════════════════════════════════════════
+atlantic_city_2025
+══════════════════════════════════════════════════════════════════════════════
+parsed 2272 usable rows from 200 roster entries
+
+name variants resolved (1):
+     18  "Matthew Askren"  →  matched "Matt Askren"
+
+⚠ UNRESOLVED PLAYER NAMES (1) — these kills would score for nobody:
+     11  "Francis Antetomaso"  — surname-only candidate "Frank Antetomaso" — needs confirming
+
+games derived: 49
+split games (one pair under two rounds): 2
+   ✗ FIT v XFA appears under: Friday, Top8
+   ✗ ACD v FIT appears under: Saturday, Wildcard
+points with no recorded kills: 4  (informational — the game is intact)
+     atlantic_city_2025_Friday_IRN-SDA  missing points 9 of 10
+     atlantic_city_2025_Friday_ARS-HEA  missing points 7 of 8
+     atlantic_city_2025_Friday_HEA-NYX  missing points 6 of 7
+     atlantic_city_2025_Saturday_IRN-RCS  missing points 7 of 10
+fixtures on record: 49   games not matching any fixture: 0   fixture pairs with no long data: 0
+
+GATE — recomputed vs published Confirmed Kills
+   roster 200 · players differing: 1 · long-data players not on roster: 0
+   Frank Antetomaso         published   10.5 → recomputed      0  (-10.5)
+
+⛔ SKIPPING atlantic_city_2025 — nothing written. Reasons: 1 stat deltas, 1 unresolved names, 2 split games
+
+
+══════════════════════════════════════════════════════════════════════════════
+midwest_open_2025
+══════════════════════════════════════════════════════════════════════════════
+parsed 1783 usable rows from 202 roster entries
+
+DROPPED 2 rows (never uploaded):
+     2  missing team or opponent
+     row 1767: missing team or opponent —  v  Movement
+     row 1768: missing team or opponent —  v  Trade
+
+name variants resolved (3):
+     11  "Matthew Askren"  →  matched "Matt Askren"
+      1  "Steve Pablo Wojnicz"  →  matched "Steve Wojnicz"
+      2  "Clay Hughes"  →  matched "Clayton Hughes"
+
+⚠ UNRESOLVED PLAYER NAMES (7) — these kills would score for nobody:
+      7  "Francis Antetomaso"  — surname-only candidate "Frank Antetomaso" — needs confirming
+      7  "Zone Coverage"  — no surname match
+      5  "Gunfight"  — no surname match
+      4  "Pressure"  — no surname match
+      2  "Steve Pablo Wojnicz FERMOSELLE"  — no surname match
+      2  "Movement"  — no surname match
+      1  "Other"  — no surname match
+
+⚠ teams with no team_id: 1, 2, 3
+
+games derived: 55
+split games (one pair under two rounds): 3
+   ✗ AFT v TON appears under: Friday, Top8
+   ✗ IRN v XFA appears under: Friday, Wildcard
+   ✗ LEG v TON appears under: Saturday, Finals
+points with no recorded kills: 7  (informational — the game is intact)
+     midwest_open_2025_Saturday_HEA-UPR  missing points 3 of 4
+     midwest_open_2025_Friday_1-AFT  no point numbers
+     midwest_open_2025_Friday_1-IMP  no point numbers
+     midwest_open_2025_Friday_2-AFT  no point numbers
+     midwest_open_2025_Friday_2-IMP  no point numbers
+fixtures on record: 49   games not matching any fixture: 6   fixture pairs with no long data: 0
+   ✗ midwest_open_2025_Friday_1-AFT  1 v Aftershock  round=Friday dates= rows=5
+   ✗ midwest_open_2025_Friday_1-IMP  1 v Impact  round=Friday dates= rows=2
+   ✗ midwest_open_2025_Friday_2-AFT  2 v Aftershock  round=Friday dates= rows=3
+   ✗ midwest_open_2025_Friday_2-IMP  2 v Impact  round=Friday dates= rows=1
+   ✗ midwest_open_2025_Friday_3-AFT  3 v Aftershock  round=Friday dates= rows=6
+   ✗ midwest_open_2025_Friday_3-IMP  3 v Impact  round=Friday dates= rows=2
+
+GATE — recomputed vs published Confirmed Kills
+   roster 202 · players differing: 2 · long-data players not on roster: 0
+   Frank Antetomaso         published    6.5 → recomputed      0  (-6.5)
+   Clayton Hughes           published     11 → recomputed     13  (+2)
+
+⛔ SKIPPING midwest_open_2025 — nothing written. Reasons: 2 stat deltas, 7 unresolved names, 3 split games, 6 unknown fixtures
+
+
+══════════════════════════════════════════════════════════════════════════════
+lonestar_open_2025
+══════════════════════════════════════════════════════════════════════════════
+parsed 1477 usable rows from 191 roster entries
+
+name variants resolved (1):
+      6  "Matthew Askren"  →  matched "Matt Askren"
+
+⚠ UNRESOLVED PLAYER NAMES (1) — these kills would score for nobody:
+      6  "William Donaldson"  — surname-only candidate "Carter Donaldson" — needs confirming
+
+games derived: 49
+split games (one pair under two rounds): 1
+   ✗ HUR v XFA appears under: Saturday, Top4
+points with no recorded kills: 1  (informational — the game is intact)
+     lonestar_open_2025_Saturday_ARS-IMF  missing points 3 of 4
+fixtures on record: 49   games not matching any fixture: 0   fixture pairs with no long data: 0
+
+GATE — recomputed vs published Confirmed Kills
+   roster 191 · players differing: 1 · long-data players not on roster: 0
+   Carter Donaldson         published      6 → recomputed      0  (-6)
+
+⛔ SKIPPING lonestar_open_2025 — nothing written. Reasons: 1 stat deltas, 1 unresolved names, 1 split games
+
+
+══════════════════════════════════════════════════════════════════════════════
+world_cup_2025
+══════════════════════════════════════════════════════════════════════════════
+parsed 2447 usable rows from 229 roster entries
+
+name variants resolved (2):
+     10  "Matthew Askren"  →  matched "Matt Askren"
+      2  "Mike Glen Zuppa"  →  matched "Mike Zuppa"
+
+games derived: 59
+split games (one pair under two rounds): 2
+   ✗ HEA v UPR appears under: Saturday, Friday, Top8
+   ✗ LEG v TON appears under: Friday, Top8
+points with no recorded kills: 3  (informational — the game is intact)
+     world_cup_2025_Top8_HEA-UPR  missing points 1 of 5
+     world_cup_2025_Top8_LEG-TON  missing points 1,2,3,4 of 10
+     world_cup_2025_Top4_FIT-XFA  missing points 5 of 8
+fixtures on record: 57   games not matching any fixture: 1   fixture pairs with no long data: 0
+   ✗ world_cup_2025_Top8_HEA-UPR  Heat v Uprising  round=Top8 dates=2025-11-16 rows=24
+
+GATE — recomputed vs published Confirmed Kills
+   roster 229 · players differing: 0 · long-data players not on roster: 0
+
+⛔ SKIPPING world_cup_2025 — nothing written. Reasons: 2 split games, 1 unknown fixtures
+
+
+══════════════════════════════════════════════════════════════════════════════
+mid_atlantic_open_2026
+══════════════════════════════════════════════════════════════════════════════
+parsed 2437 usable rows from 211 roster entries
+
+⚠ UNRESOLVED PLAYER NAMES (2) — these kills would score for nobody:
+     11  "Ronnie Tiner"  — surname-only candidate "Ronny Tiner" — needs confirming
+      1  "Alex DAcquisto"  — no surname match
+
+games derived: 50
+split games (one pair under two rounds): 4
+   ✗ IMP v IRN appears under: Friday, Top8
+   ✗ AFT v HUR appears under: Saturday, Friday
+   ✗ DAM v HUR appears under: Saturday, Top8
+   ✗ DYN v FIT appears under: Saturday, Top8
+points with no recorded kills: 4  (informational — the game is intact)
+     mid_atlantic_open_2026_Friday_FIT-JNG  missing points 7 of 8
+     mid_atlantic_open_2026_Friday_HEA-LEG  missing points 6 of 12
+     mid_atlantic_open_2026_Friday_AFT-HUR  missing points 1,2 of 10
+     mid_atlantic_open_2026_Saturday_LEG-RCS  missing points 1,2,3,4,5,6,7,8,9 of 12
+fixtures on record: 49   games not matching any fixture: 1   fixture pairs with no long data: 0
+   ✗ mid_atlantic_open_2026_Friday_AFT-HUR  Aftershock v Hurricanes  round=Friday dates= rows=47
+
+GATE — recomputed vs published Confirmed Kills
+   roster 211 · players differing: 1 · long-data players not on roster: 0
+   Ronny Tiner              published     11 → recomputed      0  (-11)
+
+⛔ SKIPPING mid_atlantic_open_2026 — nothing written. Reasons: 1 stat deltas, 2 unresolved names, 4 split games, 1 unknown fixtures
+
+
+══════════════════════════════════════════════════════════════════════════════
+SUMMARY
+══════════════════════════════════════════════════════════════════════════════
+  skipped       tampa_bay_open_2025      2527 rows   [deltas 2, unresolved 1, splits 0, unknown fixtures 0]
+  skipped       atlantic_city_2025       2272 rows   [deltas 1, unresolved 1, splits 2, unknown fixtures 0]
+  skipped       midwest_open_2025        1783 rows   [deltas 2, unresolved 7, splits 3, unknown fixtures 6]
+  skipped       lonestar_open_2025       1477 rows   [deltas 1, unresolved 1, splits 1, unknown fixtures 0]
+  skipped       world_cup_2025           2447 rows   [deltas 0, unresolved 0, splits 2, unknown fixtures 1]
+  skipped       mid_atlantic_open_2026   2437 rows   [deltas 1, unresolved 2, splits 4, unknown fixtures 1]
+

@@ -18,6 +18,228 @@ const db = admin.firestore();
 // See DATA_PIPELINE.md.
 exports.onLongDataUpload = require('./longDataRecompute').onLongDataUpload;
 
+// ─── Career-stats projection ───────────────────────────────────────────────
+// `playerSummaries/*` and `aggregates/*` are derived from the same player docs
+// onLongDataUpload writes, so every upload leaves them behind. They are rebuilt
+// here rather than there because a rebuild costs ~22,000 reads — far too much to
+// run several times a game. onLongDataUpload leaves a marker instead, and this
+// collapses a weekend of uploads into one rebuild per pass.
+//
+// Five minutes is the staleness a career page can show during a live event. The
+// stats page and leaderboard are unaffected — they read the player docs directly
+// and update on every upload.
+exports.rebuildPlayerSummaries = functions
+  .runWith({ timeoutSeconds: 540, memory: '1GB' })
+  .pubsub.schedule('every 5 minutes')
+  .onRun(async () => {
+    const ref = db.doc('projections/playerSummaries');
+    const before = await ref.get();
+    const staleSince = before.get('staleSince');
+
+    // Idle cost is this single read. Nothing has been uploaded, nothing to do.
+    if (!staleSince) return null;
+
+    /**
+     * One rebuild at a time.
+     *
+     * A rebuild is ~22,000 reads, and the schedule does not wait for the last run to
+     * finish. Today a pass takes well under a minute so they cannot collide, but the
+     * long-data read grows with every event, and the failure mode is silent: two
+     * overlapping passes both do the full work and one throws its result away. A
+     * concurrent run would also be holding a marker the other is about to clear.
+     *
+     * The lock expires so a crashed run cannot wedge the projection permanently.
+     */
+    const LOCK_MS = 15 * 60 * 1000;
+    const runningSince = before.get('runningSince');
+    if (runningSince && Date.now() - runningSince.toDate().getTime() < LOCK_MS) {
+      console.log('⏭️  A rebuild is already running — skipping this pass.');
+      return null;
+    }
+    await ref.set({ runningSince: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+
+    console.log(`♻️  Projection stale since ${staleSince.toDate().toISOString()} — rebuilding.`);
+
+    const { rebuild } = require('./playerSummaries');
+    const result = await rebuild(db, {
+      now: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    /**
+     * Clear the marker ONLY if nothing new arrived while we were building.
+     *
+     * A rebuild takes tens of seconds and reads as it goes, so an upload landing
+     * midway through may not be in what we just wrote. Clearing unconditionally
+     * would drop that upload on the floor until the next one happened to arrive —
+     * a silent, intermittent staleness that would be miserable to diagnose. If the
+     * marker has moved, leave it: the next pass picks the work up.
+     */
+    await db.runTransaction(async (tx) => {
+      const now = await tx.get(ref);
+      const current = now.get('staleSince');
+      const done = {
+        runningSince: admin.firestore.FieldValue.delete(),
+        rebuiltAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastResult: `${result.changed} changed, ${result.unchanged} unchanged`,
+      };
+      if (current && current.isEqual(staleSince)) {
+        tx.set(ref, { ...done, staleSince: admin.firestore.FieldValue.delete() }, { merge: true });
+      } else {
+        console.log('↩️  New upload arrived mid-rebuild — leaving the marker for the next pass.');
+        tx.set(ref, done, { merge: true });
+      }
+    });
+
+    return null;
+  });
+
+// ─── Live event crawler ────────────────────────────────────────────────────
+// Reads the pbleagues schedule while a tournament is being played and keeps the
+// event's `nxlEvents` document up to date (flagged live), so career pages move
+// during the event. Stops at `eventEndsAt`, when recalcBadgesTask locks it.
+//
+// Ten minutes, because that is roughly a match: faster would re-read a page that
+// has not changed, slower and a career page lags a round behind. The pass is one
+// document read plus two HTTP fetches when nothing has moved.
+exports.crawlLiveEvent = functions
+  .runWith({ timeoutSeconds: 120, memory: '256MB' })
+  .pubsub.schedule('every 10 minutes')
+  .onRun(async () => {
+    const { crawlLiveEvent } = require('./liveEvent');
+
+    // Kill switch and settings in one document, so the crawl can be stopped from the
+    // console without a deploy — the only control available mid-tournament.
+    const cfgSnap = await db.doc('projections/liveEvent').get();
+    const cfg = cfgSnap.exists ? cfgSnap.data() : {};
+    if (cfg.disabled) {
+      console.log('⏸  Live crawl disabled by projections/liveEvent.disabled.');
+      return null;
+    }
+
+    /**
+     * Which event to crawl: the one being played now.
+     *
+     * Found from the events themselves — pick lock passed, `eventEndsAt` not yet reached,
+     * and a `pbleaguesId` entered at event setup — so nothing has to be switched over
+     * between tournaments. `cfg.eventId` still forces one, for testing.
+     */
+    let eventId = cfg.eventId || null;
+    if (!eventId) {
+      const upcoming = await db
+        .collection('events')
+        .where('eventEndsAt', '>', admin.firestore.Timestamp.now())
+        .get();
+      const now = Date.now();
+      const open = upcoming.docs
+        .filter((d) => d.get('lockDate') && d.get('lockDate').toDate().getTime() <= now)
+        .sort((a, b) => a.get('eventEndsAt').toMillis() - b.get('eventEndsAt').toMillis());
+      /*
+       * A forgotten pbleaguesId fails silently — the event simply never crawls — so it is
+       * reported every pass from the moment the event is set up, not discovered on Sunday.
+       */
+      for (const d of upcoming.docs) {
+        if (!d.get('pbleaguesId') && !d.get('pbleaugesId')) {
+          console.error(`❌ ${d.id} has no pbleaguesId: its results will not be crawled.`);
+        }
+      }
+      const live = open.filter((d) => d.get('pbleaguesId') || d.get('pbleaugesId'));
+      if (live.length > 1) {
+        console.error(`❌ ${live.length} events are live at once: ${live.map((d) => d.id).join(', ')}. Crawling the first to end.`);
+      }
+      if (!live.length) {
+        console.log(`💤 No event being played. Upcoming: ${upcoming.docs.map((d) => d.id).join(', ') || 'none'}.`);
+        return null;
+      }
+      eventId = live[0].id;
+    }
+
+    /**
+     * Only while the tournament is actually on.
+     *
+     * Outside the window this costs one read and stops. The window opens at the pick
+     * lock — the first matches follow within hours — and closes at `eventEndsAt`, the
+     * moment the results are locked. `eventEndsAt` is set about an hour past the real
+     * finish, which leaves the Final the two passes it needs to be judged settled.
+     */
+    const evSnap = await db.doc(`events/${eventId}`).get();
+    /*
+     * Also accepts the transposed spelling the setup script shipped with.
+     * A crawl that finds no id does nothing at all, and the event is over by the time
+     * anybody notices, so this reads both and says which one it used.
+     */
+    const misspelt = evSnap.get('pbleaugesId');
+    if (misspelt && !evSnap.get('pbleaguesId')) {
+      console.error(`⚠️  ${eventId} spells the field "pbleaugesId"; it should be "pbleaguesId". Using it anyway.`);
+    }
+    const pbleaguesId = String(cfg.pbleaguesId || evSnap.get('pbleaguesId') || misspelt || '');
+    if (!pbleaguesId) {
+      console.error(`❌ ${eventId} has no pbleaguesId: nothing to crawl.`);
+      return null;
+    }
+    const lock = evSnap.get('lockDate');
+    const ends = evSnap.get('eventEndsAt');
+    const now = Date.now();
+    const from = lock ? lock.toDate().getTime() : null;
+    const until = ends ? ends.toDate().getTime() : null;
+    if (!cfg.ignoreWindow && ((from && now < from) || (until && now > until))) {
+      /*
+       * Say so rather than returning in silence.
+       *
+       * Outside the window this is the ONLY thing the function does, so with no line here
+       * a healthy crawler and a crawler that never runs look identical in the logs — there
+       * is no way to tell the difference until the event starts and it is too late to fix.
+       */
+      console.log(
+        `💤 Outside the ${eventId} window — opens ${from ? new Date(from).toISOString() : '?'}, ` +
+        `closes ${until ? new Date(until).toISOString() : '?'}.`,
+      );
+      return null;
+    }
+
+    const result = await crawlLiveEvent(db, {
+      eventId,
+      pbleaguesId,
+      observeOnly: cfg.observeOnly === true,
+      // "Lone Star Open" -> key "2026|Lone Star Open". Overridable, to match an existing key.
+      label: cfg.label || evSnap.get('name') || eventId,
+      /*
+       * First day of play. The pick lock is the morning of it, and the event document
+       * carries no other machine-readable start — `eventDate` is prose ("18-20
+       * September"). The overlay needs this because the history events it stands in for
+       * all have it.
+       */
+      start: lock ? lock.toDate().toISOString().slice(0, 10) : null,
+    });
+
+    /**
+     * A club the crawl names but our history cannot place drops that team's whole
+     * record silently. Logged as an error so it shows up without being hunted for.
+     */
+    if (result.unresolvedClubs && result.unresolvedClubs.length) {
+      console.error(`❌ Unresolved club names: ${result.unresolvedClubs.join(', ')}`);
+    }
+    if (result.unresolved && result.unresolved.length) {
+      console.error(`❌ Roster rows with no club: ${result.unresolved.slice(0, 5).join(' | ')}`);
+    }
+
+    console.log(
+      `🎯 ${eventId}: ${result.parsed} parsed, ${result.played} played, ` +
+      `${result.final} final, ${result.clubs} clubs, ${result.appearances} appearances` +
+      `${result.wrote ? ' — overlay updated' : ` — no write (${result.reason})`}`,
+    );
+
+    // Hand off to the projection exactly the way an upload does, rather than rebuilding
+    // here: that keeps one rebuild path, and the 5-minute pass already collapses bursts.
+    if (result.wrote) {
+      await db.doc('projections/playerSummaries').set(
+        { staleSince: admin.firestore.FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+    }
+
+    return null;
+  });
+
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 // Lightweight stage timer. Cloud Functions logs give total invocation time but
@@ -663,6 +885,27 @@ exports.recalcBadgesTask = onTaskDispatched(
     const apiKey = apiSecretKey.value();
     if (!apiKey) {
       throw new Error('API_SECRET_KEY is not configured for functions');
+    }
+
+    /*
+     * Lock the event's NXL results first: at eventEndsAt the live crawl stops and the
+     * event becomes history. Idempotent, so a retry of the badge half is harmless, and
+     * its own failure must not block the badges.
+     */
+    if (eventId) {
+      try {
+        const { lockNxlEvent } = require('./liveEvent');
+        const locked = (await lockNxlEvent(db, eventId)).length > 0;
+        if (locked) {
+          await db.doc('projections/playerSummaries').set(
+            { staleSince: admin.firestore.FieldValue.serverTimestamp() },
+            { merge: true },
+          );
+        }
+        console.log(`🔒 NXL results for ${eventId}: ${locked ? 'locked' : 'no live document'}`);
+      } catch (e) {
+        console.error(`❌ Could not lock NXL results for ${eventId}:`, e);
+      }
     }
 
     console.log(`🏅 Running scheduled badge recalc (event: ${eventId || 'n/a'})`);

@@ -1,0 +1,6522 @@
+{
+  "crawledAt": "2026-09-13T11:21:04.118Z",
+  "events": [
+    {
+      "key": "2015|Great Lakes Open",
+      "year": "2015",
+      "label": "Great Lakes Open",
+      "pbleaguesId": "4145",
+      "pbleaguesName": "Great Lakes Open",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 16,
+      "champion": "Impact",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "upTon 187 cRew",
+          "crawledTeam": "upTon 187 cRew",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Trenton Topgun Union",
+          "crawledTeam": "Trenton Topgun Union",
+          "points": 50
+        }
+      ]
+    },
+    {
+      "key": "2015|NXL Virginia Beach Open",
+      "year": "2015",
+      "label": "NXL Virginia Beach Open",
+      "pbleaguesId": "4238",
+      "pbleaguesName": "Virginia Beach Open",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 16,
+      "champion": "Impact",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "upTon 187 cRew",
+          "crawledTeam": "upTon 187 cRew",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Trenton Topgun Union",
+          "crawledTeam": "Trenton Topgun Union",
+          "points": 50
+        }
+      ]
+    },
+    {
+      "key": "2015|NXL World Cup",
+      "year": "2015",
+      "label": "NXL World Cup",
+      "pbleaguesId": "4310",
+      "pbleaguesName": "World Cup",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 16,
+      "champion": "Dynasty",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "upTon 187 cRew",
+          "crawledTeam": "upTon 187 cRew",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Trenton Topgun Union",
+          "crawledTeam": "Trenton Topgun Union",
+          "points": 50
+        }
+      ]
+    },
+    {
+      "key": "2016|NXL Las Vegas Open",
+      "year": "2016",
+      "label": "NXL Las Vegas Open",
+      "pbleaguesId": "4564",
+      "pbleaguesName": "Las Vegas Open",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 16,
+      "champion": "Impact",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "upTon 187 cRew",
+          "crawledTeam": "upTon 187 cRew",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 50
+        }
+      ]
+    },
+    {
+      "key": "2016|NXL Texas Open",
+      "year": "2016",
+      "label": "NXL Texas Open",
+      "pbleaguesId": "4661",
+      "pbleaguesName": "Texas Open",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 16,
+      "champion": "Infamous",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "upTon 187 cRew",
+          "crawledTeam": "upTon 187 cRew",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 50
+        }
+      ]
+    },
+    {
+      "key": "2016|NXL Nashville Open",
+      "year": "2016",
+      "label": "NXL Nashville Open",
+      "pbleaguesId": "4770",
+      "pbleaguesName": "Nashville Open",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 16,
+      "champion": "Heat",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "upTon 187 cRew",
+          "crawledTeam": "upTon 187 cRew",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 50
+        }
+      ]
+    },
+    {
+      "key": "2016|Great Lakes Open",
+      "year": "2016",
+      "label": "Great Lakes Open",
+      "pbleaguesId": "4844",
+      "pbleaguesName": "Great Lakes Open",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 16,
+      "champion": "Impact",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "upTon 187 cRew",
+          "crawledTeam": "upTon 187 cRew",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 50
+        }
+      ]
+    },
+    {
+      "key": "2016|NXL World Cup",
+      "year": "2016",
+      "label": "NXL World Cup",
+      "pbleaguesId": "4885",
+      "pbleaguesName": "World Cup",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 16,
+      "champion": "Impact",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "upTon 187 cRew",
+          "crawledTeam": "upTon 187 cRew",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 50
+        }
+      ]
+    },
+    {
+      "key": "2017|NXL Las Vegas Open",
+      "year": "2017",
+      "label": "NXL Las Vegas Open",
+      "pbleaguesId": "5174",
+      "pbleaguesName": "Las Vegas Open",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 16,
+      "champion": "Dynasty",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "P.C. Katana",
+          "crawledTeam": "P.C. Katana",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 50
+        }
+      ]
+    },
+    {
+      "key": "2017|NXL Texas Open",
+      "year": "2017",
+      "label": "NXL Texas Open",
+      "pbleaguesId": "5460",
+      "pbleaguesName": "Texas Open",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 16,
+      "champion": "Heat",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "P.C. Katana",
+          "crawledTeam": "P.C. Katana",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 50
+        }
+      ]
+    },
+    {
+      "key": "2017|NXL Atlantic City Open",
+      "year": "2017",
+      "label": "NXL Atlantic City Open",
+      "pbleaguesId": "5522",
+      "pbleaguesName": "Atlantic City Open",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 16,
+      "champion": "Red Legion",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "P.C. Katana",
+          "crawledTeam": "P.C. Katana",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 50
+        }
+      ]
+    },
+    {
+      "key": "2017|NXL Chicago Open",
+      "year": "2017",
+      "label": "NXL Chicago Open",
+      "pbleaguesId": "5524",
+      "pbleaguesName": "Chicago Open",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 16,
+      "champion": "Impact",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "P.C. Katana",
+          "crawledTeam": "P.C. Katana",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 50
+        }
+      ]
+    },
+    {
+      "key": "2017|NXL World Cup",
+      "year": "2017",
+      "label": "NXL World Cup",
+      "pbleaguesId": "5585",
+      "pbleaguesName": "World Cup",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 16,
+      "champion": "Impact",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "P.C. Katana",
+          "crawledTeam": "P.C. Katana",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 50
+        }
+      ]
+    },
+    {
+      "key": "2018|NXL Las Vegas Open",
+      "year": "2018",
+      "label": "NXL Las Vegas Open",
+      "pbleaguesId": "5760",
+      "pbleaguesName": "Las Vegas Open",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 20,
+      "champion": "Impact",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Scottsdale Elevation",
+          "crawledTeam": "Scottsdale Elevation",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "P.C. Katana",
+          "crawledTeam": "P.C. Katana",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2018|NXL Texas Open",
+      "year": "2018",
+      "label": "NXL Texas Open",
+      "pbleaguesId": "5902",
+      "pbleaguesName": "Texas Open",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 20,
+      "champion": "Heat",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Scottsdale Elevation",
+          "crawledTeam": "Scottsdale Elevation",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "P.C. Katana",
+          "crawledTeam": "P.C. Katana",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2018|NXL Atlantic City Open",
+      "year": "2018",
+      "label": "NXL Atlantic City Open",
+      "pbleaguesId": "5969",
+      "pbleaguesName": "Atlantic City Open",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 20,
+      "champion": "Impact",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "P.C. Katana",
+          "crawledTeam": "P.C. Katana",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Scottsdale Elevation",
+          "crawledTeam": "Scottsdale Elevation",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2018|NXL Chicago Open",
+      "year": "2018",
+      "label": "NXL Chicago Open",
+      "pbleaguesId": "5976",
+      "pbleaguesName": "Chicago Open",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 20,
+      "champion": "Red Legion",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Scottsdale Elevation",
+          "crawledTeam": "Scottsdale Elevation",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "P.C. Katana",
+          "crawledTeam": "P.C. Katana",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2018|NXL World Cup",
+      "year": "2018",
+      "label": "NXL World Cup",
+      "pbleaguesId": "5978",
+      "pbleaguesName": "World Cup",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 20,
+      "champion": "Heat",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "P.C. Katana",
+          "crawledTeam": "P.C. Katana",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Scottsdale Elevation",
+          "crawledTeam": "Scottsdale Elevation",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2019|NXL Las Vegas Open",
+      "year": "2019",
+      "label": "NXL Las Vegas Open",
+      "pbleaguesId": "6273",
+      "pbleaguesName": "Las Vegas Open",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 20,
+      "champion": "Impact",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "P.C. Katana",
+          "crawledTeam": "P.C. Katana",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Scottsdale Elevation",
+          "crawledTeam": "Scottsdale Elevation",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2019|NXL Texas Open",
+      "year": "2019",
+      "label": "NXL Texas Open",
+      "pbleaguesId": "6248",
+      "pbleaguesName": "Texas Open",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 20,
+      "champion": "Red Legion",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "P.C. Katana",
+          "crawledTeam": "P.C. Katana",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Scottsdale Elevation",
+          "crawledTeam": "Scottsdale Elevation",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2019|NXL Philadelphia Open",
+      "year": "2019",
+      "label": "NXL Philadelphia Open",
+      "pbleaguesId": "6249",
+      "pbleaguesName": "Philadelphia Open",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 20,
+      "champion": "X-Factor",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "P.C. Katana",
+          "crawledTeam": "P.C. Katana",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Scottsdale Elevation",
+          "crawledTeam": "Scottsdale Elevation",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2019|NXL Chicago Open",
+      "year": "2019",
+      "label": "NXL Chicago Open",
+      "pbleaguesId": "6250",
+      "pbleaguesName": "Chicago Open",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 20,
+      "champion": "X-Factor",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "P.C. Katana",
+          "crawledTeam": "P.C. Katana",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Scottsdale Elevation",
+          "crawledTeam": "Scottsdale Elevation",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2019|NXL World Cup",
+      "year": "2019",
+      "label": "NXL World Cup",
+      "pbleaguesId": "6251",
+      "pbleaguesName": "World Cup",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 20,
+      "champion": "Heat",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Boom",
+          "crawledTeam": "Boom",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "P.C. Katana",
+          "crawledTeam": "P.C. Katana",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Scottsdale Elevation",
+          "crawledTeam": "Scottsdale Elevation",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2020|NXL Las Vegas Open",
+      "year": "2020",
+      "label": "NXL Las Vegas Open",
+      "pbleaguesId": "6726",
+      "pbleaguesName": "Las Vegas Open",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 20,
+      "champion": "Ironmen",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "LVL",
+          "crawledTeam": "Columbus LVL",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Uprising",
+          "crawledTeam": "Uprising",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2020|NXL World Cup",
+      "year": "2020",
+      "label": "NXL World Cup",
+      "pbleaguesId": "6990",
+      "pbleaguesName": "World Cup",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 20,
+      "champion": "Dynasty",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "LVL",
+          "crawledTeam": "Columbus LVL",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "WILD DOGS LATINOAMERICA",
+          "crawledTeam": "WILD DOGS LATINOAMERICA",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2021|Sunshine State Major",
+      "year": "2021",
+      "label": "Sunshine State Major",
+      "pbleaguesId": "7170",
+      "pbleaguesName": "Sunshine State Major",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 20,
+      "champion": "Impact",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Uprising",
+          "crawledTeam": "Uprising",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "LVL",
+          "crawledTeam": "Columbus LVL",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2021|Mid Atlantic Major",
+      "year": "2021",
+      "label": "Mid Atlantic Major",
+      "pbleaguesId": "7250",
+      "pbleaguesName": "Mid Atlantic Major",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 20,
+      "champion": "Heat",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Uprising",
+          "crawledTeam": "Uprising",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "LVL",
+          "crawledTeam": "Columbus LVL",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2021|Windy City Major",
+      "year": "2021",
+      "label": "Windy City Major",
+      "pbleaguesId": "7286",
+      "pbleaguesName": "Windy City Major",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 20,
+      "champion": "Dynasty",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "LVL",
+          "crawledTeam": "Columbus LVL",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Uprising",
+          "crawledTeam": "Uprising",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2021|World Cup",
+      "year": "2021",
+      "label": "World Cup",
+      "pbleaguesId": "7349",
+      "pbleaguesName": "World Cup",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 20,
+      "champion": "Dynasty",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Red Legion",
+          "crawledTeam": "Moscow Red Legion",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "LVL",
+          "crawledTeam": "Columbus LVL",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Uprising",
+          "crawledTeam": "Uprising",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "ac DALLAS",
+          "crawledTeam": "ac DALLAS",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "TRADEMYGUN OUTLAWS",
+          "crawledTeam": "TRADEMYGUN OUTLAWS",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2022|Sunshine State Major",
+      "year": "2022",
+      "label": "Sunshine State Major",
+      "pbleaguesId": "7537",
+      "pbleaguesName": "Sunshine State Major",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 20,
+      "champion": "Dynasty",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Latin Saints",
+          "crawledTeam": "Latin Saints",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "LVL",
+          "crawledTeam": "Columbus LVL",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Uprising",
+          "crawledTeam": "Uprising",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2022|Atlantic City Major",
+      "year": "2022",
+      "label": "Atlantic City Major",
+      "pbleaguesId": "7647",
+      "pbleaguesName": "Mid-Atlantic Major",
+      "confirmedBy": "champion + field size + EVENT_ALIAS",
+      "fieldSize": 20,
+      "champion": "Dynasty",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Uprising",
+          "crawledTeam": "Uprising",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "LVL",
+          "crawledTeam": "Columbus LVL",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Latin Saints",
+          "crawledTeam": "Latin Saints",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2022|Windy City Major",
+      "year": "2022",
+      "label": "Windy City Major",
+      "pbleaguesId": "7648",
+      "pbleaguesName": "Windy City Major",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 20,
+      "champion": "Impact",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "LVL",
+          "crawledTeam": "Columbus LVL",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Latin Saints",
+          "crawledTeam": "Latin Saints",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2022|World Cup",
+      "year": "2022",
+      "label": "World Cup",
+      "pbleaguesId": "7751",
+      "pbleaguesName": "World Cup",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 24,
+      "champion": "Dynasty",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 400
+        },
+        {
+          "rank": 2,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 372
+        },
+        {
+          "rank": 3,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 346
+        },
+        {
+          "rank": 3,
+          "team": "TonTons",
+          "crawledTeam": "Toulouse TonTons",
+          "points": 0
+        },
+        {
+          "rank": 4,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 322
+        },
+        {
+          "rank": 5,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 300
+        },
+        {
+          "rank": 6,
+          "team": "Thunder",
+          "crawledTeam": "Seattle Thunder",
+          "points": 280
+        },
+        {
+          "rank": 7,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 260
+        },
+        {
+          "rank": 8,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 242
+        },
+        {
+          "rank": 9,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 224
+        },
+        {
+          "rank": 10,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 208
+        },
+        {
+          "rank": 11,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 192
+        },
+        {
+          "rank": 12,
+          "team": "DMG",
+          "crawledTeam": "Sacramento DMG",
+          "points": 176
+        },
+        {
+          "rank": 13,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 158
+        },
+        {
+          "rank": 14,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 140
+        },
+        {
+          "rank": 15,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 120
+        },
+        {
+          "rank": 16,
+          "team": "Latin Saints",
+          "crawledTeam": "Latin Saints",
+          "points": 100
+        },
+        {
+          "rank": 17,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 78
+        },
+        {
+          "rank": 18,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 54
+        },
+        {
+          "rank": 19,
+          "team": "LVL",
+          "crawledTeam": "Columbus LVL",
+          "points": 28
+        },
+        {
+          "rank": 19,
+          "team": "Lucky 15s",
+          "crawledTeam": "Lucky 15s Staffordshire",
+          "points": 0
+        },
+        {
+          "rank": 20,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 2
+        },
+        {
+          "rank": 23,
+          "team": "Camp Carnage",
+          "crawledTeam": "PARIS Camp Carnage",
+          "points": 0
+        },
+        {
+          "rank": 24,
+          "team": "Tsunami",
+          "crawledTeam": "Tsunami",
+          "points": 0
+        }
+      ]
+    },
+    {
+      "key": "2023|Sunshine State Major",
+      "year": "2023",
+      "label": "Sunshine State Major",
+      "pbleaguesId": "7927",
+      "pbleaguesName": "Sunshine State Major",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 20,
+      "champion": "Dynasty",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Bears",
+          "crawledTeam": "Brooklyn Bears",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Notorious",
+          "crawledTeam": "Austin Notorious",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "LVL",
+          "crawledTeam": "Columbus LVL",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Latin Saints",
+          "crawledTeam": "Latin Saints",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2023|Lone Star Major",
+      "year": "2023",
+      "label": "Lone Star Major",
+      "pbleaguesId": "8016",
+      "pbleaguesName": "Lone Star Major",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 20,
+      "champion": "Dynasty",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "LVL",
+          "crawledTeam": "Columbus LVL",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Latin Saints",
+          "crawledTeam": "Latin Saints",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Bears",
+          "crawledTeam": "Brooklyn Bears",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Notorious",
+          "crawledTeam": "Austin Notorious",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2023|Mid Atlantic Major",
+      "year": "2023",
+      "label": "Mid Atlantic Major",
+      "pbleaguesId": "8098",
+      "pbleaguesName": "Mid-Atlantic Major",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 20,
+      "champion": "Damage",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Notorious",
+          "crawledTeam": "Austin Notorious",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "LVL",
+          "crawledTeam": "Columbus LVL",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Bears",
+          "crawledTeam": "Brooklyn Bears",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Latin Saints",
+          "crawledTeam": "Latin Saints",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2023|Windy City Major",
+      "year": "2023",
+      "label": "Windy City Major",
+      "pbleaguesId": "8150",
+      "pbleaguesName": "Windy City Major",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 20,
+      "champion": "Damage",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "LVL",
+          "crawledTeam": "Columbus LVL",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Aftermath",
+          "crawledTeam": "San Diego Aftermath",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Bears",
+          "crawledTeam": "Brooklyn Bears",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Notorious",
+          "crawledTeam": "Austin Notorious",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Latin Saints",
+          "crawledTeam": "Latin Saints",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2023|World Cup",
+      "year": "2023",
+      "label": "World Cup",
+      "pbleaguesId": "8196",
+      "pbleaguesName": "World Cup",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 24,
+      "champion": "Dynasty",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 400
+        },
+        {
+          "rank": 2,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 372
+        },
+        {
+          "rank": 3,
+          "team": "TonTons",
+          "crawledTeam": "Toulouse TonTons",
+          "points": 0
+        },
+        {
+          "rank": 4,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 346
+        },
+        {
+          "rank": 5,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 322
+        },
+        {
+          "rank": 6,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 300
+        },
+        {
+          "rank": 7,
+          "team": "Aftermath",
+          "crawledTeam": "ASG Aftermath",
+          "points": 280
+        },
+        {
+          "rank": 8,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 260
+        },
+        {
+          "rank": 9,
+          "team": "Infamous",
+          "crawledTeam": "Los Angeles Infamous",
+          "points": 242
+        },
+        {
+          "rank": 10,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 224
+        },
+        {
+          "rank": 11,
+          "team": "Lucky 15s",
+          "crawledTeam": "Lucky 15s Staffordshire",
+          "points": 0
+        },
+        {
+          "rank": 12,
+          "team": "LVL",
+          "crawledTeam": "Columbus LVL",
+          "points": 208
+        },
+        {
+          "rank": 13,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 192
+        },
+        {
+          "rank": 14,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 176
+        },
+        {
+          "rank": 15,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 158
+        },
+        {
+          "rank": 16,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 140
+        },
+        {
+          "rank": 17,
+          "team": "Virst Factory",
+          "crawledTeam": "Virst Factory Lodz",
+          "points": 0
+        },
+        {
+          "rank": 18,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 120
+        },
+        {
+          "rank": 19,
+          "team": "Notorious",
+          "crawledTeam": "Austin Notorious",
+          "points": 100
+        },
+        {
+          "rank": 20,
+          "team": "Bears",
+          "crawledTeam": "Brooklyn Bears",
+          "points": 78
+        },
+        {
+          "rank": 21,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 54
+        },
+        {
+          "rank": 22,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 28
+        },
+        {
+          "rank": 23,
+          "team": "Joy Division",
+          "crawledTeam": "Joy Division",
+          "points": 0
+        },
+        {
+          "rank": 24,
+          "team": "Latin Saints",
+          "crawledTeam": "Latin Saints",
+          "points": 2
+        }
+      ]
+    },
+    {
+      "key": "2024|Las Vegas Major",
+      "year": "2024",
+      "label": "Las Vegas Major",
+      "pbleaguesId": "8334",
+      "pbleaguesName": "Las Vegas Major",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 20,
+      "champion": "Dynasty",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Aftermath",
+          "crawledTeam": "ASG Aftermath",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Infamous",
+          "crawledTeam": "Infamous",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Bears",
+          "crawledTeam": "Brooklyn Bears",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Notorious",
+          "crawledTeam": "Austin Notorious",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "PaintballFIT",
+          "crawledTeam": "PaintballFIT",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Blast Camp",
+          "crawledTeam": "Blast Camp",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2024|Lone Star Major",
+      "year": "2024",
+      "label": "Lone Star Major",
+      "pbleaguesId": "8335",
+      "pbleaguesName": "Lone Star Major",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 20,
+      "champion": "Red Legion",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Blast Camp",
+          "crawledTeam": "Blast Camp",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Bears",
+          "crawledTeam": "Brooklyn Bears",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "PaintballFIT",
+          "crawledTeam": "PaintballFIT",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Aftermath",
+          "crawledTeam": "ASG Aftermath",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Notorious",
+          "crawledTeam": "Austin Notorious",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Infamous",
+          "crawledTeam": "Infamous",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2024|Mid Atlantic Major",
+      "year": "2024",
+      "label": "Mid Atlantic Major",
+      "pbleaguesId": "8336",
+      "pbleaguesName": "Mid-Atlantic Major",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 20,
+      "champion": "Red Legion",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Infamous",
+          "crawledTeam": "Infamous",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Bears",
+          "crawledTeam": "Brooklyn Bears",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "PaintballFIT",
+          "crawledTeam": "PaintballFIT",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Aftermath",
+          "crawledTeam": "ASG Aftermath",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Blast Camp",
+          "crawledTeam": "Blast Camp",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Notorious",
+          "crawledTeam": "Austin Notorious",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2024|Windy City Open",
+      "year": "2024",
+      "label": "Windy City Open",
+      "pbleaguesId": "8337",
+      "pbleaguesName": "Windy City Major",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 20,
+      "champion": "Damage",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "PaintballFIT",
+          "crawledTeam": "PaintballFIT",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Infamous",
+          "crawledTeam": "Infamous",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Blast Camp",
+          "crawledTeam": "Blast Camp",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Aftermath",
+          "crawledTeam": "ASG Aftermath",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Notorious",
+          "crawledTeam": "Austin Notorious",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Bears",
+          "crawledTeam": "Brooklyn Bears",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2024|World Cup",
+      "year": "2024",
+      "label": "World Cup",
+      "pbleaguesId": "8338",
+      "pbleaguesName": "World Cup",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 24,
+      "champion": "PaintballFIT",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "PaintballFIT",
+          "crawledTeam": "PaintballFIT",
+          "points": 400
+        },
+        {
+          "rank": 2,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 372
+        },
+        {
+          "rank": 3,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 346
+        },
+        {
+          "rank": 4,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 322
+        },
+        {
+          "rank": 5,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 300
+        },
+        {
+          "rank": 6,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 280
+        },
+        {
+          "rank": 7,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 260
+        },
+        {
+          "rank": 8,
+          "team": "SCALP",
+          "crawledTeam": "SCALP",
+          "points": 0
+        },
+        {
+          "rank": 9,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 242
+        },
+        {
+          "rank": 10,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 224
+        },
+        {
+          "rank": 11,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 208
+        },
+        {
+          "rank": 12,
+          "team": "Infamous",
+          "crawledTeam": "Infamous",
+          "points": 192
+        },
+        {
+          "rank": 13,
+          "team": "Bears",
+          "crawledTeam": "Brooklyn Bears",
+          "points": 176
+        },
+        {
+          "rank": 14,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 158
+        },
+        {
+          "rank": 15,
+          "team": "Aftermath",
+          "crawledTeam": "ASG Aftermath",
+          "points": 140
+        },
+        {
+          "rank": 16,
+          "team": "Notorious",
+          "crawledTeam": "Austin Notorious",
+          "points": 120
+        },
+        {
+          "rank": 17,
+          "team": "MLKings",
+          "crawledTeam": "MLKings",
+          "points": 100
+        },
+        {
+          "rank": 18,
+          "team": "Blast Camp",
+          "crawledTeam": "Blast Camp",
+          "points": 78
+        },
+        {
+          "rank": 19,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Revo",
+          "points": 54
+        },
+        {
+          "rank": 20,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 28
+        },
+        {
+          "rank": 21,
+          "team": "TonTons",
+          "crawledTeam": "Toulouse TonTons",
+          "points": 0
+        },
+        {
+          "rank": 22,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 2
+        },
+        {
+          "rank": 23,
+          "team": "Dynamite",
+          "crawledTeam": "Ronholt Dynamite",
+          "points": 0
+        },
+        {
+          "rank": 24,
+          "team": "Spider Fusion",
+          "crawledTeam": "Spider Fusion",
+          "points": 0
+        }
+      ]
+    },
+    {
+      "key": "2025|Tamp Bay Open",
+      "year": "2025",
+      "label": "Tamp Bay Open",
+      "pbleaguesId": "8786",
+      "pbleaguesName": "Tampa Bay Open",
+      "confirmedBy": "champion + field size + EVENT_ALIAS",
+      "fieldSize": 20,
+      "champion": "PaintballFIT",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "PaintballFIT",
+          "crawledTeam": "PaintballFIT",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Infamous",
+          "crawledTeam": "Infamous",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Arsenal",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Seadogs",
+          "crawledTeam": "Royal City Seadogs",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "TonTons",
+          "crawledTeam": "TonTon FSU",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Aftermath",
+          "crawledTeam": "ASG Aftermath",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Leverage",
+          "crawledTeam": "Leverage",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2025|Atlantic City Open",
+      "year": "2025",
+      "label": "Atlantic City Open",
+      "pbleaguesId": "8815",
+      "pbleaguesName": "Atlantic City Open",
+      "confirmedBy": "champion + field size + name",
+      "fieldSize": 20,
+      "champion": "PaintballFIT",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "PaintballFIT",
+          "crawledTeam": "PaintballFIT",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "TonTons",
+          "crawledTeam": "TonTon FSU",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Arsenal",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Aftermath",
+          "crawledTeam": "ASG Aftermath",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Seadogs",
+          "crawledTeam": "Royal City Seadogs",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Infamous",
+          "crawledTeam": "Infamous",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Leverage",
+          "crawledTeam": "Leverage",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2025|Midwest Open",
+      "year": "2025",
+      "label": "Midwest Open",
+      "pbleaguesId": "8926",
+      "pbleaguesName": "Midwest Open",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 20,
+      "champion": "Red Legion",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "TonTons",
+          "crawledTeam": "TonTon FSU",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "PaintballFIT",
+          "crawledTeam": "PaintballFIT",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Seadogs",
+          "crawledTeam": "Royal City Seadogs",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Arsenal",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Infamous",
+          "crawledTeam": "Infamous",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Leverage",
+          "crawledTeam": "Leverage",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Aftermath",
+          "crawledTeam": "ASG Aftermath",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2025|Lone Star",
+      "year": "2025",
+      "label": "Lone Star",
+      "pbleaguesId": "8927",
+      "pbleaguesName": "Lone Star Open",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 20,
+      "champion": "Impact",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Arsenal",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "PaintballFIT",
+          "crawledTeam": "PaintballFIT",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "TonTons",
+          "crawledTeam": "TonTon FSU",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Infamous",
+          "crawledTeam": "Infamous",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Aftermath",
+          "crawledTeam": "ASG Aftermath",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Seadogs",
+          "crawledTeam": "Royal City Seadogs",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Leverage",
+          "crawledTeam": "Leverage",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2025|NXL World Cup",
+      "year": "2025",
+      "label": "NXL World Cup",
+      "pbleaguesId": "8928",
+      "pbleaguesName": "World Cup",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 24,
+      "champion": "Damage",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 400
+        },
+        {
+          "rank": 2,
+          "team": "PaintballFIT",
+          "crawledTeam": "PaintballFIT",
+          "points": 372
+        },
+        {
+          "rank": 3,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 346
+        },
+        {
+          "rank": 4,
+          "team": "TonTons",
+          "crawledTeam": "TonTon FSU",
+          "points": 322
+        },
+        {
+          "rank": 5,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 300
+        },
+        {
+          "rank": 6,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 280
+        },
+        {
+          "rank": 7,
+          "team": "Breakout Spa",
+          "crawledTeam": "Breakout Spa",
+          "points": 260
+        },
+        {
+          "rank": 8,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 242
+        },
+        {
+          "rank": 9,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 224
+        },
+        {
+          "rank": 10,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 208
+        },
+        {
+          "rank": 11,
+          "team": "Leverage",
+          "crawledTeam": "Leverage",
+          "points": 192
+        },
+        {
+          "rank": 12,
+          "team": "Joy Division",
+          "crawledTeam": "Joy Division",
+          "points": 176
+        },
+        {
+          "rank": 13,
+          "team": "Hurricanes",
+          "crawledTeam": "New Orleans Hurricanes",
+          "points": 158
+        },
+        {
+          "rank": 14,
+          "team": "Infamous",
+          "crawledTeam": "Infamous",
+          "points": 140
+        },
+        {
+          "rank": 15,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 120
+        },
+        {
+          "rank": 16,
+          "team": "Arsenal",
+          "crawledTeam": "Baltimore Arsenal",
+          "points": 100
+        },
+        {
+          "rank": 17,
+          "team": "ac DIESEL",
+          "crawledTeam": "ac DIESEL",
+          "points": 78
+        },
+        {
+          "rank": 18,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 54
+        },
+        {
+          "rank": 19,
+          "team": "NRG Elite",
+          "crawledTeam": "NRG Elite",
+          "points": 28
+        },
+        {
+          "rank": 20,
+          "team": "Lucky 15s",
+          "crawledTeam": "Lucky 15s Staffordshire",
+          "points": 2
+        },
+        {
+          "rank": 21,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 2
+        },
+        {
+          "rank": 22,
+          "team": "Seadogs",
+          "crawledTeam": "Royal City Seadogs",
+          "points": 2
+        },
+        {
+          "rank": 23,
+          "team": "Aftermath",
+          "crawledTeam": "ASG Aftermath",
+          "points": 2
+        },
+        {
+          "rank": 24,
+          "team": "Papeletto Team",
+          "crawledTeam": "Papeletto Team",
+          "points": 2
+        }
+      ]
+    },
+    {
+      "key": "2026|Open",
+      "year": "2026",
+      "label": "Open",
+      "pbleaguesId": "9198",
+      "pbleaguesName": "Tampa Bay Open",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 20,
+      "champion": "Red Legion",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "PaintballFIT",
+          "crawledTeam": "PaintballFIT",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Hurricanes",
+          "crawledTeam": "CK Hurricanes",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Infamous",
+          "crawledTeam": "Detroit Infamous",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "TonTons",
+          "crawledTeam": "TonTon Arsenal",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Collision",
+          "crawledTeam": "Los Angeles Collision",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Leverage",
+          "crawledTeam": "New Jersey Leverage",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Aftermath",
+          "crawledTeam": "Perris ASG Aftermath",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Jungle Cats",
+          "crawledTeam": "Atlanta Jungle Cats",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Distortion",
+          "crawledTeam": "Chicago Wyldside Distortion",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Seadogs",
+          "crawledTeam": "Royal City Seadogs",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2026|Mid Atlantic Open",
+      "year": "2026",
+      "label": "Mid Atlantic Open",
+      "pbleaguesId": "9319",
+      "pbleaguesName": "Mid-Atlantic Open",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 20,
+      "champion": "Damage",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "PaintballFIT",
+          "crawledTeam": "PaintballFIT",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "Hurricanes",
+          "crawledTeam": "CK Hurricanes",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "TonTons",
+          "crawledTeam": "TonTon Arsenal",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Aftermath",
+          "crawledTeam": "Perris ASG Aftermath",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Collision",
+          "crawledTeam": "Los Angeles Collision",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Seadogs",
+          "crawledTeam": "Royal City Seadogs",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Jungle Cats",
+          "crawledTeam": "Atlanta Jungle Cats",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Infamous",
+          "crawledTeam": "Detroit Infamous",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Distortion",
+          "crawledTeam": "Chicago Wyldside Distortion",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Leverage",
+          "crawledTeam": "New Jersey Leverage",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "key": "2026|Midwest Open",
+      "year": "2026",
+      "label": "Midwest Open",
+      "pbleaguesId": "9320",
+      "pbleaguesName": "Midwest Open",
+      "confirmedBy": "champion + field size",
+      "fieldSize": 20,
+      "champion": "Impact",
+      "rankings": [
+        {
+          "rank": 1,
+          "team": "Impact",
+          "crawledTeam": "Edmonton Impact",
+          "points": 200
+        },
+        {
+          "rank": 2,
+          "team": "Uprising",
+          "crawledTeam": "Seattle Uprising",
+          "points": 186
+        },
+        {
+          "rank": 3,
+          "team": "TonTons",
+          "crawledTeam": "TonTon Arsenal",
+          "points": 173
+        },
+        {
+          "rank": 4,
+          "team": "Red Legion",
+          "crawledTeam": "Red Legion",
+          "points": 161
+        },
+        {
+          "rank": 5,
+          "team": "Dynasty",
+          "crawledTeam": "San Diego Dynasty",
+          "points": 150
+        },
+        {
+          "rank": 6,
+          "team": "Damage",
+          "crawledTeam": "Tampa Bay Damage",
+          "points": 140
+        },
+        {
+          "rank": 7,
+          "team": "X-Factor",
+          "crawledTeam": "San Antonio X-Factor",
+          "points": 130
+        },
+        {
+          "rank": 8,
+          "team": "PaintballFIT",
+          "crawledTeam": "PaintballFIT",
+          "points": 121
+        },
+        {
+          "rank": 9,
+          "team": "Distortion",
+          "crawledTeam": "Chicago Distortion",
+          "points": 112
+        },
+        {
+          "rank": 10,
+          "team": "Heat",
+          "crawledTeam": "Houston Heat",
+          "points": 104
+        },
+        {
+          "rank": 11,
+          "team": "Aftershock",
+          "crawledTeam": "Chicago Aftershock",
+          "points": 96
+        },
+        {
+          "rank": 12,
+          "team": "Seadogs",
+          "crawledTeam": "Royal City Seadogs",
+          "points": 88
+        },
+        {
+          "rank": 13,
+          "team": "Infamous",
+          "crawledTeam": "Detroit Infamous",
+          "points": 79
+        },
+        {
+          "rank": 14,
+          "team": "Hurricanes",
+          "crawledTeam": "CK Hurricanes",
+          "points": 70
+        },
+        {
+          "rank": 15,
+          "team": "Xtreme",
+          "crawledTeam": "New York Xtreme",
+          "points": 60
+        },
+        {
+          "rank": 16,
+          "team": "Ironmen",
+          "crawledTeam": "Los Angeles Ironmen",
+          "points": 50
+        },
+        {
+          "rank": 17,
+          "team": "Jungle Cats",
+          "crawledTeam": "Atlanta Jungle Cats",
+          "points": 39
+        },
+        {
+          "rank": 18,
+          "team": "Aftermath",
+          "crawledTeam": "Perris ASG Aftermath",
+          "points": 27
+        },
+        {
+          "rank": 19,
+          "team": "Collision",
+          "crawledTeam": "Los Angeles Collision",
+          "points": 14
+        },
+        {
+          "rank": 20,
+          "team": "Leverage",
+          "crawledTeam": "New Jersey Leverage",
+          "points": 1
+        }
+      ]
+    }
+  ],
+  "unmatched": []
+}

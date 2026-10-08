@@ -43,3 +43,9 @@ next-env.d.ts
 
 # firebase
 .firebase/
+
+# Scratch output from the pick-percentage extractor
+/pick-percentages-*.xlsx
+
+# Local pre-migration snapshots. Kept on disk for recovery, not source.
+/scripts/backups/
