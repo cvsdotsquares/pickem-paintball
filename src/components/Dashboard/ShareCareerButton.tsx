@@ -208,26 +208,24 @@ export default function ShareCareerButton({
         produced no class at all and the page showed straight through the overlay — most
         visibly behind the outlined Download button.
 
-        The bottom-nav clearance (pb-24 on mobile) sits on the overlay, not on the button
-        row, so the card and its buttons centre in the space above the nav rather than
-        being pushed up to the top of the screen.
+        The CARD is what sits dead centre; the buttons hang beneath it (absolute, top-full)
+        so they don't pull it upwards. No bottom-nav clearance is needed: the nav is z-50
+        and this overlay is z-[80], so it is covered anyway. On a phone the card is sized
+        to leave room for the button row inside the screen (72vh tall, max 88vw wide).
       */}
       {preview ? overlay(
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/90 p-4 pb-24 sm:pb-4"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/90 p-4"
           onClick={clearPreview}
         >
-          <div
-            className="flex flex-col items-center gap-4 max-h-full"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={preview.url}
               alt={`${playerName} — ${preview.label}`}
-              className="max-h-[62vh] w-auto rounded-xl border border-white/10"
+              className="block max-h-[72vh] max-w-[88vw] sm:max-h-[68vh] w-auto rounded-xl border border-white/10"
             />
-            <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="absolute left-1/2 top-full mt-4 flex -translate-x-1/2 items-center justify-center gap-3 whitespace-nowrap">
               <button
                 type="button"
                 onClick={share}
