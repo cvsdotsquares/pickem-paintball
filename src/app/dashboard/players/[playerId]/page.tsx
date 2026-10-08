@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { fetchPlayerSummary } from "@/src/lib/playerSummary";
@@ -1336,18 +1336,22 @@ function PickemStats({
         </span>
       </div>
 
-      <div className="mt-3 flex flex-1 items-start gap-2">
-        {/* left axis — cost */}
-        <div className="flex h-[186px] w-14 flex-none flex-col justify-between py-[12px] text-right">
+      {/*
+        AXIS VALUES ABOVE AND BELOW THE PLOT, NOT BESIDE IT. Two side columns took ~100px of
+        a ~318px phone panel, squeezing nine events into what was left until their labels
+        collided. The maximum of each scale sits above the plot and the minimum below it,
+        cost on the left in the cost colour and pick % on the right in the pick colour, so
+        the lines and dots get the panel's full width.
+      */}
+      <div className="mt-3 flex flex-1 flex-col">
+        <div className="mb-1 flex items-baseline justify-between">
           <span className="pickem-numeric text-[10px] text-[#1a3c6e] dark:text-[#00f976]">
-            {costVals.length ? fmtCost(cMax) : "—"}
+            {costVals.length ? `${fmtCost(cMax)} max` : "—"}
           </span>
-          <span className="pickem-numeric text-[10px] text-[#1a3c6e] dark:text-[#00f976]">
-            {costVals.length ? fmtCost(cMin) : "—"}
-          </span>
+          <span className="pickem-numeric text-[10px] text-[#0f9d58] dark:text-white">{`${oMax}% max`}</span>
         </div>
-
-        <div className="min-w-0 flex-1">
+        <ChartScroller count={appearances.length} perView={EVENTS_IN_VIEW}>
+        <div className="min-w-0">
           {/* this box must match the svg exactly — markers are positioned as a % of it */}
           <div className="relative h-[186px]">
           <svg
@@ -1434,34 +1438,15 @@ function PickemStats({
           })}
 
           </div>
-
-          {/* x-axis labels, matching the kills chart */}
-          <div className="relative mt-2 h-4">
-            {appearances.map((a, i) => (
-              <span
-                key={a.eventId}
-                className={cn(
-                  LABEL,
-                  "absolute -translate-x-1/2 whitespace-nowrap transition-colors",
-                  hover === i && "text-gray-900 dark:text-white",
-                )}
-                style={{ left: `${xAt(i)}%` }}
-              >
-                {a.shortLabel}
-              </span>
-            ))}
+          <div className="mt-1 flex items-baseline justify-between">
+            <span className="pickem-numeric text-[10px] text-[#1a3c6e] dark:text-[#00f976]">
+              {costVals.length ? `${fmtCost(cMin)} min` : "—"}
+            </span>
+            <span className="pickem-numeric text-[10px] text-[#0f9d58] dark:text-white">0%</span>
           </div>
+          <EventAxis labels={appearances.map((a) => a.shortLabel)} xAt={xAt} step={step} hover={hover} />
         </div>
-
-        {/* right axis — pick % */}
-        <div className="flex h-[186px] w-10 flex-none flex-col justify-between py-[12px]">
-          <span className="pickem-numeric text-[10px] text-[#0f9d58] dark:text-white">
-            {`${oMax}%`}
-          </span>
-          <span className="pickem-numeric text-[10px] text-[#0f9d58] dark:text-white">
-            0%
-          </span>
-        </div>
+        </ChartScroller>
       </div>
 
       <div className="mt-3 min-h-[34px] border-t border-gray-200/70 pt-2.5 dark:border-white/5">
@@ -2081,6 +2066,7 @@ function KillsLine({
 
   return (
     <div className="mt-6">
+      <ChartScroller count={appearances.length} perView={EVENTS_IN_VIEW}>
       <div className="relative" style={{ height: H }}>
         <svg
           viewBox={`0 0 100 ${H}`}
@@ -2181,17 +2167,8 @@ function KillsLine({
         })}
       </div>
 
-      <div className="relative mt-2 h-4">
-        {appearances.map((a, i) => (
-          <div
-            key={a.eventId}
-            className="absolute -translate-x-1/2 text-center"
-            style={{ left: `${xAt(i)}%` }}
-          >
-            <div className={cn(LABEL, "whitespace-nowrap")}>{a.shortLabel}</div>
-          </div>
-        ))}
-      </div>
+      <EventAxis labels={appearances.map((a) => a.shortLabel)} xAt={xAt} step={step} />
+      </ChartScroller>
     </div>
   );
 }
@@ -2547,6 +2524,7 @@ function KillsStacked({
 
   return (
     <div className="mt-6">
+      <ChartScroller count={appearances.length} perView={EVENTS_IN_VIEW}>
       <div className="relative" style={{ height: H }}>
         <svg viewBox={`0 0 100 ${H}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
           {runs.map((idxs, ri) =>
@@ -2606,17 +2584,12 @@ function KillsStacked({
         })}
       </div>
 
-      <div className="relative mt-2 h-4">
-        {appearances.map((a, i) => (
-          <div
-            key={a.eventId}
-            className={cn(LABEL, "absolute -translate-x-1/2 whitespace-nowrap")}
-            style={{ left: `${xAt(i)}%` }}
-          >
-            {a.shortLabel}
-          </div>
-        ))}
-      </div>
+      <EventAxis
+        labels={appearances.map((a) => a.shortLabel)}
+        xAt={xAt}
+        step={appearances.length > 1 ? (xAt(appearances.length - 1) - xAt(0)) / (appearances.length - 1) : 0}
+      />
+      </ChartScroller>
 
       <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5">
         {active.map((t) => (
@@ -2786,6 +2759,163 @@ function seasonsOf(events: NxlEvent[]): NxlSeason[] {
 }
 
 /**
+ * CHART FIT RULES — how a per-column chart (one bar per season, event…) stays inside its
+ * panel at any screen width and any number of columns. Use `useColumnFit` for any new one.
+ *
+ * 1. ONE GRID FOR BARS AND AXIS. Columns are `repeat(n, minmax(0, 1fr))`, shared by the
+ *    bars and the labels under them, so they can never drift out of line. The `minmax(0,…)`
+ *    is the point: a flex-1 item can't shrink below its own text, so twelve seasons of
+ *    "79%" on a phone pushed the bars past the panel edge (Stanczak, Oct 2026).
+ * 2. TEXT NEVER SETS A COLUMN'S WIDTH. Labels adapt to the width each column actually gets:
+ *      full    ≥ 28px  value label at 11px, trophy with its count
+ *      compact ≥ 20px  value label at 9px, trophy with its count
+ *      bare    < 20px  no value label, trophy glyph only; the readout under the chart
+ *                      still names whichever column is tapped
+ * 3. SCROLL, DON'T SQUEEZE. Below a readable minimum width a chart scrolls sideways (see
+ *    ChartScroller) rather than shrinking further; data is never dropped.
+ * 4. GAPS SHRINK FIRST: 8px between columns where the panel is wide, 4px where it isn't.
+ */
+type ColumnFit = "full" | "compact" | "bare";
+function useColumnFit(n: number) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const gap = width >= 480 ? 8 : 4;
+  const col = n > 0 && width > 0 ? (width - gap * (n - 1)) / n : Infinity;
+  const fit: ColumnFit = col >= 28 ? "full" : col >= 20 ? "compact" : "bare";
+  const grid = { display: "grid", gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`, columnGap: gap };
+  return { ref, fit, grid };
+}
+
+/** Width of an element in px, kept current as the screen resizes (0 before first paint). */
+function useMeasuredWidth<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return { ref, width };
+}
+
+/**
+ * SCROLL, DON'T SQUEEZE — the future-proofing half of the chart fit rules.
+ *
+ *   season bars   width-based: scroll once a season would get under 28px (24px column +
+ *                 4px gap). Pass `need` = seasons × 28.
+ *   event charts  count-based: up to 10 events (two seasons) fit the box; from the 11th the
+ *                 chart scrolls with exactly 10 events in view. Pass `count` and `perView`.
+ * Below the threshold the chart fits the box exactly as before. Past it, the chart keeps
+ * its readable width and scrolls sideways instead of shrinking further. It opens at the
+ * right-hand end (the latest season or event, which is what people come to see) and the
+ * left edge fades while there is earlier history to swipe back to. Data is never dropped.
+ */
+function ChartScroller({
+  need,
+  count,
+  perView,
+  children,
+}: {
+  need?: number;
+  count?: number;
+  perView?: number;
+  children: React.ReactNode;
+}) {
+  const { ref, width } = useMeasuredWidth<HTMLDivElement>();
+  // Event charts place points at INSET + i·step, so keeping the in-view spacing equal to
+  // what `perView` events would get means scaling by (count − 1) / (perView − 1).
+  const inner =
+    count != null && perView != null
+      ? count > perView && width > 0
+        ? (width * (count - 1)) / (perView - 1)
+        : 0
+      : need ?? 0;
+  const scroll = width > 0 && inner > width;
+  const [left, setLeft] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (scroll && el) el.scrollLeft = el.scrollWidth;
+  }, [scroll, width, ref]);
+  const fade = scroll && left > 4 ? "linear-gradient(to right, transparent, #000 36px)" : undefined;
+  return (
+    <div
+      ref={ref}
+      className={scroll ? "overflow-x-auto overscroll-x-contain" : undefined}
+      onScroll={scroll ? (e) => setLeft(e.currentTarget.scrollLeft) : undefined}
+      style={fade ? { maskImage: fade, WebkitMaskImage: fade } : undefined}
+    >
+      <div style={scroll ? { width: inner } : undefined}>{children}</div>
+    </div>
+  );
+}
+
+/** Event charts show at most this many events before scrolling: two seasons. */
+const EVENTS_IN_VIEW = 10;
+
+/**
+ * EVENT AXIS — the x-axis under every per-event line chart, following the chart fit rules
+ * above so labels never overlap at any screen width or event count:
+ *   one line  ≥ 42px between events   "TB 25"
+ *   stacked   ≥ 20px                   "TB" over "25"
+ *   thinned   < 20px                   stacked, every k-th label only (k keeps them ≥ 20px
+ *                                      apart); the hovered event's label always shows
+ * Every event keeps its slot and its point; only label text is ever dropped.
+ */
+function EventAxis({
+  labels,
+  xAt,
+  step,
+  hover = null,
+}: {
+  labels: string[];
+  xAt: (i: number) => number;
+  step: number;
+  hover?: number | null;
+}) {
+  const { ref, width } = useMeasuredWidth<HTMLDivElement>();
+  const gapPx = labels.length > 1 && width > 0 ? (width * step) / 100 : Infinity;
+  const tier = gapPx >= 42 ? "line" : gapPx >= 20 ? "stacked" : "thinned";
+  const every = tier === "thinned" ? Math.ceil(20 / gapPx) : 1;
+  return (
+    <div ref={ref} className={cn("relative mt-2", tier === "line" ? "h-4" : "h-7")}>
+      {labels.map((label, i) => {
+        if (i % every !== 0 && i !== hover) return null;
+        const cut = label.lastIndexOf(" ");
+        const name = cut > 0 ? label.slice(0, cut) : label;
+        const year = cut > 0 ? label.slice(cut + 1) : "";
+        return (
+          <div
+            key={`${label}-${i}`}
+            className={cn(
+              LABEL,
+              "absolute -translate-x-1/2 whitespace-nowrap text-center leading-tight transition-colors",
+              hover === i && "text-gray-900 dark:text-white",
+            )}
+            style={{ left: `${xAt(i)}%` }}
+          >
+            {tier === "line" ? label : (
+              <>
+                <div>{name}</div>
+                <div>{year}</div>
+              </>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
  * The league record over time.
  *
  * SEPARATE PANEL, AND SEPARATE ON PURPOSE. Everything else on this page is measured
@@ -2830,6 +2960,7 @@ function NxlRecordPanel({ nxl }: { nxl: NxlCareer }) {
    * something failing to load.
    */
   const anyTitles = seasons.some((sn) => sn.titles > 0);
+  const { ref: fitRef, fit, grid } = useColumnFit(seasons.length);
 
   return (
     <section className={cn(PANEL, "mt-3.5 p-5")}>
@@ -2858,14 +2989,15 @@ function NxlRecordPanel({ nxl }: { nxl: NxlCareer }) {
       </div>
 
       <SubscriberBlur className="mt-5">
-        <div className="relative">
+        <ChartScroller need={seasons.length * 28}>
+        <div ref={fitRef} className="relative">
           {/* An even record. The one reference line that means something here, drawn
               over the bars so a season can be read as above or below it at a glance. */}
           <div
             className="pointer-events-none absolute inset-x-0 z-10 border-t border-dashed border-gray-400/50 dark:border-white/20"
             style={{ bottom: PLOT / 2 }}
           />
-          <div className="flex items-end gap-1 sm:gap-2">
+          <div className="items-end" style={grid}>
             {seasons.map((sn) => {
               const on = hovered === sn.year;
               const pct = sn.winPct ?? 0;
@@ -2873,7 +3005,7 @@ function NxlRecordPanel({ nxl }: { nxl: NxlCareer }) {
                 <button
                   key={sn.year}
                   type="button"
-                  className="group flex flex-1 flex-col justify-end outline-none"
+                  className="group flex min-w-0 flex-col justify-end outline-none"
                   onMouseEnter={() => setHovered(sn.year)}
                   onMouseLeave={() => setHovered(null)}
                   onFocus={() => setHovered(sn.year)}
@@ -2889,19 +3021,22 @@ function NxlRecordPanel({ nxl }: { nxl: NxlCareer }) {
                       {sn.titles > 0 && (
                         <span className="pickem-numeric font-black text-gray-600 dark:text-white/60">
                           <span aria-hidden="true">🏆</span>
-                          {sn.titles > 1 && sn.titles}
+                          {sn.titles > 1 && fit !== "bare" && sn.titles}
                         </span>
                       )}
                     </span>
                   )}
-                  <span
-                    className={cn(
-                      "pickem-numeric mb-1 block text-center text-[11px] font-black leading-none transition-colors",
-                      on ? "text-gray-900 dark:text-white" : "text-gray-500 dark:text-white/50",
-                    )}
-                  >
-                    {sn.winPct != null ? `${sn.winPct.toFixed(0)}%` : "\u2014"}
-                  </span>
+                  {fit !== "bare" && (
+                    <span
+                      className={cn(
+                        "pickem-numeric mb-1 block whitespace-nowrap text-center font-black leading-none transition-colors",
+                        fit === "full" ? "text-[11px]" : "text-[9px]",
+                        on ? "text-gray-900 dark:text-white" : "text-gray-500 dark:text-white/50",
+                      )}
+                    >
+                      {sn.winPct != null ? `${sn.winPct.toFixed(0)}%` : "\u2014"}
+                    </span>
+                  )}
                   <span
                     className={cn(
                       "block w-full rounded-t-[2px] transition-colors",
@@ -2917,12 +3052,12 @@ function NxlRecordPanel({ nxl }: { nxl: NxlCareer }) {
           </div>
         </div>
 
-        <div className="mt-1.5 flex gap-1 sm:gap-2">
+        <div className="mt-1.5" style={grid}>
           {seasons.map((sn) => (
             <span
               key={sn.year}
               className={cn(
-                "pickem-numeric flex-1 text-center text-[10px] font-bold transition-colors",
+                "pickem-numeric min-w-0 text-center text-[10px] font-bold transition-colors",
                 hovered === sn.year
                   ? "text-gray-900 dark:text-white"
                   : "text-gray-400 dark:text-white/35",
@@ -2932,6 +3067,7 @@ function NxlRecordPanel({ nxl }: { nxl: NxlCareer }) {
             </span>
           ))}
         </div>
+        </ChartScroller>
 
       {/* Fixed-height readout so the panel does not jump as the pointer crosses it.
           With nothing hovered it names the best season, which is the thing a reader
