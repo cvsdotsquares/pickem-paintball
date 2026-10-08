@@ -203,9 +203,18 @@ export default function ShareCareerButton({
       ) : null}
 
       {/* PREVIEW + SHARE */}
+      {/*
+        bg-black/90, not /92: Tailwind 3 only generates opacity steps on its scale, so /92
+        produced no class at all and the page showed straight through the overlay — most
+        visibly behind the outlined Download button.
+
+        The bottom-nav clearance (pb-24 on mobile) sits on the overlay, not on the button
+        row, so the card and its buttons centre in the space above the nav rather than
+        being pushed up to the top of the screen.
+      */}
       {preview ? overlay(
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/92 p-4"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/90 p-4 pb-24 sm:pb-4"
           onClick={clearPreview}
         >
           <div
@@ -216,9 +225,9 @@ export default function ShareCareerButton({
             <img
               src={preview.url}
               alt={`${playerName} — ${preview.label}`}
-              className="max-h-[68vh] w-auto rounded-xl border border-white/10"
+              className="max-h-[62vh] w-auto rounded-xl border border-white/10"
             />
-            <div className="flex flex-wrap items-center justify-center gap-3 pb-20 sm:pb-0">
+            <div className="flex flex-wrap items-center justify-center gap-3">
               <button
                 type="button"
                 onClick={share}
