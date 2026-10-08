@@ -473,8 +473,7 @@ export default function Statistics() {
   /** Event columns left-to-right: most recent → oldest (then category stats in table) */
   const seasonEventColumnOrder = useMemo(() => {
     if (!showSeasonTable || sortedRowData.length === 0) return [];
-    const row = sortedRowData[0] as unknown as Record<string, unknown>;
-    const rowKeys = new Set(Object.keys(row));
+    const rowKeys = new Set(sortedRowData.flatMap((row) => Object.keys(row)));
     const ordered: string[] = [];
     for (const e of eventsForSeasonView) {
       if (rowKeys.has(e.name)) {
