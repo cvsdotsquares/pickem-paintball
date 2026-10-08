@@ -1019,7 +1019,10 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
   };
   // Update the headers mapping to ensure proper column display
   const headers = useMemo(() => {
-    const keys = Object.keys(data[0] || {});
+    // Every row's keys, not just the first's: a built season row only carries the events
+    // that player played, so reading row one dropped columns whenever a sort put someone
+    // who missed an event on top.
+    const keys = Array.from(new Set(data.flatMap((row) => Object.keys(row))));
 
     const excludedKeys = new Set(
       [
