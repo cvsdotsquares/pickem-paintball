@@ -274,7 +274,7 @@ for (const [ev, E] of early) {
     for (const [club, rid] of links) for (const p of rosterPlayers(rid)) add(p, key, Object.keys(teams).find((c) => c.toLowerCase() === club.toLowerCase()) ?? club);
   }
   if (Object.keys(teams).length !== field) warnings.notes.push(`${key}: ${Object.keys(teams).length} teams recovered, league says ${field}`);
-  events.push({ key, league: "PSP", year: y, label, start: iso(y, mo, d), fieldSize: field, champion, pickemEventId: null,
+  events.push({ key, league: "PSP", pbleaguesId: ev, year: y, label, start: iso(y, mo, d), fieldSize: field, champion, pickemEventId: null,
     division: div, results: false, teams, matches: [] });
 }
 
@@ -449,12 +449,42 @@ for (const id of fs.readdirSync(`${ARCHIVE}/raw/event`).sort((a, b) => a - b)) {
     if (!players.length) warnings.noRoster.push(`${key}: ${club}`);
     for (const p of players) add(p, key, club);
   }
-  events.push({ key, league: "PSP", year, label: meta.label, start: meta.start, fieldSize: pro.length, champion, pickemEventId: null,
+  events.push({ key, league: "PSP", pbleaguesId: id, year, label: meta.label, start: meta.start, fieldSize: pro.length, champion, pickemEventId: null,
     division: rk.division, results: matches.length > 0, finishInferred: FINISH_FROM_PLACINGS.has(id) || undefined,
     notes: notes.length ? notes : undefined, teams, matches });
 }
 
 events.sort((a, b) => (a.start || "").localeCompare(b.start || ""));
+
+// ---- 3. One name per team (EDGE_CASES.md F) ----------------------------------------
+/**
+ * pbleagues files every roster under a permanent team id, whatever name the team entered
+ * under that season, and each team's page lists that history. `team-names.json` is built
+ * from those pages (archive checks/team_names.py): a team that carried on into NXL takes
+ * its NXL club name ("San Diego Dynasty", "DYNASTY" -> "Dynasty"), a PSP-only team its
+ * shared core name, and the three that were neither were James's call. The entered name
+ * is kept as `rosterName`.
+ */
+const TEAM_NAMES = JSON.parse(fs.readFileSync(new URL("./team-names.json", import.meta.url), "utf8"));
+const renameOf = new Map(); // event key -> (entered name -> club)
+for (const e of events) {
+  const m = new Map();
+  for (const club of Object.keys(e.teams)) {
+    const hit = TEAM_NAMES[`${e.pbleaguesId}|${club}`];
+    if (hit) m.set(club, hit.club);
+  }
+  const target = [...Object.keys(e.teams)].map((c) => m.get(c) ?? c);
+  if (new Set(target).size !== target.length) throw new Error(`${e.key}: two teams would share one name`);
+  if (!m.size) continue;
+  renameOf.set(e.key, m);
+  const to = (c) => m.get(c) ?? c;
+  e.teams = Object.fromEntries(Object.entries(e.teams).map(([c, t]) => [to(c), m.has(c) ? { ...t, rosterName: c } : t]));
+  if (e.champion) e.champion = to(e.champion);
+  e.matches = e.matches.map((r) => { const x = [...r]; x[2] = to(x[2]); x[3] = to(x[3]); if (x.length > 6) x[6] = to(x[6]); return x; });
+}
+for (const map of [appear, appearEpid]) {
+  for (const list of map.values()) for (const a of list) { const m = renameOf.get(a[0]); if (m?.has(a[1])) a[1] = m.get(a[1]); }
+}
 const data = {
   generated: new Date().toISOString(),
   league: "PSP",

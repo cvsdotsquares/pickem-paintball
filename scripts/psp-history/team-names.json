@@ -1,0 +1,1763 @@
+{
+ "103|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "103|Excessive": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "103|Naughty Dogs Inc.": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "1119|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "1119|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "1119|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "1119|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "1119|Hurricanes": {
+  "club": "New York Hurricanes",
+  "teamId": "OH2NasjC43lutXHJ"
+ },
+ "1119|LA Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "1119|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "1119|San Diego Aftermath": {
+  "club": "Aftermath",
+  "teamId": "rB9bNzYIsJvae53p"
+ },
+ "1119|Seattle Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "1119|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "1164|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "1164|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "1164|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "1164|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "1164|Hurricanes": {
+  "club": "New York Hurricanes",
+  "teamId": "OH2NasjC43lutXHJ"
+ },
+ "1164|LA Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "1164|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "1164|San Diego Aftermath": {
+  "club": "Aftermath",
+  "teamId": "rB9bNzYIsJvae53p"
+ },
+ "1164|Seattle Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "1164|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "1315|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "1315|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "1315|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "1315|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "1315|LA Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "1315|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "1315|Sacramento XSV": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "1315|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "1315|VICIOUS": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "143|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "143|Naughty Dogs Inc.": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "1448|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "1448|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "1448|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "1448|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "1448|LA Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "1448|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "1448|Sacramento XSV": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "1448|San Diego Aftermath": {
+  "club": "Aftermath",
+  "teamId": "rB9bNzYIsJvae53p"
+ },
+ "1448|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "1448|VICIOUS": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "1514|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "1514|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "1514|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "1514|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "1514|LA Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "1514|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "1514|Sacramento XSV": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "1514|San Diego Aftermath": {
+  "club": "Aftermath",
+  "teamId": "rB9bNzYIsJvae53p"
+ },
+ "1514|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "1514|VICIOUS": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "1515|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "1515|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "1515|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "1515|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "1515|LA Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "1515|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "1515|Portland Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "hdPSV569bbM0G0Ml"
+ },
+ "1515|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "1515|VICIOUS": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "158|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "158|Excessive": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "158|Naughty Dogs Inc.": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "173|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "173|Excessive": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "173|Naughty Dogs Inc.": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "1803|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "1803|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "1803|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "1803|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "1803|LA Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "1803|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "1803|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "1803|VICIOUS": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "183|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "183|Excessive": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "183|Naughty Dogs Inc.": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "1889|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "1889|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "1889|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "1889|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "1889|LA Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "1889|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "1889|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "1889|VICIOUS": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "1996|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "1996|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "1996|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "1996|LA Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "1996|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "1996|Russia (BRL)": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "1996|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "1996|VICIOUS": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "2030|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "2030|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "2030|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "2030|LA Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "2030|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "2030|Portland Uprising": {
+  "club": "Uprising",
+  "teamId": "6FYh7gTHAf42gkZ0"
+ },
+ "2030|Russia BRL": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "2030|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "2030|VICIOUS": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "205|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "205|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "205|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "205|Miami Raiders": {
+  "club": "Raiders",
+  "teamId": "msV12uaPtzTGxfEm"
+ },
+ "205|Naughty Dogs Inc.": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "205|New York Xtreme": {
+  "club": "New York Hurricanes",
+  "teamId": "OH2NasjC43lutXHJ"
+ },
+ "205|Oakland Assassins": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "205|Russian Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "205|San Diego Legacy": {
+  "club": "Legacy",
+  "teamId": "IrEm0wvdiVSNgp4o"
+ },
+ "206|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "206|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "206|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "206|Miami Raiders": {
+  "club": "Raiders",
+  "teamId": "msV12uaPtzTGxfEm"
+ },
+ "206|Naughty Dogs Inc.": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "206|New York Xtreme": {
+  "club": "New York Hurricanes",
+  "teamId": "OH2NasjC43lutXHJ"
+ },
+ "206|Oakland Assassins": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "206|Russian Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "206|San Diego Legacy": {
+  "club": "Legacy",
+  "teamId": "IrEm0wvdiVSNgp4o"
+ },
+ "207|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "207|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "207|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "207|Miami Raiders": {
+  "club": "Raiders",
+  "teamId": "msV12uaPtzTGxfEm"
+ },
+ "207|Naughty Dogs Inc.": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "207|New York Xtreme": {
+  "club": "New York Hurricanes",
+  "teamId": "OH2NasjC43lutXHJ"
+ },
+ "207|Oakland Assassins": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "207|Russian Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "207|San Diego Legacy": {
+  "club": "Legacy",
+  "teamId": "IrEm0wvdiVSNgp4o"
+ },
+ "208|Baltimore Trauma": {
+  "club": "Trauma",
+  "teamId": "c85WtwxdoGmt0PfK"
+ },
+ "208|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "208|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "208|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "208|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "208|Miami Raiders": {
+  "club": "Raiders",
+  "teamId": "msV12uaPtzTGxfEm"
+ },
+ "208|New York Xtreme": {
+  "club": "New York Hurricanes",
+  "teamId": "OH2NasjC43lutXHJ"
+ },
+ "208|Oakland Assassins": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "208|Portland Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "208|Sacramento XSV": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "208|San Diego Legacy": {
+  "club": "Legacy",
+  "teamId": "IrEm0wvdiVSNgp4o"
+ },
+ "20|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "20|NAUGHTY DOGS": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "20|Russian Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "210|Baltimore Trauma": {
+  "club": "Trauma",
+  "teamId": "c85WtwxdoGmt0PfK"
+ },
+ "210|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "210|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "210|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "210|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "210|Miami Raiders": {
+  "club": "Raiders",
+  "teamId": "msV12uaPtzTGxfEm"
+ },
+ "210|New York Xtreme": {
+  "club": "New York Hurricanes",
+  "teamId": "OH2NasjC43lutXHJ"
+ },
+ "210|Oakland Assassins": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "210|Portland Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "210|Sacramento XSV": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "210|San Diego Legacy": {
+  "club": "Legacy",
+  "teamId": "IrEm0wvdiVSNgp4o"
+ },
+ "2162|Chattanooga C.E.P": {
+  "club": "Chattanooga CEP",
+  "teamId": "hsQCIXAYjzfIY7Fi"
+ },
+ "2162|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "2162|Houston Heat": {
+  "club": "Heat",
+  "teamId": "bkZuqlBFJBIH16gt"
+ },
+ "2162|LA Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "2162|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "2162|Moscow Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "2162|Omaha Vicious": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "2162|San Diego Dynasty": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "2162|Seattle Thunder": {
+  "club": "Thunder",
+  "teamId": "E0DL2uRVl3EKb5YM"
+ },
+ "2162|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "2163|Chattanooga C.E.P": {
+  "club": "Chattanooga CEP",
+  "teamId": "hsQCIXAYjzfIY7Fi"
+ },
+ "2163|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "2163|Houston Heat": {
+  "club": "Heat",
+  "teamId": "bkZuqlBFJBIH16gt"
+ },
+ "2163|LA Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "2163|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "2163|Moscow Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "2163|Omaha Vicious": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "2163|San Diego Dynasty": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "2163|Seattle Thunder": {
+  "club": "Thunder",
+  "teamId": "E0DL2uRVl3EKb5YM"
+ },
+ "2163|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "2206|Chattanooga C.E.P": {
+  "club": "Chattanooga CEP",
+  "teamId": "hsQCIXAYjzfIY7Fi"
+ },
+ "2206|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "2206|Houston Heat": {
+  "club": "Heat",
+  "teamId": "bkZuqlBFJBIH16gt"
+ },
+ "2206|LA Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "2206|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "2206|Moscow Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "2206|Omaha Vicious": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "2206|San Diego Dynasty": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "2206|Seattle Thunder": {
+  "club": "Thunder",
+  "teamId": "E0DL2uRVl3EKb5YM"
+ },
+ "2206|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "2208|Chattanooga C.E.P": {
+  "club": "Chattanooga CEP",
+  "teamId": "hsQCIXAYjzfIY7Fi"
+ },
+ "2208|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "2208|Houston Heat": {
+  "club": "Heat",
+  "teamId": "bkZuqlBFJBIH16gt"
+ },
+ "2208|LA Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "2208|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "2208|Moscow Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "2208|Omaha Vicious": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "2208|San Diego Dynasty": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "2208|Seattle Thunder": {
+  "club": "Thunder",
+  "teamId": "E0DL2uRVl3EKb5YM"
+ },
+ "2208|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "2209|Chattanooga C.E.P": {
+  "club": "Chattanooga CEP",
+  "teamId": "hsQCIXAYjzfIY7Fi"
+ },
+ "2209|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "2209|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "2209|Houston Heat": {
+  "club": "Heat",
+  "teamId": "bkZuqlBFJBIH16gt"
+ },
+ "2209|Los Angeles Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "2209|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "2209|Moscow Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "2209|Omaha Vicious": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "2209|Sacramento XSV": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "2209|San Antonio X-Factor": {
+  "club": "X-Factor",
+  "teamId": "ZKeLDRObA8uTlN2u"
+ },
+ "2209|San Diego Dynasty": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "2209|Seattle Thunder": {
+  "club": "Thunder",
+  "teamId": "E0DL2uRVl3EKb5YM"
+ },
+ "2209|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "2639|Chattanooga C.E.P": {
+  "club": "Chattanooga CEP",
+  "teamId": "hsQCIXAYjzfIY7Fi"
+ },
+ "2639|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "2639|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "2639|Houston Heat": {
+  "club": "Heat",
+  "teamId": "bkZuqlBFJBIH16gt"
+ },
+ "2639|Los Angeles Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "2639|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "2639|Moscow Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "2639|Omaha Vicious": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "2639|Sacramento XSV": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "2639|San Antonio X-Factor": {
+  "club": "X-Factor",
+  "teamId": "ZKeLDRObA8uTlN2u"
+ },
+ "2639|San Diego Dynasty": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "2639|Seattle Thunder": {
+  "club": "Thunder",
+  "teamId": "E0DL2uRVl3EKb5YM"
+ },
+ "2639|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "2639|TonTons Flingueurs": {
+  "club": "TonTons",
+  "teamId": "WBHh3VlqMjUjOobJ"
+ },
+ "2640|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "2640|Houston Heat": {
+  "club": "Heat",
+  "teamId": "bkZuqlBFJBIH16gt"
+ },
+ "2640|Los Angeles Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "2640|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "2640|Omaha Vicious": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "2640|San Antonio X-Factor": {
+  "club": "X-Factor",
+  "teamId": "ZKeLDRObA8uTlN2u"
+ },
+ "2640|San Diego Dynasty": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "2640|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "2640|TonTons Flingueurs": {
+  "club": "TonTons",
+  "teamId": "WBHh3VlqMjUjOobJ"
+ },
+ "2641|Chattanooga C.E.P": {
+  "club": "Chattanooga CEP",
+  "teamId": "hsQCIXAYjzfIY7Fi"
+ },
+ "2641|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "2641|Houston Heat": {
+  "club": "Heat",
+  "teamId": "bkZuqlBFJBIH16gt"
+ },
+ "2641|Los Angeles Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "2641|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "2641|Moscow Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "2641|San Antonio X-Factor": {
+  "club": "X-Factor",
+  "teamId": "ZKeLDRObA8uTlN2u"
+ },
+ "2641|San Diego Dynasty": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "2641|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "2641|TonTons Flingueurs": {
+  "club": "TonTons",
+  "teamId": "WBHh3VlqMjUjOobJ"
+ },
+ "2642|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "2642|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "2642|Houston Heat": {
+  "club": "Heat",
+  "teamId": "bkZuqlBFJBIH16gt"
+ },
+ "2642|Los Angeles Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "2642|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "2642|Moscow Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "2642|San Antonio X-Factor": {
+  "club": "X-Factor",
+  "teamId": "ZKeLDRObA8uTlN2u"
+ },
+ "2642|San Diego Dynasty": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "2642|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "3002|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "3002|Houston Heat": {
+  "club": "Heat",
+  "teamId": "bkZuqlBFJBIH16gt"
+ },
+ "3002|Los Angeles Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "3002|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "3002|Moscow Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "3002|Omaha Vicious": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "3002|San Antonio X-Factor": {
+  "club": "X-Factor",
+  "teamId": "ZKeLDRObA8uTlN2u"
+ },
+ "3002|San Diego Dynasty": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "3002|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "3215|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "3215|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "3215|Houston Heat": {
+  "club": "Heat",
+  "teamId": "bkZuqlBFJBIH16gt"
+ },
+ "3215|Los Angeles Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "3215|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "3215|Omaha Vicious": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "3215|San Antonio X-Factor": {
+  "club": "X-Factor",
+  "teamId": "ZKeLDRObA8uTlN2u"
+ },
+ "3215|San Diego Dynasty": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "3215|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "3216|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "3216|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "3216|Los Angeles Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "3216|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "3216|Omaha Vicious": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "3216|San Antonio X-Factor": {
+  "club": "X-Factor",
+  "teamId": "ZKeLDRObA8uTlN2u"
+ },
+ "3216|San Diego Dynasty": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "3216|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "3217|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "3217|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "3217|Houston Heat": {
+  "club": "Heat",
+  "teamId": "bkZuqlBFJBIH16gt"
+ },
+ "3217|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "3217|Moscow Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "3217|Omaha Vicious": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "3217|San Antonio X-Factor": {
+  "club": "X-Factor",
+  "teamId": "ZKeLDRObA8uTlN2u"
+ },
+ "3217|San Diego Dynasty": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "3217|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "3218|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "3218|Houston Heat": {
+  "club": "Heat",
+  "teamId": "bkZuqlBFJBIH16gt"
+ },
+ "3218|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "3218|Moscow Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "3218|Omaha Vicious": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "3218|San Diego Dynasty": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "3218|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "3219|Baltimore Revo": {
+  "club": "Arsenal",
+  "teamId": "r8SWp5WPtD3fB2SL"
+ },
+ "3219|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "3219|Houston Heat": {
+  "club": "Heat",
+  "teamId": "bkZuqlBFJBIH16gt"
+ },
+ "3219|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "3219|Moscow Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "3219|Omaha Vicious": {
+  "club": "Vicious",
+  "teamId": "FfQA7BWGLgA1ezNw"
+ },
+ "3219|San Antonio X-Factor": {
+  "club": "X-Factor",
+  "teamId": "ZKeLDRObA8uTlN2u"
+ },
+ "3219|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "3838|Baltimore Revo": {
+  "club": "Arsenal",
+  "teamId": "r8SWp5WPtD3fB2SL"
+ },
+ "3838|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "3838|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "3838|Houston Heat": {
+  "club": "Heat",
+  "teamId": "bkZuqlBFJBIH16gt"
+ },
+ "3838|Los Angeles Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "3838|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "3838|Moscow Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "3838|San Antonio X-Factor": {
+  "club": "X-Factor",
+  "teamId": "ZKeLDRObA8uTlN2u"
+ },
+ "3838|San Diego Dynasty": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "3838|Seattle Thunder": {
+  "club": "Thunder",
+  "teamId": "E0DL2uRVl3EKb5YM"
+ },
+ "3838|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "398|Baltimore Trauma": {
+  "club": "Trauma",
+  "teamId": "c85WtwxdoGmt0PfK"
+ },
+ "398|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "398|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "398|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "398|Jacksonville Raiders": {
+  "club": "Raiders",
+  "teamId": "msV12uaPtzTGxfEm"
+ },
+ "398|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "398|Oakland Assassins": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "398|Sacramento XSV": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "398|San Diego Legacy": {
+  "club": "Legacy",
+  "teamId": "IrEm0wvdiVSNgp4o"
+ },
+ "398|Seattle Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "40|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "40|Excessive": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "40|Naughty Dogs Inc.": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "495|Baltimore Trauma": {
+  "club": "Trauma",
+  "teamId": "c85WtwxdoGmt0PfK"
+ },
+ "495|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "495|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "495|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "495|Jacksonville Raiders": {
+  "club": "Raiders",
+  "teamId": "msV12uaPtzTGxfEm"
+ },
+ "495|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "495|Oakland Assassins": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "495|Sacramento XSV": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "495|San Diego Legacy": {
+  "club": "Legacy",
+  "teamId": "IrEm0wvdiVSNgp4o"
+ },
+ "495|Seattle Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "517|Baltimore Trauma": {
+  "club": "Trauma",
+  "teamId": "c85WtwxdoGmt0PfK"
+ },
+ "517|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "517|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "517|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "517|Jacksonville Raiders": {
+  "club": "Raiders",
+  "teamId": "msV12uaPtzTGxfEm"
+ },
+ "517|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "517|Oakland Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "517|Sacramento XSV": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "517|San Diego Legacy": {
+  "club": "Legacy",
+  "teamId": "IrEm0wvdiVSNgp4o"
+ },
+ "517|Seattle Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "529|Baltimore Trauma": {
+  "club": "Trauma",
+  "teamId": "c85WtwxdoGmt0PfK"
+ },
+ "529|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "529|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "529|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "529|Jacksonville Raiders": {
+  "club": "Raiders",
+  "teamId": "msV12uaPtzTGxfEm"
+ },
+ "529|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "529|Oakland Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "529|Sacramento XSV": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "529|Seattle Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "540|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "540|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "540|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "540|Jacksonville Raiders": {
+  "club": "Raiders",
+  "teamId": "msV12uaPtzTGxfEm"
+ },
+ "540|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "540|Oakland Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "540|Sacramento XSV": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "540|Seattle Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "58|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "58|Excessive": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "58|Naughty Dogs Inc.": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "604|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "604|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "604|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "604|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "604|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "604|Oakland Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "604|San Diego Aftermath": {
+  "club": "Aftermath",
+  "teamId": "rB9bNzYIsJvae53p"
+ },
+ "604|Seattle Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "604|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "60|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "60|Naughty Dogs Inc.": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "62|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "62|Excessive": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "62|Naughty Dogs Inc.": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "62|Russian Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "730|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "730|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "730|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "730|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "730|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "730|Oakland Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "730|San Diego Aftermath": {
+  "club": "Aftermath",
+  "teamId": "rB9bNzYIsJvae53p"
+ },
+ "730|Seattle Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "730|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "75|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "75|Excessive": {
+  "club": "XSV",
+  "teamId": "YnY2fUJfMkU4OjlQ"
+ },
+ "75|Naughty Dogs Inc.": {
+  "club": "Naughty Dogs",
+  "note": "roster not on a team page; same entered name and roster as Naughty Dogs elsewhere",
+  "teamId": null
+ },
+ "75|Russian Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "771|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "771|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "771|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "771|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "771|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "771|Oakland Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "771|San Diego Aftermath": {
+  "club": "Aftermath",
+  "teamId": "rB9bNzYIsJvae53p"
+ },
+ "771|Seattle Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "771|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "782|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "782|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "782|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "782|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "782|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "782|Oakland Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "782|San Diego Aftermath": {
+  "club": "Aftermath",
+  "teamId": "rB9bNzYIsJvae53p"
+ },
+ "782|Seattle Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "782|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "795|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "795|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "795|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "795|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "795|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "795|Oakland Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "795|Seattle Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "795|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "874|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "874|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "874|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "874|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "874|Hurricanes": {
+  "club": "New York Hurricanes",
+  "teamId": "OH2NasjC43lutXHJ"
+ },
+ "874|LA Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "874|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "874|San Diego Aftermath": {
+  "club": "Aftermath",
+  "teamId": "rB9bNzYIsJvae53p"
+ },
+ "874|Seattle Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "874|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ },
+ "986|Boston Red Legion": {
+  "club": "Red Legion",
+  "teamId": "2qAmdAHERdjVnMW6"
+ },
+ "986|Chicago Aftershock": {
+  "club": "Aftershock",
+  "teamId": "V2AAgXBXiTdpFeRP"
+ },
+ "986|DYNASTY": {
+  "club": "Dynasty",
+  "teamId": "NULRcbYNCM3HfLiK"
+ },
+ "986|Edmonton Impact": {
+  "club": "Impact",
+  "teamId": "Cw5f2WKdHxWhLcCU"
+ },
+ "986|Hurricanes": {
+  "club": "New York Hurricanes",
+  "teamId": "OH2NasjC43lutXHJ"
+ },
+ "986|LA Infamous": {
+  "club": "Infamous",
+  "teamId": "tGqR6LaDkTiOcB8l"
+ },
+ "986|Los Angeles Ironmen": {
+  "club": "Ironmen",
+  "teamId": "BxcLngKxZwVI5lTB"
+ },
+ "986|San Diego Aftermath": {
+  "club": "Aftermath",
+  "teamId": "rB9bNzYIsJvae53p"
+ },
+ "986|Seattle Naughty Dogs": {
+  "club": "Naughty Dogs",
+  "teamId": "SA1Fw3ALudRdup6l"
+ },
+ "986|Tampa Bay Damage": {
+  "club": "Damage",
+  "teamId": "LvSxug1gDAaN323a"
+ }
+}
