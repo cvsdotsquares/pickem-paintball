@@ -153,7 +153,8 @@ function proTable(nxlHistory, pickem, allTimeRows, view) {
     const kills = p ? killColsOf.get(String(p.playerId)) : null;
     rows.push({
       row_key: who,
-      player_id: p ? p.playerId : "",
+      /* "L-" ids open the league-only career page (preview); PickEm players keep theirs. */
+      player_id: p ? p.playerId : id ? `L-${id}` : `L-e-${epid}`,
       Player: p ? p.name : history.names?.[id ?? epid] ?? "Unknown",
       Team: p ? p.currentTeam : c.events.at(-1)?.club ?? "",
       Number: p ? p.number ?? "" : "",
@@ -201,5 +202,21 @@ async function proLeaders(nxlHistory, pickem, hasPhoto, limit = 20) {
   return out;
 }
 
+/**
+ * A league-only player's career, for `/dashboard/players/L-…` (players with no PickEm
+ * record): "L-7065" is numeric id 7065, "L-e-<epid>" a player with no photo.
+ */
+function leagueOnlyCareer(nxlHistory, key) {
+  const m = String(key).match(/^L-(?:e-(.+)|(.+))$/);
+  if (!m) return null;
+  const [epid, id] = [m[1] ?? null, m[2] ?? null];
+  const views = proCareer(nxlHistory, id, { epid });
+  const any = views.all ?? views.nxl ?? views.psp;
+  if (!any) return null;
+  const names = engines(nxlHistory).all.history().names ?? {};
+  return { views, person: { name: names[id ?? epid] ?? "Unknown", currentTeam: any.events.at(-1)?.club ?? "", leagueId: id ?? `epid:${epid}` } };
+}
+
+module.exports.leagueOnlyCareer = leagueOnlyCareer;
 module.exports.proTable = proTable;
 module.exports.proLeaders = proLeaders;

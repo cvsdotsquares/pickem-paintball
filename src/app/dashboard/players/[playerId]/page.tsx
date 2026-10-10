@@ -230,13 +230,19 @@ const fmtK = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 export default function PlayerPage() {
   const params = useParams();
   const playerId = String(params?.playerId ?? "");
+  /**
+   * PSP PREVIEW: "L-…" is a pro player with no PickEm record ("L-7065", or "L-e-<epid>"
+   * for one with no photo), linked from the preview all-time table. Their page is built
+   * from the league record alone; the PickEm sections are hidden, not zeroed.
+   */
+  const leagueOnly = playerId.startsWith("L-");
   const [baseCareer, setCareer] = useState<PlayerCareer | null>(null);
   /**
    * PSP PREVIEW (career-update branch). The pro career in three views from
    * `/api/career/pro`, which answers only preview accounts until the January release —
    * for everyone else it 404s, `proViews` stays null and the page is exactly as before.
    */
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [proViews, setProViews] = useState<Record<ProView, NxlCareer | null> | null>(null);
   const [proView, setProView] = useState<ProView>("all");
   /** The page reads one `career`; in the preview its league record is the chosen view. */
@@ -271,6 +277,7 @@ export default function PlayerPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    if (leagueOnly) return; // no PickEm summary exists; the pro-career effect below fills the page
     fetchPlayerSummary(playerId)
       .then((s) => {
         if (cancelled) return;
@@ -283,29 +290,44 @@ export default function PlayerPage() {
     return () => {
       cancelled = true;
     };
-  }, [playerId]);
+  }, [playerId, leagueOnly]);
 
   useEffect(() => {
     let cancelled = false;
     setProViews(null);
     setProView("all");
-    if (!user) return;
+    if (!user) {
+      /* Signed out: a league-only page has nothing to show — "Player not found". */
+      if (leagueOnly && !authLoading) setLoading(false);
+      return;
+    }
     (async () => {
       try {
         const res = await fetch(`/api/career/pro?playerId=${encodeURIComponent(playerId)}`, {
           headers: { Authorization: `Bearer ${await user.getIdToken()}` },
         });
-        if (!res.ok || cancelled) return; // 404 = not in the preview: show the page as it is today
+        if (!res.ok || cancelled) {
+          if (leagueOnly && !cancelled) setLoading(false);
+          return; // 404 = not in the preview: show the page as it is today
+        }
         const body = await res.json();
-        if (!cancelled && body?.views?.psp) setProViews(body.views);
+        if (cancelled) return;
+        if (leagueOnly && body?.person) {
+          const p = body.person as { name: string; currentTeam: string; leagueId: string };
+          setCareer(leagueOnlyStub(playerId, p, body.views.all ?? body.views.nxl ?? body.views.psp));
+          setProViews(body.views);
+          if (!body.views.all) setProView(body.views.nxl ? "nxl" : "psp");
+          setLoading(false);
+        } else if (body?.views?.psp) setProViews(body.views);
       } catch {
         /* the preview is optional; the stored career still renders */
+        if (leagueOnly && !cancelled) setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [playerId, user]);
+  }, [playerId, user, leagueOnly, authLoading]);
 
   const labelled = useMemo(
     () =>
@@ -636,7 +658,7 @@ export default function PlayerPage() {
     "shrink-0 self-stretch border-l border-white/[0.08] bg-white/[0.03] px-3.5 font-azonix text-[9px] font-black uppercase tracking-widest text-white/75 transition-colors [&_svg]:text-[#00f976] hover:bg-[#00f976]/10 hover:text-white";
 
   const shareAction =
-    shareScopes.length === 0 ? null : canShare ? (
+    leagueOnly || shareScopes.length === 0 ? null : canShare ? (
       <ShareCareerButton
         playerId={career.playerId}
         playerName={career.name}
@@ -763,6 +785,7 @@ export default function PlayerPage() {
             )}
 
 
+            {!leagueOnly && (<>
             <ScopeStrip action={career.nxl ? undefined : shareAction}>
               Tracked {career.trackedFrom ?? "2025"} to date
             </ScopeStrip>
@@ -792,6 +815,7 @@ export default function PlayerPage() {
                 />
               </div>
             )}
+            </>)}
           </div>
         </div>
       </section>
@@ -805,6 +829,7 @@ export default function PlayerPage() {
         <NxlRecordPanel nxl={career.nxl} />
       )}
 
+      {!leagueOnly && (<>
       {/* ── Kills by event ───────────────────────────────────────────── */}
       <section className={cn(PANEL, "mt-3.5 p-5")}>
         <h2 className={SECTION_HEADING}>Kills by event</h2>
@@ -922,6 +947,8 @@ export default function PlayerPage() {
           </SubscriberBlur>
         </section>
       </div>
+
+      </>)}
 
       {/* ── History: events, or match detail within one event ─────────── */}
       <section className={cn(PANEL, "mt-3.5 p-5")}>
@@ -1995,6 +2022,20 @@ function NxlHeroRow({ nxl }: { nxl: NxlCareer }) {
  * however carefully it is positioned; one that inherits the band's height, its type and
  * its dividers is part of the panel.
  */
+/** A PlayerCareer with no PickEm half, for a league-only page ("L-…"). */
+function leagueOnlyStub(
+  playerId: string,
+  p: { name: string; currentTeam: string; leagueId: string },
+  nxl: NxlCareer | null,
+): PlayerCareer {
+  return {
+    playerId, name: p.name, number: null, imgUrl: null, leagueId: p.leagueId, currentTeam: p.currentTeam,
+    appearances: [], totalKills: 0, playedCount: 0, careerRank: null, careerRankField: 0, avgKills: 0,
+    avgRank: null, bestRank: null, bestRankEvent: null, topTenCount: 0, currentCost: null, typeTotals: [],
+    nxl, trackedFrom: null,
+  };
+}
+
 /* ── PSP preview: league filter ───────────────────────────────── */
 type ProView = "all" | "nxl" | "psp";
 
@@ -3067,7 +3108,8 @@ function NxlRecordPanel({ nxl }: { nxl: NxlCareer }) {
     <section className={cn(PANEL, "mt-3.5 p-5")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className={SECTION_HEADING}>NXL record</h2>
+          {/* `scope` is set only by the PSP preview; the stored career has none and reads NXL. */}
+          <h2 className={SECTION_HEADING}>{nxl.scope === "all" ? "Pro record" : nxl.scope === "psp" ? "PSP record" : "NXL record"}</h2>
           {/*
             Shortened to the label alone, 5 Sep.
             ⚠️ This was the LAST place on the site saying these results belong to the

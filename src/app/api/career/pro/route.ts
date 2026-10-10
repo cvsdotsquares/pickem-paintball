@@ -3,7 +3,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { previewGate } from "@/src/lib/proCareerGate";
 // CommonJS, shared with the Cloud Functions — the same career code the NXL page uses.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { proCareer } = require("@/functions/proCareer");
+const { proCareer, leagueOnlyCareer } = require("@/functions/proCareer");
 import { nxlHistoryCached } from "@/src/lib/proCareerData";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +31,12 @@ export async function GET(request: Request) {
 
   try {
     const db = getFirestore();
+    /* League-only player (no PickEm record): built from the league history alone. */
+    if (playerId.startsWith("L-")) {
+      const found = leagueOnlyCareer(await nxlHistoryCached(db), playerId);
+      if (!found) return NextResponse.json({ error: "No such player" }, { status: 404 });
+      return NextResponse.json({ views: found.views, person: found.person, defaultView: "all" });
+    }
     const snap = await db.collection("playerSummaries").doc(playerId).get();
     if (!snap.exists) return NextResponse.json({ error: "No such player" }, { status: 404 });
     const s = snap.data() as {
