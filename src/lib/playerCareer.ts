@@ -63,6 +63,8 @@ export type AppearanceKind = "played" | "dnp" | "not-rostered";
  * amount of kill arithmetic will ever produce a W.
  */
 export interface TeamEventRecord {
+  /** PSP placings-only events: the row shows `finishRank` in place of W-L. */
+  noGames?: boolean;
   w: number;
   l: number;
   t: number;
@@ -143,6 +145,10 @@ export interface CareerAppearance {
  */
 export interface NxlEvent {
   key: string;
+  /** False for a placings-only event (PSP 2003-05, 2008 World Cup): out of Sunday %. */
+  bracketKnown?: boolean;
+  /** No games survive for this event: show the final placing, not a W-L. */
+  noGames?: boolean;
   year: string;
   label: string;
   start: string | null;
@@ -160,6 +166,11 @@ export interface NxlEvent {
 
 export interface NxlCareer {
   leagueId: string;
+  /**
+   * Which pool this career and its ranks belong to. Absent on the stored NXL career;
+   * set by `/api/career/pro` (PSP preview): "all" = NXL + PSP since 2003.
+   */
+  scope?: "all" | "nxl" | "psp";
   /** Oldest first. */
   events: NxlEvent[];
   tournaments: number;
@@ -198,7 +209,11 @@ export interface NxlCareer {
    * PickEm's own eight events are absent by design: those rows already exist on
    * `matches`, built from long data and carrying kills.
    */
-  matchLog: { k: string; r: string; o: string; f: number; a: number }[];
+  /**
+   * `f`/`a` are null for a game with no recorded score; `x` then carries the result
+   * (PSP 2006 World Cup final and 3rd-place game — winner known from the placings).
+   */
+  matchLog: { k: string; r: string; o: string; f: number | null; a: number | null; x?: "W" | "L" }[];
   /**
    * The first season the league file covers — 2015 — NOT this player's debut.
    *

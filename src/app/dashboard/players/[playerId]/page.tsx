@@ -21,6 +21,7 @@ import PlayerSearch from "@/src/components/Dashboard/PlayerSearch";
 import ShareCareerButton, { type ShareScopeOption } from "@/src/components/Dashboard/ShareCareerButton";
 import SubscriberBlur, { useBetaGate } from "@/src/components/Dashboard/SubscriberBlur";
 import { cn } from "@/src/lib/utils";
+import { useAuth } from "@/src/contexts/authProvider";
 
 /** Shared column template — header and rows must use the same constant (style guide). */
 /**
@@ -229,7 +230,20 @@ const fmtK = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 export default function PlayerPage() {
   const params = useParams();
   const playerId = String(params?.playerId ?? "");
-  const [career, setCareer] = useState<PlayerCareer | null>(null);
+  const [baseCareer, setCareer] = useState<PlayerCareer | null>(null);
+  /**
+   * PSP PREVIEW (career-update branch). The pro career in three views from
+   * `/api/career/pro`, which answers only preview accounts until the January release —
+   * for everyone else it 404s, `proViews` stays null and the page is exactly as before.
+   */
+  const { user } = useAuth();
+  const [proViews, setProViews] = useState<Record<ProView, NxlCareer | null> | null>(null);
+  const [proView, setProView] = useState<ProView>("all");
+  /** The page reads one `career`; in the preview its league record is the chosen view. */
+  const career = useMemo<PlayerCareer | null>(
+    () => (baseCareer && proViews ? { ...baseCareer, nxl: proViews[proView] } : baseCareer),
+    [baseCareer, proViews, proView],
+  );
   const [loading, setLoading] = useState(true);
   const [hovered, setHovered] = useState<string | null>(null);
   const [styleScope, setStyleScope] = useState<StyleScope>("career");
@@ -270,6 +284,28 @@ export default function PlayerPage() {
       cancelled = true;
     };
   }, [playerId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setProViews(null);
+    setProView("all");
+    if (!user) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/career/pro?playerId=${encodeURIComponent(playerId)}`, {
+          headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+        });
+        if (!res.ok || cancelled) return; // 404 = not in the preview: show the page as it is today
+        const body = await res.json();
+        if (!cancelled && body?.views?.psp) setProViews(body.views);
+      } catch {
+        /* the preview is optional; the stored career still renders */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [playerId, user]);
 
   const labelled = useMemo(
     () =>
@@ -440,6 +476,7 @@ export default function PlayerPage() {
           finish: ev.finish,
           finishRank: ev.finishRank,
           champion: ev.finishRank === 1,
+          noGames: ev.noGames,
         },
         start: ev.start ?? `${ev.year}-01-01`,
         pickem,
@@ -517,7 +554,7 @@ export default function PlayerPage() {
         round: m.r,
         opponent: m.o,
         opponentId: null,
-        result: m.f > m.a ? "W" : m.f < m.a ? "L" : "T",
+        result: m.x ?? (m.f == null || m.a == null ? "T" : m.f > m.a ? "W" : m.f < m.a ? "L" : "T"),
         scoreFor: m.f,
         scoreAgainst: m.a,
         pickem: null,
@@ -704,6 +741,7 @@ export default function PlayerPage() {
                 of dashes — a blank scoreboard reads as "never won anything", which is a
                 claim about the player instead of about our data. The hero simply falls
                 back to the PickEm row it had before. */}
+            {proViews && <ProViewFilter views={proViews} value={proView} onChange={setProView} />}
             {career.nxl && (
               <>
                 {/*
@@ -718,11 +756,12 @@ export default function PlayerPage() {
                   years now hint at that. See CAREER_PAGE_REVIEW.md.
                 */}
                 <ScopeStrip action={shareAction}>
-                  Tracked {career.nxl.trackedFrom ?? "2015"} to date
+                  {proViews ? PRO_VIEW_CAPTION[proView] : <>Tracked {career.nxl.trackedFrom ?? "2015"} to date</>}
                 </ScopeStrip>
                 <NxlHeroRow nxl={career.nxl} />
               </>
             )}
+
 
             <ScopeStrip action={career.nxl ? undefined : shareAction}>
               Tracked {career.trackedFrom ?? "2025"} to date
@@ -1063,7 +1102,9 @@ export default function PlayerPage() {
                       : "text-gray-300 dark:text-white/25",
                   )}
                   title={
-                    showRecord
+                    showRecord && row.record!.noGames
+                      ? `${row.team} finished ${row.record!.finishRank}${ordinal(row.record!.finishRank ?? 0)} — final placing only; no match results survive for this event`
+                      : showRecord
                       ? `${row.team} finished ${row.record!.champion ? "as winners" : `at the ${row.record!.finish.toLowerCase()}`} — ${row.record!.w} won, ${row.record!.l} lost`
                       : absent
                         ? `${row.team} played this event; ${career.name} did not, so their result is not counted here`
@@ -1073,7 +1114,9 @@ export default function PlayerPage() {
                   {showRecord ? (
                     <>
                       {row.record!.champion && <span className="mr-0.5" aria-hidden="true">🏆</span>}
-                      {row.record!.w}–{row.record!.l}
+                      {row.record!.noGames && row.record!.finishRank != null
+                        ? `${row.record!.finishRank}${ordinal(row.record!.finishRank)}`
+                        : `${row.record!.w}–${row.record!.l}`}
                     </>
                   ) : (
                     "\u2014"
@@ -1918,7 +1961,9 @@ function NxlHeroRow({ nxl }: { nxl: NxlCareer }) {
         // "/699" on the same line as the rank rather than beneath it, so this tile is
         // the same height as every other one and the row shares a baseline.
         inlineNote={tier.rank.value != null ? `/${nxl.rankField}` : undefined}
-        title={`Out of every player on an NXL Pro roster since 2015 (${nxl.rankField})`}
+        title={`Out of every player on ${
+          nxl.scope === "all" ? "an NXL or PSP Pro roster since 2003" : nxl.scope === "psp" ? "a PSP Pro roster, 2003–2015" : "an NXL Pro roster since 2015"
+        } (${nxl.rankField})`}
       />
       <HeroTile label={tier.rate.label} value={tier.rate.value} title={tier.rate.title} />
       {tier.fourth && (
@@ -1950,6 +1995,62 @@ function NxlHeroRow({ nxl }: { nxl: NxlCareer }) {
  * however carefully it is positioned; one that inherits the band's height, its type and
  * its dividers is part of the panel.
  */
+/* ── PSP preview: league filter ───────────────────────────────── */
+type ProView = "all" | "nxl" | "psp";
+
+/** EDGE_CASES.md E3. Statements about our coverage, the same on every player's page. */
+const PRO_VIEW_CAPTION: Record<ProView, string> = {
+  all: "Careers combine player performances from PSP (2003–2015) and NXL (2015–present)",
+  nxl: "Careers show player performances from NXL (2015–present)",
+  psp: "Careers show player performances from PSP (2003–2015)",
+};
+
+const PRO_VIEW_LABEL: Record<ProView, string> = { all: "All", nxl: "NXL", psp: "PSP" };
+
+/**
+ * All / NXL / PSP. Shown only when `/api/career/pro` answered (the preview) and the player
+ * has a PSP career — for an NXL-only player All and NXL are the same thing. A league the
+ * player never played is shown but disabled, so the control reads the same everywhere.
+ */
+function ProViewFilter({
+  views,
+  value,
+  onChange,
+}: {
+  views: Record<ProView, NxlCareer | null>;
+  value: ProView;
+  onChange: (v: ProView) => void;
+}) {
+  return (
+    <div className="flex min-h-[30px] items-center gap-1 border-b border-white/[0.08] px-2.5 py-1.5" role="radiogroup" aria-label="League">
+      {(["all", "nxl", "psp"] as ProView[]).map((v) => {
+        const on = v === value;
+        const off = !views[v];
+        return (
+          <button
+            key={v}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            disabled={off}
+            onClick={() => onChange(v)}
+            className={cn(
+              "rounded-full px-3 py-1 font-azonix text-[9px] font-black uppercase tracking-widest transition-colors",
+              on
+                ? "bg-[#00f976] text-[#0c2340]"
+                : off
+                  ? "cursor-not-allowed text-white/15"
+                  : "text-white/50 hover:bg-white/[0.06] hover:text-white",
+            )}
+          >
+            {PRO_VIEW_LABEL[v]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function ScopeStrip({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="flex min-h-[30px] items-stretch justify-between gap-3 border-b border-white/[0.08] bg-white/[0.02] font-azonix text-[8px] font-black uppercase tracking-widest text-white/30">
