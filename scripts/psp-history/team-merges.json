@@ -1,0 +1,9 @@
+{
+  "_about": "Merges of teams that pbleagues lists under DIFFERENT team ids, made on James's call (10 Oct 2026) from seasons + roster overlap. Applied after team-names.json. Every entry needs review by someone who knows the teams of the era. Overlap = share of the earlier team's players who appear on the later one; a continuing team keeps ~64% next season, ~37% three seasons later.",
+  "merges": [
+    { "from": "Team Strange",        "to": "Strange",       "status": "needs expert review", "evidence": "Team Strange won the 2003 World Cup (1 event); Detroit Strange 2006-07 (10 events). 3-season gap. 4 of 15 players shared (27%)." },
+    { "from": "Detroit Strange",     "to": "Strange",       "status": "needs expert review", "evidence": "See Team Strange." },
+    { "from": "Philly Americans",    "to": "All Americans", "status": "needs expert review", "evidence": "All Americans 2003-04 (2 events); Philly Americans 2006-09 (19 events, won 2006 Texas + 2009 Phoenix). 2-season gap. 3 of 15 players shared (20%)." },
+    { "from": "St. Louis Avalanche", "to": "Avalanche",     "status": "needs expert review", "evidence": "Avalanche 2004-05 (10 events, won 2004 Chicago); St. Louis Avalanche 2008 (3 events). 3-season gap. 2 of 31 players shared (6%)." }
+  ]
+}

@@ -466,19 +466,34 @@ events.sort((a, b) => (a.start || "").localeCompare(b.start || ""));
  * is kept as `rosterName`.
  */
 const TEAM_NAMES = JSON.parse(fs.readFileSync(new URL("./team-names.json", import.meta.url), "utf8"));
+/**
+ * Then James's merges of teams pbleagues keeps under different ids (EDGE_CASES.md F2) —
+ * each flagged for expert review, and marked on the entry as `merged`.
+ */
+const MERGES = new Map(JSON.parse(fs.readFileSync(new URL("./team-merges.json", import.meta.url), "utf8")).merges.map((x) => [x.from, x]));
 const renameOf = new Map(); // event key -> (entered name -> club)
+const mergedEntry = new Set(); // "eventKey|club" that came from a merge
 for (const e of events) {
   const m = new Map();
   for (const club of Object.keys(e.teams)) {
     const hit = TEAM_NAMES[`${e.pbleaguesId}|${club}`];
-    if (hit) m.set(club, hit.club);
+    const named = hit ? hit.club : club;
+    const merge = MERGES.get(named);
+    if (merge) mergedEntry.add(`${e.key}|${merge.to}`);
+    const final = merge ? merge.to : named;
+    if (final !== club) m.set(club, final);
   }
   const target = [...Object.keys(e.teams)].map((c) => m.get(c) ?? c);
   if (new Set(target).size !== target.length) throw new Error(`${e.key}: two teams would share one name`);
   if (!m.size) continue;
   renameOf.set(e.key, m);
   const to = (c) => m.get(c) ?? c;
-  e.teams = Object.fromEntries(Object.entries(e.teams).map(([c, t]) => [to(c), m.has(c) ? { ...t, rosterName: c } : t]));
+  e.teams = Object.fromEntries(Object.entries(e.teams).map(([c, t]) => {
+    const club = to(c);
+    const out = m.has(c) ? { ...t, rosterName: c } : t;
+    if (mergedEntry.has(`${e.key}|${club}`)) out.merged = "needs expert review";
+    return [club, out];
+  }));
   if (e.champion) e.champion = to(e.champion);
   e.matches = e.matches.map((r) => { const x = [...r]; x[2] = to(x[2]); x[3] = to(x[3]); if (x.length > 6) x[6] = to(x[6]); return x; });
 }
