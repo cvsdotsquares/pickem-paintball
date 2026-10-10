@@ -418,6 +418,8 @@ type MatchupTableProps = {
 export interface Player {
   id?: string;
   player_id: string;
+  /** Pro-career preview only: unique per row where `player_id` can be "". */
+  row_key?: string;
   league_id?: string;
   team_id?: string;
   Rank: number;
@@ -741,7 +743,9 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       return 0;
     });
     const byRow = new Map<string, number>();
-    list.forEach((p, i) => byRow.set(String(p.player_id ?? p.Player ?? i), i + 1));
+    /* `row_key` first: the pro-career preview lists players with no PickEm page, whose
+       `player_id` is "" — they would all share one key and one rank. Absent elsewhere. */
+    list.forEach((p, i) => byRow.set(String(p.row_key ?? p.player_id ?? p.Player ?? i), i + 1));
     return byRow;
   }, [typedData, sortConfig, rankMode, rankKey, rankTieBreakers]);
 
@@ -1029,6 +1033,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
         "id",
         "cost",
         "player_id",
+        "row_key",
         "league_id",
         "team_id",
         "picture",
@@ -1633,7 +1638,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                     {row.participation === "absent" ? (
                       <span className={darkMode ? "text-white/25" : "text-gray-300"}>—</span>
                     ) : rankMode === "rank" ? (
-                      (positions?.get(String(row.player_id ?? row.Player ?? "")) ?? "—")
+                      (positions?.get(String(row.row_key ?? row.player_id ?? row.Player ?? "")) ?? "—")
                     ) : (
                       row.Rank
                     )}

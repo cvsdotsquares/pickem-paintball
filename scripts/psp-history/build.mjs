@@ -231,7 +231,8 @@ const appear = new Map();      // numeric id -> [[key, club]]
 const appearEpid = new Map();  // epid (players with no numeric id) -> [[key, club]]
 const names = {};
 const add = (p, key, club) => {
-  if (p.name && p.num) names[p.num] = p.name;
+  /* Names by whichever id the appearance is filed under — numeric, or EPID for no photo. */
+  if (p.name && (p.num || p.epid)) names[p.num || p.epid] = p.name;
   const [map, id] = p.num ? [appear, p.num] : [appearEpid, p.epid];
   if (!id) return;
   const list = map.get(id) ?? map.set(id, []).get(id);

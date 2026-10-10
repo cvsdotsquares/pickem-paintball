@@ -7,6 +7,7 @@ import { db } from "@/src/lib/firebaseClient";
 import { cn } from "@/src/lib/utils";
 import PlayerCard, { type CardPlayer } from "@/src/components/Dashboard/PlayerCard";
 import { individualEventDisplayName } from "@/src/lib/eventDisplayName";
+import { useAuth } from "@/src/contexts/authProvider";
 
 /**
  * Career stats — finding a player, not ranking them.
@@ -133,6 +134,33 @@ function SearchCard({ onClick }: { onClick: () => void }) {
 export default function CareerStatsPage() {
   const [spotlight, setSpotlight] = useState<Spotlight | null>(null);
   const [index, setIndex] = useState<IndexRow[] | null>(null);
+  /**
+   * PSP PREVIEW (career-update branch): the All-view leaders (PSP + NXL since 2003) from
+   * `/api/career/pro/aggregates`, which answers preview accounts only until the January
+   * release. Null for everyone else, who see the stored row exactly as before.
+   */
+  const { user } = useAuth();
+  const [proLeaders, setProLeaders] = useState<CardPlayer[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setProLeaders(null);
+    if (!user) return;
+    (async () => {
+      try {
+        const res = await fetch("/api/career/pro/aggregates?part=leaders", {
+          headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+        });
+        if (cancelled || !res.ok) return;
+        const body = await res.json();
+        if (!cancelled && Array.isArray(body.leaders) && body.leaders.length) setProLeaders(body.leaders);
+      } catch {
+        /* preview is optional */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
   const [q, setQ] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   /** Two rows on a phone, one on tablet and desktop. */
@@ -325,12 +353,12 @@ export default function CareerStatsPage() {
           {/* Career kills, highest first. The card's own Rank stat reads 1st, 2nd, 3rd,
               so the row explains its own order — and a player skipped for want of a
               photo leaves a visible gap rather than a silent one. */}
-          {spotlight.allTimeLeaders.length > 0 && (
+          {(proLeaders ?? spotlight.allTimeLeaders).length > 0 && (
             <section>
               <h2 className={SECTION}>All-time leaders</h2>
-              <p className={SUBHEAD}>All-time NXL event wins</p>
+              <p className={SUBHEAD}>{proLeaders ? "All-time PSP + NXL event wins, since 2003" : "All-time NXL event wins"}</p>
               <div className={cn(ROW, "mt-3")}>
-                {spotlight.allTimeLeaders.map((p) => (
+                {(proLeaders ?? spotlight.allTimeLeaders).map((p) => (
                   <div key={p.id} className={CARD}>
                     <PlayerCard p={p} />
                   </div>

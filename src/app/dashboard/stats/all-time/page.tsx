@@ -6,6 +6,53 @@ import { db } from "@/src/lib/firebaseClient";
 import { MatchupTable } from "@/src/components/Dashboard/datatable";
 import PlayerSearch from "@/src/components/Dashboard/PlayerSearch";
 import SubscriberBlur, { useBetaGate } from "@/src/components/Dashboard/SubscriberBlur";
+import { useAuth } from "@/src/contexts/authProvider";
+import { cn } from "@/src/lib/utils";
+
+/* ── PSP preview (career-update branch) ────────────────────────────
+   `/api/career/pro/aggregates` answers preview accounts only until the January release;
+   for everyone else it 404s and this page is exactly as before. */
+type ProView = "all" | "nxl" | "psp";
+type Status = "all" | "active" | "inactive";
+const VIEW_LABEL: Record<ProView, string> = { all: "All", nxl: "NXL", psp: "PSP" };
+const STATUS_LABEL: Record<Status, string> = { all: "All players", active: "Active", inactive: "Inactive" };
+/** EDGE_CASES.md E3 — coverage lines, one per view. */
+const VIEW_CAPTION: Record<ProView, string> = {
+  all: "Careers combine player performances from PSP (2003–2015) and NXL (2015–present)",
+  nxl: "Careers show player performances from NXL (2015–present)",
+  psp: "Careers show player performances from PSP (2003–2015)",
+};
+const VIEW_RANK_HELP: Record<ProView, string> = {
+  all: "Ranked by PSP and NXL tournament wins since 2003.",
+  nxl: "Ranked by NXL tournament wins since 2015.",
+  psp: "Ranked by PSP tournament wins, 2003–2015.",
+};
+
+function Pills<T extends string>({ options, value, onChange, label }: {
+  options: Record<T, string>; value: T; onChange: (v: T) => void; label: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1" role="radiogroup" aria-label={label}>
+      {(Object.keys(options) as T[]).map((k) => (
+        <button
+          key={k}
+          type="button"
+          role="radio"
+          aria-checked={k === value}
+          onClick={() => onChange(k)}
+          className={cn(
+            "rounded-full px-3 py-1 font-azonix text-[9px] uppercase tracking-widest transition-colors",
+            k === value
+              ? "bg-[#1a3c6e] text-white dark:bg-[#00f976] dark:text-[#0c2340]"
+              : "text-gray-500 hover:bg-black/[0.05] dark:text-white/50 dark:hover:bg-white/[0.06]",
+          )}
+        >
+          {options[k]}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 /**
  * All-time stats — the same table the stats page renders per event, over every event.
@@ -53,6 +100,12 @@ const byRank = (a: Record<string, unknown>, b: Record<string, unknown>) => {
 
 export default function AllTimeStatsPage() {
   const [rows, setRows] = useState<Record<string, unknown>[] | null>(null);
+  const { user } = useAuth();
+  /** Null until the preview answers; null for good for everyone outside it. */
+  const [proRows, setProRows] = useState<Record<string, unknown>[] | null>(null);
+  const [proOn, setProOn] = useState(false);
+  const [view, setView] = useState<ProView>("all");
+  const [status, setStatus] = useState<Status>("all");
   const { locked: betaLocked } = useBetaGate();
   const full = !betaLocked;
   /**
@@ -86,6 +139,38 @@ export default function AllTimeStatsPage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) { setProOn(false); setProRows(null); return; }
+    setProRows(null);
+    (async () => {
+      try {
+        const res = await fetch(`/api/career/pro/aggregates?part=table&view=${view}`, {
+          headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+        });
+        if (cancelled || !res.ok) return; // 404 = not in the preview
+        const body = await res.json();
+        if (cancelled) return;
+        setProOn(true);
+        setProRows([...(body.rows as Record<string, unknown>[])].sort(byRank));
+      } catch {
+        /* preview is optional */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, view]);
+
+  /* The preview's rows, filtered by status; `active` is a control field, not a column. */
+  const shown = proOn
+    ? proRows === null
+      ? null
+      : proRows
+          .filter((r) => status === "all" || (status === "active") === Boolean(r.active))
+          .map(({ active: _active, ...r }) => r)
+    : rows;
 
   /**
    * No sorting here on purpose.
@@ -122,19 +207,29 @@ export default function AllTimeStatsPage() {
             columns — run together as a paragraph, neither attached to anything.
           */}
           <div className="mt-1.5 pl-3 text-[11px] leading-relaxed text-gray-500 dark:text-white/40">
-            <p>Win / Loss records tracked from NXL inception in 2015</p>
+            <p>{proOn ? VIEW_CAPTION[view] : "Win / Loss records tracked from NXL inception in 2015"}</p>
             <p>Pick&rsquo;Em started tracking confirmed kills in 2025</p>
           </div>
         </div>
         <PlayerSearch className="w-full sm:w-64" />
       </div>
 
+      {proOn && (
+        <div className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+          <Pills label="League" options={VIEW_LABEL} value={view} onChange={setView} />
+          <Pills label="Status" options={STATUS_LABEL} value={status} onChange={setStatus} />
+          <span className="text-[10px] text-gray-400 dark:text-white/30">
+            Active = rostered on a Pro team at any of the last five events
+          </span>
+        </div>
+      )}
+
       <section className="rounded-xl bg-neutral-100/90 p-3 dark:bg-stone-900/90 sm:p-5">
-        {rows === null ? (
+        {shown === null ? (
           <div className="flex justify-center py-16">
             <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-gray-300/90 border-t-[#00f976] dark:border-gray-600 dark:border-t-[#00f976]" />
           </div>
-        ) : rows.length === 0 ? (
+        ) : shown.length === 0 ? (
           <p className="py-10 text-center text-[12px] text-gray-500 dark:text-white/40">
             No all-time data yet.
           </p>
@@ -150,7 +245,7 @@ export default function AllTimeStatsPage() {
             fair; a wrong one is not.
           */}
           <MatchupTable
-            data={(full ? rows : rows.slice(0, FREE_ROWS)) as never}
+            data={(full ? shown : shown.slice(0, FREE_ROWS)) as never}
             sortConfig={sortConfig}
             onSortChange={full ? (c: SortConfig | null) => setSortConfig(c) : () => {}}
             showMyPicks={false}
@@ -164,7 +259,7 @@ export default function AllTimeStatsPage() {
             rankMode="rank"
             rankKey="Event Wins"
             rankTieBreakers={["Event Win %", "Match Win %", "Confirmed Kills"]}
-            rankHelp="Ranked by NXL tournament wins since 2015. Players level on wins are separated by event win %, then match win %, then confirmed kills."
+            rankHelp={`${proOn ? VIEW_RANK_HELP[view] : "Ranked by NXL tournament wins since 2015."} Players level on wins are separated by event win %, then match win %, then confirmed kills.`}
             /* Launch: delete this line and the top-50 slice above, and the table is open
                to everyone again. Nothing in the table component has to change. */
             sortable={full}
@@ -172,13 +267,13 @@ export default function AllTimeStatsPage() {
 
           {/* The rows they are missing, actually theirs — blurred, but the real next
               names, so the offer is this table rather than a stock graphic. */}
-          {!full && rows.length > FREE_ROWS && (
+          {!full && shown.length > FREE_ROWS && (
             <SubscriberBlur
               className="mt-1"
               message={"More career stats available to Pick\u2019Em subscribers during beta"}
             >
               <div className="divide-y divide-gray-200/70 dark:divide-white/5">
-                {rows.slice(FREE_ROWS, FREE_ROWS + 6).map((r, i) => (
+                {shown.slice(FREE_ROWS, FREE_ROWS + 6).map((r, i) => (
                   <div
                     key={`${String(r.Player ?? i)}-${i}`}
                     className="flex items-baseline justify-between gap-3 px-3 py-2.5"
