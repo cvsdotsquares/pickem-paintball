@@ -189,6 +189,14 @@ The three merges live in `scripts/psp-history/team-merges.json` (with evidence),
 
 ---
 
+## External validation — paintballwincount.com/nxl (11 Oct 2026)
+
+An independent fan site listing each PSP (2004–2015) and NXL (2015–2026) event's winner and runner-up.
+- **PSP 2004–2015: 105 of 106 checks agree** (winner + runner-up at all 53 events it lists), including the profile-rebuilt 2004–05 events, the inferred 2006 Texas result, the 2008 World Cup and the B1–B9 bracket rebuilds. It treats All Americans and Philly Americans as one team (same logo) — consistent with the F2 merge.
+- **Only difference — 2005 Orlando runner-up:** site says XSV; our data says Naughty Dogs. XSV's own pbleagues team history has no 2005 Orlando entry, and 18 players' profiles record Naughty Dogs "2nd of 5" in a field of Dynasty, Naughty Dogs, Avalanche, Infamous, Ultimate. Ours kept; the site likely repeated 2004 Orlando's "vs XSV".
+- **NXL 2015–2026: every event checked agrees except 2016 Nashville** — site says Heat beat Infamous; our data has Infamous losing the semi to Heat 3–8 and Heat beating Impact 6–4 in the final, with Impact ranked #2 by the league. Ours kept.
+- Not comparable: 2003 (not on the site); 2021–22 "minor events" (Golden State, 2022 Lone Star) have no results in our data.
+
 ## Expert review list
 
 Decisions to put in front of people who know the era. Nothing here is wrong as far as the data shows, but each rests on judgement rather than a record.
