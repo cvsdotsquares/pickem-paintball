@@ -9,6 +9,7 @@ import {
   eventPack,
   examples,
   listEvents,
+  preview,
   readStatus,
   setStatus,
   signoff,
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
       events,
       event,
       board: board(event),
-      types: pack.map((p) => ({ ...p, status: readStatus(event, p.key), running: busy?.params?.type === p.key && busy.params.event === event })),
+      types: pack.map((p) => ({ ...p, status: readStatus(event, p.key), preview: preview(event, p.key), running: busy?.params?.type === p.key && busy.params.event === event })),
       busy: busy ? { label: busy.label, params: busy.params } : null,
     });
   }

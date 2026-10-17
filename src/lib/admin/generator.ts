@@ -219,6 +219,30 @@ export function detail(event: string, type: string) {
   };
 }
 
+/**
+ * What a board card shows: the signed-off post, else the current round, else the latest options (A/B/C).
+ * Paths are relative to generator/ (served by /api/admin/genfile).
+ */
+export function preview(event: string, type: string): { kind: "final" | "current" | "options" | "none"; images: string[] } {
+  const d = dir(event, type);
+  const rel = (...p: string[]) => path.join("work", event, type, ...p);
+  if (fs.existsSync(path.join(d, "final", "post.png"))) return { kind: "final", images: [rel("final", "post.png")] };
+  const st = readStatus(event, type);
+  if (st.current && fs.existsSync(path.join(d, st.current, "post.png"))) return { kind: "current", images: [rel(st.current, "post.png")] };
+  if (fs.existsSync(d)) {
+    const rounds = fs
+      .readdirSync(d)
+      .filter((n) => /^round_\d+$/.test(n))
+      .sort((a, b) => Number(b.slice(6)) - Number(a.slice(6)));
+    for (const r of rounds) {
+      const opts = ["A", "B", "C"].filter((x) => fs.existsSync(path.join(d, r, x, "post.png"))).map((x) => rel(r, x, "post.png"));
+      if (opts.length) return { kind: "options", images: opts };
+      if (fs.existsSync(path.join(d, r, "post.png"))) return { kind: "current", images: [rel(r, "post.png")] };
+    }
+  }
+  return { kind: "none", images: [] };
+}
+
 /** Past versions of this post type + matching inspiration, from the Post Library, newest first. */
 export function examples(tags: string[], limit = 16): LibraryItem[] {
   const hits = loadLibrary().filter((i) => i.postTypes.some((t) => tags.includes(t)));

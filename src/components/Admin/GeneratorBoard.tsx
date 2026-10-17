@@ -8,13 +8,18 @@ import {
   toneClass,
   type Busy,
   type PackItem,
+  type Preview,
   type Status,
 } from "./generatorTypes";
 import NewEventDrawer from "./NewEventDrawer";
 import { Markdown } from "./ReelStudy";
 import { pill, primaryButton, sectionLabel } from "./types";
 
-type TypeRow = PackItem & { status: Status; running: boolean };
+type TypeRow = PackItem & {
+  status: Status;
+  running: boolean;
+  preview: Preview;
+};
 type Data = {
   events: { id: string; label: string; settingUp?: boolean }[];
   event: string;
@@ -33,6 +38,42 @@ type Data = {
   types: TypeRow[];
   busy: Busy;
 };
+
+/** What's been made so far: the signed-off post, the current round, or the three options. */
+function CardPreview({ p }: { p: Preview }) {
+  if (p.kind === "none")
+    return (
+      <div className="flex h-10 items-center justify-center rounded-lg border border-dashed border-gray-200 text-[9px] uppercase tracking-widest text-gray-300 dark:border-white/10 dark:text-white/25">
+        Nothing made yet
+      </div>
+    );
+  if (p.kind === "options")
+    return (
+      <div className="grid grid-cols-3 gap-1">
+        {p.images.map((img, i) => (
+          <div key={img} className="relative">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={genUrl(img, true)}
+              alt=""
+              className="aspect-[4/5] w-full rounded object-cover"
+            />
+            <span className="absolute left-1 top-1 rounded bg-black/70 px-1 text-[8px] font-bold text-white">
+              {String.fromCharCode(65 + i)}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={genUrl(p.images[0], true)}
+      alt=""
+      className="aspect-[4/5] w-full rounded-lg object-cover"
+    />
+  );
+}
 
 /** Post Generator, event view: the brand board, then one card per post type in the event pack. */
 export default function GeneratorBoard() {
@@ -266,6 +307,7 @@ export default function GeneratorBoard() {
                             : "opacity-50"
                         }`}
                       >
+                        <CardPreview p={t.preview} />
                         <div className="text-xs font-black leading-snug">
                           {t.label}
                         </div>
