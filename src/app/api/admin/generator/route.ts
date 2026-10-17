@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminGate } from "@/src/lib/admin/gate";
 import {
+  addBoardFeedback,
   addFeedback,
   approveBoard,
   board,
@@ -58,6 +59,7 @@ export async function GET(request: Request) {
 /**
  * POST { event, type?, action, option?, comment? }
  *   approve-board                  brand board approved (PROCESS step 0)
+ *   change-board  {comment}        → event-setup job again with James's comment (panel-made events)
  *   write-brief                    start the brief job
  *   approve-brief                  → make options job
  *   change-brief  {comment}        → comment saved, brief job again
@@ -75,8 +77,17 @@ export async function POST(request: Request) {
   const comment = String(b.comment ?? "");
   if (!validId(event)) return NextResponse.json({ error: "Bad event" }, { status: 400 });
   if (b.action === "approve-board") {
+    if (!board(event).image) return NextResponse.json({ error: "No brand board yet" }, { status: 409 });
     approveBoard(event);
     return NextResponse.json({ ok: true });
+  }
+  if (b.action === "change-board") {
+    if (!comment.trim()) return NextResponse.json({ error: "Write what to change" }, { status: 400 });
+    if (running()) return NextResponse.json({ error: "Another job is still running — try again when it finishes" }, { status: 409 });
+    if (!board(event).request) return NextResponse.json({ error: "This event wasn't set up from the panel" }, { status: 409 });
+    addBoardFeedback(event, comment);
+    const r = startJob("event-setup", { event });
+    return "error" in r ? NextResponse.json(r, { status: 409 }) : NextResponse.json({ run: r });
   }
   if (!validId(type) || !eventPack().some((p) => p.key === type))
     return NextResponse.json({ error: "Unknown post type" }, { status: 404 });

@@ -3,13 +3,21 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { STAGE, genUrl, toneClass, type Busy, type PackItem, type Status } from "./generatorTypes";
-import { primaryButton, sectionLabel } from "./types";
+import NewEventDrawer from "./NewEventDrawer";
+import { Markdown } from "./ReelStudy";
+import { pill, primaryButton, sectionLabel } from "./types";
 
 type TypeRow = PackItem & { status: Status; running: boolean };
 type Data = {
-  events: { id: string; label: string }[];
+  events: { id: string; label: string; settingUp?: boolean }[];
   event: string;
-  board: { approved: boolean; approvedAt: string; image: string };
+  board: {
+    approved: boolean;
+    approvedAt: string;
+    image: string;
+    notes: string;
+    request: { brief: string; inspo: string[]; files: string[]; board_feedback?: { at: string; comment: string }[] } | null;
+  };
   types: TypeRow[];
   busy: Busy;
 };
@@ -19,6 +27,9 @@ export default function GeneratorBoard() {
   const [event, setEvent] = useState("");
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [comment, setComment] = useState("");
+  const [message, setMessage] = useState("");
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/generator${event ? `?event=${event}` : ""}`, { cache: "no-store" });
@@ -38,17 +49,23 @@ export default function GeneratorBoard() {
     return () => clearInterval(t);
   }, [data?.busy, load]);
 
-  const approve = async () => {
-    await fetch("/api/admin/generator", {
+  const post = async (action: string, extra: Record<string, string> = {}) => {
+    setMessage("");
+    const res = await fetch("/api/admin/generator", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ event, action: "approve-board" }),
+      body: JSON.stringify({ event, action, ...extra }),
     });
+    const d = await res.json();
+    if (!res.ok) setMessage(d.error ?? "Something went wrong");
+    else setComment("");
     load();
   };
+  const approve = () => post("approve-board");
 
   if (error) return <div className="p-8 text-xs text-red-400">{error}</div>;
   if (!data) return <div className="p-8 text-xs text-gray-400">Loading…</div>;
+  const boardBuilding = data.busy?.label?.startsWith("Set up event") && data.busy.params.event === data.event;
 
   const groups: { title: string; items: TypeRow[] }[] = [
     { title: "Must", items: data.types.filter((t) => t.priority === "must") },
@@ -70,12 +87,25 @@ export default function GeneratorBoard() {
             </option>
           ))}
         </select>
+        <button className={pill(false)} onClick={() => setAdding(true)}>
+          + New event
+        </button>
         {data.busy && (
           <span className="text-[10px] text-gray-500 dark:text-white/50">
-            Claude is working: {data.busy.label} · {data.busy.params.type}
+            Claude is working: {data.busy.label} · {data.busy.params.type ?? data.busy.params.event}
           </span>
         )}
       </div>
+      {message && <div className="text-[11px] text-red-400">{message}</div>}
+      {adding && (
+        <NewEventDrawer
+          onClose={() => setAdding(false)}
+          onCreated={(id) => {
+            setAdding(false);
+            setEvent(id);
+          }}
+        />
+      )}
 
       <section className="flex flex-col gap-4 rounded-xl bg-white dark:bg-[#0d0d0d] p-5 md:flex-row">
         {data.board.image ? (
@@ -85,7 +115,7 @@ export default function GeneratorBoard() {
           </a>
         ) : (
           <div className="flex h-40 items-center justify-center rounded-lg bg-gray-50 dark:bg-white/5 text-[11px] text-gray-400 md:w-2/3">
-            No brand board yet for this event
+            {boardBuilding ? <span className="animate-pulse">Claude is building the brand board…</span> : "No brand board yet for this event"}
           </div>
         )}
         <div className="flex flex-1 flex-col gap-3">
@@ -93,12 +123,41 @@ export default function GeneratorBoard() {
           <p className="text-[11px] text-gray-500 dark:text-white/50">
             The event&apos;s look: palette, tools this event, do / don&apos;t. Every post for this event starts from it.
           </p>
+          {boardBuilding && data.board.image && (
+            <div className="animate-pulse text-[11px] text-gray-500">Claude is updating the board…</div>
+          )}
           {data.board.approved ? (
             <div className="text-[11px] font-bold text-green-600 dark:text-green-400">Approved {data.board.approvedAt}</div>
           ) : (
-            <button className={primaryButton} onClick={approve} disabled={!data.board.image}>
+            <button className={primaryButton} onClick={approve} disabled={!data.board.image || boardBuilding}>
               Approve brand board
             </button>
+          )}
+          {data.board.notes && (
+            <details className="text-[11px]">
+              <summary className="cursor-pointer font-bold">How Claude built it</summary>
+              <div className="mt-2">
+                <Markdown text={data.board.notes} />
+              </div>
+            </details>
+          )}
+          {data.board.request && data.board.image && !boardBuilding && (
+            <div className="flex flex-col gap-2">
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={3}
+                placeholder="Want changes? Say what — Claude redoes the board (you approve it again)"
+                className="w-full resize-y rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2 text-[11px] outline-none"
+              />
+              <button
+                className="self-start text-[10px] font-bold uppercase tracking-widest underline disabled:opacity-40"
+                disabled={!comment.trim() || !!data.busy}
+                onClick={() => post("change-board", { comment })}
+              >
+                Change the board
+              </button>
+            </div>
           )}
         </div>
       </section>

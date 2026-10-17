@@ -59,6 +59,15 @@ export const JOBS: Record<string, JobDef> = {
       `${SLACK}slack_send_message`,
     ],
   },
+  "event-setup": {
+    label: "Set up event + brand board",
+    allowedTools: POST_TOOLS,
+    prompt: ({ event }) =>
+      `Post Generator job "event-setup" for new event ${event}. Follow the pickem-social-post skill, ` +
+      `section "Admin panel jobs" → event-setup, reading generator/work/${event}/event_request.json. ` +
+      "Nobody is watching this run, so do not ask questions: decide, note any stand-ins in board_notes.md, and finish. " +
+      "Make your LAST line one plain sentence for James saying the board is ready to approve.",
+  },
   "post-brief": postJob("brief", "Write brief"),
   "post-options": postJob("options", "Make options A/B/C"),
   "post-review": postJob("review", "Review + polish"),

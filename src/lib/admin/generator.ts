@@ -44,11 +44,80 @@ const readText = (p: string) => (fs.existsSync(p) ? fs.readFileSync(p, "utf8") :
 
 export const validId = (s: string) => ID.test(s);
 
-export function listEvents(): { id: string; label: string }[] {
+export type EventRequest = {
+  id: string;
+  name: string;
+  dates: string;
+  brief: string;
+  inspo: string[]; // Post Library ids James ticked ("inspo:<file>" / "past:<file>")
+  files: string[]; // uploaded assets, relative to generator/ (work/<id>/inputs/...)
+  created: string;
+  board_feedback?: { at: string; comment: string }[];
+};
+
+const readRequest = (id: string) => readJson<EventRequest | null>(path.join(WORK, id, "event_request.json"), null);
+
+/** Events with a theme, plus new ones still being set up (event_request.json, no theme yet). */
+export function listEvents(): { id: string; label: string; settingUp?: boolean }[] {
   const themes = readJson<Record<string, { event_label?: string }>>(path.join(GEN, "themes.json"), {});
-  return Object.entries(themes)
+  const out: { id: string; label: string; settingUp?: boolean }[] = Object.entries(themes)
     .filter(([id]) => id !== "brand")
     .map(([id, t]) => ({ id, label: t.event_label ?? id }));
+  if (fs.existsSync(WORK)) {
+    for (const id of fs.readdirSync(WORK)) {
+      const r = readRequest(id);
+      if (r && !themes[id]) out.push({ id, label: `${r.name} (setting up)`, settingUp: true });
+    }
+  }
+  return out;
+}
+
+export const eventId = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 60);
+
+/** Save a New event request: James's files, brief and ticked inspiration (the event-setup job reads it). */
+export function createEventRequest(
+  name: string,
+  dates: string,
+  brief: string,
+  inspo: string[],
+  uploads: { name: string; data: Buffer }[],
+): EventRequest {
+  const id = eventId(name);
+  const inputs = path.join(WORK, id, "inputs");
+  fs.mkdirSync(inputs, { recursive: true });
+  const files = uploads.map((u) => {
+    const safe = u.name.replace(/[^\w.\- ]+/g, "_").slice(0, 120) || "file";
+    fs.writeFileSync(path.join(inputs, safe), u.data);
+    return path.join("work", id, "inputs", safe);
+  });
+  const prev = readRequest(id);
+  const req: EventRequest = {
+    id,
+    name,
+    dates,
+    brief,
+    inspo,
+    files: Array.from(new Set([...(prev?.files ?? []), ...files])),
+    created: prev?.created ?? now(),
+    board_feedback: prev?.board_feedback ?? [],
+  };
+  fs.writeFileSync(path.join(WORK, id, "event_request.json"), JSON.stringify(req, null, 2) + "\n");
+  return req;
+}
+
+/** "Change the board": James's comment goes into the request for the next event-setup run. */
+export function addBoardFeedback(event: string, comment: string) {
+  const r = readRequest(event);
+  if (!r || !comment.trim()) return;
+  r.board_feedback = [...(r.board_feedback ?? []), { at: now(), comment: comment.trim() }];
+  fs.writeFileSync(path.join(WORK, event, "event_request.json"), JSON.stringify(r, null, 2) + "\n");
+  const b = path.join(WORK, event, "board.json");
+  if (fs.existsSync(b)) fs.rmSync(b); // a changed board needs approving again
 }
 
 export const eventPack = (): PackItem[] => readJson<{ post_types: PackItem[] }>(path.join(GEN, "event_pack.json"), { post_types: [] }).post_types;
@@ -56,7 +125,14 @@ export const eventPack = (): PackItem[] => readJson<{ post_types: PackItem[] }>(
 export function board(event: string) {
   const b = readJson<{ approved?: boolean; approved_at?: string }>(path.join(WORK, event, "board.json"), {});
   const img = path.join("boards", `${event}.png`);
-  return { approved: !!b.approved, approvedAt: b.approved_at ?? "", image: fs.existsSync(path.join(GEN, img)) ? img : "" };
+  const r = readRequest(event);
+  return {
+    approved: !!b.approved,
+    approvedAt: b.approved_at ?? "",
+    image: fs.existsSync(path.join(GEN, img)) ? img : "",
+    notes: readText(path.join(WORK, event, "board_notes.md")),
+    request: r,
+  };
 }
 
 export function approveBoard(event: string) {
