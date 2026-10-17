@@ -17,6 +17,11 @@ const PAGES = [
     title: "TO DO",
     blurb: "All outstanding work on one Trello-style board. Pivot by progress or by work stream; click a card for the detail.",
   },
+  {
+    href: "/admin/scheduler",
+    title: "Scheduler",
+    blurb: "An event's posts on a calendar. Click one for its caption, data and blockers; approve it and it goes out on Instagram + Facebook by itself.",
+  },
   { title: "Event setup", blurb: "Later." },
   { title: "Site + subscription metrics", blurb: "Later." },
 ];
