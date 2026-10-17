@@ -61,7 +61,7 @@ export async function GET(request: Request) {
  * POST { event, type?, action, option?, comment? }
  *   approve-board                  brand board approved (PROCESS step 0)
  *   change-board  {comment}        → event-setup job again with James's comment (panel-made events)
- *   write-brief                    start the brief job
+ *   write-brief   {comment}        James's own brief for this post → Claude writes the full brief from it
  *   approve-brief                  → make options job
  *   change-brief  {comment}        → comment saved, brief job again
  *   choose        {option,comment} → review + polish job on that option
@@ -104,6 +104,8 @@ export async function POST(request: Request) {
 
   switch (b.action) {
     case "write-brief":
+      if (!comment.trim()) return NextResponse.json({ error: "Write your brief first" }, { status: 400 });
+      addFeedback(event, type, "James's brief", comment);
       return job("post-brief");
     case "retry": {
       // a job failed or was stopped: run the step for the current stage again

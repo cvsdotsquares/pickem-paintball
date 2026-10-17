@@ -102,8 +102,8 @@ export default function PostTypeView({ event, type }: { event: string; type: str
   const failed = data.run?.status === "failed";
   const needsRetry = ["brief_approved", "chosen", "feedback"].includes(status.stage) && !working;
 
-  const commentBox = (placeholder: string) => (
-    <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={3} placeholder={placeholder} className={textarea} />
+  const commentBox = (placeholder: string, rows = 3) => (
+    <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={rows} placeholder={placeholder} className={textarea} />
   );
 
   return (
@@ -168,15 +168,17 @@ export default function PostTypeView({ event, type }: { event: string; type: str
       <section className="flex flex-col gap-4 rounded-xl bg-white dark:bg-[#0d0d0d] p-5">
         {status.stage === "not_started" && (
           <>
-            <div className={sectionLabel}>Step 1 — brief</div>
+            <div className={sectionLabel}>Step 1 — your brief</div>
             <p className="text-[11px] text-gray-500 dark:text-white/50">
-              Claude checks the inputs, looks at past versions and inspiration (below), and writes a short brief: what the post shows,
-              the idea for this event, and which parts become the template&apos;s slots.
+              Write what you want from this post: what it should show, ideas you have, what to keep or change from past versions,
+              anything to avoid. Claude turns it into the full brief — checking the inputs, past versions and inspiration (below) and
+              which parts become the template&apos;s slots — and shows it to you to approve.
             </p>
-            {data.feedback && <p className="text-[10px] text-gray-400">Your earlier comments will be used.</p>}
+            {data.feedback && <p className="text-[10px] text-gray-400">Your earlier comments are used too.</p>}
+            {commentBox("Your brief for this post…", 7)}
             <div>
-              <button className={primaryButton} disabled={!canAct} onClick={() => act("write-brief")}>
-                Write brief
+              <button className={primaryButton} disabled={!canAct || !comment.trim()} onClick={() => act("write-brief")}>
+                Send brief to Claude
               </button>
             </div>
           </>
