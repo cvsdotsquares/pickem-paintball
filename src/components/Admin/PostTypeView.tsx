@@ -142,9 +142,10 @@ export default function PostTypeView({ event, type }: { event: string; type: str
 
       {/* job status */}
       {working && data.run && (
-        <div className="rounded-xl bg-[#1a3c6e]/10 dark:bg-white/5 px-4 py-3 text-[11px]">
-          <span className="animate-pulse font-bold">Claude is working: {data.run.label}</span>{" "}
-          <span className="text-gray-500 dark:text-white/50">
+        <div className="flex items-center gap-3 rounded-xl bg-[#1a3c6e] px-4 py-3 text-[11px] text-white">
+          <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+          <span className="font-bold">Claude is working: {data.run.label}</span>{" "}
+          <span className="text-white/70">
             — started {minutesSince(data.run.startedAt)} min ago. Briefs take a few minutes; options and reviews 15–30. You can leave this page.
           </span>
         </div>
@@ -166,7 +167,21 @@ export default function PostTypeView({ event, type }: { event: string; type: str
 
       {/* current step */}
       <section className="flex flex-col gap-4 rounded-xl bg-white dark:bg-[#0d0d0d] p-5">
-        {status.stage === "not_started" && (
+        {status.stage === "not_started" && working && (
+          <>
+            <div className={sectionLabel}>Step 1 — your brief is with Claude</div>
+            <p className="text-[11px] text-gray-500 dark:text-white/50">
+              Claude is turning it into the full brief (usually a few minutes). It appears here when it&apos;s ready, for you to approve.
+            </p>
+            {data.feedback && (
+              <div className="rounded-lg bg-gray-50 p-3 dark:bg-white/5">
+                <Markdown text={data.feedback} />
+              </div>
+            )}
+          </>
+        )}
+
+        {status.stage === "not_started" && !working && (
           <>
             <div className={sectionLabel}>Step 1 — your brief</div>
             <p className="text-[11px] text-gray-500 dark:text-white/50">
