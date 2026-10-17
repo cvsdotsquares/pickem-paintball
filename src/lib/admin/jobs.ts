@@ -13,8 +13,15 @@ import { MODEL_CHOICES, PICKABLE_DEFAULTS } from "./models";
  * Stop button). Each run's output is kept in pickem-hub/library/jobs/.
  */
 
-export type JobParams = { event?: string; type?: string; model?: string }; // model: James's pick, options/revise only
-type JobDef = { label: string; prompt: string | ((p: JobParams) => string); allowedTools: string[] };
+// model: James's pick, options/revise only; teams / set / auto: Populate (step 5) only
+export type JobParams = { event?: string; type?: string; model?: string; teams?: string; set?: string[]; auto?: boolean };
+type JobDef = {
+  label: string;
+  prompt: string | ((p: JobParams) => string);
+  allowedTools: string[];
+  /** A plain script instead of Claude (python3 in generator/): no tokens, not counted in MAX_PARALLEL. */
+  script?: (p: JobParams) => string[];
+};
 
 const SLACK = "mcp__claude_ai_Slack__";
 /**
@@ -105,6 +112,22 @@ export const JOBS: Record<string, JobDef> = {
   "post-options": postJob("options", "Make rough layouts A/B/C"),
   "post-review": postJob("review", "Build the final version"),
   "post-revise": postJob("revise", "Apply feedback"),
+  // Step 5 (James, 17 Oct): fill the signed-off template with the latest numbers and make every version → Drive kit.
+  // auto = right after sign-off: one post with all its numbers → made now; otherwise it stays Templated.
+  populate: {
+    label: "Populate final posts",
+    prompt: "",
+    allowedTools: [],
+    script: ({ event = "", type = "", teams, set, auto }) => [
+      "-I",
+      path.join(HUB, "generator/make_finals.py"),
+      event,
+      type,
+      ...(teams ? ["--teams", teams] : []),
+      ...(set ?? []).flatMap((s) => ["--set", s]),
+      ...(auto ? ["--auto"] : []),
+    ],
+  },
 };
 
 export type JobRun = {
@@ -147,6 +170,8 @@ export const failedFor = (event: string, type: string, status: { stage: string; 
 };
 export const running = () => runs.find((r) => r.status === "running");
 export const runningAll = () => runs.filter((r) => r.status === "running");
+/** Claude runs only (scripts like Populate don't use the subscription, so they don't count towards MAX_PARALLEL). */
+export const runningClaude = () => runningAll().filter((r) => !JOBS[r.job]?.script);
 /** The run working on this graphic right now (event + type), if any. */
 export const runningFor = (event: string, type: string) =>
   runs.find((r) => r.status === "running" && r.params?.event === event && r.params?.type === type);
@@ -213,7 +238,7 @@ export function startJob(job: string, params: JobParams = {}): JobRun | { error:
   if (params.type && runningFor(params.event ?? "", params.type)) return { error: "Claude is already working on this graphic" };
   if (!params.type && runs.some((r) => r.status === "running" && r.job === job && r.params?.event === params.event))
     return { error: "That job is already running" };
-  if (runningAll().length >= MAX_PARALLEL)
+  if (!def.script && runningClaude().length >= MAX_PARALLEL)
     return { error: `${MAX_PARALLEL} Claude runs are going already — wait for one to finish (or stop one)` };
 
   const dir = path.join(HUB, "library/jobs");
@@ -229,6 +254,7 @@ export function startJob(job: string, params: JobParams = {}): JobRun | { error:
     logFile: path.join(dir, `${id}.log`),
   };
   runs.push(run);
+  if (def.script) return startScript(run, def.script(params));
 
   const bin = process.env.CLAUDE_BIN || path.join(os.homedir(), ".local/bin/claude");
   const out = fs.createWriteStream(run.logFile);
@@ -281,6 +307,42 @@ export function startJob(job: string, params: JobParams = {}): JobRun | { error:
     children.delete(run.id);
     finish(code === 0, code === 0 ? undefined : `Claude stopped with code ${code}`);
     if (job.startsWith("post-") || job === "event-setup") commitWork(`${def.label}: ${params.event ?? ""} ${params.type ?? ""}`.trim());
+  });
+  return run;
+}
+
+/** A script job (Populate): python3 from generator/, its own process group so Stop ends it; last line = summary. */
+function startScript(run: JobRun, args: string[]): JobRun {
+  const out = fs.createWriteStream(run.logFile);
+  const child = spawn("python3", args, {
+    cwd: path.join(HUB, "generator"),
+    stdio: ["ignore", "pipe", "pipe"],
+    detached: true,
+  });
+  children.set(run.id, child);
+  child.stdout.pipe(out, { end: false });
+  child.stderr.pipe(out, { end: false });
+  let finished = false;
+  const finish = (ok: boolean, note?: string) => {
+    if (finished) return;
+    finished = true;
+    if (run.stopped) {
+      ok = false;
+      note = "Stopped by James";
+    }
+    if (note) out.write(`\n${note}\n`);
+    out.end(() => {
+      const lines = readLog(run).trim().split("\n").filter(Boolean);
+      run.summary = run.stopped ? "Stopped by James" : lines[lines.length - 1] ?? note;
+      run.status = ok ? "done" : "failed";
+      run.finishedAt = new Date().toISOString();
+    });
+  };
+  child.on("error", (e) => finish(false, `Could not start: ${e.message}`));
+  child.on("close", (code) => {
+    children.delete(run.id);
+    finish(code === 0, code === 0 ? undefined : `Stopped with code ${code}`);
+    commitWork(`${run.label}: ${run.params.event ?? ""} ${run.params.type ?? ""}`.trim());
   });
   return run;
 }

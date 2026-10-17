@@ -20,7 +20,6 @@ import {
   finals,
   GEN,
   listEvents,
-  makeFinals,
   openFeedbackCount,
   preview,
   readStatus,
@@ -30,7 +29,7 @@ import {
   ensurePlanned,
   genFile,
 } from "@/src/lib/admin/generator";
-import { failedFor, lastRunFor, MAX_PARALLEL, readLog, runningAll, runningFor, startJob, stopJob } from "@/src/lib/admin/jobs";
+import { failedFor, lastRunFor, MAX_PARALLEL, readLog, runningAll, runningClaude, runningFor, startJob, stopJob } from "@/src/lib/admin/jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +48,7 @@ export async function GET(request: Request) {
   const type = q.get("type");
   const all = runningAll();
   const busy = all[0];
-  const full = all.length >= MAX_PARALLEL; // no room for another run until one finishes
+  const full = runningClaude().length >= MAX_PARALLEL; // no room for another Claude run until one finishes
   if (!type) {
     pack.forEach((p) => ensurePlanned(event, p));
     return NextResponse.json({
@@ -68,6 +67,10 @@ export async function GET(request: Request) {
           preview: preview(event, g.key),
           running: !!runningFor(event, g.key),
           runningSince: runningFor(event, g.key)?.startedAt,
+          finalMade: (() => {
+            const f = finals(event, g.key);
+            return f.posts.length > 0 && !f.test;
+          })(),
           failed: failedFor(event, g.key, readStatus(event, g.key)),
         })),
       ),
@@ -112,13 +115,15 @@ export async function GET(request: Request) {
  *   choose        {option,comment} → review + polish job on that option
  *   feedback      {comment,model?} → apply-feedback job (model picked per round)
  *   retry         {model?}         → run the current stage's job again (after a failed run)
- *   signoff                        → template + post copied to the kit (no job)
+ *   signoff                        → template copied to the kit, then Populate --auto (one post with all its numbers
+ *                                    → made now and saved to Drive; otherwise it stays Templated)
  *   back-to-options                → stage options again (no job): pick a different A/B/C
  *   add-graphic   {name}           → another graphic in this bucket (work/<event>/<type>__N/), returns its key
  *   rename-graphic {name}          → name this graphic
  *   key-inspo     {id, on}         → star / unstar a reference for this graphic
  *   stop                           → stop the Claude run on this graphic (the step can be started again)
- *   make-finals   {teams}          → step 5: final posts from the signed-off template (no job; empty = all teams)
+ *   populate      {teams, set}     → step 5 (background job): every version from the latest numbers → Drive kit;
+ *                                    teams = some versions only, set = {key: value} for numbers not live yet
  */
 export async function POST(request: Request) {
   const blocked = adminGate();
@@ -165,7 +170,7 @@ export async function POST(request: Request) {
   if (["write-brief", "approve-brief", "change-brief", "choose", "feedback", "retry"].includes(b.action)) {
     if (runningFor(event, type))
       return NextResponse.json({ error: "Claude is still working on this graphic — stop it first or wait" }, { status: 409 });
-    if (runningAll().length >= MAX_PARALLEL)
+    if (runningClaude().length >= MAX_PARALLEL)
       return NextResponse.json({ error: `${MAX_PARALLEL} Claude runs are going already — wait for one to finish (or stop one)` }, { status: 409 });
   }
 
@@ -223,7 +228,9 @@ export async function POST(request: Request) {
     case "signoff":
       if (st.stage !== "ready") return NextResponse.json({ error: "Nothing ready to sign off" }, { status: 409 });
       try {
-        return NextResponse.json({ ok: true, log: signoff(event, type) });
+        const log = signoff(event, type);
+        const r = startJob("populate", { event, type, auto: true });
+        return NextResponse.json({ ok: true, log, run: "error" in r ? null : r });
       } catch (e) {
         return NextResponse.json({ error: `Sign-off failed: ${(e as Error).message}` }, { status: 500 });
       }
@@ -235,16 +242,17 @@ export async function POST(request: Request) {
       setStatus(event, type, { stage: "options" }, "James went back to the options");
       return NextResponse.json({ ok: true });
     }
-    case "make-finals": {
+    case "populate": {
       if (st.stage !== "signed_off") return NextResponse.json({ error: "Sign off the template first" }, { status: 409 });
+      if (runningFor(event, type)) return NextResponse.json({ error: "Already working on this graphic" }, { status: 409 });
       const teams = String(b.teams ?? "").split(",").filter(Boolean);
       const known = new Set(finals(event, type).teams.map((t) => t.key));
-      if (!teams.every((t) => known.has(t))) return NextResponse.json({ error: "Unknown team" }, { status: 400 });
-      try {
-        return NextResponse.json({ ok: true, log: await makeFinals(event, type, teams) });
-      } catch (e) {
-        return NextResponse.json({ error: `Final posts failed: ${(e as Error).message}` }, { status: 500 });
-      }
+      if (!teams.every((t) => known.has(t))) return NextResponse.json({ error: "Unknown version" }, { status: 400 });
+      const set = Object.entries((b.set ?? {}) as Record<string, unknown>)
+        .filter(([k, v]) => /^[a-z_]+$/.test(k) && String(v).trim() && !/[\n\r]/.test(String(v)))
+        .map(([k, v]) => `${k}=${String(v).trim()}`);
+      const r = startJob("populate", { event, type, teams: teams.join(","), set });
+      return "error" in r ? NextResponse.json(r, { status: 409 }) : NextResponse.json({ run: r });
     }
     default:
       return NextResponse.json({ error: "Unknown action" }, { status: 400 });

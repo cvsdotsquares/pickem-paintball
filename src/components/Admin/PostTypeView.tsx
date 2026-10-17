@@ -104,100 +104,163 @@ function Render({ f, big }: { f: RoundFile; big?: boolean }) {
   );
 }
 
-/** Step 5: pick teams, make their posts from the signed-off template, see them. */
-function FinalPosts({ f, busy, onMake }: { f: Finals; busy: boolean; onMake: (teams: string[]) => void }) {
+/** A time typed on the page in US Eastern (the league's time zone) → ISO UTC, DST-aware. */
+function etToIso(local: string): string {
+  if (!local) return "";
+  for (const off of [-4, -5]) {
+    const d = new Date(`${local}:00${off === -4 ? "-04:00" : "-05:00"}`);
+    const back = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/New_York",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    })
+      .format(d)
+      .replace(", ", "T");
+    if (back === local) return d.toISOString();
+  }
+  return new Date(`${local}:00-05:00`).toISOString();
+}
+
+/**
+ * Step 5 "Populate" (James, 17 Oct): fill the signed-off template with the latest numbers and make every version
+ * (all teams / brackets, or the one post) → Drive kit. Runs in the background like steps 1–3. A number that isn't
+ * live yet is listed; ones James can type (lock time, entries) get a box.
+ */
+function FinalPosts({
+  f,
+  working,
+  canAct,
+  onPopulate,
+}: {
+  f: Finals;
+  working: boolean;
+  canAct: boolean;
+  onPopulate: (teams: string[], set: Record<string, string>) => void;
+}) {
   const [picked, setPicked] = useState<string[]>([]);
+  const [typed, setTyped] = useState<Record<string, string>>({});
   const toggle = (k: string) => setPicked((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]));
+  const box = "mt-2 flex flex-col gap-3 border-t border-gray-100 pt-4 dark:border-white/10";
   if (!f.ready)
     return (
-      <p className="text-[11px] text-gray-400">
-        5. Final posts: not set up for this post type yet (ask Claude to add its data builder).
-      </p>
-    );
-  if (f.single)
-    return (
-      <div className="mt-2 flex flex-col gap-3 border-t border-gray-100 pt-4 dark:border-white/10">
-        <div className={sectionLabel}>5. Final post</div>
+      <div className={box}>
+        <div className={sectionLabel}>5. Final posts</div>
         <p className="text-[11px] text-gray-500 dark:text-white/50">
-          One post for the whole event. The numbers come straight from Pick&apos;Em (entries and lock time); everything
-          else is the signed-off template. Takes a few seconds.
+          This graphic has no data builder yet (the bit that knows where its numbers come from), so it can&apos;t be
+          populated. Ask Claude to write <code>final/data.py</code> for it.
         </p>
-        <div>
-          <button className={primaryButton} disabled={busy} onClick={() => onMake([])}>
-            {busy ? "Making…" : f.posts.length ? "Make it again with the latest numbers" : "Make the final post"}
-          </button>
-        </div>
-        {f.posts.length > 0 && (
-          <>
-            <div className="text-[10px] text-gray-400 dark:text-white/40">
-              Made {f.madeAt}.{" "}
-              {f.test
-                ? `TEST — ${f.source}. Not copied to the Drive kit until the event has real entries.`
-                : "Saved to the Drive kit: 07. Output → Final Posts."}
-            </div>
-            <div className="md:w-1/4">
-              <a href={genUrl(f.posts[0].png)} target="_blank" rel="noreferrer">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={genUrl(f.posts[0].png)} alt="Final post" className="w-full rounded-lg shadow" />
-              </a>
-            </div>
-          </>
-        )}
       </div>
     );
+  // what isn't there yet, from the last check / populate (newer than the last finished posts)
+  const waiting = f.waiting.length && (!f.posts.length || f.checkedAt >= f.madeAt) ? f.waiting : [];
+  const typeable = waiting.filter((w) => w.kind);
+  const blocked = waiting.some((w) => !w.kind);
+  const set = Object.fromEntries(
+    typeable
+      .filter((w) => typed[w.key])
+      .map((w) => [w.key, w.kind === "datetime" ? etToIso(typed[w.key]) : typed[w.key]]),
+  );
+  const allTyped = typeable.length > 0 && typeable.every((w) => typed[w.key]);
+  const realPosts = f.posts.length > 0 && !f.test;
+  const label = working
+    ? "Working…"
+    : allTyped
+      ? "Populate with these"
+      : f.single
+        ? realPosts
+          ? "Populate again with the latest numbers"
+          : "Populate"
+        : picked.length
+          ? `Populate ${picked.length} selected`
+          : `Populate all${f.teams.length ? ` ${f.teams.length}` : ""}`;
   return (
-    <div className="mt-2 flex flex-col gap-3 border-t border-gray-100 pt-4 dark:border-white/10">
-      <div className={sectionLabel}>5. Final posts — one per team</div>
+    <div className={box}>
+      <div className={sectionLabel}>5. Final posts{f.single ? "" : " — one per team / bracket"}</div>
       <p className="text-[11px] text-gray-500 dark:text-white/50">
-        Tick the teams, then make their posts. Numbers come from the event databook; colours and logos from
-        each team&apos;s brand board. Takes a few seconds per team.
+        <b>Populate</b> fills the signed-off template with the latest numbers and makes {f.single ? "the post" : "every version"},
+        saved to the Drive kit (07. Output → Final Posts). It runs in the background — you can go back to the board.
       </p>
-      <div className="flex flex-wrap gap-1.5">
-        {f.teams.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => toggle(t.key)}
-            className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${
-              picked.includes(t.key)
-                ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-black"
-                : "border-gray-200 text-gray-500 hover:border-gray-400 dark:border-white/10 dark:text-white/50"
-            }`}
-          >
-            {t.name}
-          </button>
-        ))}
-      </div>
+      {waiting.length > 0 && (
+        <div className="flex flex-col gap-2 rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-500/30 dark:bg-orange-500/10">
+          <div className="text-[11px] font-bold">Waiting on:</div>
+          {waiting.map((w) => (
+            <div key={w.key} className="flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="font-bold">{w.label}</span>
+              <span className="text-gray-500 dark:text-white/50">— {w.hint}</span>
+              {w.kind && (
+                <span className="flex items-center gap-1.5">
+                  <span className="text-gray-500">or type it in:</span>
+                  <input
+                    type={w.kind === "datetime" ? "datetime-local" : "number"}
+                    value={typed[w.key] ?? ""}
+                    onChange={(e) => setTyped((t) => ({ ...t, [w.key]: e.target.value }))}
+                    className="rounded border border-gray-300 bg-white px-2 py-1 text-[11px] dark:border-white/20 dark:bg-black"
+                  />
+                  {w.kind === "datetime" && <span className="text-gray-500">ET</span>}
+                </span>
+              )}
+            </div>
+          ))}
+          {blocked && (
+            <div className="text-[10px] text-gray-500 dark:text-white/50">
+              Populate again once it&apos;s there.
+            </div>
+          )}
+        </div>
+      )}
+      {!f.single && f.teams.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {f.teams.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => toggle(t.key)}
+              className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${
+                picked.includes(t.key)
+                  ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-black"
+                  : "border-gray-200 text-gray-500 hover:border-gray-400 dark:border-white/10 dark:text-white/50"
+              }`}
+            >
+              {t.name}
+            </button>
+          ))}
+          {picked.length > 0 && (
+            <button className="text-[10px] text-gray-400 underline" onClick={() => setPicked([])}>
+              Clear (= all)
+            </button>
+          )}
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <button
           className={primaryButton}
-          disabled={busy || !picked.length}
-          onClick={() => onMake(picked)}
+          disabled={!canAct || working || (typeable.length > 0 && !allTyped && blocked)}
+          onClick={() => onPopulate(picked, set)}
         >
-          {busy ? "Making…" : `Make ${picked.length || ""} final post${picked.length === 1 ? "" : "s"}`}
+          {label}
         </button>
-        <button
-          className="text-[10px] text-gray-400 underline"
-          onClick={() => setPicked(picked.length === f.teams.length ? [] : f.teams.map((t) => t.key))}
-        >
-          {picked.length === f.teams.length ? "Clear" : "All teams"}
-        </button>
+        {working && <span className="text-[10px] text-gray-400">Populating in the background — you can leave this page.</span>}
       </div>
-      {f.posts.length > 0 && (
+      {realPosts && (
         <>
           <div className="text-[10px] text-gray-400 dark:text-white/40">
-            Made {f.madeAt} from {f.source}
-            {f.test
-              ? " — TEST: Lone Star numbers until the World Cup databook is linked; not copied to the Drive kit."
-              : " — saved to the Drive kit: 07. Output → Final Posts."}
+            Made {f.madeAt}
+            {f.source ? ` from ${f.source}` : ""}
+            {" — saved to the Drive kit: 07. Output → Final Posts."}
+            {Object.keys(f.typed).length > 0 &&
+              ` Used your typed-in ${Object.keys(f.typed).join(", ").replace("lock_at", "lock time")} — populate again once it's live to swap in the real one.`}
           </div>
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+          <div className={f.single ? "md:w-1/4" : "grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6"}>
             {f.posts.map((p) => (
               <div key={p.team} className="flex flex-col gap-1">
                 <a href={genUrl(p.png)} target="_blank" rel="noreferrer">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={genUrl(p.png, true)} alt={p.name} className="w-full rounded-lg shadow" />
                 </a>
-                <div className="text-[10px] font-bold">{p.name}</div>
+                {!f.single && <div className="text-[10px] font-bold">{p.name}</div>}
                 {p.pdf && (
                   <a href={genUrl(p.pdf)} className="text-[9px] text-gray-400 underline">
                     Canva PDF
@@ -285,7 +348,7 @@ export default function PostTypeView({
 
   const act = async (
     action: string,
-    extra: Record<string, string> = {},
+    extra: Record<string, unknown> = {},
     confirmText?: string,
   ) => {
     if (confirmText && !window.confirm(confirmText)) return;
@@ -311,8 +374,8 @@ export default function PostTypeView({
     setPhotos([]);
     setView(null);
     if (action === "signoff")
-      setMessage("Signed off — template and post saved to the Drive kit.");
-    if (action === "make-finals") setMessage(d.log ?? "Done");
+      setMessage("Signed off — template saved to the Drive kit. Checking if the final post can be made now…");
+    if (action === "populate") setMessage("Populating in the background — you can go back to the board.");
     if (action === "stop") setMessage("Stopped. Start the step again when you're ready.");
     load();
   };
@@ -466,6 +529,7 @@ export default function PostTypeView({
           running={!!working}
           since={data.run?.startedAt}
           failed={!!failed && !working}
+          finalMade={data.finals.posts.length > 0 && !data.finals.test}
           big
         />
       </div>
@@ -507,12 +571,15 @@ export default function PostTypeView({
         <div className="flex items-center gap-3 rounded-xl bg-[#1a3c6e] px-4 py-3 text-[11px] text-white">
           <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-white/30 border-t-white" />
           <span className="font-bold">
-            Claude is working: {data.run.label}
+            {data.run.label === "Populate final posts" ? "Working" : "Claude is working"}: {data.run.label}
             {data.run.model ? ` · ${modelLabel(data.run.model)}` : ""}
           </span>{" "}
           <span className="text-white/70">
-            — started {minutesSince(data.run.startedAt)} min ago. Briefs take a
-            few minutes; options and reviews 15–30. You can leave this page.
+            — started {minutesSince(data.run.startedAt)} min ago.{" "}
+            {data.run.label === "Populate final posts"
+              ? "Seconds per post; up to a couple of minutes when it reads Pick'Em."
+              : "Briefs take a few minutes; options and reviews 15–30."}{" "}
+            You can leave this page.
           </span>
           <button
             className="ml-auto shrink-0 rounded bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-[#1a3c6e] hover:bg-white/80"
@@ -759,8 +826,9 @@ export default function PostTypeView({
             )}
             <FinalPosts
               f={data.finals}
-              busy={sending}
-              onMake={(teams) => act("make-finals", { teams: teams.join(",") })}
+              working={!!working}
+              canAct={!sending}
+              onPopulate={(teams, set) => act("populate", { teams: teams.join(","), set })}
             />
           </>
         )}

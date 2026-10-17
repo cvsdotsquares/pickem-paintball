@@ -1,4 +1,4 @@
-import { execFile, execFileSync } from "child_process";
+import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { HUB, loadLibrary, type LibraryItem } from "./library";
@@ -293,24 +293,36 @@ export function signoff(event: string, type: string): string {
   return execFileSync("python3", ["-I", path.join(GEN, "signoff.py"), event, type], { cwd: GEN, encoding: "utf8" });
 }
 
+export type Waiting = { key: string; label: string; kind: "" | "datetime" | "number"; hint: string };
 export type Finals = {
-  ready: boolean; // this post type has a data builder (generator/finals/<type>.py)
+  ready: boolean; // this graphic has a data builder (its own final/data.py, or generator/finals/<type>.py)
   madeAt: string;
-  test: boolean;
-  single: boolean; // one post for the whole event (builder sets EVENT_LEVEL = True), not one per team
+  test: boolean; // an old stand-in run (before 17 Oct's Populate)
+  single: boolean; // one post for the whole event, not one per team / bracket
   source: string;
+  typed: Record<string, string>; // numbers James typed in for the last populate
   posts: { team: string; name: string; png: string; pdf: string }[];
-  teams: { key: string; name: string }[];
+  teams: { key: string; name: string }[]; // the versions to pick from (teams, brackets …)
+  waiting: Waiting[]; // from the last check / populate: what isn't available yet
+  checkedAt: string;
 };
 
-/** Step 5: the final posts made from the signed-off template (generator/make_finals.py), plus the teams to pick from. */
+/** Step 5: the final posts made from the signed-off template (generator/make_finals.py) and what Populate needs. */
 export function finals(event: string, type: string): Finals {
   const teamsJson = JSON.parse(readText(path.join(GEN, "data", "teams.json")) || "{}") as Record<string, { name: string }>;
-  const teams = Object.entries(teamsJson)
-    .map(([key, t]) => ({ key, name: t.name }))
-    .sort((a, b) => a.name.localeCompare(b.name));
   const root = path.join(dir(event, type), "finals");
-  const run = JSON.parse(readText(path.join(root, "run.json")) || "{}") as { made_at?: string; test?: boolean; source?: string };
+  const run = JSON.parse(readText(path.join(root, "run.json")) || "{}") as {
+    made_at?: string;
+    test?: boolean;
+    source?: string;
+    typed?: Record<string, string>;
+  };
+  const check = JSON.parse(readText(path.join(root, "check.json")) || "{}") as {
+    checked_at?: string;
+    waiting?: Waiting[];
+    single?: boolean | null;
+    variants?: string[];
+  };
   const rel = (...p: string[]) => path.join("work", event, type, "finals", ...p);
   const posts = (fs.existsSync(root) ? fs.readdirSync(root) : [])
     .filter((k) => fs.existsSync(path.join(root, k, "post.png")))
@@ -320,33 +332,21 @@ export function finals(event: string, type: string): Finals {
       png: rel(k, "post.png"),
       pdf: fs.existsSync(path.join(root, k, "post.pdf")) ? rel(k, "post.pdf") : "",
     }));
-  const builder = readText(path.join(GEN, "finals", `${baseOf(type)}.py`)) || "";
+  const own = path.join(dir(event, type), "final", "data.py");
+  const builder = readText(fs.existsSync(own) ? own : path.join(GEN, "finals", `${baseOf(type)}.py`)) || "";
+  const variants = check.variants?.length ? check.variants : posts.map((p) => p.team);
   return {
     ready: !!builder,
-    single: /^EVENT_LEVEL\s*=\s*True/m.test(builder),
+    single: check.single ?? /^EVENT_LEVEL\s*=\s*True/m.test(builder),
     madeAt: run.made_at ?? "",
     test: !!run.test,
     source: run.source ?? "",
+    typed: run.typed ?? {},
     posts,
-    teams,
+    teams: variants.map((key) => ({ key, name: teamsJson[key]?.name ?? key })).sort((a, b) => a.name.localeCompare(b.name)),
+    waiting: check.waiting ?? [],
+    checkedAt: check.checked_at ?? "",
   };
-}
-
-/** Render the final posts for these teams (all when empty). A plain script, no Claude run: seconds per post. */
-export function makeFinals(event: string, type: string, teams: string[]): Promise<string> {
-  const args = ["-I", path.join(GEN, "make_finals.py"), event, type];
-  if (teams.length) args.push("--teams", teams.join(","));
-  return new Promise((resolve, reject) =>
-    execFile("python3", args, { cwd: GEN, encoding: "utf8", timeout: 15 * 60 * 1000 }, (err, stdout, stderr) =>
-      err ? reject(new Error((stderr || err.message).trim().split("\n").slice(-1)[0])) : resolve(
-            stdout
-              .trim()
-              .split("\n")
-              .filter((l, i, all) => l.startsWith("skipped") || i === all.length - 1)
-              .join(" · "),
-          ),
-    ),
-  );
 }
 
 /**

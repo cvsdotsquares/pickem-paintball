@@ -51,7 +51,7 @@ export default function GraphicStrip({
               {g.display}
             </div>
             <div className="origin-left scale-90">
-              <StagePill stage={g.status.stage} running={g.running} since={g.runningSince} failed={g.failed} />
+              <StagePill stage={g.status.stage} running={g.running} since={g.runningSince} failed={g.failed} finalMade={g.finalMade} />
             </div>
           </div>
         );

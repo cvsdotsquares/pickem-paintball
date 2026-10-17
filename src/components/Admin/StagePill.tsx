@@ -31,15 +31,17 @@ export default function StagePill({
   running,
   failed,
   since,
+  finalMade,
   big,
 }: {
   stage: Stage;
   running: boolean;
   failed: boolean;
   since?: string;
+  finalMade?: boolean;
   big?: boolean;
 }) {
-  const p = pillFor(stage, running, failed);
+  const p = pillFor(stage, running, failed, finalMade);
   return (
     <span
       className={`inline-flex items-center whitespace-nowrap rounded-full font-bold ${big ? "px-3 py-1 text-[11px]" : "px-2 py-0.5 text-[10px]"} ${

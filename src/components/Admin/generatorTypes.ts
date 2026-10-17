@@ -45,9 +45,10 @@ export const STAGE: Record<Stage, { label: string; tone: Tone }> = {
 };
 
 /** The pill to show: working beats the stage; a failed last run shows red. */
-export function pillFor(stage: Stage, running: boolean, failed: boolean): { label: string; tone: Tone; spin: boolean } {
+export function pillFor(stage: Stage, running: boolean, failed: boolean, finalMade = false): { label: string; tone: Tone; spin: boolean } {
   if (running) return { label: "Working", tone: "blue", spin: true };
   if (failed) return { label: "Stopped — open to retry", tone: "red", spin: false };
+  if (stage === "signed_off" && finalMade) return { label: "Final ✓", tone: "green", spin: false };
   const st = STAGE[stage] ?? STAGE.not_started;
   return { ...st, spin: false };
 }
@@ -61,14 +62,18 @@ export const toneClass = (tone: string) =>
     green: "bg-green-600 text-white",
   })[tone] ?? "";
 
+export type Waiting = { key: string; label: string; kind: "" | "datetime" | "number"; hint: string };
 export type Finals = {
   ready: boolean;
   madeAt: string;
   test: boolean;
-  single: boolean; // one post for the whole event (builder sets EVENT_LEVEL = True), not one per team
+  single: boolean; // one post for the whole event, not one per team / bracket
   source: string;
+  typed: Record<string, string>; // numbers James typed in for the last populate
   posts: { team: string; name: string; png: string; pdf: string }[];
   teams: { key: string; name: string }[];
+  waiting: Waiting[]; // what isn't available yet (last check / populate)
+  checkedAt: string;
 };
 
 /** One graphic on the board / post-type page (a post type can hold several: key = <base> or <base>__2 …). */
@@ -78,6 +83,7 @@ export type GraphicRow = PackItem & {
   display: string; // name, or "<post type> #n"
   status: Status;
   running: boolean;
+  finalMade?: boolean; // step 5 done: real final posts in the Drive kit
   runningSince?: string; // when the current run started (for the "Working... 4 min" pill)
   failed: boolean;
   preview: Preview;
