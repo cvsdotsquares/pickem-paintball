@@ -4,17 +4,12 @@ import Link from "next/link";
 import { genUrl, type GraphicRow, type Preview } from "./generatorTypes";
 import StagePill from "./StagePill";
 
-/** The picture for one graphic: signed-off post, current round, the first option, or an empty frame. */
-function Thumb({ p, big }: { p: Preview; big?: boolean }) {
+/** The picture for one graphic: signed-off post, current round or the first option. Nothing until one is made (James, 17 Oct). */
+function Thumb({ p }: { p: Preview }) {
   const img = p.images[0];
-  return img ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={genUrl(img, true)} alt="" className="aspect-[4/5] w-full rounded object-cover" />
-  ) : (
-    <div className={`flex ${big ? "aspect-[4/5]" : "h-8"} w-full items-center justify-center rounded border border-dashed border-gray-200 text-[9px] text-gray-300 dark:border-white/10 dark:text-white/25`}>
-      Not made yet
-    </div>
-  );
+  if (!img) return null;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={genUrl(img, true)} alt="" className="aspect-[4/5] w-full rounded object-cover" />;
 }
 
 /**
@@ -37,8 +32,8 @@ export default function GraphicStrip({
       {graphics.map((g) => {
         const tile = (
           <div className={`flex shrink-0 snap-start flex-col gap-1 ${big ? "w-44" : "w-24"}`}>
-            <div className="relative">
-              <Thumb p={g.preview} big={big} />
+            <div className={g.preview.images[0] ? "relative" : "flex justify-end"}>
+              <Thumb p={g.preview} />
               {g.running && (
                 <button
                   onClick={(e) => {
@@ -46,7 +41,7 @@ export default function GraphicStrip({
                     e.stopPropagation();
                     onStop(g);
                   }}
-                  className="absolute right-1 top-1 rounded bg-white px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-gray-700 shadow hover:bg-gray-100"
+                  className={`${g.preview.images[0] ? "absolute right-1 top-1" : ""} rounded bg-white px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-gray-700 shadow hover:bg-gray-100`}
                 >
                   Stop
                 </button>
