@@ -50,6 +50,9 @@ export type LibraryItem = {
   caption: string;
   permalink: string;
   notes: string; // James's own notes (e.g. what he likes about an inspiration image)
+  kind: "image" | "reel" | "screenshot"; // inspiration: reel = motion study (videos + strips + breakdown)
+  link: string; // the link James shared (reels and screenshots)
+  study: string; // reels: study folder inside 05. Inspiration (e.g. "studies/2026-10-17_0342_DeaHA0PicUh")
 };
 
 const split = (v: string | undefined) =>
@@ -99,6 +102,9 @@ function groupPast(table: CsvTable): { item: LibraryItem; rows: Record<string, s
         caption: r.caption ?? "",
         permalink: "",
         notes: r.notes ?? "",
+        kind: "image",
+        link: "",
+        study: "",
       },
     });
   }
@@ -124,6 +130,9 @@ function groupInspo(table: CsvTable): { item: LibraryItem; rows: Record<string, 
       caption: "",
       permalink: r.permalink ?? "",
       notes: r.notes ?? "",
+      kind: (["reel", "screenshot"].includes(r.kind) ? r.kind : "image") as LibraryItem["kind"],
+      link: r.link ?? "",
+      study: r.study ?? "",
     },
   }));
 }
@@ -195,11 +204,32 @@ export function replaceTagEverywhere(groupName: TagGroup, from: string, to: stri
   return changed;
 }
 
-/** Resolve an image path inside a source folder, refusing anything that escapes it. */
+/**
+ * Resolve a media path inside a source folder, refusing anything that escapes it.
+ * Inspiration also serves files from its study folders (studies/<name>/video_1.mp4, strip_1.jpg).
+ */
 export function mediaPath(source: string, file: string): string | null {
   if (!(source in SOURCES)) return null;
   const dir = SOURCES[source as Source].dir;
   const p = path.resolve(dir, file);
-  if (path.dirname(p) !== dir || !fs.existsSync(p)) return null;
+  const allowed =
+    path.dirname(p) === dir || (source === "inspo" && path.dirname(path.dirname(p)) === path.join(dir, "studies"));
+  if (!allowed || !fs.existsSync(p) || !fs.statSync(p).isFile()) return null;
   return p;
+}
+
+export type Study = { videos: string[]; strips: string[]; breakdown: string };
+
+/** A reel's study folder: its videos, frame strips and Claude's breakdown (paths relative to 05. Inspiration). */
+export function readStudy(study: string): Study | null {
+  const dir = path.resolve(SOURCES.inspo.dir, study);
+  if (path.dirname(dir) !== path.join(SOURCES.inspo.dir, "studies") || !fs.existsSync(dir)) return null;
+  const files = fs.readdirSync(dir).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const rel = (f: string) => path.join(study, f);
+  const breakdown = path.join(dir, "breakdown.md");
+  return {
+    videos: files.filter((f) => /^video_\d+\.(mp4|mov)$/i.test(f)).map(rel),
+    strips: files.filter((f) => /^strip_\d+\.jpg$/i.test(f)).map(rel),
+    breakdown: fs.existsSync(breakdown) ? fs.readFileSync(breakdown, "utf8") : "",
+  };
 }

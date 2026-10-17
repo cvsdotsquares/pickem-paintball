@@ -27,12 +27,17 @@ export type LibraryItem = {
   caption: string;
   permalink: string;
   notes: string;
+  kind: "image" | "reel" | "screenshot";
+  link: string;
+  study: string;
 };
+
+export type Study = { videos: string[]; strips: string[]; breakdown: string };
 
 export const imageUrl = (source: Source, file: string, thumb = false) =>
   `/api/admin/image?source=${source}&file=${encodeURIComponent(file)}${thumb ? "&thumb=1" : ""}`;
 
-export const isVideo = (file: string) => /\.mp4$/i.test(file);
+export const isVideo = (file: string) => /\.(mp4|mov)$/i.test(file);
 
 export const pill = (active: boolean) =>
   `rounded-full border px-3 py-1 text-[10px] font-bold transition-colors ${

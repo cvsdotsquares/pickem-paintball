@@ -17,7 +17,14 @@ type Filters = {
 };
 
 const EMPTY: Filters = { source: [], postTypes: [], phases: [], events: [], style: [], review: "all", text: "" };
-const SOURCE_LABEL: Record<string, string> = { past: "Past posts", inspo: "Inspiration" };
+const SOURCE_LABEL: Record<string, string> = {
+  past: "Past posts",
+  image: "Inspo images",
+  reel: "Reels / motion",
+  screenshot: "Linked posts",
+};
+/** The Source filter splits inspiration by kind, so reels can be pulled up on their own. */
+const sourceKey = (i: LibraryItem) => (i.source === "past" ? "past" : i.kind);
 const PAGE = 60;
 
 /**
@@ -53,7 +60,7 @@ export default function PostLibrary() {
       const any = (have: string[], want: string[]) => !want.length || want.some((w) => have.includes(w));
       const text = f.text.trim().toLowerCase();
       return (
-        (skip === "source" || any([i.source], f.source)) &&
+        (skip === "source" || any([sourceKey(i)], f.source)) &&
         (skip === "postTypes" || any(i.postTypes, f.postTypes)) &&
         (skip === "phases" || any(i.phases, f.phases)) &&
         (skip === "events" || any([i.event], f.events)) &&
@@ -80,7 +87,7 @@ export default function PostLibrary() {
     };
     const eventsInOrder = Array.from(new Set(items.map((i) => i.event)));
     return [
-      { key: "source" as const, label: "Source", counts: count("source", (i) => [i.source]), order: ["past", "inspo"] },
+      { key: "source" as const, label: "Source", counts: count("source", (i) => [sourceKey(i)]), order: ["past", "image", "reel", "screenshot"] },
       { key: "postTypes" as const, label: "Post type", counts: count("postTypes", (i) => i.postTypes), order: null },
       { key: "phases" as const, label: "Phase", counts: count("phases", (i) => i.phases), order: null },
       { key: "style" as const, label: "Style (all must match)", counts: count("style", (i) => i.style), order: null },
@@ -200,7 +207,7 @@ export default function PostLibrary() {
                     )}
                     {i.source === "inspo" && (
                       <span className="absolute left-2 top-2 rounded bg-[#1a3c6e] px-1.5 py-0.5 text-[9px] font-bold uppercase text-white">
-                        Inspo
+                        {i.kind === "reel" ? "▶ Reel" : i.kind === "screenshot" ? "Inspo · link" : "Inspo"}
                       </span>
                     )}
                   </div>

@@ -14,6 +14,7 @@ const TYPES: Record<string, string> = {
   ".webp": "image/webp",
   ".gif": "image/gif",
   ".mp4": "video/mp4",
+  ".mov": "video/quicktime",
 };
 
 /**
@@ -40,7 +41,9 @@ export async function GET(request: Request) {
   if (!p) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (url.searchParams.get("thumb") && TYPES[path.extname(p).toLowerCase()]?.startsWith("image/")) {
     try {
-      p = thumbnail(url.searchParams.get("source")!, path.basename(p), p);
+      // cache key keeps the folder, so strip_1.jpg from two studies don't collide
+      const key = (url.searchParams.get("file") ?? "").replace(/[\\/]/g, "__");
+      p = thumbnail(url.searchParams.get("source")!, key, p);
     } catch {
       // fall back to the original
     }

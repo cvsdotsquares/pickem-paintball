@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { IoMdClose } from "react-icons/io";
+import { ReelPlayer, StudyDetails, useStudy } from "./ReelStudy";
 import { imageUrl, isVideo, pill, primaryButton, sectionLabel, type LibraryItem, type TagList } from "./types";
 
 /** One post (one image) up close: its caption, its tags to fix or confirm, and its carousel siblings if any. */
@@ -90,6 +91,8 @@ export default function PostDrawer({
   // Values on the post that aren't in the list (e.g. a new word typed in Slack) still show, marked "new".
   const extra = (have: string[], known: string[]) => have.filter((v) => !known.includes(v));
   const file = item.files[0];
+  const isReel = item.kind === "reel";
+  const study = useStudy(isReel ? item.study : "");
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose}>
@@ -98,7 +101,9 @@ export default function PostDrawer({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative flex shrink-0 flex-col items-center justify-center bg-black p-4 md:w-1/2">
-          {isVideo(file) ? (
+          {isReel ? (
+            <ReelPlayer study={study} poster={imageUrl(item.source, file)} />
+          ) : isVideo(file) ? (
             <video src={imageUrl(item.source, file)} controls className="max-h-[70vh] w-full object-contain" />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
@@ -136,14 +141,22 @@ export default function PostDrawer({
           <div className="flex items-start gap-3">
             <div className="flex-1">
               <div className={sectionLabel}>
-                {item.source === "past" ? "Past post" : "Inspiration"} · {item.date} · {item.event}
+                {item.source === "past" ? "Past post" : isReel ? "Inspiration · reel" : item.kind === "screenshot" ? "Inspiration · linked post" : "Inspiration"} · {item.date}
+                {item.source === "past" && ` · ${item.event}`}
               </div>
               <div className="mt-1 text-sm font-black">{item.title || "(no headline)"}</div>
-              {item.permalink && (
-                <a href={item.permalink} target="_blank" rel="noreferrer" className="text-[10px] underline text-gray-400">
-                  Open in Slack
-                </a>
-              )}
+              <div className="flex gap-3">
+                {item.link && (
+                  <a href={item.link} target="_blank" rel="noreferrer" className="text-[10px] underline text-gray-400">
+                    Open original
+                  </a>
+                )}
+                {item.permalink && (
+                  <a href={item.permalink} target="_blank" rel="noreferrer" className="text-[10px] underline text-gray-400">
+                    Open in Slack
+                  </a>
+                )}
+              </div>
             </div>
             <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-900 dark:hover:text-white">
               <IoMdClose size={20} />
@@ -187,6 +200,8 @@ export default function PostDrawer({
               )}
             </div>
           </div>
+
+          {isReel && <StudyDetails study={study} />}
 
           {[
             { label: "Post type", options: typeLabels, have: postTypes, set: setPostTypes },

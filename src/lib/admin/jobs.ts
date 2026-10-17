@@ -19,11 +19,12 @@ export const JOBS: Record<string, JobDef> = {
     label: "Check inspo",
     prompt:
       "Check inspo: follow the pickem-check-inspo skill exactly. Nobody is watching this run, so do not ask questions. " +
-      "When finished, make your LAST line a one-line summary for James, e.g. '3 new images saved' or 'No new images'.",
+      "When finished, make your LAST line a one-line summary for James, e.g. '2 new: 1 image, 1 reel' or 'No new inspiration'.",
     allowedTools: [
       "Skill",
       "Read",
       "Write",
+      "Edit",
       "Bash(python3:*)",
       `${SLACK}slack_read_channel`,
       `${SLACK}slack_read_thread`,
