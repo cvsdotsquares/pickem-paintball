@@ -229,6 +229,8 @@ export default function PostTypeView({
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
   const [comment, setComment] = useState("");
+  const [photos, setPhotos] = useState<string[]>([]); // added to the comment box (generator/-relative paths)
+  const [uploading, setUploading] = useState(0);
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState("");
   // a finished step James clicked to look at again (0 brief, 1 options, 2 review); null = where the post is now
@@ -266,12 +268,13 @@ export default function PostTypeView({
     const res = await fetch("/api/admin/generator", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ event, type, action, comment, ...extra }),
+      body: JSON.stringify({ event, type, action, comment, photos, ...extra }),
     });
     const d = await res.json();
     setSending(false);
     if (!res.ok) return setMessage(d.error ?? "Something went wrong");
     setComment("");
+    setPhotos([]);
     setView(null);
     if (action === "signoff")
       setMessage("Signed off — template and post saved to the Drive kit.");
@@ -312,21 +315,87 @@ export default function PostTypeView({
   const optionsRound = [...rounds].reverse().find((r) => r.options.length);
   const current = rounds.find((r) => r.name === status.current);
   const otherBusy = data.full && !working;
-  const canAct = !working && !sending && !otherBusy;
+  const canAct = !working && !sending && !otherBusy && uploading === 0;
   const failed = data.run?.status === "failed";
   const needsRetry =
     ["not_started", "brief_approved", "chosen", "feedback"].includes(
       status.stage,
     ) && !working;
 
+  /** Photos pasted, dropped or chosen in the comment box go up straight away; they're sent with the comment. */
+  const addPhotos = async (files: File[]) => {
+    const imgs = files.filter((f) => f.type.startsWith("image/"));
+    if (!imgs.length) return;
+    setUploading((n) => n + imgs.length);
+    for (const f of imgs) {
+      const form = new FormData();
+      form.append("event", event);
+      form.append("type", type);
+      form.append("file", f);
+      const res = await fetch("/api/admin/generator/photo", { method: "POST", body: form });
+      const d = await res.json();
+      if (res.ok) setPhotos((p) => [...p, d.rel]);
+      else setMessage(d.error ?? "Couldn't add that photo");
+      setUploading((n) => n - 1);
+    }
+  };
+  const hasComment = !!comment.trim() || photos.length > 0;
+
   const commentBox = (placeholder: string, rows = 3) => (
-    <textarea
-      value={comment}
-      onChange={(e) => setComment(e.target.value)}
-      rows={rows}
-      placeholder={placeholder}
-      className={textarea}
-    />
+    <div
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        if (!e.dataTransfer.files.length) return;
+        e.preventDefault();
+        addPhotos(Array.from(e.dataTransfer.files));
+      }}
+      className="flex flex-col gap-2"
+    >
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        onPaste={(e) => {
+          const files = Array.from(e.clipboardData.files);
+          if (files.some((f) => f.type.startsWith("image/"))) {
+            e.preventDefault();
+            addPhotos(files);
+          }
+        }}
+        rows={rows}
+        placeholder={placeholder}
+        className={textarea}
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        {photos.map((rel) => (
+          <div key={rel} className="relative">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={genUrl(rel, true)} alt="" className="h-16 w-16 rounded object-cover" />
+            <button
+              onClick={() => setPhotos((p) => p.filter((x) => x !== rel))}
+              title="Remove photo"
+              className="absolute -right-1.5 -top-1.5 h-4 w-4 rounded-full bg-black text-[9px] leading-none text-white"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        {uploading > 0 && <span className="text-[10px] text-gray-400">Adding photo…</span>}
+        <label className="cursor-pointer text-[10px] font-bold text-gray-400 hover:text-gray-900 dark:text-white/40 dark:hover:text-white">
+          📎 Add photos
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              addPhotos(Array.from(e.target.files ?? []));
+              e.target.value = "";
+            }}
+          />
+        </label>
+        <span className="text-[10px] text-gray-300 dark:text-white/25">or paste / drop them in</span>
+      </div>
+    </div>
   );
 
   return (
@@ -481,7 +550,7 @@ export default function PostTypeView({
             <div>
               <button
                 className={primaryButton}
-                disabled={!canAct || !comment.trim()}
+                disabled={!canAct || !hasComment}
                 onClick={() => act("write-brief")}
               >
                 Send brief to Claude
@@ -507,7 +576,7 @@ export default function PostTypeView({
               </button>
               <button
                 className={secondaryButton}
-                disabled={!canAct || !comment.trim()}
+                disabled={!canAct || !hasComment}
                 onClick={() => act("change-brief")}
               >
                 Change it
@@ -539,7 +608,7 @@ export default function PostTypeView({
                       act(
                         "choose",
                         { option: o.label },
-                        `Go with ${o.label}${comment ? " (with your note)" : ""}?`,
+                        `Go with ${o.label}${hasComment ? " (with your note)" : ""}?`,
                       )
                     }
                   >
@@ -614,7 +683,7 @@ export default function PostTypeView({
             <div className="flex flex-wrap gap-3">
               <button
                 className={secondaryButton}
-                disabled={!canAct || !comment.trim()}
+                disabled={!canAct || !hasComment}
                 onClick={() => act("feedback")}
               >
                 Send feedback → new round

@@ -28,6 +28,7 @@ import {
   signoff,
   validId,
   ensurePlanned,
+  genFile,
 } from "@/src/lib/admin/generator";
 import { failedFor, lastRunFor, MAX_PARALLEL, readLog, runningAll, runningFor, startJob, stopJob } from "@/src/lib/admin/jobs";
 
@@ -125,8 +126,17 @@ export async function POST(request: Request) {
   const b = await request.json();
   const event = String(b.event ?? "");
   const type = String(b.type ?? "");
-  const comment = String(b.comment ?? "");
   if (!validId(event)) return NextResponse.json({ error: "Bad event" }, { status: 400 });
+  // photos James added to the comment (saved by /api/admin/generator/photo): listed under the text with their
+  // paths from pickem-hub, so the job opens them and feedback.md + the feedback log keep them
+  const photos = (Array.isArray(b.photos) ? b.photos.map(String) : []).filter(
+    (rel: string) => rel.startsWith(`work/${event}/${type}/feedback_photos/`) && !rel.includes("..") && genFile(rel),
+  );
+  const comment =
+    String(b.comment ?? "").trim() +
+    (photos.length
+      ? `\n\nPhotos James added (open each one and look at it):\n${photos.map((r: string) => `- generator/${r}`).join("\n")}`
+      : "");
   if (b.action === "approve-board") {
     if (!board(event).image) return NextResponse.json({ error: "No brand board yet" }, { status: 409 });
     approveBoard(event);
