@@ -217,10 +217,10 @@ export default function NewEventDrawer({
           <div className="flex flex-col">
             <div className="mb-2 flex items-center gap-2">
               <div className={`${sectionLabel} flex-1`}>
-                Inspiration to pull in{" "}
+                Highlight key inspiration{" "}
                 {picked.length > 0 && (
                   <span className="text-gray-900 dark:text-white">
-                    · {picked.length} selected
+                    · {picked.length} highlighted
                   </span>
                 )}
               </div>
@@ -237,7 +237,11 @@ export default function NewEventDrawer({
                 Past posts
               </button>
             </div>
-            {/* the box scrolls; the grid inside keeps full-size square tiles (a height limit on the grid itself squashed them) */}
+            <p className="mb-2 text-[10px] text-gray-400 dark:text-white/40">
+              Tick the ones you&apos;d like worked into some of this event&apos;s graphics. Nothing is left out: Claude still
+              uses the whole library, and ticked posts get extra weight.
+            </p>
+            {/* the box scrolls; the grid inside keeps full-size tiles (a height limit on the grid itself squashed them) */}
             <div
               className="h-[360px] shrink-0 overflow-y-auto rounded-lg bg-gray-100 p-0.5 dark:bg-white/5"
               style={{ scrollbarGutter: "stable" }}
