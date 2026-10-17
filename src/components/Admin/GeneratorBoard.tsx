@@ -41,12 +41,7 @@ type Data = {
 
 /** What's been made so far: the signed-off post, the current round, or the three options. */
 function CardPreview({ p }: { p: Preview }) {
-  if (p.kind === "none")
-    return (
-      <div className="flex h-10 items-center justify-center rounded-lg border border-dashed border-gray-200 text-[9px] uppercase tracking-widest text-gray-300 dark:border-white/10 dark:text-white/25">
-        Nothing made yet
-      </div>
-    );
+  if (p.kind === "none") return null; // nothing made yet: no picture, just the card
   if (p.kind === "options")
     return (
       <div className="grid grid-cols-3 gap-1">
@@ -265,80 +260,75 @@ export default function GeneratorBoard() {
         </div>
       </section>
 
-      {/* columns = when it goes out (pre / during / post); rows = must, then nice to have */}
+      {/* columns = when it goes out (pre / during / post); in each column: must have, then nice to have.
+          Each column stacks on its own, so a short column doesn't leave white space. */}
       <section className="overflow-x-auto">
-        <div className="grid min-w-[720px] grid-cols-3 gap-3">
+        <div className="grid min-w-[720px] grid-cols-3 items-start gap-3">
           {phases.map((p) => (
-            <div
-              key={p.key}
-              className="border-b border-gray-200 pb-1 dark:border-white/10"
-            >
-              <h2 className="text-sm font-black uppercase tracking-wide">
-                {p.title}
-              </h2>
-              <div className="text-[10px] text-gray-400 dark:text-white/40">
-                {p.hint}
-              </div>
-            </div>
-          ))}
-          {(["must", "nice"] as const).map((row) => (
-            <Fragment key={row}>
-              <div className={`${sectionLabel} col-span-3 pt-3`}>
-                {row === "must" ? "Must have" : "Nice to have"}
-              </div>
-              {phases.map((p) => (
-                <div
-                  key={p.key}
-                  className="flex flex-col gap-2 rounded-xl bg-gray-50 p-2 dark:bg-white/[0.03]"
-                >
-                  {p[row].length === 0 && (
-                    <div className="p-2 text-[10px] text-gray-300 dark:text-white/25">
-                      None
-                    </div>
-                  )}
-                  {p[row].map((t) => {
-                    const card = (
-                      <div
-                        className={`flex h-full flex-col gap-2 rounded-xl border border-gray-100 bg-white p-3 dark:border-white/5 dark:bg-[#0d0d0d] ${
-                          data.board.approved
-                            ? "hover:border-gray-400 dark:hover:border-white/30"
-                            : "opacity-50"
-                        }`}
-                      >
-                        <CardPreview p={t.preview} />
-                        <div className="text-xs font-black leading-snug">
-                          {t.label}
-                        </div>
-                        {t.phase === "Pre/post-event" && (
-                          <div className="text-[9px] uppercase tracking-widest text-gray-400 dark:text-white/40">
-                            Also post-event
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2">
-                          <StagePill
-                            stage={t.status.stage}
-                            running={t.running}
-                            failed={t.failed}
-                          />
-                        </div>
-                      </div>
-                    );
-                    return data.board.approved ? (
-                      <Link
-                        key={t.key}
-                        href={`/admin/generator/${data.event}/${t.key}`}
-                      >
-                        {card}
-                      </Link>
-                    ) : (
-                      <div key={t.key} title="Approve the brand board first">
-                        {card}
-                      </div>
-                    );
-                  })}
+            <div key={p.key} className="flex flex-col gap-2">
+              <div className="border-b border-gray-200 pb-1 dark:border-white/10">
+                <h2 className="text-sm font-black uppercase tracking-wide">
+                  {p.title}
+                </h2>
+                <div className="text-[10px] text-gray-400 dark:text-white/40">
+                  {p.hint}
                 </div>
+              </div>
+              {(["must", "nice"] as const).map((row) => (
+                <Fragment key={row}>
+                  <div className={`${sectionLabel} pt-2`}>
+                    {row === "must" ? "Must have" : "Nice to have"}
+                  </div>
+                  <div className="flex flex-col gap-2 rounded-xl bg-gray-50 p-2 dark:bg-white/[0.03]">
+                    {p[row].length === 0 && (
+                      <div className="p-2 text-[10px] text-gray-300 dark:text-white/25">
+                        None
+                      </div>
+                    )}
+                    {p[row].map((t) => {
+                      const card = (
+                        <div
+                          className={`flex h-full flex-col gap-2 rounded-xl border border-gray-100 bg-white p-3 dark:border-white/5 dark:bg-[#0d0d0d] ${
+                            data.board.approved
+                              ? "hover:border-gray-400 dark:hover:border-white/30"
+                              : "opacity-50"
+                          }`}
+                        >
+                          <CardPreview p={t.preview} />
+                          <div className="text-xs font-black leading-snug">
+                            {t.label}
+                          </div>
+                          {t.phase === "Pre/post-event" && (
+                            <div className="text-[9px] uppercase tracking-widest text-gray-400 dark:text-white/40">
+                              Also post-event
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <StagePill
+                              stage={t.status.stage}
+                              running={t.running}
+                              failed={t.failed}
+                            />
+                          </div>
+                        </div>
+                      );
+                      return data.board.approved ? (
+                        <Link
+                          key={t.key}
+                          href={`/admin/generator/${data.event}/${t.key}`}
+                        >
+                          {card}
+                        </Link>
+                      ) : (
+                        <div key={t.key} title="Approve the brand board first">
+                          {card}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Fragment>
               ))}
-            </Fragment>
+            </div>
           ))}
         </div>
       </section>
