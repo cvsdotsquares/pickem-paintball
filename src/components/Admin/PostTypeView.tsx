@@ -196,6 +196,8 @@ export default function PostTypeView({
   const [comment, setComment] = useState("");
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState("");
+  // a finished step James clicked to look at again (0 brief, 1 options, 2 review); null = where the post is now
+  const [view, setView] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch(
@@ -235,6 +237,7 @@ export default function PostTypeView({
     setSending(false);
     if (!res.ok) return setMessage(d.error ?? "Something went wrong");
     setComment("");
+    setView(null);
     if (action === "signoff")
       setMessage("Signed off — template and post saved to the Drive kit.");
     if (action === "make-finals") setMessage(d.log ?? "Done");
@@ -248,6 +251,8 @@ export default function PostTypeView({
   const stepIndex = data.finals.posts.length && !data.finals.test
     ? STEPS.length - 1
     : STEPS.findIndex((s) => s.stages.includes(status.stage));
+  const revisit = view !== null;
+  const shown: Stage = view === 0 ? "brief" : view === 1 ? "options" : view === 2 ? "ready" : status.stage;
   const optionsRound = [...rounds].reverse().find((r) => r.options.length);
   const current = rounds.find((r) => r.name === status.current);
   const otherBusy = data.busy && !working;
@@ -299,9 +304,14 @@ export default function PostTypeView({
       {/* steps */}
       <div className="flex gap-1">
         {STEPS.map((s, i) => (
-          <div
+          <button
             key={s.label}
+            disabled={i > stepIndex}
+            title={i < stepIndex && i < 3 ? "Look at this step again — you can change things from there" : ""}
+            onClick={() => setView(i < 3 && i < stepIndex ? i : null)}
             className={`flex-1 rounded px-2 py-1.5 text-center text-[9px] font-bold uppercase tracking-widest ${
+              view === i ? "ring-2 ring-gray-900 dark:ring-white " : ""
+            }${i <= stepIndex ? "cursor-pointer hover:opacity-80 " : "cursor-default "}${
               i < stepIndex
                 ? "bg-green-500/15 text-green-700 dark:text-green-400"
                 : i === stepIndex
@@ -310,9 +320,18 @@ export default function PostTypeView({
             }`}
           >
             {i + 1}. {s.label}
-          </div>
+          </button>
         ))}
       </div>
+      {revisit && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl bg-amber-100 px-4 py-2 text-[11px] text-amber-900 dark:bg-amber-500/15 dark:text-amber-200">
+          Looking back at step {view! + 1}. Change something here and the post picks up from this step;
+          the signed-off template stays in the kit until you sign off again.
+          <button className="font-bold underline" onClick={() => setView(null)}>
+            Back to where it is now
+          </button>
+        </div>
+      )}
 
       {/* job status */}
       {working && data.run && (
@@ -351,7 +370,7 @@ export default function PostTypeView({
 
       {/* current step */}
       <section className="flex flex-col gap-4 rounded-xl bg-white dark:bg-[#0d0d0d] p-5">
-        {status.stage === "not_started" && working && (
+        {shown === "not_started" && working && (
           <>
             <div className={sectionLabel}>
               Step 1 — your brief is with Claude
@@ -368,7 +387,7 @@ export default function PostTypeView({
           </>
         )}
 
-        {status.stage === "not_started" && !working && (
+        {shown === "not_started" && !working && (
           <>
             <div className={sectionLabel}>Step 1 — your brief</div>
             <p className="text-[11px] text-gray-500 dark:text-white/50">
@@ -396,7 +415,7 @@ export default function PostTypeView({
           </>
         )}
 
-        {status.stage === "brief" && (
+        {shown === "brief" && (
           <>
             <div className={sectionLabel}>Step 1 — Claude&apos;s brief</div>
             <BriefSummary text={data.brief} />
@@ -405,7 +424,7 @@ export default function PostTypeView({
             )}
             <div className="flex flex-wrap gap-3">
               <button
-                className={primaryButton}
+                className={`${primaryButton} ${revisit ? "hidden" : ""}`}
                 disabled={!canAct}
                 onClick={() => act("approve-brief")}
               >
@@ -422,7 +441,7 @@ export default function PostTypeView({
           </>
         )}
 
-        {status.stage === "options" && optionsRound && (
+        {shown === "options" && optionsRound && (
           <>
             <div className={sectionLabel}>Step 2 — pick a layout (rough drafts: colours and polish come next)</div>
             {optionsRound.notes && <Markdown text={optionsRound.notes} />}
@@ -460,7 +479,7 @@ export default function PostTypeView({
           </>
         )}
 
-        {status.stage === "ready" && current && (
+        {shown === "ready" && current && (
           <>
             <div className={sectionLabel}>
               Step 3 — ready for you ({current.name.replace("_", " ")})
@@ -526,7 +545,7 @@ export default function PostTypeView({
                 Send feedback → new round
               </button>
               <button
-                className={primaryButton}
+                className={`${primaryButton} ${revisit ? "hidden" : ""}`}
                 disabled={!canAct}
                 onClick={() =>
                   act(
@@ -542,7 +561,7 @@ export default function PostTypeView({
           </>
         )}
 
-        {status.stage === "signed_off" && (
+        {shown === "signed_off" && (
           <>
             <div className={sectionLabel}>Templated</div>
             <p className="text-[11px] text-gray-500 dark:text-white/50">
@@ -560,45 +579,10 @@ export default function PostTypeView({
               busy={sending}
               onMake={(teams) => act("make-finals", { teams: teams.join(",") })}
             />
-            <div className="mt-2 flex flex-col gap-3 border-t border-gray-100 pt-4 dark:border-white/10">
-              <div className={sectionLabel}>Noticed something? Go back</div>
-              <p className="text-[11px] text-gray-500 dark:text-white/50">
-                The signed-off template stays in the kit until you sign off again (the old one moves to
-                Earlier versions). Final posts already made stay too — make them again after the new sign-off.
-              </p>
-              {commentBox("What to change? (for step 3 or step 1)")}
-              <div className="flex flex-wrap gap-3">
-                <button
-                  className={primaryButton}
-                  disabled={!canAct || !comment.trim()}
-                  onClick={() => act("feedback")}
-                >
-                  Back to 3. Review — new round with this change
-                </button>
-                <button
-                  className={secondaryButton}
-                  disabled={!canAct}
-                  onClick={() =>
-                    act("back-to-options", {}, "Go back to the three rough layouts and pick again?")
-                  }
-                >
-                  Back to 2. Options — pick a different layout
-                </button>
-                <button
-                  className={secondaryButton}
-                  disabled={!canAct || !comment.trim()}
-                  onClick={() =>
-                    act("change-brief", {}, "Rewrite the brief from your comment? New layouts follow from it.")
-                  }
-                >
-                  Back to 1. Brief — rethink it
-                </button>
-              </div>
-            </div>
           </>
         )}
 
-        {["brief_approved", "chosen", "feedback"].includes(status.stage) &&
+        {["brief_approved", "chosen", "feedback"].includes(shown) &&
           !working &&
           !failed && (
             <div className="flex items-center gap-3 text-[11px] text-gray-500">
@@ -612,7 +596,7 @@ export default function PostTypeView({
               </button>
             </div>
           )}
-        {["brief_approved", "chosen", "feedback"].includes(status.stage) &&
+        {["brief_approved", "chosen", "feedback"].includes(shown) &&
           working && (
             <p className="text-[11px] text-gray-500 dark:text-white/50">
               The next step appears here when Claude is done.
