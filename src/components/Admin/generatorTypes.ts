@@ -36,9 +36,9 @@ export type Tone = "grey" | "orange" | "blue" | "green" | "red";
 export const STAGE: Record<Stage, { label: string; tone: Tone }> = {
   not_started: { label: "Not started", tone: "grey" },
   brief: { label: "Brief ready for you", tone: "orange" },
-  brief_approved: { label: "Making options", tone: "blue" },
-  options: { label: "Pick an option", tone: "orange" },
-  chosen: { label: "Reviewing + polishing", tone: "blue" },
+  brief_approved: { label: "Making rough layouts", tone: "blue" },
+  options: { label: "Pick a layout", tone: "orange" },
+  chosen: { label: "Building the final version", tone: "blue" },
   ready: { label: "Ready for you", tone: "orange" },
   feedback: { label: "Applying your feedback", tone: "blue" },
   signed_off: { label: "Signed off", tone: "green" },

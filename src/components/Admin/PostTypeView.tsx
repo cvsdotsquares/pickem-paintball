@@ -296,7 +296,7 @@ export default function PostTypeView({
                 disabled={!canAct}
                 onClick={() => act("approve-brief")}
               >
-                Approve brief → make options
+                Approve brief → make rough layouts
               </button>
               <button
                 className={secondaryButton}
@@ -311,7 +311,7 @@ export default function PostTypeView({
 
         {status.stage === "options" && optionsRound && (
           <>
-            <div className={sectionLabel}>Step 2 — pick a direction</div>
+            <div className={sectionLabel}>Step 2 — pick a layout (rough drafts: colours and polish come next)</div>
             {optionsRound.notes && <Markdown text={optionsRound.notes} />}
             <div className="grid gap-4 md:grid-cols-3">
               {optionsRound.options.map((o) => (

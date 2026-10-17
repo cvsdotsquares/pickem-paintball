@@ -69,8 +69,8 @@ export const JOBS: Record<string, JobDef> = {
       "Make your LAST line one plain sentence for James saying the board is ready to approve.",
   },
   "post-brief": postJob("brief", "Write brief"),
-  "post-options": postJob("options", "Make options A/B/C"),
-  "post-review": postJob("review", "Review + polish"),
+  "post-options": postJob("options", "Make rough layouts A/B/C"),
+  "post-review": postJob("review", "Build the final version"),
   "post-revise": postJob("revise", "Apply feedback"),
 };
 
@@ -102,6 +102,13 @@ export function readLog(run: JobRun): string {
   } catch {
     return "";
   }
+}
+
+/** Save what a Post Generator job wrote in pickem-hub's git (local commit only; James pushes backups). */
+function commitWork(message: string) {
+  const git = (args: string[]) => spawn("git", ["-C", HUB, ...args], { stdio: "ignore" });
+  const add = git(["add", "generator/work", "generator/masters", "generator/CONTEXT.md", "generator/themes.json", "generator/boards"]);
+  add.on("close", () => git(["commit", "-q", "-m", `Post Generator: ${message}`]));
 }
 
 export function startJob(job: string, params: JobParams = {}): JobRun | { error: string } {
@@ -150,6 +157,9 @@ export function startJob(job: string, params: JobParams = {}): JobRun | { error:
     });
   };
   child.on("error", (e) => finish(false, `Could not start Claude: ${e.message}`));
-  child.on("close", (code) => finish(code === 0, code === 0 ? undefined : `Claude stopped with code ${code}`));
+  child.on("close", (code) => {
+    finish(code === 0, code === 0 ? undefined : `Claude stopped with code ${code}`);
+    if (job.startsWith("post-") || job === "event-setup") commitWork(`${def.label}: ${params.event ?? ""} ${params.type ?? ""}`.trim());
+  });
   return run;
 }
