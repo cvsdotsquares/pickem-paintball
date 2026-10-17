@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { NextResponse } from "next/server";
 import { adminGate } from "@/src/lib/admin/gate";
 import {
@@ -9,6 +11,7 @@ import {
   eventPack,
   examples,
   finals,
+  GEN,
   listEvents,
   makeFinals,
   openFeedbackCount,
@@ -73,6 +76,7 @@ export async function GET(request: Request) {
  *   feedback      {comment}        → apply-feedback job
  *   retry                          → run the current stage's job again (after a failed run)
  *   signoff                        → template + post copied to the kit (no job)
+ *   back-to-options                → stage options again (no job): pick a different A/B/C
  *   make-finals   {teams}          → step 5: final posts from the signed-off template (no job; empty = all teams)
  */
 export async function POST(request: Request) {
@@ -150,6 +154,14 @@ export async function POST(request: Request) {
       } catch (e) {
         return NextResponse.json({ error: `Sign-off failed: ${(e as Error).message}` }, { status: 500 });
       }
+    case "back-to-options": {
+      // James wants to pick a different rough layout: no job, the A/B/C from round 1 show again
+      if (!fs.existsSync(path.join(GEN, "work", event, type, "round_1")))
+        return NextResponse.json({ error: "No rough layouts to go back to" }, { status: 409 });
+      addFeedback(event, type, st.stage, comment || "Went back to pick a different layout");
+      setStatus(event, type, { stage: "options" }, "James went back to the options");
+      return NextResponse.json({ ok: true });
+    }
     case "make-finals": {
       if (st.stage !== "signed_off") return NextResponse.json({ error: "Sign off the template first" }, { status: 409 });
       const teams = String(b.teams ?? "").split(",").filter(Boolean);

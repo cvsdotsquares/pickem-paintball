@@ -560,6 +560,41 @@ export default function PostTypeView({
               busy={sending}
               onMake={(teams) => act("make-finals", { teams: teams.join(",") })}
             />
+            <div className="mt-2 flex flex-col gap-3 border-t border-gray-100 pt-4 dark:border-white/10">
+              <div className={sectionLabel}>Noticed something? Go back</div>
+              <p className="text-[11px] text-gray-500 dark:text-white/50">
+                The signed-off template stays in the kit until you sign off again (the old one moves to
+                Earlier versions). Final posts already made stay too — make them again after the new sign-off.
+              </p>
+              {commentBox("What to change? (for step 3 or step 1)")}
+              <div className="flex flex-wrap gap-3">
+                <button
+                  className={primaryButton}
+                  disabled={!canAct || !comment.trim()}
+                  onClick={() => act("feedback")}
+                >
+                  Back to 3. Review — new round with this change
+                </button>
+                <button
+                  className={secondaryButton}
+                  disabled={!canAct}
+                  onClick={() =>
+                    act("back-to-options", {}, "Go back to the three rough layouts and pick again?")
+                  }
+                >
+                  Back to 2. Options — pick a different layout
+                </button>
+                <button
+                  className={secondaryButton}
+                  disabled={!canAct || !comment.trim()}
+                  onClick={() =>
+                    act("change-brief", {}, "Rewrite the brief from your comment? New layouts follow from it.")
+                  }
+                >
+                  Back to 1. Brief — rethink it
+                </button>
+              </div>
+            </div>
           </>
         )}
 
