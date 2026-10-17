@@ -297,6 +297,7 @@ export type Finals = {
   ready: boolean; // this post type has a data builder (generator/finals/<type>.py)
   madeAt: string;
   test: boolean;
+  single: boolean; // one post for the whole event (builder sets EVENT_LEVEL = True), not one per team
   source: string;
   posts: { team: string; name: string; png: string; pdf: string }[];
   teams: { key: string; name: string }[];
@@ -319,8 +320,10 @@ export function finals(event: string, type: string): Finals {
       png: rel(k, "post.png"),
       pdf: fs.existsSync(path.join(root, k, "post.pdf")) ? rel(k, "post.pdf") : "",
     }));
+  const builder = readText(path.join(GEN, "finals", `${baseOf(type)}.py`)) || "";
   return {
-    ready: fs.existsSync(path.join(GEN, "finals", `${baseOf(type)}.py`)),
+    ready: !!builder,
+    single: /^EVENT_LEVEL\s*=\s*True/m.test(builder),
     madeAt: run.made_at ?? "",
     test: !!run.test,
     source: run.source ?? "",

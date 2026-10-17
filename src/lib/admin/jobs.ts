@@ -129,6 +129,18 @@ export const listRuns = () => runs.slice(-10).reverse();
 /** Newest run for one event + post type (Post Generator page). */
 export const lastRunFor = (event: string, type: string) =>
   [...runs].reverse().find((r) => r.params?.event === event && r.params?.type === type);
+/**
+ * A failed last run only matters while the graphic hasn't moved on since. Once its status changed after the run
+ * ended (e.g. James signed it off, or a later step wrote files), the old failure is history, not a red pill.
+ */
+export const failedFor = (event: string, type: string, status: { stage: string; updated: string }) => {
+  const r = lastRunFor(event, type);
+  if (r?.status !== "failed") return false;
+  if (status.stage === "signed_off") return false;
+  const ended = r.finishedAt ? Date.parse(r.finishedAt) : NaN;
+  const changed = status.updated ? Date.parse(status.updated.replace(" ", "T") + "Z") : NaN;
+  return !(changed >= ended);
+};
 export const running = () => runs.find((r) => r.status === "running");
 export const runningAll = () => runs.filter((r) => r.status === "running");
 /** The run working on this graphic right now (event + type), if any. */

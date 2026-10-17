@@ -28,7 +28,7 @@ import {
   signoff,
   validId,
 } from "@/src/lib/admin/generator";
-import { lastRunFor, MAX_PARALLEL, readLog, runningAll, runningFor, startJob, stopJob } from "@/src/lib/admin/jobs";
+import { failedFor, lastRunFor, MAX_PARALLEL, readLog, runningAll, runningFor, startJob, stopJob } from "@/src/lib/admin/jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
           status: readStatus(event, g.key),
           preview: preview(event, g.key),
           running: !!runningFor(event, g.key),
-          failed: lastRunFor(event, g.key)?.status === "failed",
+          failed: failedFor(event, g.key, readStatus(event, g.key)),
         })),
       ),
       busy: busy ? { label: busy.label, params: busy.params } : null,
@@ -85,7 +85,12 @@ export async function GET(request: Request) {
     examples: examples(item.tags),
     graphicName: graphicName(event, type),
     keyInspo: keyInspo(event, type),
-    run: run ? { ...run, log: run.status === "failed" ? readLog(run).slice(-1500) : "" } : null,
+    // an old failure the graphic has since moved past is shown as done, not as a red "stopped" box
+    run: run
+      ? run.status === "failed" && !failedFor(event, type, readStatus(event, type))
+        ? { ...run, status: "done" as const, log: "" }
+        : { ...run, log: run.status === "failed" ? readLog(run).slice(-1500) : "" }
+      : null,
     busy: busy ? { label: busy.label, params: busy.params } : null,
     full,
   });

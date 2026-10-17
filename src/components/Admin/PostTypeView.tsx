@@ -89,6 +89,37 @@ function FinalPosts({ f, busy, onMake }: { f: Finals; busy: boolean; onMake: (te
         5. Final posts: not set up for this post type yet (ask Claude to add its data builder).
       </p>
     );
+  if (f.single)
+    return (
+      <div className="mt-2 flex flex-col gap-3 border-t border-gray-100 pt-4 dark:border-white/10">
+        <div className={sectionLabel}>5. Final post</div>
+        <p className="text-[11px] text-gray-500 dark:text-white/50">
+          One post for the whole event. The numbers come straight from Pick&apos;Em (entries and lock time); everything
+          else is the signed-off template. Takes a few seconds.
+        </p>
+        <div>
+          <button className={primaryButton} disabled={busy} onClick={() => onMake([])}>
+            {busy ? "Making…" : f.posts.length ? "Make it again with the latest numbers" : "Make the final post"}
+          </button>
+        </div>
+        {f.posts.length > 0 && (
+          <>
+            <div className="text-[10px] text-gray-400 dark:text-white/40">
+              Made {f.madeAt}.{" "}
+              {f.test
+                ? `TEST — ${f.source}. Not copied to the Drive kit until the event has real entries.`
+                : "Saved to the Drive kit: 07. Output → Final Posts."}
+            </div>
+            <div className="md:w-1/4">
+              <a href={genUrl(f.posts[0].png)} target="_blank" rel="noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={genUrl(f.posts[0].png)} alt="Final post" className="w-full rounded-lg shadow" />
+              </a>
+            </div>
+          </>
+        )}
+      </div>
+    );
   return (
     <div className="mt-2 flex flex-col gap-3 border-t border-gray-100 pt-4 dark:border-white/10">
       <div className={sectionLabel}>5. Final posts — one per team</div>

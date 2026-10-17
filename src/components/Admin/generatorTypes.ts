@@ -65,6 +65,7 @@ export type Finals = {
   ready: boolean;
   madeAt: string;
   test: boolean;
+  single: boolean; // one post for the whole event (builder sets EVENT_LEVEL = True), not one per team
   source: string;
   posts: { team: string; name: string; png: string; pdf: string }[];
   teams: { key: string; name: string }[];
