@@ -39,6 +39,7 @@ type Data = {
   };
   types: TypeRow[];
   busy: Busy;
+  busyAll: NonNullable<Busy>[];
   feedbackToReview: number;
 };
 
@@ -81,6 +82,18 @@ export default function GeneratorBoard() {
   const [adding, setAdding] = useState(false);
   const [comment, setComment] = useState("");
   const [message, setMessage] = useState("");
+
+  const stopGraphic = async (key: string, label: string) => {
+    if (!window.confirm(`Stop Claude on "${label}"? What it has done so far is kept.`)) return;
+    const res = await fetch("/api/admin/generator", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event: data?.event, type: key, action: "stop" }),
+    });
+    const d = await res.json();
+    if (!res.ok) setMessage(d.error ?? "Something went wrong");
+    load();
+  };
 
   const addGraphic = async (base: string, label: string) => {
     const name = window.prompt(
@@ -179,10 +192,10 @@ export default function GeneratorBoard() {
         <button className={pill(false)} onClick={() => setAdding(true)}>
           + New event
         </button>
-        {data.busy && (
+        {data.busyAll.length > 0 && (
           <span className="text-[10px] text-gray-500 dark:text-white/50">
-            Claude is working: {data.busy.label} ·{" "}
-            {data.busy.params.type ?? data.busy.params.event}
+            Claude is working on {data.busyAll.length}:{" "}
+            {data.busyAll.map((b) => `${b.label} · ${b.params.type ?? b.params.event}`).join(" | ")}
           </span>
         )}
       </div>
@@ -354,6 +367,17 @@ export default function GeneratorBoard() {
                               running={t.running}
                               failed={t.failed}
                             />
+                            {t.running && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault(); // the card is a link
+                                  stopGraphic(t.key, t.name || t.label);
+                                }}
+                                className="rounded border border-gray-300 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-gray-500 hover:border-gray-900 hover:text-gray-900 dark:border-white/20 dark:text-white/50 dark:hover:text-white"
+                              >
+                                Stop
+                              </button>
+                            )}
                           </div>
                           <CardPreview p={t.preview} />
                         </div>

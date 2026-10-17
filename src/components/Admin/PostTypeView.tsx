@@ -43,6 +43,7 @@ type Data = {
   keyInspo: string[];
   run: Run;
   busy: Busy;
+  full: boolean; // the most Claude runs at once are going: no room for another
 };
 
 const STEPS: { label: string; stages: Stage[] }[] = [
@@ -243,6 +244,7 @@ export default function PostTypeView({
     if (action === "signoff")
       setMessage("Signed off — template and post saved to the Drive kit.");
     if (action === "make-finals") setMessage(d.log ?? "Done");
+    if (action === "stop") setMessage("Stopped. Start the step again when you're ready.");
     load();
   };
 
@@ -266,7 +268,7 @@ export default function PostTypeView({
   const shown: Stage = view === 0 ? "brief" : view === 1 ? "options" : view === 2 ? "ready" : status.stage;
   const optionsRound = [...rounds].reverse().find((r) => r.options.length);
   const current = rounds.find((r) => r.name === status.current);
-  const otherBusy = data.busy && !working;
+  const otherBusy = data.full && !working;
   const canAct = !working && !sending && !otherBusy;
   const failed = data.run?.status === "failed";
   const needsRetry =
@@ -356,12 +358,21 @@ export default function PostTypeView({
             — started {minutesSince(data.run.startedAt)} min ago. Briefs take a
             few minutes; options and reviews 15–30. You can leave this page.
           </span>
+          <button
+            className="ml-auto shrink-0 rounded bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-[#1a3c6e] hover:bg-white/80"
+            disabled={sending}
+            onClick={() =>
+              act("stop", {}, "Stop Claude on this graphic? What it has done so far is kept; you can start the step again.")
+            }
+          >
+            Stop
+          </button>
         </div>
       )}
       {otherBusy && (
         <div className="rounded-xl bg-gray-100 dark:bg-white/5 px-4 py-3 text-[11px] text-gray-500">
-          Claude is busy on another post ({data.busy?.label} ·{" "}
-          {data.busy?.params.type}). Buttons come back when it&apos;s done.
+          Claude is already working on 3 graphics — that&apos;s the most at once. Buttons come back when one
+          finishes (or stop one from its page or the board).
         </div>
       )}
       {failed && needsRetry && (

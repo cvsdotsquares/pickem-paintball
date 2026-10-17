@@ -28,7 +28,7 @@ import {
   signoff,
   validId,
 } from "@/src/lib/admin/generator";
-import { lastRunFor, readLog, running, startJob } from "@/src/lib/admin/jobs";
+import { lastRunFor, MAX_PARALLEL, readLog, runningAll, runningFor, startJob, stopJob } from "@/src/lib/admin/jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +45,9 @@ export async function GET(request: Request) {
   if (!validId(event)) return NextResponse.json({ error: "Bad event" }, { status: 400 });
   const pack = eventPack();
   const type = q.get("type");
-  const busy = running();
+  const all = runningAll();
+  const busy = all[0];
+  const full = all.length >= MAX_PARALLEL; // no room for another run until one finishes
   if (!type) {
     return NextResponse.json({
       events,
@@ -60,11 +62,13 @@ export async function GET(request: Request) {
           name: g.name,
           status: readStatus(event, g.key),
           preview: preview(event, g.key),
-          running: busy?.params?.type === g.key && busy.params.event === event,
+          running: !!runningFor(event, g.key),
           failed: lastRunFor(event, g.key)?.status === "failed",
         })),
       ),
       busy: busy ? { label: busy.label, params: busy.params } : null,
+      busyAll: all.map((r) => ({ label: r.label, params: r.params })),
+      full,
       feedbackToReview: openFeedbackCount(),
     });
   }
@@ -83,6 +87,7 @@ export async function GET(request: Request) {
     keyInspo: keyInspo(event, type),
     run: run ? { ...run, log: run.status === "failed" ? readLog(run).slice(-1500) : "" } : null,
     busy: busy ? { label: busy.label, params: busy.params } : null,
+    full,
   });
 }
 
@@ -101,6 +106,7 @@ export async function GET(request: Request) {
  *   add-graphic   {name}           → another graphic in this bucket (work/<event>/<type>__N/), returns its key
  *   rename-graphic {name}          → name this graphic
  *   key-inspo     {id, on}         → star / unstar a reference for this graphic
+ *   stop                           → stop the Claude run on this graphic (the step can be started again)
  *   make-finals   {teams}          → step 5: final posts from the signed-off template (no job; empty = all teams)
  */
 export async function POST(request: Request) {
@@ -118,7 +124,8 @@ export async function POST(request: Request) {
   }
   if (b.action === "change-board") {
     if (!comment.trim()) return NextResponse.json({ error: "Write what to change" }, { status: 400 });
-    if (running()) return NextResponse.json({ error: "Another job is still running — try again when it finishes" }, { status: 409 });
+    if (runningAll().some((r) => r.job === "event-setup" && r.params?.event === event))
+      return NextResponse.json({ error: "The brand board is still being made — try again when it finishes" }, { status: 409 });
     if (!board(event).request) return NextResponse.json({ error: "This event wasn't set up from the panel" }, { status: 409 });
     addBoardFeedback(event, comment);
     const r = startJob("event-setup", { event });
@@ -133,10 +140,18 @@ export async function POST(request: Request) {
     const r = startJob(name, { event, type });
     return "error" in r ? NextResponse.json(r, { status: 409 }) : NextResponse.json({ run: r });
   };
-  if (["write-brief", "approve-brief", "change-brief", "choose", "feedback", "retry"].includes(b.action) && running())
-    return NextResponse.json({ error: "Another job is still running — try again when it finishes" }, { status: 409 });
+  if (["write-brief", "approve-brief", "change-brief", "choose", "feedback", "retry"].includes(b.action)) {
+    if (runningFor(event, type))
+      return NextResponse.json({ error: "Claude is still working on this graphic — stop it first or wait" }, { status: 409 });
+    if (runningAll().length >= MAX_PARALLEL)
+      return NextResponse.json({ error: `${MAX_PARALLEL} Claude runs are going already — wait for one to finish (or stop one)` }, { status: 409 });
+  }
 
   switch (b.action) {
+    case "stop": {
+      const r = stopJob(event, type);
+      return "error" in r ? NextResponse.json(r, { status: 409 }) : NextResponse.json({ ok: true });
+    }
     case "add-graphic": {
       const name = String(b.name ?? "").trim();
       if (!name) return NextResponse.json({ error: "Give the new graphic a name" }, { status: 400 });

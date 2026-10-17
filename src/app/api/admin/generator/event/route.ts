@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminGate } from "@/src/lib/admin/gate";
 import { createEventRequest, eventId, listEvents } from "@/src/lib/admin/generator";
-import { running, startJob } from "@/src/lib/admin/jobs";
+import { MAX_PARALLEL, runningAll, startJob } from "@/src/lib/admin/jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,8 @@ export async function POST(request: Request) {
   if (!name || !eventId(name)) return NextResponse.json({ error: "Give the event a name" }, { status: 400 });
   if (listEvents().some((e) => e.id === eventId(name) && !e.settingUp))
     return NextResponse.json({ error: "That event already exists" }, { status: 409 });
-  if (running()) return NextResponse.json({ error: "Another job is still running — try again when it finishes" }, { status: 409 });
+  if (runningAll().length >= MAX_PARALLEL)
+    return NextResponse.json({ error: `${MAX_PARALLEL} Claude runs are going already — wait for one to finish` }, { status: 409 });
 
   const uploads: { name: string; data: Buffer }[] = [];
   for (const f of form.getAll("files")) {

@@ -8,7 +8,8 @@ import { HUB } from "./library";
 /**
  * Jobs = Claude Code run on James's Mac, on his subscription (`claude -p`, the same as typing
  * `claude` in Terminal), from inside pickem-hub so the skills and scripts are there.
- * One job at a time. Each run's output is kept in pickem-hub/library/jobs/.
+ * One run per graphic, up to MAX_PARALLEL at once (James, 17 Oct: several graphics in the works, each with its own
+ * Stop button). Each run's output is kept in pickem-hub/library/jobs/.
  */
 
 export type JobParams = { event?: string; type?: string };
@@ -113,17 +114,40 @@ export type JobRun = {
   finishedAt?: string;
   summary?: string;
   logFile: string;
+  stopped?: boolean; // James pressed Stop
 };
 
 // Survives dev-server hot reloads.
 const g = globalThis as unknown as { __adminJobs?: JobRun[] };
 const runs = (g.__adminJobs ??= []);
+const gc = globalThis as unknown as { __adminChildren?: Map<string, import("child_process").ChildProcess> };
+const children = (gc.__adminChildren ??= new Map());
+/** At most this many Claude runs at once — each uses James's subscription limit. */
+export const MAX_PARALLEL = 3;
 
 export const listRuns = () => runs.slice(-10).reverse();
 /** Newest run for one event + post type (Post Generator page). */
 export const lastRunFor = (event: string, type: string) =>
   [...runs].reverse().find((r) => r.params?.event === event && r.params?.type === type);
 export const running = () => runs.find((r) => r.status === "running");
+export const runningAll = () => runs.filter((r) => r.status === "running");
+/** The run working on this graphic right now (event + type), if any. */
+export const runningFor = (event: string, type: string) =>
+  runs.find((r) => r.status === "running" && r.params?.event === event && r.params?.type === type);
+
+/** Stop the run on this graphic (James's Stop button). The step can be started again from the page. */
+export function stopJob(event: string, type: string): { ok: true } | { error: string } {
+  const run = runningFor(event, type);
+  if (!run) return { error: "Nothing is running on this graphic" };
+  run.stopped = true;
+  const child = children.get(run.id);
+  try {
+    if (child?.pid) process.kill(-child.pid, "SIGTERM"); // the whole group: Claude and anything it started
+  } catch {
+    child?.kill("SIGTERM");
+  }
+  return { ok: true };
+}
 
 export function readLog(run: JobRun): string {
   try {
@@ -169,7 +193,11 @@ function commitWork(message: string) {
 export function startJob(job: string, params: JobParams = {}): JobRun | { error: string } {
   const def = JOBS[job];
   if (!def) return { error: "Unknown job" };
-  if (running()) return { error: "Another job is still running" };
+  if (params.type && runningFor(params.event ?? "", params.type)) return { error: "Claude is already working on this graphic" };
+  if (!params.type && runs.some((r) => r.status === "running" && r.job === job && r.params?.event === params.event))
+    return { error: "That job is already running" };
+  if (runningAll().length >= MAX_PARALLEL)
+    return { error: `${MAX_PARALLEL} Claude runs are going already — wait for one to finish (or stop one)` };
 
   const dir = path.join(HUB, "library/jobs");
   fs.mkdirSync(dir, { recursive: true });
@@ -198,7 +226,9 @@ export function startJob(job: string, params: JobParams = {}): JobRun | { error:
     cwd: HUB,
     env,
     stdio: ["ignore", "pipe", "pipe"],
+    detached: true, // its own process group, so Stop ends everything it started
   });
+  children.set(run.id, child);
   let stdout = "";
   child.stdout.on("data", (b) => (stdout += b));
   child.stderr.pipe(out, { end: false });
@@ -213,19 +243,24 @@ export function startJob(job: string, params: JobParams = {}): JobRun | { error:
       result = { result: stdout };
     }
     out.write(`${result.result ?? stdout}\n`);
+    if (run.stopped) {
+      ok = false;
+      note = "Stopped by James";
+    }
     if (note) out.write(`\n${note}\n`);
     if (result.is_error) ok = false;
     logRun(job, params, ok, result);
     out.end(() => {
       const lines = readLog(run).trim().split("\n").filter(Boolean);
       // Success: Claude's last line is the summary. Failure: its first line usually says why (e.g. a usage limit).
-      run.summary = ok ? lines[lines.length - 1] : lines[0] ?? note;
+      run.summary = run.stopped ? "Stopped by James" : ok ? lines[lines.length - 1] : lines[0] ?? note;
       run.status = ok ? "done" : "failed";
       run.finishedAt = new Date().toISOString();
     });
   };
   child.on("error", (e) => finish(false, `Could not start Claude: ${e.message}`));
   child.on("close", (code) => {
+    children.delete(run.id);
     finish(code === 0, code === 0 ? undefined : `Claude stopped with code ${code}`);
     if (job.startsWith("post-") || job === "event-setup") commitWork(`${def.label}: ${params.event ?? ""} ${params.type ?? ""}`.trim());
   });
