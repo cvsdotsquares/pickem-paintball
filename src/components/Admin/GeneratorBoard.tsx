@@ -15,6 +15,8 @@ import { Markdown } from "./ReelStudy";
 import { pill, primaryButton, sectionLabel } from "./types";
 
 type TypeRow = PackItem & {
+  base: string; // the post type (bucket); key is this graphic: <base> or <base>__2 …
+  name: string; // this graphic's own name, when a bucket holds several
   status: Status;
   running: boolean;
   failed: boolean;
@@ -79,6 +81,21 @@ export default function GeneratorBoard() {
   const [adding, setAdding] = useState(false);
   const [comment, setComment] = useState("");
   const [message, setMessage] = useState("");
+
+  const addGraphic = async (base: string, label: string) => {
+    const name = window.prompt(
+      `New graphic under "${label}". What is it? (e.g. Team lock deadline)`,
+    );
+    if (!name?.trim()) return;
+    const res = await fetch("/api/admin/generator", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event: data?.event, type: base, action: "add-graphic", name }),
+    });
+    const d = await res.json();
+    if (!res.ok) return setMessage(d.error ?? "Something went wrong");
+    window.location.href = `/admin/generator/${data?.event}/${d.key}`;
+  };
 
   const load = useCallback(async () => {
     const res = await fetch(
@@ -298,7 +315,17 @@ export default function GeneratorBoard() {
                         None
                       </div>
                     )}
-                    {p[row].map((t) => {
+                    {p[row].map((t, i, all) => {
+                      // after the last graphic of a bucket: add another graphic under the same post type
+                      const addAnother =
+                        data.board.approved && all[i + 1]?.base !== t.base ? (
+                          <button
+                            onClick={() => addGraphic(t.base, t.label)}
+                            className="-mt-1 self-start px-1 text-[10px] font-bold text-gray-400 hover:text-gray-900 hover:underline dark:hover:text-white"
+                          >
+                            + Add another graphic here
+                          </button>
+                        ) : null;
                       const card = (
                         <div
                           className={`flex h-full flex-col gap-2 rounded-xl border border-gray-100 bg-white p-3 dark:border-white/5 dark:bg-[#0d0d0d] ${
@@ -308,8 +335,14 @@ export default function GeneratorBoard() {
                           }`}
                         >
                           <div className="text-xs font-black leading-snug">
-                            {t.label}
+                            {t.key !== t.base ? <span className="text-gray-400">+ </span> : null}
+                            {t.name || t.label}
                           </div>
+                          {t.name && (
+                            <div className="-mt-1 text-[9px] text-gray-400 dark:text-white/40">
+                              {t.label}
+                            </div>
+                          )}
                           {t.phase === "Pre/post-event" && (
                             <div className="text-[9px] uppercase tracking-widest text-gray-400 dark:text-white/40">
                               Also post-event
@@ -326,12 +359,12 @@ export default function GeneratorBoard() {
                         </div>
                       );
                       return data.board.approved ? (
-                        <Link
-                          key={t.key}
-                          href={`/admin/generator/${data.event}/${t.key}`}
-                        >
-                          {card}
-                        </Link>
+                        <Fragment key={t.key}>
+                          <Link href={`/admin/generator/${data.event}/${t.key}`}>
+                            {card}
+                          </Link>
+                          {addAnother}
+                        </Fragment>
                       ) : (
                         <div key={t.key} title="Approve the brand board first">
                           {card}

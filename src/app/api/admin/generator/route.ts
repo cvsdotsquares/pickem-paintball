@@ -4,6 +4,13 @@ import { NextResponse } from "next/server";
 import { adminGate } from "@/src/lib/admin/gate";
 import {
   addBoardFeedback,
+  addGraphic,
+  baseOf,
+  graphicName,
+  graphics,
+  keyInspo,
+  renameGraphic,
+  setKeyInspo,
   addFeedback,
   approveBoard,
   board,
@@ -44,12 +51,24 @@ export async function GET(request: Request) {
       events,
       event,
       board: board(event),
-      types: pack.map((p) => ({ ...p, status: readStatus(event, p.key), preview: preview(event, p.key), running: busy?.params?.type === p.key && busy.params.event === event, failed: lastRunFor(event, p.key)?.status === "failed" })),
+      // one row per graphic: a bucket (post type) can hold several (key = <type> or <type>__2 …)
+      types: pack.flatMap((p) =>
+        graphics(event, p.key).map((g) => ({
+          ...p,
+          key: g.key,
+          base: p.key,
+          name: g.name,
+          status: readStatus(event, g.key),
+          preview: preview(event, g.key),
+          running: busy?.params?.type === g.key && busy.params.event === event,
+          failed: lastRunFor(event, g.key)?.status === "failed",
+        })),
+      ),
       busy: busy ? { label: busy.label, params: busy.params } : null,
       feedbackToReview: openFeedbackCount(),
     });
   }
-  const item = pack.find((p) => p.key === type);
+  const item = pack.find((p) => p.key === baseOf(type));
   if (!item || !validId(type)) return NextResponse.json({ error: "Unknown post type" }, { status: 404 });
   const run = lastRunFor(event, type);
   return NextResponse.json({
@@ -60,6 +79,8 @@ export async function GET(request: Request) {
     ...detail(event, type),
     finals: finals(event, type),
     examples: examples(item.tags),
+    graphicName: graphicName(event, type),
+    keyInspo: keyInspo(event, type),
     run: run ? { ...run, log: run.status === "failed" ? readLog(run).slice(-1500) : "" } : null,
     busy: busy ? { label: busy.label, params: busy.params } : null,
   });
@@ -77,6 +98,9 @@ export async function GET(request: Request) {
  *   retry                          → run the current stage's job again (after a failed run)
  *   signoff                        → template + post copied to the kit (no job)
  *   back-to-options                → stage options again (no job): pick a different A/B/C
+ *   add-graphic   {name}           → another graphic in this bucket (work/<event>/<type>__N/), returns its key
+ *   rename-graphic {name}          → name this graphic
+ *   key-inspo     {id, on}         → star / unstar a reference for this graphic
  *   make-finals   {teams}          → step 5: final posts from the signed-off template (no job; empty = all teams)
  */
 export async function POST(request: Request) {
@@ -100,7 +124,7 @@ export async function POST(request: Request) {
     const r = startJob("event-setup", { event });
     return "error" in r ? NextResponse.json(r, { status: 409 }) : NextResponse.json({ run: r });
   }
-  if (!validId(type) || !eventPack().some((p) => p.key === type))
+  if (!validId(type) || !eventPack().some((p) => p.key === baseOf(type)))
     return NextResponse.json({ error: "Unknown post type" }, { status: 404 });
   if (!board(event).approved) return NextResponse.json({ error: "Approve the brand board first" }, { status: 409 });
 
@@ -113,6 +137,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Another job is still running — try again when it finishes" }, { status: 409 });
 
   switch (b.action) {
+    case "add-graphic": {
+      const name = String(b.name ?? "").trim();
+      if (!name) return NextResponse.json({ error: "Give the new graphic a name" }, { status: 400 });
+      return NextResponse.json({ ok: true, key: addGraphic(event, baseOf(type), name) });
+    }
+    case "rename-graphic":
+      renameGraphic(event, type, String(b.name ?? ""));
+      return NextResponse.json({ ok: true });
+    case "key-inspo":
+      if (!/^(inspo|past):[^/\\]+$/.test(String(b.id ?? ""))) return NextResponse.json({ error: "Bad id" }, { status: 400 });
+      return NextResponse.json({ ok: true, keyInspo: setKeyInspo(event, type, String(b.id ?? ""), !!b.on) });
+
     case "write-brief":
       if (!comment.trim()) return NextResponse.json({ error: "Write your brief first" }, { status: 400 });
       addFeedback(event, type, "James's brief", comment);

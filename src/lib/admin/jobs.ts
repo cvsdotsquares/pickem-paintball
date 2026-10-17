@@ -2,6 +2,7 @@ import { spawn } from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { baseOf, graphicName, keyInspo } from "./generator";
 import { HUB } from "./library";
 
 /**
@@ -52,9 +53,19 @@ const POST_TOOLS = [
 const postJob = (step: string, label: string): JobDef => ({
   label,
   allowedTools: POST_TOOLS,
-  prompt: ({ event, type }) =>
-    `Post Generator job "${step}" for event ${event}, post type ${type}. Follow the pickem-social-post skill, ` +
+  prompt: ({ event = "", type = "" }) =>
+    `Post Generator job "${step}" for event ${event}, post type ${baseOf(type)}. Follow the pickem-social-post skill, ` +
     `section "Admin panel jobs" → ${step}, working in generator/work/${event}/${type}/. ` +
+    (type !== baseOf(type) || graphicName(event, type)
+      ? `This graphic is "${graphicName(event, type) || type}", one of several in the ${baseOf(type)} bucket: ` +
+        `the master is generator/masters/${baseOf(type)}/ (if there is one) and it must be a different post from its siblings ` +
+        `(generator/work/${event}/${baseOf(type)}*/). `
+      : "") +
+    (keyInspo(event, type).length
+      ? `James starred these as KEY inspiration for this graphic — look at each one and give them the most weight ` +
+        `(inspo:<file> = kit 05. Inspiration/<file>, past:<file> = kit 06. Past Work/Instagram archive/<file>; ` +
+        `thumbnails in library/.thumbs/): ${keyInspo(event, type).join(", ")}. `
+      : "") +
     "Nobody is watching this run, so do not ask questions: decide, note any stand-ins in the files, and finish. " +
     "Make your LAST line one plain sentence for James saying what is ready.",
 });

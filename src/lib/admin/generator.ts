@@ -320,7 +320,7 @@ export function finals(event: string, type: string): Finals {
       pdf: fs.existsSync(path.join(root, k, "post.pdf")) ? rel(k, "post.pdf") : "",
     }));
   return {
-    ready: fs.existsSync(path.join(GEN, "finals", `${type}.py`)),
+    ready: fs.existsSync(path.join(GEN, "finals", `${baseOf(type)}.py`)),
     madeAt: run.made_at ?? "",
     test: !!run.test,
     source: run.source ?? "",
@@ -344,4 +344,57 @@ export function makeFinals(event: string, type: string, teams: string[]): Promis
           ),
     ),
   );
+}
+
+/**
+ * Several graphics per post type (James, 17 Oct: e.g. Countdown → "Picks open" and "Team lock deadline").
+ * The first lives in work/<event>/<type>/, extra ones in work/<event>/<type>__2/, __3/ …, each with graphic.json {name}.
+ * Everywhere else a "type" can be either; baseOf() gives the post type (event pack key, master, data builder).
+ */
+export const baseOf = (type: string) => type.split("__")[0];
+
+export function graphicName(event: string, type: string): string {
+  return readJson<{ name?: string }>(path.join(WORK, event, type, "graphic.json"), {}).name ?? "";
+}
+
+export function graphics(event: string, base: string): { key: string; name: string }[] {
+  const d = path.join(WORK, event);
+  const extra = fs.existsSync(d)
+    ? fs
+        .readdirSync(d)
+        .filter((n) => n.startsWith(`${base}__`) && /^\d+$/.test(n.slice(base.length + 2)))
+        .sort((a, b) => Number(a.slice(base.length + 2)) - Number(b.slice(base.length + 2)))
+    : [];
+  return [base, ...extra].map((key) => ({ key, name: graphicName(event, key) }));
+}
+
+export function addGraphic(event: string, base: string, name: string): string {
+  const n = Math.max(1, ...graphics(event, base).map((g) => Number(g.key.split("__")[1] ?? 1))) + 1;
+  const key = `${base}__${n}`;
+  fs.mkdirSync(path.join(WORK, event, key), { recursive: true });
+  fs.writeFileSync(path.join(WORK, event, key, "graphic.json"), JSON.stringify({ name: name.trim() }, null, 2) + "\n");
+  setStatus(event, key, { stage: "not_started" }, `New graphic: ${name.trim()}`);
+  return key;
+}
+
+/** Name the first graphic of a bucket too, once there are several (optional). */
+export function renameGraphic(event: string, type: string, name: string) {
+  fs.mkdirSync(path.join(WORK, event, type), { recursive: true });
+  fs.writeFileSync(path.join(WORK, event, type, "graphic.json"), JSON.stringify({ name: name.trim() }, null, 2) + "\n");
+}
+
+/**
+ * Key inspiration James starred on the post page (Post Library ids "inspo:<file>" / "past:<file>"), saved to
+ * work/<event>/<type>/key_inspo.json. Every job for this graphic gives them the most weight.
+ */
+export function keyInspo(event: string, type: string): string[] {
+  return readJson<string[]>(path.join(WORK, event, type, "key_inspo.json"), []);
+}
+
+export function setKeyInspo(event: string, type: string, id: string, on: boolean): string[] {
+  const list = keyInspo(event, type).filter((x) => x !== id);
+  if (on) list.push(id);
+  fs.mkdirSync(path.join(WORK, event, type), { recursive: true });
+  fs.writeFileSync(path.join(WORK, event, type, "key_inspo.json"), JSON.stringify(list, null, 2) + "\n");
+  return list;
 }

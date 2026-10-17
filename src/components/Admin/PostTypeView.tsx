@@ -39,6 +39,8 @@ type Data = {
   final: boolean;
   finals: Finals;
   examples: LibraryItem[];
+  graphicName: string;
+  keyInspo: string[];
   run: Run;
   busy: Busy;
 };
@@ -244,6 +246,15 @@ export default function PostTypeView({
     load();
   };
 
+  const toggleKey = async (id: string, on: boolean) => {
+    const res = await fetch("/api/admin/generator", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event, type, action: "key-inspo", id, on }),
+    });
+    if (res.ok) load();
+  };
+
   if (error) return <div className="p-8 text-xs text-red-400">{error}</div>;
   if (!data) return <div className="p-8 text-xs text-gray-400">Loading…</div>;
 
@@ -285,8 +296,11 @@ export default function PostTypeView({
             ← {data.eventLabel}
           </Link>
           <h1 className="mt-1 text-lg font-black uppercase tracking-wide">
-            {data.item.label}
+            {data.graphicName || data.item.label}
           </h1>
+          {data.graphicName && (
+            <div className="text-[11px] font-bold text-gray-500 dark:text-white/50">{data.item.label}</div>
+          )}
           <div className="text-[10px] text-gray-400 dark:text-white/40">
             {data.item.phase} ·{" "}
             {data.item.priority === "must" ? "Must" : "Nice to have"} ·
@@ -613,15 +627,33 @@ export default function PostTypeView({
             open the Post Library
           </Link>
         </div>
+        <p className="mb-2 text-[11px] text-gray-500 dark:text-white/50">
+          Click ☆ on the ones that matter most for this graphic. Claude gives starred references the most weight
+          in the brief, the layouts and the build
+          {data.keyInspo.length ? ` (${data.keyInspo.length} starred)` : ""}.
+        </p>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 lg:grid-cols-8">
-          {data.examples.map((i) => (
+          {[...data.examples]
+            .sort((a, b) => Number(data.keyInspo.includes(b.id)) - Number(data.keyInspo.includes(a.id)))
+            .map((i) => {
+            const starred = data.keyInspo.includes(i.id);
+            return (
+            <div key={i.id} className={`relative rounded ${starred ? "ring-2 ring-amber-400" : ""}`}>
+            <button
+              onClick={() => toggleKey(i.id, !starred)}
+              title={starred ? "Key inspiration — click to unstar" : "Star as key inspiration for this graphic"}
+              className={`absolute right-1 top-1 z-10 rounded px-1 text-[13px] leading-none ${
+                starred ? "bg-amber-400 text-black" : "bg-black/60 text-white hover:bg-black/80"
+              }`}
+            >
+              {starred ? "★" : "☆"}
+            </button>
             <a
-              key={i.id}
               href={imageUrl(i.source, i.files[0])}
               target="_blank"
               rel="noreferrer"
               title={`${i.date} · ${i.title}`}
-              className="relative"
+              className="relative block"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -635,7 +667,9 @@ export default function PostTypeView({
                 </span>
               )}
             </a>
-          ))}
+            </div>
+            );
+          })}
         </div>
       </section>
 
