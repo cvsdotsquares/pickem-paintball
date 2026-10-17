@@ -7,6 +7,7 @@ import StagePill from "./StagePill";
 import {
   genUrl,
   type Busy,
+  type Finals,
   type PackItem,
   type Round,
   type RoundFile,
@@ -36,6 +37,7 @@ type Data = {
   feedback: string;
   rounds: Round[];
   final: boolean;
+  finals: Finals;
   examples: LibraryItem[];
   run: Run;
   busy: Busy;
@@ -46,6 +48,7 @@ const STEPS: { label: string; stages: Stage[] }[] = [
   { label: "Options", stages: ["brief_approved", "options"] },
   { label: "Review", stages: ["chosen", "ready", "feedback"] },
   { label: "Templated", stages: ["signed_off"] },
+  { label: "Final posts", stages: [] },
 ];
 
 const textarea =
@@ -70,6 +73,83 @@ function Render({ f, big }: { f: RoundFile; big?: boolean }) {
         className={`w-full rounded-lg ${big ? "" : "shadow"}`}
       />
     </a>
+  );
+}
+
+/** Step 5: pick teams, make their posts from the signed-off template, see them. */
+function FinalPosts({ f, busy, onMake }: { f: Finals; busy: boolean; onMake: (teams: string[]) => void }) {
+  const [picked, setPicked] = useState<string[]>([]);
+  const toggle = (k: string) => setPicked((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]));
+  if (!f.ready)
+    return (
+      <p className="text-[11px] text-gray-400">
+        5. Final posts: not set up for this post type yet (ask Claude to add its data builder).
+      </p>
+    );
+  return (
+    <div className="mt-2 flex flex-col gap-3 border-t border-gray-100 pt-4 dark:border-white/10">
+      <div className={sectionLabel}>5. Final posts — one per team</div>
+      <p className="text-[11px] text-gray-500 dark:text-white/50">
+        Tick the teams, then make their posts. Numbers come from the event databook; colours and logos from
+        each team&apos;s brand board. Takes a few seconds per team.
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {f.teams.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => toggle(t.key)}
+            className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${
+              picked.includes(t.key)
+                ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-black"
+                : "border-gray-200 text-gray-500 hover:border-gray-400 dark:border-white/10 dark:text-white/50"
+            }`}
+          >
+            {t.name}
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center gap-3">
+        <button
+          className={primaryButton}
+          disabled={busy || !picked.length}
+          onClick={() => onMake(picked)}
+        >
+          {busy ? "Making…" : `Make ${picked.length || ""} final post${picked.length === 1 ? "" : "s"}`}
+        </button>
+        <button
+          className="text-[10px] text-gray-400 underline"
+          onClick={() => setPicked(picked.length === f.teams.length ? [] : f.teams.map((t) => t.key))}
+        >
+          {picked.length === f.teams.length ? "Clear" : "All teams"}
+        </button>
+      </div>
+      {f.posts.length > 0 && (
+        <>
+          <div className="text-[10px] text-gray-400 dark:text-white/40">
+            Made {f.madeAt} from {f.source}
+            {f.test
+              ? " — TEST: Lone Star numbers until the World Cup databook is linked; not copied to the Drive kit."
+              : " — saved to the Drive kit: 07. Output → Final Posts."}
+          </div>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+            {f.posts.map((p) => (
+              <div key={p.team} className="flex flex-col gap-1">
+                <a href={genUrl(p.png)} target="_blank" rel="noreferrer">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={genUrl(p.png, true)} alt={p.name} className="w-full rounded-lg shadow" />
+                </a>
+                <div className="text-[10px] font-bold">{p.name}</div>
+                {p.pdf && (
+                  <a href={genUrl(p.pdf)} className="text-[9px] text-gray-400 underline">
+                    Canva PDF
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -157,6 +237,7 @@ export default function PostTypeView({
     setComment("");
     if (action === "signoff")
       setMessage("Signed off — template and post saved to the Drive kit.");
+    if (action === "make-finals") setMessage(d.log ?? "Done");
     load();
   };
 
@@ -164,7 +245,9 @@ export default function PostTypeView({
   if (!data) return <div className="p-8 text-xs text-gray-400">Loading…</div>;
 
   const { status, rounds } = data;
-  const stepIndex = STEPS.findIndex((s) => s.stages.includes(status.stage));
+  const stepIndex = data.finals.posts.length && !data.finals.test
+    ? STEPS.length - 1
+    : STEPS.findIndex((s) => s.stages.includes(status.stage));
   const optionsRound = [...rounds].reverse().find((r) => r.options.length);
   const current = rounds.find((r) => r.name === status.current);
   const otherBusy = data.busy && !working;
@@ -468,10 +551,15 @@ export default function PostTypeView({
               go to <b>07. Output → Final Posts</b>; only the logos, photos, names and stats change.
             </p>
             {current?.post && (
-              <div className="md:w-1/2">
+              <div className="md:w-1/4">
                 <Render f={current.post} big />
               </div>
             )}
+            <FinalPosts
+              f={data.finals}
+              busy={sending}
+              onMake={(teams) => act("make-finals", { teams: teams.join(",") })}
+            />
           </>
         )}
 

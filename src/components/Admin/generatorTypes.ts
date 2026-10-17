@@ -60,3 +60,12 @@ export const toneClass = (tone: string) =>
     red: "bg-red-500 text-white",
     green: "bg-green-600 text-white",
   })[tone] ?? "";
+
+export type Finals = {
+  ready: boolean;
+  madeAt: string;
+  test: boolean;
+  source: string;
+  posts: { team: string; name: string; png: string; pdf: string }[];
+  teams: { key: string; name: string }[];
+};

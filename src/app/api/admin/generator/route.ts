@@ -8,7 +8,9 @@ import {
   detail,
   eventPack,
   examples,
+  finals,
   listEvents,
+  makeFinals,
   openFeedbackCount,
   preview,
   readStatus,
@@ -53,6 +55,7 @@ export async function GET(request: Request) {
     item,
     board: board(event),
     ...detail(event, type),
+    finals: finals(event, type),
     examples: examples(item.tags),
     run: run ? { ...run, log: run.status === "failed" ? readLog(run).slice(-1500) : "" } : null,
     busy: busy ? { label: busy.label, params: busy.params } : null,
@@ -70,6 +73,7 @@ export async function GET(request: Request) {
  *   feedback      {comment}        → apply-feedback job
  *   retry                          → run the current stage's job again (after a failed run)
  *   signoff                        → template + post copied to the kit (no job)
+ *   make-finals   {teams}          → step 5: final posts from the signed-off template (no job; empty = all teams)
  */
 export async function POST(request: Request) {
   const blocked = adminGate();
@@ -146,6 +150,17 @@ export async function POST(request: Request) {
       } catch (e) {
         return NextResponse.json({ error: `Sign-off failed: ${(e as Error).message}` }, { status: 500 });
       }
+    case "make-finals": {
+      if (st.stage !== "signed_off") return NextResponse.json({ error: "Sign off the template first" }, { status: 409 });
+      const teams = String(b.teams ?? "").split(",").filter(Boolean);
+      const known = new Set(finals(event, type).teams.map((t) => t.key));
+      if (!teams.every((t) => known.has(t))) return NextResponse.json({ error: "Unknown team" }, { status: 400 });
+      try {
+        return NextResponse.json({ ok: true, log: await makeFinals(event, type, teams) });
+      } catch (e) {
+        return NextResponse.json({ error: `Final posts failed: ${(e as Error).message}` }, { status: 500 });
+      }
+    }
     default:
       return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   }

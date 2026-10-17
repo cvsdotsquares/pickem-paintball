@@ -1,4 +1,4 @@
-import { execFileSync } from "child_process";
+import { execFile, execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { HUB, loadLibrary, type LibraryItem } from "./library";
@@ -291,4 +291,51 @@ export function genFile(rel: string): string | null {
 /** Freeze the current round and copy the template + post to the Drive kit (generator/signoff.py). */
 export function signoff(event: string, type: string): string {
   return execFileSync("python3", ["-I", path.join(GEN, "signoff.py"), event, type], { cwd: GEN, encoding: "utf8" });
+}
+
+export type Finals = {
+  ready: boolean; // this post type has a data builder (generator/finals/<type>.py)
+  madeAt: string;
+  test: boolean;
+  source: string;
+  posts: { team: string; name: string; png: string; pdf: string }[];
+  teams: { key: string; name: string }[];
+};
+
+/** Step 5: the final posts made from the signed-off template (generator/make_finals.py), plus the teams to pick from. */
+export function finals(event: string, type: string): Finals {
+  const teamsJson = JSON.parse(readText(path.join(GEN, "data", "teams.json")) || "{}") as Record<string, { name: string }>;
+  const teams = Object.entries(teamsJson)
+    .map(([key, t]) => ({ key, name: t.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const root = path.join(dir(event, type), "finals");
+  const run = JSON.parse(readText(path.join(root, "run.json")) || "{}") as { made_at?: string; test?: boolean; source?: string };
+  const rel = (...p: string[]) => path.join("work", event, type, "finals", ...p);
+  const posts = (fs.existsSync(root) ? fs.readdirSync(root) : [])
+    .filter((k) => fs.existsSync(path.join(root, k, "post.png")))
+    .map((k) => ({
+      team: k,
+      name: teamsJson[k]?.name ?? k,
+      png: rel(k, "post.png"),
+      pdf: fs.existsSync(path.join(root, k, "post.pdf")) ? rel(k, "post.pdf") : "",
+    }));
+  return {
+    ready: fs.existsSync(path.join(GEN, "finals", `${type}.py`)),
+    madeAt: run.made_at ?? "",
+    test: !!run.test,
+    source: run.source ?? "",
+    posts,
+    teams,
+  };
+}
+
+/** Render the final posts for these teams (all when empty). A plain script, no Claude run: seconds per post. */
+export function makeFinals(event: string, type: string, teams: string[]): Promise<string> {
+  const args = ["-I", path.join(GEN, "make_finals.py"), event, type];
+  if (teams.length) args.push("--teams", teams.join(","));
+  return new Promise((resolve, reject) =>
+    execFile("python3", args, { cwd: GEN, encoding: "utf8", timeout: 15 * 60 * 1000 }, (err, stdout, stderr) =>
+      err ? reject(new Error((stderr || err.message).trim().split("\n").slice(-1)[0])) : resolve(stdout.trim().split("\n").slice(-1)[0]),
+    ),
+  );
 }
