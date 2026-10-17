@@ -59,7 +59,7 @@ export default function PostLibrary() {
         (skip === "events" || any([i.event], f.events)) &&
         (skip === "style" || f.style.every((s) => i.style.includes(s))) &&
         (f.review === "all" || (f.review === "confirmed") === (i.tagsFrom === "James")) &&
-        (!text || `${i.title} ${i.caption}`.toLowerCase().includes(text))
+        (!text || `${i.title} ${i.caption} ${i.notes}`.toLowerCase().includes(text))
       );
     },
     [f],
@@ -131,7 +131,7 @@ export default function PostLibrary() {
           >
             <input
               className="rounded-full border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-4 py-2 text-xs outline-none placeholder-gray-400 focus:border-gray-400 dark:placeholder-white/30 dark:focus:border-white/30"
-              placeholder="Search headlines and captions"
+              placeholder="Search headlines, captions and notes"
               value={f.text}
               onChange={(e) => setF({ ...f, text: e.target.value })}
             />
@@ -216,6 +216,9 @@ export default function PostLibrary() {
                       {i.date} · {i.event}
                     </div>
                     <div className="mt-1 truncate text-[9px] text-gray-500 dark:text-white/50">{i.style.join(" · ")}</div>
+                    {i.notes && (
+                      <div className="mt-1 line-clamp-2 text-[9px] italic text-gray-600 dark:text-white/60">“{i.notes}”</div>
+                    )}
                   </div>
                 </button>
               ))}

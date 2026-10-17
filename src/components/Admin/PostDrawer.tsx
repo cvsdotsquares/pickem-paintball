@@ -23,6 +23,15 @@ export default function PostDrawer({
   const [style, setStyle] = useState(item.style);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [notes, setNotes] = useState(item.notes);
+  const [notesState, setNotesState] = useState<"" | "saving" | "saved">("");
+
+  // Reset the notes draft only when a different post opens (saving tags must not wipe an unsaved note).
+  useEffect(() => {
+    setNotes(item.notes);
+    setNotesState("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.id]);
 
   useEffect(() => {
     setPostTypes(item.postTypes);
@@ -53,6 +62,24 @@ export default function PostDrawer({
     if (!res.ok) setError(data.error ?? "Could not save");
     else onSaved(data.item);
   };
+
+  const saveNotes = async () => {
+    setNotesState("saving");
+    setError("");
+    const res = await fetch("/api/admin/library", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: item.id, notes }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setNotesState("");
+      return setError(data.error ?? "Could not save the note");
+    }
+    setNotesState("saved");
+    onSaved(data.item);
+  };
+  const notesChanged = notes.trim() !== item.notes;
 
   const toggle = (list: string[], set: (v: string[]) => void, v: string) =>
     set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
@@ -131,6 +158,34 @@ export default function PostDrawer({
             }`}
           >
             {item.tagsFrom === "James" ? "Tags confirmed by you" : "Tags suggested by Claude — fix or confirm"}
+          </div>
+
+          <div>
+            <div className={`${sectionLabel} mb-2`}>Notes</div>
+            <textarea
+              value={notes}
+              onChange={(e) => {
+                setNotes(e.target.value);
+                setNotesState("");
+              }}
+              rows={3}
+              placeholder={
+                item.source === "inspo" ? "What you like about it — the idea, a detail, how we could use it" : "Your notes on this post"
+              }
+              className="w-full resize-y rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2 text-[11px] outline-none placeholder-gray-400 focus:border-gray-400 dark:placeholder-white/30 dark:focus:border-white/30"
+            />
+            <div className="mt-1 flex items-center gap-3">
+              <button
+                className="text-[10px] font-bold uppercase tracking-widest underline disabled:no-underline disabled:opacity-40"
+                onClick={saveNotes}
+                disabled={!notesChanged || notesState === "saving"}
+              >
+                {notesState === "saving" ? "Saving…" : "Save note"}
+              </button>
+              {notesState === "saved" && !notesChanged && (
+                <span className="text-[10px] font-bold text-green-600 dark:text-green-400">Saved</span>
+              )}
+            </div>
           </div>
 
           {[

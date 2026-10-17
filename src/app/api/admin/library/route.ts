@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminGate } from "@/src/lib/admin/gate";
-import { loadLibrary, readTags, saveItemTags } from "@/src/lib/admin/library";
+import { loadLibrary, readTags, saveItemNotes, saveItemTags } from "@/src/lib/admin/library";
 
 export const dynamic = "force-dynamic";
 
@@ -15,11 +15,16 @@ export async function GET() {
   }
 }
 
-/** Save the tags on one post: { id, postTypes, phases, style }. */
+/** Save one post's tags: { id, postTypes, phases, style } — or its notes: { id, notes }. */
 export async function PATCH(request: Request) {
   const blocked = adminGate();
   if (blocked) return blocked;
   const body = await request.json();
+  if (typeof body.notes === "string") {
+    const item = saveItemNotes(String(body.id ?? ""), body.notes);
+    if (!item) return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    return NextResponse.json({ item });
+  }
   const list = (v: unknown) => (Array.isArray(v) ? v.map(String).filter(Boolean) : []);
   const item = saveItemTags(String(body.id ?? ""), {
     postTypes: list(body.postTypes),

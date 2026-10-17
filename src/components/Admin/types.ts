@@ -26,6 +26,7 @@ export type LibraryItem = {
   title: string;
   caption: string;
   permalink: string;
+  notes: string;
 };
 
 export const imageUrl = (source: Source, file: string, thumb = false) =>

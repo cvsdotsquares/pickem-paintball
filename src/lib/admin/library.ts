@@ -49,6 +49,7 @@ export type LibraryItem = {
   title: string; // headline (past) or Slack message (inspo)
   caption: string;
   permalink: string;
+  notes: string; // James's own notes (e.g. what he likes about an inspiration image)
 };
 
 const split = (v: string | undefined) =>
@@ -97,6 +98,7 @@ function groupPast(table: CsvTable): { item: LibraryItem; rows: Record<string, s
         title: r.headline ?? "",
         caption: r.caption ?? "",
         permalink: "",
+        notes: r.notes ?? "",
       },
     });
   }
@@ -121,6 +123,7 @@ function groupInspo(table: CsvTable): { item: LibraryItem; rows: Record<string, 
       title: r.message ?? "",
       caption: "",
       permalink: r.permalink ?? "",
+      notes: r.notes ?? "",
     },
   }));
 }
@@ -150,6 +153,21 @@ export function saveItemTags(id: string, edit: TagEdit): LibraryItem | null {
     r.style_tags = join(edit.style);
     r.tags_from = "James";
   }
+  writeCsvWithBackup(indexFile(source), table);
+  return group(source, table).find((x) => x.item.files[0] === file)!.item;
+}
+
+/** Save James's notes on one post. Leaves its tags (and whether they're confirmed) alone. */
+export function saveItemNotes(id: string, notes: string): LibraryItem | null {
+  const cut = id.indexOf(":");
+  const source = id.slice(0, cut) as Source;
+  const file = id.slice(cut + 1);
+  if (!(source in SOURCES)) return null;
+  const table = readCsv(indexFile(source));
+  const row = table.rows.find((r) => r.file === file);
+  if (!row) return null;
+  if (!table.cols.includes("notes")) table.cols.push("notes");
+  row.notes = notes.trim();
   writeCsvWithBackup(indexFile(source), table);
   return group(source, table).find((x) => x.item.files[0] === file)!.item;
 }
