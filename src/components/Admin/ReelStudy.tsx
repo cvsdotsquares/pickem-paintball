@@ -71,7 +71,7 @@ function inline(text: string): ReactNode[] {
   );
 }
 
-function Breakdown({ text }: { text: string }) {
+export function Markdown({ text }: { text: string }) {
   return (
     <div className="flex flex-col gap-1.5 text-[11px] leading-relaxed text-gray-600 dark:text-white/60">
       {text.split("\n").map((raw, i) => {
@@ -106,7 +106,7 @@ export function StudyDetails({ study }: { study: Study | null }) {
       <div>
         <div className={`${sectionLabel} mb-2`}>Claude&apos;s breakdown</div>
         {study.breakdown ? (
-          <Breakdown text={study.breakdown} />
+          <Markdown text={study.breakdown} />
         ) : (
           <p className="text-[11px] text-gray-400">Not written yet — the next Check inspo writes it.</p>
         )}

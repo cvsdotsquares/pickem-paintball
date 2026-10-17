@@ -7,6 +7,11 @@ const PAGES = [
     title: "Post Library",
     blurb: "Every past post and Slack inspiration image. Filter by tags, fix tags, sign off the tag list, check inspo.",
   },
+  {
+    href: "/admin/generator",
+    title: "Post Generator",
+    blurb: "Make an event's posts the agreed way — brief, options A/B/C, review, sign off — and save them as templates for the event.",
+  },
   { title: "Event setup", blurb: "Later." },
   { title: "Site + subscription metrics", blurb: "Later." },
 ];

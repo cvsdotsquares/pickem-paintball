@@ -10,9 +10,36 @@ import { HUB } from "./library";
  * One job at a time. Each run's output is kept in pickem-hub/library/jobs/.
  */
 
-type JobDef = { label: string; prompt: string; allowedTools: string[] };
+export type JobParams = { event?: string; type?: string };
+type JobDef = { label: string; prompt: string | ((p: JobParams) => string); allowedTools: string[] };
 
 const SLACK = "mcp__claude_ai_Slack__";
+
+// Post Generator jobs: the steps of PROCESS.md, run by the pickem-social-post skill ("Admin panel jobs" section).
+const POST_TOOLS = [
+  "Skill",
+  "Read",
+  "Write",
+  "Edit",
+  "Glob",
+  "Grep",
+  "Agent",
+  "Task",
+  "Bash(python3:*)",
+  "Bash(cp:*)",
+  "Bash(mkdir:*)",
+  "Bash(ls:*)",
+  "Bash(sips:*)",
+];
+const postJob = (step: string, label: string): JobDef => ({
+  label,
+  allowedTools: POST_TOOLS,
+  prompt: ({ event, type }) =>
+    `Post Generator job "${step}" for event ${event}, post type ${type}. Follow the pickem-social-post skill, ` +
+    `section "Admin panel jobs" → ${step}, working in generator/work/${event}/${type}/. ` +
+    "Nobody is watching this run, so do not ask questions: decide, note any stand-ins in the files, and finish. " +
+    "Make your LAST line one plain sentence for James saying what is ready.",
+});
 
 export const JOBS: Record<string, JobDef> = {
   "check-inspo": {
@@ -32,12 +59,17 @@ export const JOBS: Record<string, JobDef> = {
       `${SLACK}slack_send_message`,
     ],
   },
+  "post-brief": postJob("brief", "Write brief"),
+  "post-options": postJob("options", "Make options A/B/C"),
+  "post-review": postJob("review", "Review + polish"),
+  "post-revise": postJob("revise", "Apply feedback"),
 };
 
 export type JobRun = {
   id: string;
   job: string;
   label: string;
+  params: JobParams;
   status: "running" | "done" | "failed";
   startedAt: string;
   finishedAt?: string;
@@ -50,6 +82,9 @@ const g = globalThis as unknown as { __adminJobs?: JobRun[] };
 const runs = (g.__adminJobs ??= []);
 
 export const listRuns = () => runs.slice(-10).reverse();
+/** Newest run for one event + post type (Post Generator page). */
+export const lastRunFor = (event: string, type: string) =>
+  [...runs].reverse().find((r) => r.params?.event === event && r.params?.type === type);
 export const running = () => runs.find((r) => r.status === "running");
 
 export function readLog(run: JobRun): string {
@@ -60,7 +95,7 @@ export function readLog(run: JobRun): string {
   }
 }
 
-export function startJob(job: string): JobRun | { error: string } {
+export function startJob(job: string, params: JobParams = {}): JobRun | { error: string } {
   const def = JOBS[job];
   if (!def) return { error: "Unknown job" };
   if (running()) return { error: "Another job is still running" };
@@ -72,6 +107,7 @@ export function startJob(job: string): JobRun | { error: string } {
     id,
     job,
     label: def.label,
+    params,
     status: "running",
     startedAt: new Date().toISOString(),
     logFile: path.join(dir, `${id}.log`),
@@ -83,7 +119,8 @@ export function startJob(job: string): JobRun | { error: string } {
   // A clean environment: nothing from the panel, and no sign of a parent Claude session.
   const env = { ...process.env };
   for (const k of Object.keys(env)) if (k === "ADMIN_PANEL" || k.startsWith("CLAUDE_CODE") || k === "CLAUDECODE") delete env[k];
-  const child = spawn(bin, ["-p", def.prompt, "--allowedTools", def.allowedTools.join(",")], {
+  const prompt = typeof def.prompt === "function" ? def.prompt(params) : def.prompt;
+  const child = spawn(bin, ["-p", prompt, "--allowedTools", def.allowedTools.join(",")], {
     cwd: HUB,
     env,
     stdio: ["ignore", "pipe", "pipe"],
