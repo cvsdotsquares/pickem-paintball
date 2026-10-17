@@ -28,22 +28,35 @@ export const genUrl = (rel: string, thumb = false) =>
   `/api/admin/genfile?path=${encodeURIComponent(rel)}${thumb ? "&thumb=1" : ""}`;
 export type Preview = { kind: "final" | "current" | "options" | "none"; images: string[] };
 
-/** Plain words for each stage, as James sees them. */
-export const STAGE: Record<Stage, { label: string; tone: "grey" | "yellow" | "blue" | "green" }> = {
+/**
+ * Plain words for each stage. Colours (James, 17 Oct): orange = your turn, green = done, red = something
+ * went wrong, blue = Claude is working, grey = not started.
+ */
+export type Tone = "grey" | "orange" | "blue" | "green" | "red";
+export const STAGE: Record<Stage, { label: string; tone: Tone }> = {
   not_started: { label: "Not started", tone: "grey" },
-  brief: { label: "Brief ready for you", tone: "yellow" },
+  brief: { label: "Brief ready for you", tone: "orange" },
   brief_approved: { label: "Making options", tone: "blue" },
-  options: { label: "Pick an option", tone: "yellow" },
+  options: { label: "Pick an option", tone: "orange" },
   chosen: { label: "Reviewing + polishing", tone: "blue" },
-  ready: { label: "Ready for you", tone: "yellow" },
+  ready: { label: "Ready for you", tone: "orange" },
   feedback: { label: "Applying your feedback", tone: "blue" },
   signed_off: { label: "Signed off", tone: "green" },
 };
 
+/** The pill to show: working beats the stage; a failed last run shows red. */
+export function pillFor(stage: Stage, running: boolean, failed: boolean): { label: string; tone: Tone; spin: boolean } {
+  if (running) return { label: "Claude is working", tone: "blue", spin: true };
+  if (failed) return { label: "Stopped — open to retry", tone: "red", spin: false };
+  const st = STAGE[stage] ?? STAGE.not_started;
+  return { ...st, spin: false };
+}
+
 export const toneClass = (tone: string) =>
   ({
     grey: "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40",
-    yellow: "bg-yellow-400/15 text-yellow-700 dark:text-yellow-400",
-    blue: "bg-[#1a3c6e]/10 text-[#1a3c6e] dark:bg-white/10 dark:text-white/70",
-    green: "bg-green-500/10 text-green-600 dark:text-green-400",
+    orange: "bg-orange-500 text-white",
+    blue: "bg-[#1a3c6e] text-white",
+    red: "bg-red-500 text-white",
+    green: "bg-green-600 text-white",
   })[tone] ?? "";

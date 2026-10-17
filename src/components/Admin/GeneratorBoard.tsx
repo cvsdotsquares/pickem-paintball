@@ -3,21 +3,21 @@
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import {
-  STAGE,
   genUrl,
-  toneClass,
   type Busy,
   type PackItem,
   type Preview,
   type Status,
 } from "./generatorTypes";
 import NewEventDrawer from "./NewEventDrawer";
+import StagePill from "./StagePill";
 import { Markdown } from "./ReelStudy";
 import { pill, primaryButton, sectionLabel } from "./types";
 
 type TypeRow = PackItem & {
   status: Status;
   running: boolean;
+  failed: boolean;
   preview: Preview;
 };
 type Data = {
@@ -297,7 +297,6 @@ export default function GeneratorBoard() {
                     </div>
                   )}
                   {p[row].map((t) => {
-                    const st = STAGE[t.status.stage] ?? STAGE.not_started;
                     const card = (
                       <div
                         className={`flex h-full flex-col gap-2 rounded-xl border border-gray-100 bg-white p-3 dark:border-white/5 dark:bg-[#0d0d0d] ${
@@ -316,16 +315,11 @@ export default function GeneratorBoard() {
                           </div>
                         )}
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${toneClass(st.tone)}`}
-                          >
-                            {st.label}
-                          </span>
-                          {t.running && (
-                            <span className="animate-pulse text-[9px] text-gray-400">
-                              working…
-                            </span>
-                          )}
+                          <StagePill
+                            stage={t.status.stage}
+                            running={t.running}
+                            failed={t.failed}
+                          />
                         </div>
                       </div>
                     );
