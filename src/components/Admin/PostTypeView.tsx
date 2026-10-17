@@ -691,9 +691,9 @@ export default function PostTypeView({
         <p className="mb-2 text-[11px] text-gray-500 dark:text-white/50">
           Click ☆ on the ones that matter most for this graphic. Claude gives starred references the most weight
           in the brief, the layouts and the build
-          {data.keyInspo.length ? ` (${data.keyInspo.length} starred)` : ""}.
+          {data.keyInspo.length ? ` (${data.keyInspo.length} starred)` : ""}. Scroll down for older ones.
         </p>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 lg:grid-cols-8">
+        <div className="grid max-h-[560px] grid-cols-3 gap-2 overflow-y-auto rounded-xl bg-white p-2 sm:grid-cols-6 lg:grid-cols-8 dark:bg-[#0d0d0d]">
           {[...data.examples]
             .sort((a, b) => Number(data.keyInspo.includes(b.id)) - Number(data.keyInspo.includes(a.id)))
             .map((i) => {

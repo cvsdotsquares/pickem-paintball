@@ -274,8 +274,8 @@ export function preview(event: string, type: string): { kind: "final" | "current
   return { kind: "none", images: [] };
 }
 
-/** Past versions of this post type + matching inspiration, from the Post Library, newest first. */
-export function examples(tags: string[], limit = 16): LibraryItem[] {
+/** Past versions of this post type + matching inspiration, from the Post Library, newest first (all of them: James, 17 Oct). */
+export function examples(tags: string[], limit = Infinity): LibraryItem[] {
   const hits = loadLibrary().filter((i) => i.postTypes.some((t) => tags.includes(t)));
   hits.sort((a, b) => (a.source === b.source ? b.date.localeCompare(a.date) : a.source === "inspo" ? -1 : 1));
   return hits.slice(0, limit);
