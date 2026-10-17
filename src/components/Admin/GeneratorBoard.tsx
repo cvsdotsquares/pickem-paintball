@@ -45,7 +45,7 @@ function CardPreview({ p }: { p: Preview }) {
   if (p.kind === "none") return null; // nothing made yet: no picture, just the card
   if (p.kind === "options")
     return (
-      <div className="grid grid-cols-3 gap-1">
+      <div className="grid w-1/2 grid-cols-3 gap-1">
         {p.images.map((img, i) => (
           <div key={img} className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -66,7 +66,7 @@ function CardPreview({ p }: { p: Preview }) {
     <img
       src={genUrl(p.images[0], true)}
       alt=""
-      className="aspect-[4/5] w-full rounded-lg object-cover"
+      className="aspect-[4/5] w-1/2 rounded-lg object-cover"
     />
   );
 }
@@ -307,7 +307,6 @@ export default function GeneratorBoard() {
                               : "opacity-50"
                           }`}
                         >
-                          <CardPreview p={t.preview} />
                           <div className="text-xs font-black leading-snug">
                             {t.label}
                           </div>
@@ -323,6 +322,7 @@ export default function GeneratorBoard() {
                               failed={t.failed}
                             />
                           </div>
+                          <CardPreview p={t.preview} />
                         </div>
                       );
                       return data.board.approved ? (

@@ -45,7 +45,7 @@ const STEPS: { label: string; stages: Stage[] }[] = [
   { label: "Brief", stages: ["not_started", "brief"] },
   { label: "Options", stages: ["brief_approved", "options"] },
   { label: "Review", stages: ["chosen", "ready", "feedback"] },
-  { label: "Signed off", stages: ["signed_off"] },
+  { label: "Templated", stages: ["signed_off"] },
 ];
 
 const textarea =
@@ -461,7 +461,7 @@ export default function PostTypeView({
 
         {status.stage === "signed_off" && (
           <>
-            <div className={sectionLabel}>Signed off</div>
+            <div className={sectionLabel}>Templated</div>
             <p className="text-[11px] text-gray-500 dark:text-white/50">
               Saved to the Drive kit: <b>07. Output → Templates</b> (template, example
               PNG, Canva PDF, how to use). Real posts made from it at the event

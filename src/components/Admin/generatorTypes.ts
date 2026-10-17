@@ -41,7 +41,7 @@ export const STAGE: Record<Stage, { label: string; tone: Tone }> = {
   chosen: { label: "Building the final version", tone: "blue" },
   ready: { label: "Ready for you", tone: "orange" },
   feedback: { label: "Applying your feedback", tone: "blue" },
-  signed_off: { label: "Signed off", tone: "green" },
+  signed_off: { label: "Templated", tone: "green" },
 };
 
 /** The pill to show: working beats the stage; a failed last run shows red. */
