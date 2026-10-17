@@ -361,6 +361,7 @@ export default function PostTypeView({
         <StagePill
           stage={status.stage}
           running={!!working}
+          since={data.run?.startedAt}
           failed={!!failed && !working}
           big
         />

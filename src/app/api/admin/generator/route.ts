@@ -66,6 +66,7 @@ export async function GET(request: Request) {
           status: readStatus(event, g.key),
           preview: preview(event, g.key),
           running: !!runningFor(event, g.key),
+          runningSince: runningFor(event, g.key)?.startedAt,
           failed: failedFor(event, g.key, readStatus(event, g.key)),
         })),
       ),

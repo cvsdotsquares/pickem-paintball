@@ -46,7 +46,7 @@ export const STAGE: Record<Stage, { label: string; tone: Tone }> = {
 
 /** The pill to show: working beats the stage; a failed last run shows red. */
 export function pillFor(stage: Stage, running: boolean, failed: boolean): { label: string; tone: Tone; spin: boolean } {
-  if (running) return { label: "Claude is working", tone: "blue", spin: true };
+  if (running) return { label: "Working", tone: "blue", spin: true };
   if (failed) return { label: "Stopped — open to retry", tone: "red", spin: false };
   const st = STAGE[stage] ?? STAGE.not_started;
   return { ...st, spin: false };
@@ -78,6 +78,7 @@ export type GraphicRow = PackItem & {
   display: string; // name, or "<post type> #n"
   status: Status;
   running: boolean;
+  runningSince?: string; // when the current run started (for the "Working... 4 min" pill)
   failed: boolean;
   preview: Preview;
 };
