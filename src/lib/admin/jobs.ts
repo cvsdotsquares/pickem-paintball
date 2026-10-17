@@ -104,10 +104,34 @@ export function readLog(run: JobRun): string {
   }
 }
 
+/** One line per run in pickem-hub/generator/feedback/runs.jsonl: time, steps, tokens (reviewed with James after each event). */
+function logRun(job: string, params: JobParams, ok: boolean, r: { duration_ms?: number; num_turns?: number; usage?: object; total_cost_usd?: number; session_id?: string; is_error?: boolean }) {
+  if (!job.startsWith("post-") && job !== "event-setup") return;
+  const line = {
+    at: new Date().toISOString().slice(0, 16).replace("T", " "),
+    event: params.event ?? "",
+    type: params.type ?? "",
+    step: job.replace("post-", ""),
+    ok,
+    is_error: !ok,
+    duration_ms: r.duration_ms ?? null,
+    turns: r.num_turns ?? null,
+    usage: r.usage ?? null,
+    cost_usd_equiv: r.total_cost_usd ?? null,
+    session_id: r.session_id ?? null,
+  };
+  try {
+    fs.mkdirSync(path.join(HUB, "generator/feedback"), { recursive: true });
+    fs.appendFileSync(path.join(HUB, "generator/feedback/runs.jsonl"), JSON.stringify(line) + "\n");
+  } catch {
+    // logging must never break a job
+  }
+}
+
 /** Save what a Post Generator job wrote in pickem-hub's git (local commit only; James pushes backups). */
 function commitWork(message: string) {
   const git = (args: string[]) => spawn("git", ["-C", HUB, ...args], { stdio: "ignore" });
-  const add = git(["add", "generator/work", "generator/masters", "generator/CONTEXT.md", "generator/themes.json", "generator/boards"]);
+  const add = git(["add", "generator/work", "generator/feedback", "generator/masters", "generator/CONTEXT.md", "generator/themes.json", "generator/boards"]);
   add.on("close", () => git(["commit", "-q", "-m", `Post Generator: ${message}`]));
 }
 
@@ -136,18 +160,29 @@ export function startJob(job: string, params: JobParams = {}): JobRun | { error:
   const env = { ...process.env };
   for (const k of Object.keys(env)) if (k === "ADMIN_PANEL" || k.startsWith("CLAUDE_CODE") || k === "CLAUDECODE") delete env[k];
   const prompt = typeof def.prompt === "function" ? def.prompt(params) : def.prompt;
-  const child = spawn(bin, ["-p", prompt, "--allowedTools", def.allowedTools.join(",")], {
+  // JSON output: the final message plus duration, steps and tokens, so every run's cost is logged.
+  const child = spawn(bin, ["-p", prompt, "--output-format", "json", "--allowedTools", def.allowedTools.join(",")], {
     cwd: HUB,
     env,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  child.stdout.pipe(out, { end: false });
+  let stdout = "";
+  child.stdout.on("data", (b) => (stdout += b));
   child.stderr.pipe(out, { end: false });
   let finished = false;
   const finish = (ok: boolean, note?: string) => {
     if (finished) return; // "error" and "close" can both fire
     finished = true;
+    let result: { result?: string; is_error?: boolean; duration_ms?: number; num_turns?: number; usage?: object; total_cost_usd?: number; session_id?: string } = {};
+    try {
+      result = JSON.parse(stdout.trim().split("\n").pop() || "{}");
+    } catch {
+      result = { result: stdout };
+    }
+    out.write(`${result.result ?? stdout}\n`);
     if (note) out.write(`\n${note}\n`);
+    if (result.is_error) ok = false;
+    logRun(job, params, ok, result);
     out.end(() => {
       const lines = readLog(run).trim().split("\n").filter(Boolean);
       // Success: Claude's last line is the summary. Failure: its first line usually says why (e.g. a usage limit).

@@ -9,6 +9,7 @@ import {
   eventPack,
   examples,
   listEvents,
+  openFeedbackCount,
   preview,
   readStatus,
   setStatus,
@@ -40,6 +41,7 @@ export async function GET(request: Request) {
       board: board(event),
       types: pack.map((p) => ({ ...p, status: readStatus(event, p.key), preview: preview(event, p.key), running: busy?.params?.type === p.key && busy.params.event === event, failed: lastRunFor(event, p.key)?.status === "failed" })),
       busy: busy ? { label: busy.label, params: busy.params } : null,
+      feedbackToReview: openFeedbackCount(),
     });
   }
   const item = pack.find((p) => p.key === type);

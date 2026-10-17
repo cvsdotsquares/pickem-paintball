@@ -169,6 +169,37 @@ export function addFeedback(event: string, type: string, stage: string, comment:
   if (!comment.trim()) return;
   fs.mkdirSync(dir(event, type), { recursive: true });
   fs.appendFileSync(path.join(dir(event, type), "feedback.md"), `\n## ${now()} — at stage "${stage}"\n${comment.trim()}\n`);
+  logFeedback(event, type, stage, comment);
+}
+
+/** Every comment also goes to the feedback log (generator/feedback/log.jsonl), reviewed with James after each stage/event. */
+function logFeedback(event: string, type: string, stage: string, said: string) {
+  try {
+    execFileSync(
+      "python3",
+      ["-I", path.join(GEN, "feedback", "log_feedback.py"), "add", "--event", event, "--type", type, "--stage", stage, "--said", said.trim()],
+      { stdio: "ignore" },
+    );
+  } catch {
+    // never block James's click on logging
+  }
+}
+
+/** How many feedback items haven't been reviewed with James yet. */
+export function openFeedbackCount(): number {
+  const p = path.join(GEN, "feedback", "log.jsonl");
+  if (!fs.existsSync(p)) return 0;
+  return fs
+    .readFileSync(p, "utf8")
+    .split("\n")
+    .filter(Boolean)
+    .filter((l) => {
+      try {
+        return !JSON.parse(l).decision;
+      } catch {
+        return false;
+      }
+    }).length;
 }
 
 export type RoundFile = { label: string; png: string; pdf: string; caption: string };

@@ -37,6 +37,7 @@ type Data = {
   };
   types: TypeRow[];
   busy: Busy;
+  feedbackToReview: number;
 };
 
 /** What's been made so far: the signed-off post, the current round, or the three options. */
@@ -168,6 +169,18 @@ export default function GeneratorBoard() {
           </span>
         )}
       </div>
+      {data.feedbackToReview > 0 && (
+        <div className="flex items-center gap-3 rounded-xl bg-orange-500 px-4 py-3 text-[11px] text-white">
+          <b>
+            {data.feedbackToReview} feedback item
+            {data.feedbackToReview === 1 ? "" : "s"} to review
+          </b>
+          <span className="text-white/85">
+            Say &quot;review feedback&quot; to Claude in chat — you decide
+            together what becomes a rule, a guideline or a one-off.
+          </span>
+        </div>
+      )}
       {message && <div className="text-[11px] text-red-400">{message}</div>}
       {adding && (
         <NewEventDrawer
