@@ -12,6 +12,11 @@ const PAGES = [
     title: "Post Generator",
     blurb: "Make an event's posts the agreed way — brief, options A/B/C, review, sign off — and save them as templates for the event.",
   },
+  {
+    href: "/admin/todo",
+    title: "TODO",
+    blurb: "All outstanding work on one Trello-style board. Pivot by progress or by work stream; click a card for the detail.",
+  },
   { title: "Event setup", blurb: "Later." },
   { title: "Site + subscription metrics", blurb: "Later." },
 ];
