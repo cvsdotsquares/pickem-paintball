@@ -162,7 +162,7 @@ export default function TodoBoard() {
               onDrop={() => drop(col.key, null)}
               className="flex max-h-full w-72 shrink-0 flex-col rounded-xl bg-gray-200/70 dark:bg-white/5"
             >
-              <div className="group flex items-center gap-2 px-3 pb-2 pt-3">
+              <div className="group flex items-center gap-2 px-3 pb-1 pt-3">
                 {col.color && (
                   <button
                     title="Change colour"
@@ -197,7 +197,7 @@ export default function TodoBoard() {
                 </span>
               </div>
 
-              <div className="flex min-h-[8px] flex-col gap-2 overflow-y-auto px-2 pb-1">
+              <div className="flex min-h-[8px] flex-col gap-2 overflow-y-auto px-2 pb-1 pt-1">
                 {cards.map((c) => (
                   <CardTile
                     key={c.id}
