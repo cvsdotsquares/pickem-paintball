@@ -13,7 +13,7 @@ const BACKUPS = path.join(HUB, "todo/_backups");
 const KEEP_BACKUPS = 100;
 
 export type Column = { key: string; label: string; color?: string };
-export type CheckItem = { id: string; text: string; done: boolean };
+export type CheckItem = { id: string; text: string; done: boolean; by?: "James" | "Claude" };
 export type Comment = { at: string; by: string; text: string };
 export type Card = {
   id: string;
@@ -27,6 +27,7 @@ export type Card = {
   checklist: CheckItem[];
   comments: Comment[];
   archived: boolean;
+  addedBy: "James" | "Claude"; // Claude's follow-ups can be filtered out (James, 17 Oct)
   created: string;
   updated: string;
 };
@@ -38,7 +39,9 @@ export const newId = () => Math.random().toString(36).slice(2, 10);
 
 export function readBoard(): Board {
   try {
-    return { ...EMPTY, ...JSON.parse(fs.readFileSync(TODO_FILE, "utf8")) };
+    const b: Board = { ...EMPTY, ...JSON.parse(fs.readFileSync(TODO_FILE, "utf8")) };
+    b.cards = b.cards.map((c) => ({ ...c, addedBy: c.addedBy ?? "James" }));
+    return b;
   } catch {
     return EMPTY;
   }
@@ -76,6 +79,7 @@ export function saveCard(patch: Partial<Card>): Board {
       checklist: [],
       comments: [],
       archived: false,
+      addedBy: patch.addedBy === "Claude" ? "Claude" : "James",
       created: now(),
       updated: now(),
     };

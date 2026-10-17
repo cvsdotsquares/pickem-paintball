@@ -6,7 +6,8 @@ import { pill, primaryButton, sectionLabel } from "./types";
 
 // Client copies of src/lib/admin/todo.ts (that module reads the disk).
 type Column = { key: string; label: string; color?: string };
-type CheckItem = { id: string; text: string; done: boolean };
+type CheckItem = { id: string; text: string; done: boolean; by?: "James" | "Claude" };
+type Who = "all" | "James" | "Claude";
 type Card = {
   id: string;
   title: string;
@@ -19,6 +20,7 @@ type Card = {
   checklist: CheckItem[];
   comments: { at: string; by: string; text: string }[];
   archived: boolean;
+  addedBy: "James" | "Claude";
   created: string;
   updated: string;
 };
@@ -45,11 +47,17 @@ export default function TodoBoard() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [drag, setDrag] = useState<string | null>(null);
   const [adding, setAdding] = useState<string | null>(null); // column key with the "add a card" box open
+  // filters (James, 17 Oct): work streams (none ticked = all) and who added the card
+  const [streamsOn, setStreamsOn] = useState<string[]>([]);
+  const [who, setWho] = useState<Who>("all");
 
   useEffect(() => {
     try {
       const p = localStorage.getItem("todo-pivot");
       if (p === "stage" || p === "stream") setPivot(p);
+      const f = JSON.parse(localStorage.getItem("todo-filter") ?? "{}");
+      if (Array.isArray(f.streams)) setStreamsOn(f.streams);
+      if (["all", "James", "Claude"].includes(f.who)) setWho(f.who);
     } catch {}
     fetch("/api/admin/todo", { cache: "no-store" })
       .then((r) => r.json())
@@ -78,12 +86,23 @@ export default function TodoBoard() {
     return d as Board;
   }, []);
   const saveCard = (card: Partial<Card>) => send({ action: "card", card });
+  const setFilter = (streams: string[], w: Who) => {
+    setStreamsOn(streams);
+    setWho(w);
+    try {
+      localStorage.setItem("todo-filter", JSON.stringify({ streams, who: w }));
+    } catch {}
+  };
 
   if (!board) return <div className="p-8 text-xs text-gray-400">{error || "Loading…"}</div>;
 
   const group: Group = pivot === "stage" ? "stages" : "streams";
-  const columns = board[group];
-  const live = board.cards.filter((c) => !c.archived);
+  const allLive = board.cards.filter((c) => !c.archived);
+  const live = allLive.filter(
+    (c) => (!streamsOn.length || streamsOn.includes(c.stream)) && (who === "all" || c.addedBy === who),
+  );
+  const columns = pivot === "stream" && streamsOn.length ? board.streams.filter((s) => streamsOn.includes(s.key)) : board[group];
+  const filtered = live.length !== allLive.length;
   // by work stream, cards are grouped by stage (James, 17 Oct); within a stage (and by progress) they keep their order
   const stageIndex = (k: string) => board.stages.findIndex((s) => s.key === k);
   const inColumn = (key: string) =>
@@ -141,8 +160,8 @@ export default function TodoBoard() {
         <div className="flex-1">
           <h1 className="text-lg font-black uppercase tracking-wide">TO DO</h1>
           <div className="text-[10px] text-gray-400 dark:text-white/40">
-            {live.filter((c) => c.stage !== "done").length} open · {live.length} cards · everything outstanding, one board ·
-            drag a card to move it
+            {live.filter((c) => c.stage !== "done").length} open · {live.length} cards
+            {filtered && ` (filtered from ${allLive.length})`} · everything outstanding, one board · drag a card to move it
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -154,6 +173,33 @@ export default function TodoBoard() {
             By work stream
           </button>
         </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className={`${sectionLabel} mr-1`}>Category</span>
+        {board.streams.map((s) => {
+          const on = streamsOn.includes(s.key);
+          return (
+            <button
+              key={s.key}
+              onClick={() => setFilter(on ? streamsOn.filter((k) => k !== s.key) : [...streamsOn, s.key], who)}
+              className={`flex items-center gap-1.5 ${pill(on)}`}
+            >
+              <span className="h-2 w-2 rounded-sm" style={{ background: s.color ?? "#344563" }} />
+              {s.label}
+            </button>
+          );
+        })}
+        <span className={`${sectionLabel} ml-4 mr-1`}>Added by</span>
+        {(["all", "James", "Claude"] as Who[]).map((w) => (
+          <button key={w} onClick={() => setFilter(streamsOn, w)} className={pill(who === w)}>
+            {w === "all" ? "Anyone" : w}
+          </button>
+        ))}
+        {filtered && (
+          <button onClick={() => setFilter([], "all")} className="ml-2 text-[10px] font-bold text-gray-400 underline hover:text-gray-900 dark:hover:text-white">
+            Clear filters
+          </button>
+        )}
       </div>
       {error && <div className="text-[11px] text-red-500">{error}</div>}
 
@@ -302,6 +348,11 @@ function CardTile({
             {stream.label}
           </span>
         )}
+        {c.addedBy === "Claude" && (
+          <span className="rounded bg-[#1a3c6e]/10 px-1.5 py-0.5 text-[9px] font-bold text-[#1a3c6e] dark:bg-white/10 dark:text-white/60">
+            Claude
+          </span>
+        )}
         {pivot === "stream" && stage && (
           <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold text-gray-500 dark:bg-white/10 dark:text-white/50">
             {stage.label}
@@ -386,7 +437,6 @@ function CardDrawer({
   onClose: () => void;
 }) {
   const [title, setTitle] = useState(card.title);
-  const [desc, setDesc] = useState(card.desc);
   const [blocker, setBlocker] = useState(card.blocker);
   const [item, setItem] = useState("");
   const [comment, setComment] = useState("");
@@ -455,17 +505,10 @@ function CardDrawer({
           </label>
         </div>
 
-        <label className="flex flex-col gap-1">
-          <span className={sectionLabel}>Description</span>
-          <textarea
-            value={desc}
-            onChange={(e) => setDesc(e.target.value)}
-            onBlur={() => desc !== card.desc && onSave({ desc })}
-            rows={5}
-            placeholder="More detail…"
-            className={field}
-          />
-        </label>
+        <div className="flex flex-col gap-1">
+          <span className={sectionLabel}>Notes</span>
+          <NotesBox value={card.desc} onSave={(desc) => onSave({ desc })} />
+        </div>
 
         <section className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -491,7 +534,10 @@ function CardDrawer({
                 checked={x.done}
                 onChange={() => setList(card.checklist.map((y) => (y.id === x.id ? { ...y, done: !y.done } : y)))}
               />
-              <span className={`flex-1 ${x.done ? "text-gray-400 line-through" : ""}`}>{x.text}</span>
+              <span className={`flex-1 ${x.done ? "text-gray-400 line-through" : ""}`}>
+                {x.text}
+                {x.by === "Claude" && <span className="ml-1.5 text-[9px] font-bold text-[#1a3c6e]/60 dark:text-white/40">Claude</span>}
+              </span>
               <button
                 onClick={() => setList(card.checklist.filter((y) => y.id !== x.id))}
                 className="hidden text-gray-400 hover:text-red-500 group-hover:block"
@@ -538,7 +584,7 @@ function CardDrawer({
 
         <div className="mt-auto flex items-center gap-3 border-t border-gray-100 pt-4 text-[10px] text-gray-400 dark:border-white/10">
           <span className="flex-1">
-            Added {new Date(card.created).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · updated{" "}
+            Added by {card.addedBy} {new Date(card.created).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · updated{" "}
             {new Date(card.updated).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
           </span>
           <button
@@ -564,6 +610,193 @@ function CardDrawer({
           </button>
         </div>
       </aside>
+    </div>
+  );
+}
+
+/** **bold**, *italic* / _italic_ and `code` inside one line of notes. */
+function inlineMd(text: string) {
+  return text.split(/(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|_[^_\s][^_]*_|`[^`]+`)/g).map((part, i) => {
+    if (/^\*\*.+\*\*$/.test(part)) return <strong key={i}>{part.slice(2, -2)}</strong>;
+    if (/^(\*|_).+(\*|_)$/.test(part)) return <em key={i}>{part.slice(1, -1)}</em>;
+    if (/^`.+`$/.test(part)) return <code key={i} className="rounded bg-gray-100 px-1 text-[11px] dark:bg-white/10">{part.slice(1, -1)}</code>;
+    return part;
+  });
+}
+
+/** Notes as written (Markdown-ish): # headings, - / 1. lists nested by indent (2 spaces a level), indented text. */
+function NotesView({ text }: { text: string }) {
+  let n = 0; // running number for 1. lists at the same level
+  return (
+    <div className="flex flex-col gap-1 text-[12px] leading-relaxed">
+      {text.split("\n").map((raw, i) => {
+        const indent = Math.floor((raw.match(/^ */)?.[0].length ?? 0) / 2);
+        const line = raw.trim();
+        if (!line) {
+          n = 0;
+          return <div key={i} className="h-1.5" />;
+        }
+        const pad = { paddingLeft: `${indent * 18}px` };
+        const h = line.match(/^(#{1,3})\s+(.*)$/);
+        if (h)
+          return (
+            <div key={i} style={pad} className={`${h[1].length === 1 ? "text-sm" : "text-[12px]"} mt-1 font-black`}>
+              {inlineMd(h[2])}
+            </div>
+          );
+        const bullet = line.match(/^[-*•]\s+(.*)$/);
+        const num = line.match(/^\d+[.)]\s+(.*)$/);
+        if (bullet || num) {
+          if (num) n += 1;
+          return (
+            <div key={i} style={pad} className="flex gap-2">
+              <span className="w-3 shrink-0 text-right text-gray-400">{num ? `${n}.` : indent % 2 ? "◦" : "•"}</span>
+              <span className="flex-1">{inlineMd((bullet ?? num)![1])}</span>
+            </div>
+          );
+        }
+        n = 0;
+        return (
+          <p key={i} style={pad}>
+            {inlineMd(line)}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * The notes box (James, 17 Oct): bold, italic, bullets, numbers, headings and indenting, from the buttons or
+ * ⌘B / ⌘I / Tab / ⇧Tab. Stored as plain Markdown so Claude reads it too. Shows formatted; click to edit.
+ */
+function NotesBox({ value, onSave }: { value: string; onSave: (v: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(value);
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (editing) ref.current?.focus();
+  }, [editing]);
+
+  /** Change the selected text (or the whole lines it touches) and keep it selected. */
+  const apply = (how: "bold" | "italic" | "bullet" | "number" | "heading" | "indent" | "outdent") => {
+    const ta = ref.current;
+    if (!ta) return;
+    const { selectionStart: a, selectionEnd: b } = ta;
+    let next = text;
+    let selA = a;
+    let selB = b;
+    if (how === "bold" || how === "italic") {
+      const mark = how === "bold" ? "**" : "*";
+      next = text.slice(0, a) + mark + text.slice(a, b) + mark + text.slice(b);
+      selA = a + mark.length;
+      selB = b + mark.length;
+    } else {
+      const start = text.lastIndexOf("\n", a - 1) + 1;
+      const endAt = text.indexOf("\n", b);
+      const end = endAt === -1 ? text.length : endAt;
+      const lines = text.slice(start, end).split("\n");
+      const changed = lines.map((l) => {
+        const lead = l.match(/^ */)![0];
+        const body = l.slice(lead.length);
+        if (how === "indent") return "  " + l;
+        if (how === "outdent") return l.replace(/^ {1,2}/, "");
+        if (how === "heading") return lead + (body.startsWith("## ") ? body.slice(3) : "## " + body.replace(/^#+\s*/, ""));
+        if (how === "bullet") return lead + (/^[-*•]\s/.test(body) ? body.replace(/^[-*•]\s+/, "") : "- " + body.replace(/^\d+[.)]\s+/, ""));
+        return lead + (/^\d+[.)]\s/.test(body) ? body.replace(/^\d+[.)]\s+/, "") : "1. " + body.replace(/^[-*•]\s+/, ""));
+      });
+      const joined = changed.join("\n");
+      next = text.slice(0, start) + joined + text.slice(end);
+      selA = start;
+      selB = start + joined.length;
+    }
+    setText(next);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(selA, selB);
+    });
+  };
+  const done = () => {
+    setEditing(false);
+    if (text !== value) onSave(text);
+  };
+
+  const tools: [Parameters<typeof apply>[0], string, string][] = [
+    ["bold", "B", "Bold (⌘B)"],
+    ["italic", "I", "Italic (⌘I)"],
+    ["heading", "H", "Heading"],
+    ["bullet", "•", "Bullet list"],
+    ["number", "1.", "Numbered list"],
+    ["outdent", "⇤", "Indent less (⇧Tab)"],
+    ["indent", "⇥", "Indent more (Tab)"],
+  ];
+
+  if (!editing)
+    return (
+      <div
+        onClick={() => setEditing(true)}
+        className="min-h-[60px] cursor-text rounded-lg border border-gray-200 px-3 py-2 hover:border-gray-400 dark:border-white/10 dark:hover:border-white/30"
+      >
+        {value.trim() ? <NotesView text={value} /> : <span className="text-[12px] text-gray-400">Add notes…</span>}
+      </div>
+    );
+  return (
+    <div className="flex flex-col rounded-lg border border-gray-400 dark:border-white/30">
+      <div className="flex items-center gap-0.5 border-b border-gray-100 px-1.5 py-1 dark:border-white/10">
+        {tools.map(([how, label, title]) => (
+          <button
+            key={how}
+            title={title}
+            onMouseDown={(e) => e.preventDefault()} // keep the selection in the box
+            onClick={() => apply(how)}
+            className={`h-6 min-w-6 rounded px-1.5 text-[11px] hover:bg-gray-100 dark:hover:bg-white/10 ${
+              how === "bold" ? "font-black" : how === "italic" ? "italic" : "font-bold"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+        <button onClick={done} className="ml-auto rounded px-2 text-[10px] font-bold uppercase tracking-widest text-[#1a3c6e] hover:bg-gray-100 dark:text-white dark:hover:bg-white/10">
+          Done
+        </button>
+      </div>
+      <textarea
+        ref={ref}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={done}
+        onKeyDown={(e) => {
+          if ((e.metaKey || e.ctrlKey) && (e.key === "b" || e.key === "i")) {
+            e.preventDefault();
+            apply(e.key === "b" ? "bold" : "italic");
+          } else if (e.key === "Tab") {
+            e.preventDefault();
+            apply(e.shiftKey ? "outdent" : "indent");
+          } else if (e.key === "Enter" && !e.shiftKey) {
+            // carry a list on to the next line (an empty item ends the list)
+            const ta = e.currentTarget;
+            const start = text.lastIndexOf("\n", ta.selectionStart - 1) + 1;
+            const line = text.slice(start, ta.selectionStart);
+            const m = line.match(/^( *)([-*•]|\d+[.)])\s+(.*)$/);
+            if (!m) return;
+            e.preventDefault();
+            if (!m[3].trim()) {
+              const next = text.slice(0, start) + text.slice(ta.selectionStart);
+              setText(next);
+              requestAnimationFrame(() => ta.setSelectionRange(start, start));
+              return;
+            }
+            const marker = /\d/.test(m[2]) ? `${parseInt(m[2]) + 1}.` : m[2];
+            const insert = `\n${m[1]}${marker} `;
+            const at = ta.selectionStart;
+            setText(text.slice(0, at) + insert + text.slice(ta.selectionEnd));
+            requestAnimationFrame(() => ta.setSelectionRange(at + insert.length, at + insert.length));
+          }
+        }}
+        rows={Math.max(6, text.split("\n").length + 1)}
+        placeholder="Add notes… (**bold**, *italic*, - bullets, Tab to indent)"
+        className="resize-y bg-transparent px-3 py-2 font-mono text-[12px] leading-relaxed outline-none"
+      />
     </div>
   );
 }
