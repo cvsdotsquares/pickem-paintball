@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Markdown } from "./ReelStudy";
 import StagePill from "./StagePill";
+import { MODEL_CHOICES, modelLabel, PICKABLE_DEFAULTS } from "@/src/lib/admin/models";
 import {
   genUrl,
   type Busy,
@@ -27,6 +28,7 @@ type Run = {
   startedAt: string;
   summary?: string;
   log?: string;
+  model?: string;
 } | null;
 type Data = {
   event: string;
@@ -59,6 +61,28 @@ const textarea =
   "w-full resize-y rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2 text-[11px] outline-none placeholder-gray-400 focus:border-gray-400 dark:placeholder-white/30 dark:focus:border-white/30";
 const secondaryButton =
   "rounded-lg border border-gray-300 dark:border-white/20 px-4 py-2 text-xs font-black uppercase tracking-widest disabled:opacity-40";
+
+/** Which model makes the next round (options / feedback). Default = the step's usual model; picked per round. */
+function ModelPick({ step, value, onChange, disabled }: { step: string; value: string; onChange: (v: string) => void; disabled?: boolean }) {
+  return (
+    <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/50">
+      Model
+      <select
+        className="rounded-lg border border-gray-300 dark:border-white/20 bg-transparent px-2 py-2 text-[11px] font-bold normal-case tracking-normal text-gray-800 dark:text-white disabled:opacity-40"
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="">Default ({modelLabel(PICKABLE_DEFAULTS[step])})</option>
+        {MODEL_CHOICES.map((m) => (
+          <option key={m.id} value={m.id}>
+            {m.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
 
 function minutesSince(iso: string) {
   return Math.max(
@@ -235,6 +259,8 @@ export default function PostTypeView({
   const [message, setMessage] = useState("");
   // a finished step James clicked to look at again (0 brief, 1 options, 2 review); null = where the post is now
   const [view, setView] = useState<number | null>(null);
+  // model for the next options/feedback round ("" = default); kept after sending so the next round can stay or switch
+  const [model, setModel] = useState("");
 
   const load = useCallback(async () => {
     const res = await fetch(
@@ -268,7 +294,15 @@ export default function PostTypeView({
     const res = await fetch("/api/admin/generator", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ event, type, action, comment, photos, ...extra }),
+      body: JSON.stringify({
+        event,
+        type,
+        action,
+        comment,
+        photos,
+        ...(["approve-brief", "feedback", "retry"].includes(action) && model ? { model } : {}),
+        ...extra,
+      }),
     });
     const d = await res.json();
     setSending(false);
@@ -472,7 +506,10 @@ export default function PostTypeView({
       {working && data.run && (
         <div className="flex items-center gap-3 rounded-xl bg-[#1a3c6e] px-4 py-3 text-[11px] text-white">
           <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-          <span className="font-bold">Claude is working: {data.run.label}</span>{" "}
+          <span className="font-bold">
+            Claude is working: {data.run.label}
+            {data.run.model ? ` · ${modelLabel(data.run.model)}` : ""}
+          </span>{" "}
           <span className="text-white/70">
             — started {minutesSince(data.run.startedAt)} min ago. Briefs take a
             few minutes; options and reviews 15–30. You can leave this page.
@@ -566,7 +603,8 @@ export default function PostTypeView({
             {commentBox(
               "Optional note for the options — or, if something's wrong, say what to change",
             )}
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {!revisit && <ModelPick step="post-options" value={model} onChange={setModel} disabled={!canAct} />}
               <button
                 className={`${primaryButton} ${revisit ? "hidden" : ""}`}
                 disabled={!canAct}
@@ -680,7 +718,8 @@ export default function PostTypeView({
             {commentBox(
               "What to change? Be as precise as you like — Claude makes a new round from this",
             )}
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <ModelPick step="post-revise" value={model} onChange={setModel} disabled={!canAct} />
               <button
                 className={secondaryButton}
                 disabled={!canAct || !hasComment}
@@ -729,8 +768,16 @@ export default function PostTypeView({
         {["brief_approved", "chosen", "feedback"].includes(shown) &&
           !working &&
           !failed && (
-            <div className="flex items-center gap-3 text-[11px] text-gray-500">
+            <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-500">
               Waiting to start.
+              {(shown === "brief_approved" || shown === "feedback") && (
+                <ModelPick
+                  step={shown === "brief_approved" ? "post-options" : "post-revise"}
+                  value={model}
+                  onChange={setModel}
+                  disabled={!canAct}
+                />
+              )}
               <button
                 className={secondaryButton}
                 disabled={!canAct}

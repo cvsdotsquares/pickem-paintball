@@ -107,11 +107,11 @@ export async function GET(request: Request) {
  *   approve-board                  brand board approved (PROCESS step 0)
  *   change-board  {comment}        → event-setup job again with James's comment (panel-made events)
  *   write-brief   {comment}        James's own brief for this post → Claude writes the full brief from it
- *   approve-brief                  → make options job
+ *   approve-brief {model?}         → make options job (model: James's pick, else the step's default)
  *   change-brief  {comment}        → comment saved, brief job again
  *   choose        {option,comment} → review + polish job on that option
- *   feedback      {comment}        → apply-feedback job
- *   retry                          → run the current stage's job again (after a failed run)
+ *   feedback      {comment,model?} → apply-feedback job (model picked per round)
+ *   retry         {model?}         → run the current stage's job again (after a failed run)
  *   signoff                        → template + post copied to the kit (no job)
  *   back-to-options                → stage options again (no job): pick a different A/B/C
  *   add-graphic   {name}           → another graphic in this bucket (work/<event>/<type>__N/), returns its key
@@ -156,8 +156,10 @@ export async function POST(request: Request) {
   if (!board(event).approved) return NextResponse.json({ error: "Approve the brand board first" }, { status: 409 });
 
   const st = readStatus(event, type);
+  // the model James picked on the page (options/revise only; startJob ignores it elsewhere or if unknown)
+  const model = typeof b.model === "string" && b.model ? b.model : undefined;
   const job = (name: string) => {
-    const r = startJob(name, { event, type });
+    const r = startJob(name, { event, type, model });
     return "error" in r ? NextResponse.json(r, { status: 409 }) : NextResponse.json({ run: r });
   };
   if (["write-brief", "approve-brief", "change-brief", "choose", "feedback", "retry"].includes(b.action)) {

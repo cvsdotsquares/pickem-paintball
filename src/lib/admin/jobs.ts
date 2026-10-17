@@ -4,6 +4,7 @@ import os from "os";
 import path from "path";
 import { baseOf, graphicName, keyInspo } from "./generator";
 import { HUB } from "./library";
+import { MODEL_CHOICES, PICKABLE_DEFAULTS } from "./models";
 
 /**
  * Jobs = Claude Code run on James's Mac, on his subscription (`claude -p`, the same as typing
@@ -12,7 +13,7 @@ import { HUB } from "./library";
  * Stop button). Each run's output is kept in pickem-hub/library/jobs/.
  */
 
-export type JobParams = { event?: string; type?: string };
+export type JobParams = { event?: string; type?: string; model?: string }; // model: James's pick, options/revise only
 type JobDef = { label: string; prompt: string | ((p: JobParams) => string); allowedTools: string[] };
 
 const SLACK = "mcp__claude_ai_Slack__";
@@ -26,13 +27,15 @@ const JOB_SETUP: Record<string, { model: string; effort: "low" | "medium" | "hig
   "check-inspo": { model: "claude-sonnet-5-5", effort: "medium" },
   "event-setup": { model: "claude-fable-5-1", effort: "medium" },
   "post-brief": { model: "claude-opus-5-5", effort: "high" },
-  "post-options": { model: "claude-sonnet-5-5", effort: "medium" },
+  "post-options": { model: PICKABLE_DEFAULTS["post-options"], effort: "medium" },
   "post-review": { model: "claude-opus-5-5", effort: "medium" },
-  "post-revise": { model: "claude-opus-5-5", effort: "medium" },
+  "post-revise": { model: PICKABLE_DEFAULTS["post-revise"], effort: "medium" },
 };
-const setupFor = (job: string) => {
+const setupFor = (job: string, picked?: string) => {
   const s = JOB_SETUP[job] ?? { model: "claude-opus-5-5", effort: "medium" as const };
-  return { ...s, model: process.env.ADMIN_JOB_MODEL || s.model };
+  // James's pick from the post page wins over the default, on the steps that have a picker
+  const pick = picked && job in PICKABLE_DEFAULTS && MODEL_CHOICES.some((m) => m.id === picked) ? picked : undefined;
+  return { ...s, model: process.env.ADMIN_JOB_MODEL || pick || s.model, picked: !!pick };
 };
 
 // Post Generator jobs: the steps of PROCESS.md, run by the pickem-social-post skill ("Admin panel jobs" section).
@@ -115,6 +118,7 @@ export type JobRun = {
   summary?: string;
   logFile: string;
   stopped?: boolean; // James pressed Stop
+  model?: string; // the model this run used
 };
 
 // Survives dev-server hot reloads.
@@ -177,8 +181,9 @@ function logRun(job: string, params: JobParams, ok: boolean, r: { duration_ms?: 
     event: params.event ?? "",
     type: params.type ?? "",
     step: job.replace("post-", ""),
-    model: setupFor(job).model,
-    effort: setupFor(job).effort,
+    model: setupFor(job, params.model).model,
+    effort: setupFor(job, params.model).effort,
+    model_picked: setupFor(job, params.model).picked, // James chose it, not the default
     ok,
     is_error: !ok,
     duration_ms: r.duration_ms ?? null,
@@ -233,7 +238,8 @@ export function startJob(job: string, params: JobParams = {}): JobRun | { error:
   const prompt = typeof def.prompt === "function" ? def.prompt(params) : def.prompt;
   // JSON output: the final message plus duration, steps and tokens, so every run's cost is logged.
   // Always pass the model: the Mac's CLI default was the older Opus 5 at high effort (3–7x slower per step, 17 Oct).
-  const { model, effort } = setupFor(job);
+  const { model, effort } = setupFor(job, params.model);
+  run.model = model;
   const child = spawn(bin, ["-p", prompt, "--model", model, "--effort", effort, "--output-format", "json", "--allowedTools", def.allowedTools.join(",")], {
     cwd: HUB,
     env,
