@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { IoMdClose } from "react-icons/io";
+import { IoMdClose, IoMdTrash } from "react-icons/io";
 import { pill, primaryButton, sectionLabel } from "./types";
 
 // Client copies of src/lib/admin/todo.ts (that module reads the disk).
-type Column = { key: string; label: string; color?: string };
+type Column = { key: string; label: string; color?: string; folder?: string };
 type CheckItem = { id: string; text: string; done: boolean; by?: "James" | "Claude" };
 type Who = "all" | "James" | "Claude";
 type Card = {
@@ -17,6 +17,7 @@ type Card = {
   order: number;
   due: string;
   blocker: string;
+  doneFrom?: string;
   checklist: CheckItem[];
   comments: { at: string; by: string; text: string }[];
   archived: boolean;
@@ -35,6 +36,40 @@ const shortDate = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("e
 const newKey = (label: string) =>
   label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || Math.random().toString(36).slice(2, 7);
 const rid = () => Math.random().toString(36).slice(2, 10);
+const TODO_PY = "python3 ~/Documents/pickem-hub/todo/todo.py";
+
+/**
+ * "Work on this in Claude" (James, 17 Oct): a new Claude Code session in the Claude app, in the work stream's
+ * folder, with the card as its first message (claude://code/new?q=…&folder=…; the app caps q at ~14k).
+ */
+function claudeLink(card: Card, board: Board): string {
+  const stream = board.streams.find((s) => s.key === card.stream);
+  const stage = board.stages.find((s) => s.key === card.stage);
+  const open = card.checklist.map((x, i) => ({ ...x, n: i + 1 })).filter((x) => !x.done);
+  const doneCount = card.checklist.length - open.length;
+  const notes = card.desc.trim().length > 7000 ? card.desc.trim().slice(0, 7000) + "\n…(cut — see the card)" : card.desc.trim();
+  const lines = [
+    "Let's work on this card from my TO DO board (Pick'Em admin panel → TO DO) and tick things off.",
+    "",
+    `**${card.title}** — ${stream?.label ?? card.stream} · ${stage?.label ?? card.stage}${card.due ? ` · due ${card.due}` : ""}${
+      card.blocker ? ` · blocked by: ${card.blocker}` : ""
+    } (card id ${card.id})`,
+  ];
+  if (notes) lines.push("", "Notes:", notes);
+  if (card.checklist.length)
+    lines.push("", `Checklist — still open (${doneCount} of ${card.checklist.length} done):`, ...open.map((x) => `${x.n}. ${x.text}`));
+  const recent = card.comments.slice(-3);
+  if (recent.length) lines.push("", "Latest comments:", ...recent.map((m) => `- ${m.by}: ${m.text}`));
+  lines.push(
+    "",
+    "Read what's needed first, then tell me in plain language what you'd do first and wait for my OK before building. " +
+      `As items get done, tick them on the board: \`${TODO_PY} tick ${card.id} <number>\`; when the whole card is finished: \`${TODO_PY} stage ${card.id} done\`. ` +
+      "New follow-ups go on the board only when needed, grouped (~/Documents/pickem-hub/todo/README.md).",
+  );
+  const q = new URLSearchParams({ q: lines.join("\n").slice(0, 13000) });
+  if (stream?.folder) q.set("folder", stream.folder);
+  return `claude://code/new?${q.toString()}`;
+}
 
 /**
  * TODO (admin page 3, James 17 Oct): one Trello-style board for all outstanding work. Pivot between columns
@@ -128,6 +163,21 @@ export default function TodoBoard() {
   };
 
   const saveCols = (cols: Column[]) => send({ action: "columns", group, columns: cols });
+
+  /** The tick on a card (James, 17 Oct): done goes to the top of Done; un-ticking puts it back where it was. */
+  const toggleDone = (c: Card) => {
+    if (c.stage === "done") return saveCard({ id: c.id, stage: c.doneFrom || "todo", doneFrom: "" });
+    const top = Math.min(1, ...board.cards.filter((x) => x.stage === "done").map((x) => x.order)) - 1;
+    return saveCard({ id: c.id, stage: "done", doneFrom: c.stage, order: top });
+  };
+  const removeCard = async (c: Card) => {
+    if (!window.confirm(`Delete "${c.title}" for good?`)) return;
+    if (await send({ action: "delete", id: c.id })) setOpenId((id) => (id === c.id ? null : id));
+  };
+  const clearDone = (n: number) => {
+    if (window.confirm(`Clear Done? The ${n} card${n === 1 ? "" : "s"} there get archived (kept in the file, off the board).`))
+      send({ action: "clear-done" });
+  };
   const addColumn = () => {
     const label = window.prompt(pivot === "stage" ? "New stage" : "New work stream")?.trim();
     if (!label) return;
@@ -230,6 +280,15 @@ export default function TodoBoard() {
                   {col.label}
                 </button>
                 <span className="text-[10px] text-gray-400">{cards.length}</span>
+                {pivot === "stage" && col.key === "done" && cards.length > 0 && (
+                  <button
+                    onClick={() => clearDone(cards.length)}
+                    title="Archive every card in Done"
+                    className="rounded px-1.5 text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:bg-gray-300/60 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white"
+                  >
+                    Clear
+                  </button>
+                )}
                 <span className="hidden gap-1 text-[10px] text-gray-400 group-hover:flex">
                   <button title="Move left" onClick={() => editColumn(ci, "left")} className="hover:text-gray-900 dark:hover:text-white">
                     ←
@@ -260,6 +319,8 @@ export default function TodoBoard() {
                     onOpen={() => setOpenId(c.id)}
                     onDragStart={() => setDrag(c.id)}
                     onDropBefore={() => drop(col.key, c.id)}
+                    onToggleDone={() => toggleDone(c)}
+                    onDelete={() => removeCard(c)}
                   />
                 ))}
               </div>
@@ -316,6 +377,8 @@ function CardTile({
   onOpen,
   onDragStart,
   onDropBefore,
+  onToggleDone,
+  onDelete,
 }: {
   card: Card;
   pivot: Pivot;
@@ -325,9 +388,20 @@ function CardTile({
   onOpen: () => void;
   onDragStart: () => void;
   onDropBefore: () => void;
+  onToggleDone: () => void;
+  onDelete: () => void;
 }) {
   const done = c.checklist.filter((x) => x.done).length;
   const overdue = c.due && c.due < today() && c.stage !== "done";
+  const isDone = c.stage === "done";
+  const [completing, setCompleting] = useState(false); // green tick, then the card fades out before it moves
+  const tick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isDone) return onToggleDone();
+    setCompleting(true);
+    setTimeout(onToggleDone, 650);
+  };
+  const ticked = isDone || completing;
   return (
     <div
       draggable
@@ -338,10 +412,20 @@ function CardTile({
         onDropBefore();
       }}
       onClick={onOpen}
-      className={`cursor-pointer rounded-lg bg-white p-2.5 shadow-sm hover:ring-2 hover:ring-[#1a3c6e]/40 dark:bg-[#0d0d0d] ${
-        dragging ? "opacity-40" : ""
+      className={`group relative cursor-pointer rounded-lg bg-white p-2.5 shadow-sm transition-opacity duration-500 hover:ring-2 hover:ring-[#1a3c6e]/40 dark:bg-[#0d0d0d] ${
+        dragging || completing ? "opacity-30" : isDone ? "opacity-60 hover:opacity-100" : ""
       }`}
     >
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+        title="Delete card"
+        className="absolute right-1.5 top-1.5 hidden rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500 group-hover:block dark:hover:bg-red-500/20"
+      >
+        <IoMdTrash size={13} />
+      </button>
       <div className="mb-1.5 flex flex-wrap gap-1">
         {stream && (
           <span className="rounded px-1.5 py-0.5 text-[9px] font-bold text-white" style={{ background: stream.color ?? "#344563" }}>
@@ -359,7 +443,20 @@ function CardTile({
           </span>
         )}
       </div>
-      <div className="text-[12px] font-bold leading-snug">{c.title}</div>
+      <div className="flex items-start gap-1.5 pr-5">
+        <button
+          onClick={tick}
+          title={isDone ? "Not done — put it back" : "Mark done"}
+          className={`mt-[1px] h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[9px] font-black ${
+            ticked
+              ? "flex border-green-600 bg-green-600 text-white"
+              : "hidden border-gray-400 text-transparent hover:border-green-600 hover:text-green-600 group-hover:flex"
+          }`}
+        >
+          ✓
+        </button>
+        <div className={`text-[12px] font-bold leading-snug ${isDone ? "text-gray-500 dark:text-white/50" : ""}`}>{c.title}</div>
+      </div>
       {c.blocker && <div className="mt-1 text-[10px] font-bold text-red-500">⛔ {c.blocker}</div>}
       {(c.desc || c.checklist.length > 0 || c.due || c.comments.length > 0) && (
         <div className="mt-2 flex flex-wrap items-center gap-2.5 text-[10px] text-gray-400 dark:text-white/40">
@@ -467,6 +564,16 @@ function CardDrawer({
             <IoMdClose size={20} />
           </button>
         </div>
+
+        <a
+          href={claudeLink(card, board)}
+          title={`Opens a new Claude Code session${
+            board.streams.find((s) => s.key === card.stream)?.folder ? ` in ${board.streams.find((s) => s.key === card.stream)?.folder}` : ""
+          } with this card as the first message`}
+          className={`${primaryButton} self-start`}
+        >
+          ▶ Work on this in Claude
+        </a>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1">

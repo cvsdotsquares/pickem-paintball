@@ -12,7 +12,7 @@ export const TODO_FILE = path.join(HUB, "todo/board.json");
 const BACKUPS = path.join(HUB, "todo/_backups");
 const KEEP_BACKUPS = 100;
 
-export type Column = { key: string; label: string; color?: string };
+export type Column = { key: string; label: string; color?: string; folder?: string }; // folder: where "Work on this in Claude" opens
 export type CheckItem = { id: string; text: string; done: boolean; by?: "James" | "Claude" };
 export type Comment = { at: string; by: string; text: string };
 export type Card = {
@@ -24,6 +24,7 @@ export type Card = {
   order: number; // position inside its column, in either view
   due: string; // YYYY-MM-DD or ""
   blocker: string; // what it is waiting on ("" = not blocked)
+  doneFrom?: string; // the stage it was in before the tick, so un-ticking puts it back
   checklist: CheckItem[];
   comments: Comment[];
   archived: boolean;
@@ -58,7 +59,7 @@ function writeBoard(b: Board) {
   fs.writeFileSync(TODO_FILE, JSON.stringify(b, null, 2) + "\n", "utf8");
 }
 
-const CARD_FIELDS = ["title", "desc", "stage", "stream", "order", "due", "blocker", "checklist", "archived"] as const;
+const CARD_FIELDS = ["title", "desc", "stage", "stream", "order", "due", "blocker", "doneFrom", "checklist", "archived"] as const;
 
 /** Add a card (no id) or change some of its fields. Returns the board. */
 export function saveCard(patch: Partial<Card>): Board {
@@ -101,6 +102,14 @@ export function deleteCard(id: string): Board {
   return b;
 }
 
+/** "Clear done" (James, 17 Oct): archive every card in the Done stage. Returns the board. */
+export function clearDone(): Board {
+  const b = readBoard();
+  for (const c of b.cards) if (c.stage === "done" && !c.archived) Object.assign(c, { archived: true, updated: now() });
+  writeBoard(b);
+  return b;
+}
+
 export function addComment(id: string, text: string, by = "James"): Board {
   const b = readBoard();
   const card = b.cards.find((c) => c.id === id);
@@ -118,7 +127,12 @@ export function saveColumns(group: "stages" | "streams", cols: Column[]): Board 
   const keys = new Set(cols.map((c) => c.key));
   const orphan = b.cards.find((c) => !c.archived && !keys.has(c[field]));
   if (orphan) throw new Error(`"${orphan.title}" is still in that column — move it first`);
-  b[group] = cols.map((c) => ({ key: c.key, label: c.label.trim() || c.key, ...(c.color ? { color: c.color } : {}) }));
+  b[group] = cols.map((c) => ({
+    key: c.key,
+    label: c.label.trim() || c.key,
+    ...(c.color ? { color: c.color } : {}),
+    ...(c.folder ? { folder: c.folder } : {}),
+  }));
   writeBoard(b);
   return b;
 }
