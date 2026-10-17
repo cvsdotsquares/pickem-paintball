@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import {
   STAGE,
   genUrl,
@@ -224,53 +224,57 @@ export default function GeneratorBoard() {
         </div>
       </section>
 
-      {phases.map((p) => (
-        <section key={p.key} className="flex flex-col gap-2">
-          <div className="flex items-baseline gap-3 border-b border-gray-200 dark:border-white/10 pb-1">
-            <h2 className="text-sm font-black uppercase tracking-wide">
-              {p.title}
-            </h2>
-            <span className="text-[10px] text-gray-400 dark:text-white/40">
-              {p.hint}
-            </span>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {(
-              [
-                ["Must", p.must],
-                ["Nice to have", p.nice],
-              ] as const
-            ).map(([title, items]) => (
-              <div
-                key={title}
-                className="flex flex-col gap-2 rounded-xl bg-gray-50 dark:bg-white/[0.03] p-3"
-              >
-                <div className={sectionLabel}>{title}</div>
-                {items.length === 0 && (
-                  <div className="text-[10px] text-gray-300 dark:text-white/25">
-                    None
-                  </div>
-                )}
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {items.map((t) => {
+      {/* columns = when it goes out (pre / during / post); rows = must, then nice to have */}
+      <section className="overflow-x-auto">
+        <div className="grid min-w-[720px] grid-cols-[110px_repeat(3,minmax(0,1fr))] gap-3">
+          <div />
+          {phases.map((p) => (
+            <div
+              key={p.key}
+              className="border-b border-gray-200 pb-1 dark:border-white/10"
+            >
+              <h2 className="text-sm font-black uppercase tracking-wide">
+                {p.title}
+              </h2>
+              <div className="text-[10px] text-gray-400 dark:text-white/40">
+                {p.hint}
+              </div>
+            </div>
+          ))}
+          {(["must", "nice"] as const).map((row) => (
+            <Fragment key={row}>
+              <div className={`${sectionLabel} pt-3`}>
+                {row === "must" ? "Must" : "Nice to have"}
+              </div>
+              {phases.map((p) => (
+                <div
+                  key={p.key}
+                  className="flex flex-col gap-2 rounded-xl bg-gray-50 p-2 dark:bg-white/[0.03]"
+                >
+                  {p[row].length === 0 && (
+                    <div className="p-2 text-[10px] text-gray-300 dark:text-white/25">
+                      None
+                    </div>
+                  )}
+                  {p[row].map((t) => {
                     const st = STAGE[t.status.stage] ?? STAGE.not_started;
                     const card = (
                       <div
-                        className={`flex h-full flex-col gap-2 rounded-xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#0d0d0d] p-4 ${
+                        className={`flex h-full flex-col gap-2 rounded-xl border border-gray-100 bg-white p-3 dark:border-white/5 dark:bg-[#0d0d0d] ${
                           data.board.approved
                             ? "hover:border-gray-400 dark:hover:border-white/30"
                             : "opacity-50"
                         }`}
                       >
-                        <div className="text-[9px] uppercase tracking-widest text-gray-400 dark:text-white/40">
-                          {t.phase === "Pre/post-event"
-                            ? "Pre + post-event"
-                            : t.phase}
-                        </div>
                         <div className="text-xs font-black leading-snug">
                           {t.label}
                         </div>
-                        <div className="mt-auto flex items-center gap-2">
+                        {t.phase === "Pre/post-event" && (
+                          <div className="text-[9px] uppercase tracking-widest text-gray-400 dark:text-white/40">
+                            Also post-event
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
                           <span
                             className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${toneClass(st.tone)}`}
                           >
@@ -298,11 +302,11 @@ export default function GeneratorBoard() {
                     );
                   })}
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      ))}
+              ))}
+            </Fragment>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }
