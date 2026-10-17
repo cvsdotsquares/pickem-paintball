@@ -335,7 +335,13 @@ export function makeFinals(event: string, type: string, teams: string[]): Promis
   if (teams.length) args.push("--teams", teams.join(","));
   return new Promise((resolve, reject) =>
     execFile("python3", args, { cwd: GEN, encoding: "utf8", timeout: 15 * 60 * 1000 }, (err, stdout, stderr) =>
-      err ? reject(new Error((stderr || err.message).trim().split("\n").slice(-1)[0])) : resolve(stdout.trim().split("\n").slice(-1)[0]),
+      err ? reject(new Error((stderr || err.message).trim().split("\n").slice(-1)[0])) : resolve(
+            stdout
+              .trim()
+              .split("\n")
+              .filter((l, i, all) => l.startsWith("skipped") || i === all.length - 1)
+              .join(" · "),
+          ),
     ),
   );
 }
