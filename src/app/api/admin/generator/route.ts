@@ -27,6 +27,7 @@ import {
   setStatus,
   signoff,
   validId,
+  ensurePlanned,
 } from "@/src/lib/admin/generator";
 import { failedFor, lastRunFor, MAX_PARALLEL, readLog, runningAll, runningFor, startJob, stopJob } from "@/src/lib/admin/jobs";
 
@@ -49,6 +50,7 @@ export async function GET(request: Request) {
   const busy = all[0];
   const full = all.length >= MAX_PARALLEL; // no room for another run until one finishes
   if (!type) {
+    pack.forEach((p) => ensurePlanned(event, p));
     return NextResponse.json({
       events,
       event,

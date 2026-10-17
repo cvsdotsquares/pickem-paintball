@@ -13,7 +13,7 @@ export const GEN = path.join(HUB, "generator");
 const WORK = path.join(GEN, "work");
 const ID = /^[a-z0-9_]+$/;
 
-export type PackItem = { key: string; label: string; phase: string; priority: "must" | "nice"; tags: string[] };
+export type PackItem = { key: string; label: string; phase: string; priority: "must" | "nice"; tags: string[]; graphics?: string[] };
 export type Stage =
   | "not_started"
   | "brief"
@@ -369,6 +369,19 @@ export function graphics(event: string, base: string): { key: string; name: stri
         .sort((a, b) => Number(a.slice(base.length + 2)) - Number(b.slice(base.length + 2)))
     : [];
   return [base, ...extra].map((key) => ({ key, name: graphicName(event, key) }));
+}
+
+/**
+ * The graphics every event expects in a card (event_pack.json "graphics", e.g. Rosters → confirmed + changes;
+ * James, 17 Oct): give each one its folder and name so it shows before anything is made. Never renames one.
+ */
+export function ensurePlanned(event: string, p: PackItem) {
+  if (!fs.existsSync(path.join(WORK, event))) return;
+  (p.graphics ?? []).forEach((name, i) => {
+    const key = i ? `${p.key}__${i + 1}` : p.key;
+    if (fs.existsSync(path.join(WORK, event, key, "graphic.json"))) return;
+    renameGraphic(event, key, name);
+  });
 }
 
 export function addGraphic(event: string, base: string, name: string): string {

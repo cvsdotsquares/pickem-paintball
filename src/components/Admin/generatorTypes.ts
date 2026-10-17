@@ -19,7 +19,7 @@ export type Status = {
   history: { at: string; stage: string; note: string }[];
 };
 
-export type PackItem = { key: string; label: string; phase: string; priority: "must" | "nice"; tags: string[] };
+export type PackItem = { key: string; label: string; phase: string; priority: "must" | "nice"; tags: string[]; graphics?: string[] };
 export type RoundFile = { label: string; png: string; pdf: string; caption: string };
 export type Round = { name: string; options: RoundFile[]; post: RoundFile | null; notes: string; review: string; checks: string[] };
 export type Busy = { label: string; params: { event?: string; type?: string } } | null;
