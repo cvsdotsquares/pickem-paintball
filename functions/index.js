@@ -971,3 +971,34 @@ exports.scheduleBadgeRecalc = functions.firestore
     }
     return null;
   });
+
+// ─── Post Scheduler (Instagram + Facebook) ─────────────────────────────────
+// Sends approved posts from `scheduledPosts/*` at their time; the admin panel's
+// Scheduler page queues them. Five minutes is how late a post can go out; the
+// idle cost is one small query. Kill switch: projections/scheduler.disabled.
+// Plan: pickem-hub/ideas/2026-10-17-scheduler-plan.md.
+// The Page key never expires; set once with: firebase functions:secrets:set META_PAGE_TOKEN
+const metaPageToken = defineSecret('META_PAGE_TOKEN');
+const PICKEM_FB_PAGE_ID = '631336470063664';
+const PICKEM_IG_USER_ID = '17841472212962207'; // @pickempaintball
+
+exports.postScheduler = functions
+  .runWith({ timeoutSeconds: 300, memory: '256MB', secrets: [metaPageToken] })
+  .pubsub.schedule('every 5 minutes')
+  .onRun(async () => {
+    const cfgSnap = await db.doc('projections/scheduler').get();
+    if (cfgSnap.exists && cfgSnap.get('disabled')) {
+      console.log('⏸  Scheduler disabled by projections/scheduler.disabled.');
+      return null;
+    }
+    const { runDue } = require('./postScheduler');
+    await runDue({
+      db,
+      Timestamp: admin.firestore.Timestamp,
+      FieldValue: admin.firestore.FieldValue,
+      token: metaPageToken.value(),
+      pageId: PICKEM_FB_PAGE_ID,
+      igUserId: PICKEM_IG_USER_ID,
+    });
+    return null;
+  });
