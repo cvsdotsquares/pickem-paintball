@@ -4,19 +4,20 @@ import { useEffect, useState } from "react";
 import { IoMdClose } from "react-icons/io";
 import { imageUrl, isVideo, pill, primaryButton, sectionLabel, type LibraryItem, type TagList } from "./types";
 
-/** One post up close: every slide, its caption, and its tags to fix or confirm. */
+/** One post (one image) up close: its caption, its tags to fix or confirm, and its carousel siblings if any. */
 export default function PostDrawer({
   item,
   tags,
   onClose,
   onSaved,
+  onOpenFile,
 }: {
   item: LibraryItem;
   tags: TagList;
   onClose: () => void;
   onSaved: (item: LibraryItem) => void;
+  onOpenFile: (file: string) => void;
 }) {
-  const [slide, setSlide] = useState(0);
   const [postTypes, setPostTypes] = useState(item.postTypes);
   const [phases, setPhases] = useState(item.phases);
   const [style, setStyle] = useState(item.style);
@@ -24,7 +25,6 @@ export default function PostDrawer({
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setSlide(0);
     setPostTypes(item.postTypes);
     setPhases(item.phases);
     setStyle(item.style);
@@ -62,7 +62,7 @@ export default function PostDrawer({
   const styleKeys = Object.keys(tags.style);
   // Values on the post that aren't in the list (e.g. a new word typed in Slack) still show, marked "new".
   const extra = (have: string[], known: string[]) => have.filter((v) => !known.includes(v));
-  const file = item.files[slide];
+  const file = item.files[0];
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose}>
@@ -77,19 +77,30 @@ export default function PostDrawer({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={imageUrl(item.source, file)} alt={item.title} className="max-h-[80vh] w-full object-contain" />
           )}
-          {item.files.length > 1 && (
-            <div className="mt-3 flex gap-1">
-              {item.files.map((f, i) => (
-                <button
-                  key={f}
-                  onClick={() => setSlide(i)}
-                  className={`h-6 min-w-6 rounded px-2 text-[10px] font-bold ${
-                    i === slide ? "bg-white text-black" : "bg-white/10 text-white/60"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
+          {item.carousel.length > 1 && (
+            <div className="mt-3 w-full">
+              <div className="mb-1 text-center text-[9px] font-bold uppercase tracking-widest text-white/50">
+                Slide {item.slide} of {item.carousel.length} — the other slides are separate posts
+              </div>
+              <div className="flex justify-center gap-1.5">
+                {item.carousel.map((f, i) => (
+                  <button
+                    key={f}
+                    onClick={() => onOpenFile(f)}
+                    title={`Slide ${i + 1}`}
+                    className={`h-14 w-11 overflow-hidden rounded border-2 bg-[#1a1a1a] ${
+                      f === file ? "border-white" : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    {isVideo(f) ? (
+                      <span className="text-[9px] text-white/60">{i + 1}</span>
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={imageUrl(item.source, f, true)} alt="" className="h-full w-full object-cover" />
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>

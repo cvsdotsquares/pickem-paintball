@@ -35,9 +35,11 @@ export type TagList = {
 };
 
 export type LibraryItem = {
-  id: string; // "<source>:<file of first slide>"
+  id: string; // "<source>:<file>"
   source: Source;
-  files: string[]; // every slide, in order
+  files: string[]; // the image (one file per post)
+  carousel: string[]; // every slide of the carousel this image came from (empty if not a carousel)
+  slide: number; // 1-based slide number in that carousel (0 if not a carousel)
   date: string;
   event: string;
   postTypes: string[];
@@ -67,23 +69,25 @@ export function writeTags(tags: TagList): void {
   fs.writeFileSync(TAGS_FILE, JSON.stringify(tags, null, 2) + "\n", "utf8");
 }
 
-/** Past posts: one row per slide; a post starts at slide "" or "1" and owns the slides after it. */
+/**
+ * Past posts: one item per image. Carousel slides often do different jobs (James, 17 Oct), so each slide
+ * is its own post with its own tags; `carousel` lists every slide of the post it came from, for context.
+ * A carousel starts at slide "1" and owns the rows after it.
+ */
 function groupPast(table: CsvTable): { item: LibraryItem; rows: Record<string, string>[] }[] {
   const out: { item: LibraryItem; rows: Record<string, string>[] }[] = [];
+  let carousel: string[] = [];
   for (const r of table.rows) {
-    const continues = r.slide && r.slide !== "1" && out.length;
-    if (continues) {
-      const last = out[out.length - 1];
-      last.rows.push(r);
-      last.item.files.push(r.file);
-      continue;
-    }
+    if (r.slide === "1") carousel = [];
+    if (r.slide) carousel.push(r.file);
     out.push({
       rows: [r],
       item: {
         id: `past:${r.file}`,
         source: "past",
         files: [r.file],
+        carousel: r.slide ? carousel : [], // shared array: later slides of the same carousel get pushed in
+        slide: Number(r.slide) || 0,
         date: r.post_date,
         event: r.event ?? "",
         postTypes: split(r.post_type),
@@ -106,6 +110,8 @@ function groupInspo(table: CsvTable): { item: LibraryItem; rows: Record<string, 
       id: `inspo:${r.file}`,
       source: "inspo" as const,
       files: [r.file],
+      carousel: [],
+      slide: 0,
       date: (r.posted ?? "").slice(0, 10),
       event: "Inspiration",
       postTypes: split(r.post_types),
@@ -127,7 +133,7 @@ export function loadLibrary(): LibraryItem[] {
 
 export type TagEdit = { postTypes: string[]; phases: string[]; style: string[] };
 
-/** Save James's tags for one post (all its slides). Marks the post as confirmed by James. */
+/** Save James's tags for one post (one image). Marks it as confirmed by James. */
 export function saveItemTags(id: string, edit: TagEdit): LibraryItem | null {
   const cut = id.indexOf(":");
   const source = id.slice(0, cut) as Source;

@@ -15,6 +15,8 @@ export type LibraryItem = {
   id: string;
   source: Source;
   files: string[];
+  carousel: string[];
+  slide: number;
   date: string;
   event: string;
   postTypes: string[];

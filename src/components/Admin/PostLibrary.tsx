@@ -193,9 +193,9 @@ export default function PostLibrary() {
                         className="h-full w-full object-cover transition-opacity group-hover:opacity-90"
                       />
                     )}
-                    {i.files.length > 1 && (
+                    {i.carousel.length > 1 && (
                       <span className="absolute right-2 top-2 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white">
-                        {i.files.length} slides
+                        Slide {i.slide}/{i.carousel.length}
                       </span>
                     )}
                     {i.source === "inspo" && (
@@ -238,6 +238,7 @@ export default function PostLibrary() {
             setItems((prev) => prev.map((x) => (x.id === saved.id ? saved : x)));
             setOpen(saved);
           }}
+          onOpenFile={(file) => setOpen(items.find((x) => x.id === `${open.source}:${file}`) ?? open)}
         />
       )}
     </main>
