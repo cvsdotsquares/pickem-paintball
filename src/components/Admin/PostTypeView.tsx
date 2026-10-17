@@ -449,7 +449,7 @@ export default function PostTypeView({
                   act(
                     "signoff",
                     {},
-                    "Sign off? The template is saved to the Drive kit (08. Templates).",
+                    "Sign off? The template is saved to the Drive kit (07. Output → Templates).",
                   )
                 }
               >
@@ -463,9 +463,9 @@ export default function PostTypeView({
           <>
             <div className={sectionLabel}>Signed off</div>
             <p className="text-[11px] text-gray-500 dark:text-white/50">
-              Saved to the Drive kit: <b>08. Templates</b> (template, example
+              Saved to the Drive kit: <b>07. Output → Templates</b> (template, example
               PNG, Canva PDF, how to use). Real posts made from it at the event
-              go to <b>07. Output</b>; only the logos, photos, names and stats change.
+              go to <b>07. Output → Final Posts</b>; only the logos, photos, names and stats change.
             </p>
             {current?.post && (
               <div className="md:w-1/2">
