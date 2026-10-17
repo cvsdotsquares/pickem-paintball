@@ -14,7 +14,24 @@ export type JobParams = { event?: string; type?: string };
 type JobDef = { label: string; prompt: string | ((p: JobParams) => string); allowedTools: string[] };
 
 const SLACK = "mcp__claude_ai_Slack__";
-const JOB_MODEL = process.env.ADMIN_JOB_MODEL || "claude-opus-5-5";
+/**
+ * Model + effort per job (James, 17 Oct). Opus 5.5 for judgment and building; Sonnet 5.5 (~30% faster, half
+ * the cost) for routine work and the rough-layout drafts; Fable 5.1 for a new event's look (once per event,
+ * where the idea matters most). Every run's time/tokens go to generator/feedback/runs.jsonl, so these get
+ * reviewed against real numbers. ADMIN_JOB_MODEL overrides all (for a quick test).
+ */
+const JOB_SETUP: Record<string, { model: string; effort: "low" | "medium" | "high" }> = {
+  "check-inspo": { model: "claude-sonnet-5-5", effort: "medium" },
+  "event-setup": { model: "claude-fable-5-1", effort: "medium" },
+  "post-brief": { model: "claude-opus-5-5", effort: "high" },
+  "post-options": { model: "claude-sonnet-5-5", effort: "medium" },
+  "post-review": { model: "claude-opus-5-5", effort: "medium" },
+  "post-revise": { model: "claude-opus-5-5", effort: "medium" },
+};
+const setupFor = (job: string) => {
+  const s = JOB_SETUP[job] ?? { model: "claude-opus-5-5", effort: "medium" as const };
+  return { ...s, model: process.env.ADMIN_JOB_MODEL || s.model };
+};
 
 // Post Generator jobs: the steps of PROCESS.md, run by the pickem-social-post skill ("Admin panel jobs" section).
 const POST_TOOLS = [
@@ -113,6 +130,8 @@ function logRun(job: string, params: JobParams, ok: boolean, r: { duration_ms?: 
     event: params.event ?? "",
     type: params.type ?? "",
     step: job.replace("post-", ""),
+    model: setupFor(job).model,
+    effort: setupFor(job).effort,
     ok,
     is_error: !ok,
     duration_ms: r.duration_ms ?? null,
@@ -162,10 +181,9 @@ export function startJob(job: string, params: JobParams = {}): JobRun | { error:
   for (const k of Object.keys(env)) if (k === "ADMIN_PANEL" || k.startsWith("CLAUDE_CODE") || k === "CLAUDECODE") delete env[k];
   const prompt = typeof def.prompt === "function" ? def.prompt(params) : def.prompt;
   // JSON output: the final message plus duration, steps and tokens, so every run's cost is logged.
-  // Same model as the chat app (the Mac's CLI default is the older Opus 5 at high effort: 3–7x slower per step, 17 Oct).
-  // Effort per step: briefs think harder; layouts and builds are mostly doing, not deliberating.
-  const effort = job === "post-brief" || job === "event-setup" ? "high" : "medium";
-  const child = spawn(bin, ["-p", prompt, "--model", JOB_MODEL, "--effort", effort, "--output-format", "json", "--allowedTools", def.allowedTools.join(",")], {
+  // Always pass the model: the Mac's CLI default was the older Opus 5 at high effort (3–7x slower per step, 17 Oct).
+  const { model, effort } = setupFor(job);
+  const child = spawn(bin, ["-p", prompt, "--model", model, "--effort", effort, "--output-format", "json", "--allowedTools", def.allowedTools.join(",")], {
     cwd: HUB,
     env,
     stdio: ["ignore", "pipe", "pipe"],
