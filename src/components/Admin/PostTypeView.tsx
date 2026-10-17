@@ -73,6 +73,36 @@ function Render({ f, big }: { f: RoundFile; big?: boolean }) {
   );
 }
 
+/**
+ * The brief's "## Summary" section for James to assess at a glance; the full brief (written for Claude's
+ * next steps) folds away underneath. Older briefs without a summary show in full.
+ */
+function BriefSummary({ text }: { text: string }) {
+  if (!text) return <p className="text-[11px] text-gray-400">(brief.md is empty)</p>;
+  const start = text.search(/^##\s*Summary/m);
+  if (start < 0) return <Markdown text={text} />;
+  const afterHeading = text.indexOf("\n", start) + 1;
+  const next = text.slice(afterHeading).search(/\n##\s/);
+  const end = next < 0 ? text.length : afterHeading + next;
+  const summary = text.slice(afterHeading, end).trim();
+  const rest = text.slice(0, start) + text.slice(end);
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="rounded-lg bg-gray-50 p-4 dark:bg-white/5">
+        <Markdown text={summary} />
+      </div>
+      <details>
+        <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-widest text-gray-400">
+          Full brief (detail for Claude&apos;s next steps)
+        </summary>
+        <div className="mt-3">
+          <Markdown text={rest} />
+        </div>
+      </details>
+    </div>
+  );
+}
+
 /** Post Generator, one post type for one event: brief → options → review → sign off. */
 export default function PostTypeView({
   event,
@@ -286,7 +316,7 @@ export default function PostTypeView({
         {status.stage === "brief" && (
           <>
             <div className={sectionLabel}>Step 1 — Claude&apos;s brief</div>
-            <Markdown text={data.brief || "(brief.md is empty)"} />
+            <BriefSummary text={data.brief} />
             {commentBox(
               "Optional note for the options — or, if something's wrong, say what to change",
             )}
@@ -419,7 +449,7 @@ export default function PostTypeView({
                   act(
                     "signoff",
                     {},
-                    "Sign off? The template and the post are saved to the Drive kit (08. Templates + 07. Output).",
+                    "Sign off? The template is saved to the Drive kit (08. Templates).",
                   )
                 }
               >
@@ -434,8 +464,8 @@ export default function PostTypeView({
             <div className={sectionLabel}>Signed off</div>
             <p className="text-[11px] text-gray-500 dark:text-white/50">
               Saved to the Drive kit: <b>08. Templates</b> (template, example
-              PNG, Canva PDF, how to use) and <b>07. Output</b> (the post). At
-              the event only the logos, photos, names and stats change.
+              PNG, Canva PDF, how to use). Real posts made from it at the event
+              go to <b>07. Output</b>; only the logos, photos, names and stats change.
             </p>
             {current?.post && (
               <div className="md:w-1/2">
