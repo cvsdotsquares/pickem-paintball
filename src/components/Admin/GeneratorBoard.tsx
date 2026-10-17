@@ -267,8 +267,7 @@ export default function GeneratorBoard() {
 
       {/* columns = when it goes out (pre / during / post); rows = must, then nice to have */}
       <section className="overflow-x-auto">
-        <div className="grid min-w-[720px] grid-cols-[110px_repeat(3,minmax(0,1fr))] gap-3">
-          <div />
+        <div className="grid min-w-[720px] grid-cols-3 gap-3">
           {phases.map((p) => (
             <div
               key={p.key}
@@ -284,8 +283,8 @@ export default function GeneratorBoard() {
           ))}
           {(["must", "nice"] as const).map((row) => (
             <Fragment key={row}>
-              <div className={`${sectionLabel} pt-3`}>
-                {row === "must" ? "Must" : "Nice to have"}
+              <div className={`${sectionLabel} col-span-3 pt-3`}>
+                {row === "must" ? "Must have" : "Nice to have"}
               </div>
               {phases.map((p) => (
                 <div
