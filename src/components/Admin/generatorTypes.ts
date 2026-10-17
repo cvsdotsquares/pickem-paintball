@@ -70,3 +70,14 @@ export type Finals = {
   posts: { team: string; name: string; png: string; pdf: string }[];
   teams: { key: string; name: string }[];
 };
+
+/** One graphic on the board / post-type page (a post type can hold several: key = <base> or <base>__2 …). */
+export type GraphicRow = PackItem & {
+  base: string;
+  name: string; // James's name for it ("" until named)
+  display: string; // name, or "<post type> #n"
+  status: Status;
+  running: boolean;
+  failed: boolean;
+  preview: Preview;
+};

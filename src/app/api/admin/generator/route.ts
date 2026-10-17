@@ -60,6 +60,7 @@ export async function GET(request: Request) {
           key: g.key,
           base: p.key,
           name: g.name,
+          display: g.name || `${p.label} #${g.key.split("__")[1] ?? 1}`,
           status: readStatus(event, g.key),
           preview: preview(event, g.key),
           running: !!runningFor(event, g.key),
@@ -84,6 +85,7 @@ export async function GET(request: Request) {
     finals: finals(event, type),
     examples: examples(item.tags),
     graphicName: graphicName(event, type),
+    graphicNumber: Number(type.split("__")[1] ?? 1),
     keyInspo: keyInspo(event, type),
     // an old failure the graphic has since moved past is shown as done, not as a red "stopped" box
     run: run

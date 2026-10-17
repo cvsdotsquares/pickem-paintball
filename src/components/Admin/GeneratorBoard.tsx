@@ -5,23 +5,14 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import {
   genUrl,
   type Busy,
-  type PackItem,
-  type Preview,
-  type Status,
+  type GraphicRow,
 } from "./generatorTypes";
+import GraphicStrip from "./GraphicStrip";
 import NewEventDrawer from "./NewEventDrawer";
-import StagePill from "./StagePill";
 import { Markdown } from "./ReelStudy";
 import { pill, primaryButton, sectionLabel } from "./types";
 
-type TypeRow = PackItem & {
-  base: string; // the post type (bucket); key is this graphic: <base> or <base>__2 …
-  name: string; // this graphic's own name, when a bucket holds several
-  status: Status;
-  running: boolean;
-  failed: boolean;
-  preview: Preview;
-};
+type TypeRow = GraphicRow;
 type Data = {
   events: { id: string; label: string; settingUp?: boolean }[];
   event: string;
@@ -43,37 +34,6 @@ type Data = {
   feedbackToReview: number;
 };
 
-/** What's been made so far: the signed-off post, the current round, or the three options. */
-function CardPreview({ p }: { p: Preview }) {
-  if (p.kind === "none") return null; // nothing made yet: no picture, just the card
-  if (p.kind === "options")
-    return (
-      <div className="grid w-1/2 grid-cols-3 gap-1">
-        {p.images.map((img, i) => (
-          <div key={img} className="relative">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={genUrl(img, true)}
-              alt=""
-              className="aspect-[4/5] w-full rounded object-cover"
-            />
-            <span className="absolute left-1 top-1 rounded bg-black/70 px-1 text-[8px] font-bold text-white">
-              {String.fromCharCode(65 + i)}
-            </span>
-          </div>
-        ))}
-      </div>
-    );
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={genUrl(p.images[0], true)}
-      alt=""
-      className="aspect-[4/5] w-1/2 rounded-lg object-cover"
-    />
-  );
-}
-
 /** Post Generator, event view: the brand board, then one card per post type in the event pack. */
 export default function GeneratorBoard() {
   const [event, setEvent] = useState("");
@@ -93,21 +53,6 @@ export default function GeneratorBoard() {
     const d = await res.json();
     if (!res.ok) setMessage(d.error ?? "Something went wrong");
     load();
-  };
-
-  const addGraphic = async (base: string, label: string) => {
-    const name = window.prompt(
-      `New graphic under "${label}". What is it? (e.g. Team lock deadline)`,
-    );
-    if (!name?.trim()) return;
-    const res = await fetch("/api/admin/generator", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ event: data?.event, type: base, action: "add-graphic", name }),
-    });
-    const d = await res.json();
-    if (!res.ok) return setMessage(d.error ?? "Something went wrong");
-    window.location.href = `/admin/generator/${data?.event}/${d.key}`;
   };
 
   const load = useCallback(async () => {
@@ -171,6 +116,15 @@ export default function GeneratorBoard() {
       (t) => phaseOf(t) === p.key && t.priority === "nice",
     ),
   }));
+
+  // one card per post type, holding all its graphics in order
+  const buckets = (rows: TypeRow[]) =>
+    rows.reduce<TypeRow[][]>((acc, r) => {
+      const last = acc[acc.length - 1];
+      if (last && last[0].base === r.base) last.push(r);
+      else acc.push([r]);
+      return acc;
+    }, []);
 
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-6">
@@ -328,17 +282,9 @@ export default function GeneratorBoard() {
                         None
                       </div>
                     )}
-                    {p[row].map((t, i, all) => {
-                      // after the last graphic of a bucket: add another graphic under the same post type
-                      const addAnother =
-                        data.board.approved && all[i + 1]?.base !== t.base ? (
-                          <button
-                            onClick={() => addGraphic(t.base, t.label)}
-                            className="-mt-1 self-start px-1 text-[10px] font-bold text-gray-400 hover:text-gray-900 hover:underline dark:hover:text-white"
-                          >
-                            + Add another graphic here
-                          </button>
-                        ) : null;
+                    {buckets(p[row]).map((gs) => {
+                      const t = gs[0];
+                      const done = gs.filter((g) => g.status.stage === "signed_off").length;
                       const card = (
                         <div
                           className={`flex h-full flex-col gap-2 rounded-xl border border-gray-100 bg-white p-3 dark:border-white/5 dark:bg-[#0d0d0d] ${
@@ -347,50 +293,31 @@ export default function GeneratorBoard() {
                               : "opacity-50"
                           }`}
                         >
-                          <div className="text-xs font-black leading-snug">
-                            {t.key !== t.base ? <span className="text-gray-400">+ </span> : null}
-                            {t.name || t.label}
-                          </div>
-                          {t.name && (
-                            <div className="-mt-1 text-[9px] text-gray-400 dark:text-white/40">
-                              {t.label}
+                          <div className="flex items-baseline gap-2">
+                            <div className="flex-1 text-xs font-black leading-snug">{t.label}</div>
+                            <div className="shrink-0 text-[9px] text-gray-400 dark:text-white/40">
+                              {gs.length === 1 ? "1 graphic" : `${gs.length} graphics`}
+                              {done > 0 && ` · ${done} templated`}
                             </div>
-                          )}
+                          </div>
                           {t.phase === "Pre/post-event" && (
-                            <div className="text-[9px] uppercase tracking-widest text-gray-400 dark:text-white/40">
+                            <div className="-mt-1 text-[9px] uppercase tracking-widest text-gray-400 dark:text-white/40">
                               Also post-event
                             </div>
                           )}
-                          <div className="flex items-center gap-2">
-                            <StagePill
-                              stage={t.status.stage}
-                              running={t.running}
-                              failed={t.failed}
-                            />
-                            {t.running && (
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault(); // the card is a link
-                                  stopGraphic(t.key, t.name || t.label);
-                                }}
-                                className="rounded border border-gray-300 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-gray-500 hover:border-gray-900 hover:text-gray-900 dark:border-white/20 dark:text-white/50 dark:hover:text-white"
-                              >
-                                Stop
-                              </button>
-                            )}
-                          </div>
-                          <CardPreview p={t.preview} />
+                          <GraphicStrip
+                            event={data.event}
+                            graphics={gs}
+                            onStop={(g) => stopGraphic(g.key, g.display)}
+                          />
                         </div>
                       );
                       return data.board.approved ? (
-                        <Fragment key={t.key}>
-                          <Link href={`/admin/generator/${data.event}/${t.key}`}>
-                            {card}
-                          </Link>
-                          {addAnother}
-                        </Fragment>
+                        <Link key={t.base} href={`/admin/generator/${data.event}/${t.base}`}>
+                          {card}
+                        </Link>
                       ) : (
-                        <div key={t.key} title="Approve the brand board first">
+                        <div key={t.base} title="Approve the brand board first">
                           {card}
                         </div>
                       );

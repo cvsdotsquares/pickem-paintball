@@ -40,6 +40,7 @@ type Data = {
   finals: Finals;
   examples: LibraryItem[];
   graphicName: string;
+  graphicNumber: number;
   keyInspo: string[];
   run: Run;
   busy: Busy;
@@ -279,6 +280,17 @@ export default function PostTypeView({
     load();
   };
 
+  const rename = async () => {
+    const name = window.prompt("Name this graphic (e.g. Picks are Live)", data?.graphicName ?? "");
+    if (name === null) return;
+    await fetch("/api/admin/generator", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event, type, action: "rename-graphic", name }),
+    });
+    load();
+  };
+
   const toggleKey = async (id: string, on: boolean) => {
     const res = await fetch("/api/admin/generator", {
       method: "POST",
@@ -322,18 +334,24 @@ export default function PostTypeView({
       {/* header */}
       <div className="flex flex-wrap items-start gap-4">
         <div className="flex-1">
-          <Link
-            href="/admin/generator"
-            className="text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:underline"
-          >
-            ← {data.eventLabel}
-          </Link>
-          <h1 className="mt-1 text-lg font-black uppercase tracking-wide">
-            {data.graphicName || data.item.label}
+          <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+            <Link href="/admin/generator" className="hover:underline">
+              ← {data.eventLabel}
+            </Link>
+            <span className="mx-1.5">/</span>
+            <Link href={`/admin/generator/${event}/${data.item.key}`} className="hover:underline">
+              {data.item.label}
+            </Link>
+          </div>
+          <h1 className="mt-1 flex items-baseline gap-3 text-lg font-black uppercase tracking-wide">
+            {data.graphicName || `${data.item.label} #${data.graphicNumber}`}
+            <button
+              className="text-[10px] font-bold normal-case tracking-normal text-gray-400 underline hover:text-gray-900 dark:hover:text-white"
+              onClick={rename}
+            >
+              Rename
+            </button>
           </h1>
-          {data.graphicName && (
-            <div className="text-[11px] font-bold text-gray-500 dark:text-white/50">{data.item.label}</div>
-          )}
           <div className="text-[10px] text-gray-400 dark:text-white/40">
             {data.item.phase} ·{" "}
             {data.item.priority === "must" ? "Must" : "Nice to have"} ·
