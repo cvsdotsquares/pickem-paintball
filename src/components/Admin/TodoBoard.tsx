@@ -84,7 +84,12 @@ export default function TodoBoard() {
   const group: Group = pivot === "stage" ? "stages" : "streams";
   const columns = board[group];
   const live = board.cards.filter((c) => !c.archived);
-  const inColumn = (key: string) => live.filter((c) => c[pivot] === key).sort((a, b) => a.order - b.order);
+  // by work stream, cards are grouped by stage (James, 17 Oct); within a stage (and by progress) they keep their order
+  const stageIndex = (k: string) => board.stages.findIndex((s) => s.key === k);
+  const inColumn = (key: string) =>
+    live
+      .filter((c) => c[pivot] === key)
+      .sort((a, b) => (pivot === "stream" ? stageIndex(a.stage) - stageIndex(b.stage) : 0) || a.order - b.order);
   const streamOf = (k: string) => board.streams.find((s) => s.key === k);
   const stageOf = (k: string) => board.stages.find((s) => s.key === k);
   const open = board.cards.find((c) => c.id === openId) ?? null;
