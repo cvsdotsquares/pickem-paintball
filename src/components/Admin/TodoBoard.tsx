@@ -134,7 +134,7 @@ export default function TodoBoard() {
     <main className="flex h-[calc(100vh-45px)] flex-col gap-4 px-5 py-5">
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex-1">
-          <h1 className="text-lg font-black uppercase tracking-wide">TODO</h1>
+          <h1 className="text-lg font-black uppercase tracking-wide">TO DO</h1>
           <div className="text-[10px] text-gray-400 dark:text-white/40">
             {live.filter((c) => c.stage !== "done").length} open · {live.length} cards · everything outstanding, one board ·
             drag a card to move it

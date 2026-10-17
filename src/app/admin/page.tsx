@@ -14,7 +14,7 @@ const PAGES = [
   },
   {
     href: "/admin/todo",
-    title: "TODO",
+    title: "TO DO",
     blurb: "All outstanding work on one Trello-style board. Pivot by progress or by work stream; click a card for the detail.",
   },
   { title: "Event setup", blurb: "Later." },

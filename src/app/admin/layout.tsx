@@ -23,7 +23,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             Post Generator
           </Link>
           <Link href="/admin/todo" className="hover:text-gray-900 dark:hover:text-white">
-            TODO
+            TO DO
           </Link>
         </nav>
         <span className="ml-auto text-[9px] uppercase tracking-widest text-gray-300 dark:text-white/25">
