@@ -253,6 +253,7 @@ export default function TodoBoard() {
           board={board}
           onSave={(patch) => saveCard({ id: open.id, ...patch })}
           onComment={(text) => send({ action: "comment", id: open.id, text })}
+          onDelete={() => send({ action: "delete", id: open.id })}
           onClose={() => setOpenId(null)}
         />
       )}
@@ -374,12 +375,14 @@ function CardDrawer({
   board,
   onSave,
   onComment,
+  onDelete,
   onClose,
 }: {
   card: Card;
   board: Board;
   onSave: (patch: Partial<Card>) => Promise<Board | null>;
   onComment: (text: string) => Promise<Board | null>;
+  onDelete: () => Promise<Board | null>;
   onClose: () => void;
 }) {
   const [title, setTitle] = useState(card.title);
@@ -548,6 +551,16 @@ function CardDrawer({
             className="rounded-lg border border-gray-200 px-3 py-1.5 font-bold uppercase tracking-widest hover:border-red-400 hover:text-red-500 dark:border-white/10"
           >
             Archive
+          </button>
+          <button
+            onClick={async () => {
+              if (window.confirm(`Delete "${card.title}" for good?`)) {
+                if (await onDelete()) onClose();
+              }
+            }}
+            className="rounded-lg border border-red-200 px-3 py-1.5 font-bold uppercase tracking-widest text-red-500 hover:bg-red-500 hover:text-white dark:border-red-500/40"
+          >
+            Delete
           </button>
         </div>
       </aside>

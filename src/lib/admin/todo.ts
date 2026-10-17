@@ -88,6 +88,15 @@ export function saveCard(patch: Partial<Card>): Board {
   return b;
 }
 
+/** Delete a card for good (James, 17 Oct). The backup taken before this save still has it. */
+export function deleteCard(id: string): Board {
+  const b = readBoard();
+  if (!b.cards.some((c) => c.id === id)) throw new Error("Card not found");
+  b.cards = b.cards.filter((c) => c.id !== id);
+  writeBoard(b);
+  return b;
+}
+
 export function addComment(id: string, text: string, by = "James"): Board {
   const b = readBoard();
   const card = b.cards.find((c) => c.id === id);
