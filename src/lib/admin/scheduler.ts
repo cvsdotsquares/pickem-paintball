@@ -45,6 +45,7 @@ export type SlotView = Slot & {
   priority: string;
   stage: string; // generator stage of the graphic
   placeholder: boolean;
+  templated: boolean; // template signed off, final post not made yet (waiting on data): the general manager's cue
   preview: string[]; // slides, or the generator's current preview for a placeholder
   data: { source: string; madeAt: string; test: boolean; typed: Record<string, string>; waiting: { label: string; hint: string }[] };
   variants: { key: string; name: string; png: string; caption: string }[]; // made posts of this graphic to pick from
@@ -60,6 +61,7 @@ export type TrayItem = {
   priority: string;
   png: string; // "" for a placeholder
   placeholder: boolean;
+  templated: boolean;
 };
 
 const COLLECTION = "scheduledPosts";
@@ -144,7 +146,7 @@ function checks(s: Slot, stage: string, data: SlotView["data"]): Check[] {
   const block = (text: string) => out.push({ level: "block", text });
   const warn = (text: string) => out.push({ level: "warn", text });
   if (stage !== "signed_off") block("Template not signed off yet (Post Generator)");
-  if (!s.slides.length) block("Final post not made yet (Populate in the Post Generator)");
+  if (!s.slides.length) block(stage === "signed_off" ? "Templated: final post not made yet (Populate once the data is in)" : "Final post not made yet");
   for (const sl of s.slides) if (!fs.existsSync(path.join(GEN, sl))) block(`Slide missing on disk: ${path.basename(path.dirname(sl))}`);
   if (s.slides.length > 10) block("Instagram carousels take at most 10 slides");
   if (data.test) block("Made with stand-in (test) data");
@@ -177,6 +179,7 @@ function view(s: Slot): SlotView {
   const placeholder = !s.slides.length;
   return {
     ...s,
+    templated: placeholder && st.stage === "signed_off",
     label: p?.label ?? s.type,
     graphic: graphicName(s.event, s.type),
     phase: p?.phase ?? "",
@@ -212,10 +215,17 @@ export function tray(event: string, slots: Slot[]): TrayItem[] {
         for (const m of made) {
           if (taken.has(`${g.key}|${m.key}`)) continue;
           // (A placeholder already on the calendar for this graphic picks its made post in its own panel.)
-          out.push({ ...base, variant: m.key, title: titleFor(event, g.key, m.key), png: m.png, placeholder: false });
+          out.push({ ...base, variant: m.key, title: titleFor(event, g.key, m.key), png: m.png, placeholder: false, templated: false });
         }
       } else if (!taken.has(`${g.key}|`)) {
-        out.push({ ...base, variant: "", title: titleFor(event, g.key, ""), png: "", placeholder: true });
+        out.push({
+          ...base,
+          variant: "",
+          title: titleFor(event, g.key, ""),
+          png: "",
+          placeholder: true,
+          templated: readStatus(event, g.key).stage === "signed_off",
+        });
       }
     }
   }

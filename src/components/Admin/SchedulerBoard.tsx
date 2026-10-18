@@ -35,13 +35,14 @@ type Slot = {
   priority: string;
   stage: string;
   placeholder: boolean;
+  templated: boolean;
   preview: string[];
   data: { source: string; madeAt: string; test: boolean; typed: Record<string, string>; waiting: { label: string; hint: string }[] };
   variants: { key: string; name: string; png: string; caption: string }[];
   checks: Check[];
   link: string;
 };
-type TrayItem = { type: string; variant: string; title: string; label: string; phase: string; priority: string; png: string; placeholder: boolean };
+type TrayItem = { type: string; variant: string; title: string; label: string; phase: string; priority: string; png: string; placeholder: boolean; templated: boolean };
 type Data = {
   event: string;
   events: { id: string; label: string }[];
@@ -83,8 +84,11 @@ const addDays = (s: string, n: number) => {
 /** Monday on or before the date (weeks start on Monday). */
 const monday = (s: string) => addDays(s, -((parse(s).getDay() + 6) % 7));
 
-/** Status → pill (panel colours: orange = your turn, blue = scheduled/working, green = done, red = failed). */
+/** Templated gets its own light-blue tone; the rest are the panel's (orange = your turn, blue = scheduled, green = done, red = failed). */
+const tone = (t: string) => (t === "templated" ? "bg-[#39b5e6]/20 text-[#1a3c6e] dark:text-[#39b5e6]" : toneClass(t));
+
 function statusPill(s: Slot): { label: string; tone: string } {
+  if (s.templated) return { label: "Templated", tone: "templated" };
   if (s.placeholder) return { label: "Not made yet", tone: "grey" };
   if (s.status === "draft") return { label: s.checks.some((c) => c.level === "block") ? "Blocked" : "Needs approval", tone: "orange" };
   if (s.status === "approved") return { label: "Scheduled", tone: "blue" };
@@ -94,6 +98,7 @@ function statusPill(s: Slot): { label: string; tone: string } {
 }
 const edge: Record<string, string> = {
   grey: "border-l-gray-300 dark:border-l-white/20",
+  templated: "border-l-[#39b5e6]",
   orange: "border-l-orange-500",
   blue: "border-l-[#1a3c6e] dark:border-l-[#39b5e6]",
   green: "border-l-green-600",
@@ -249,12 +254,13 @@ export default function SchedulerBoard() {
         <span className="ml-auto flex flex-wrap items-center gap-2 text-[10px] text-gray-400 dark:text-white/40">
           {[
             ["grey", "Not made yet"],
+            ["templated", "Templated (waiting on data)"],
             ["orange", "Needs approval / blocked"],
             ["blue", "Scheduled"],
             ["green", "Posted"],
             ["red", "Failed"],
           ].map(([t, l]) => (
-            <span key={t} className={`rounded-full px-2 py-0.5 font-bold ${toneClass(t)}`}>
+            <span key={t} className={`rounded-full px-2 py-0.5 font-bold ${tone(t)}`}>
               {l}
             </span>
           ))}
@@ -294,9 +300,11 @@ export default function SchedulerBoard() {
                     draggable
                     onDragStart={(e) => e.dataTransfer.setData("text/plain", JSON.stringify({ tray: t }))}
                     onClick={() => setAdding(t)}
-                    title={t.placeholder ? "Not made yet: place it to hold the date" : t.title}
+                    title={t.templated ? "Templated: signed off, waiting on data. Place it to set when it goes out" : t.placeholder ? "Not made yet: place it to hold the date" : t.title}
                     className={`flex cursor-grab items-center gap-2 rounded-lg border p-1.5 text-[11px] active:cursor-grabbing ${
-                      t.placeholder
+                      t.templated
+                        ? "border-dashed border-[#39b5e6] text-gray-700 dark:text-white/70"
+                        : t.placeholder
                         ? "border-dashed border-gray-300 text-gray-500 dark:border-white/15 dark:text-white/50"
                         : "border-gray-100 hover:border-gray-400 dark:border-white/5 dark:hover:border-white/30"
                     }`}
@@ -305,7 +313,9 @@ export default function SchedulerBoard() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={genUrl(t.png, true)} alt="" className="h-9 w-9 shrink-0 rounded object-cover" />
                     ) : (
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-gray-100 text-[9px] dark:bg-white/5">plan</span>
+                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded text-[9px] ${t.templated ? "bg-[#39b5e6]/20 text-[#1a3c6e] dark:text-[#39b5e6]" : "bg-gray-100 dark:bg-white/5"}`}>
+                        {t.templated ? "tmpl" : "plan"}
+                      </span>
                     )}
                     <span className="line-clamp-2">
                       {t.title}
@@ -444,7 +454,9 @@ function SlotChip({ s, big, onClick }: { s: Slot; big: boolean; onClick: () => v
         // eslint-disable-next-line @next/next/no-img-element
         <img src={genUrl(s.preview[0], true)} alt="" className={`${big ? "aspect-[4/5] w-full" : "h-7 w-7"} shrink-0 rounded object-cover ${s.placeholder ? "grayscale" : ""}`} />
       ) : (
-        <span className={`${big ? "aspect-[4/5] w-full" : "h-7 w-7"} flex shrink-0 items-center justify-center rounded bg-gray-100 text-[8px] dark:bg-white/5`}>plan</span>
+        <span className={`${big ? "aspect-[4/5] w-full" : "h-7 w-7"} flex shrink-0 items-center justify-center rounded text-[8px] ${s.templated ? "bg-[#39b5e6]/20" : "bg-gray-100 dark:bg-white/5"}`}>
+          {s.templated ? "tmpl" : "plan"}
+        </span>
       )}
       <span className="min-w-0 flex-1">
         <span className="block font-bold">
@@ -452,7 +464,7 @@ function SlotChip({ s, big, onClick }: { s: Slot; big: boolean; onClick: () => v
           {s.slides.length > 1 && <span className="ml-1 font-normal text-gray-400">· {s.slides.length} slides</span>}
         </span>
         <span className={`block ${big ? "" : "truncate"}`}>{s.title}</span>
-        {big && <span className={`mt-1 inline-block rounded-full px-2 py-0.5 font-bold ${toneClass(p.tone)}`}>{p.label}</span>}
+        {big && <span className={`mt-1 inline-block rounded-full px-2 py-0.5 font-bold ${tone(p.tone)}`}>{p.label}</span>}
       </span>
     </button>
   );
@@ -522,7 +534,7 @@ function SlotDrawer({
           <div className="flex-1">
             <div className="text-base font-black">{s.title}</div>
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className={`rounded-full px-3 py-1 text-[11px] font-bold ${toneClass(p.tone)}`}>{p.label}</span>
+              <span className={`rounded-full px-3 py-1 text-[11px] font-bold ${tone(p.tone)}`}>{p.label}</span>
               <Link href={s.link} className="text-[11px] text-gray-500 hover:underline dark:text-white/50">
                 Open in Post Generator ↗
               </Link>
@@ -731,7 +743,9 @@ function SlotDrawer({
         <div className="flex flex-col gap-1.5">
           <span className={sectionLabel}>Data it needs</span>
           {s.data.waiting.length === 0 && Object.keys(s.data.typed).length === 0 ? (
-            <span className="text-[12px] text-gray-500 dark:text-white/50">{s.placeholder ? "Known once the template is signed off." : "Nothing missing."}</span>
+            <span className="text-[12px] text-gray-500 dark:text-white/50">
+              {s.templated ? "Template signed off. Populate it in the Post Generator once the data is in, then this slot picks up the post." : s.placeholder ? "Known once the template is signed off." : "Nothing missing."}
+            </span>
           ) : (
             <ul className="flex flex-col gap-1 text-[12px]">
               {s.data.waiting.map((w) => (
