@@ -17,7 +17,7 @@ import { pill, primaryButton, sectionLabel } from "./types";
  */
 
 type Check = { level: "block" | "warn"; text: string };
-type Agent = { id: string; name: string; icon: string; colour: string; blurb: string };
+type Agent = { id: string; name: string; icon: string; colour: string; blurb: string; kind?: "agent" | "job"; parent?: string; enabled?: boolean };
 type PathStep = { label: string; agent: string; state: "done" | "now" | "next" | "blocked"; when: string };
 type Slot = {
   id: string;
@@ -239,6 +239,8 @@ export default function SchedulerBoard() {
 
   const slot = data?.slots.find((s) => s.id === open) ?? null;
   const today = todayET();
+  // Lanes: the agents (never the design reviewer, which is never on the Schedule) plus any job that has something this week.
+  const lanes = agents.filter((a) => a.id !== "reviewer" && (a.kind !== "job" || days.some((d) => (byDay[d] ?? []).some((s) => s.agent === a.id))));
   const needs = data?.needsYou ?? [];
   const [showAllNeeds, setShowAllNeeds] = useState(false);
 
@@ -387,7 +389,7 @@ export default function SchedulerBoard() {
                   </div>
                 ))}
               </div>
-              {agents.map((a) => (
+              {lanes.map((a) => (
                 <div key={a.id} className="grid min-h-[120px] grid-cols-[150px_repeat(7,minmax(120px,1fr))] border-b border-gray-100 dark:border-white/5">
                   <div className="flex items-start gap-2 border-r border-gray-100 p-2 dark:border-white/5" title={a.blurb}>
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[14px]" style={{ background: a.colour + "22" }}>
