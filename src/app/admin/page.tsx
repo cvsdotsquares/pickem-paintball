@@ -22,6 +22,11 @@ const PAGES = [
     title: "Schedule",
     blurb: "One calendar of an event's posts, the agents' work and what needs you. Click anything for the detail; approve a post and it goes out on Instagram + Facebook by itself.",
   },
+  {
+    href: "/admin/workflows",
+    title: "Workflows",
+    blurb: "The team of agents: who reports to whom, what each did and does next, the Manager's daily brief, every workflow as a chain of steps, on/off switches and run now.",
+  },
   { title: "Event setup", blurb: "Later." },
   { title: "Site + subscription metrics", blurb: "Later." },
 ];

@@ -28,6 +28,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <Link href="/admin/scheduler" className="hover:text-gray-900 dark:hover:text-white">
             Schedule
           </Link>
+          <Link href="/admin/workflows" className="hover:text-gray-900 dark:hover:text-white">
+            Workflows
+          </Link>
         </nav>
         <span className="ml-auto text-[9px] uppercase tracking-widest text-gray-300 dark:text-white/25">
           Runs on this Mac only
