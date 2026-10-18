@@ -17,11 +17,22 @@ import { baseOf, eventPack, finals, GEN, graphicName, graphics, listEvents, read
  *
  * Approve uploads the slides to the Pick'Em Facebook Page as hidden photos (the cloud job posts those to
  * Instagram + Facebook at the time). Nothing un-approved is ever sent.
+ *
+ * The same collection also holds the other things on the Schedule (James, 18 Oct): an agent's **work**
+ * (kind "work": the general manager populating a post, a data job) and **actions** only James can do (kind
+ * "action"). Those use status "planned" / "done", so the cloud job's `status == approved` query never sees
+ * them. Who does what: pickem-hub/scheduler/agents.json (icon + colour per agent).
  */
 
-export type SlotStatus = "draft" | "approved" | "sending" | "posted" | "failed";
+export type SlotStatus = "draft" | "approved" | "sending" | "posted" | "failed" | "planned" | "done";
+export type Kind = "post" | "work" | "action";
+export type Agent = { id: string; name: string; icon: string; colour: string; blurb: string };
+export type PathStep = { label: string; agent: string; state: "done" | "now" | "next" | "blocked"; when: string };
 export type Slot = {
   id: string;
+  kind: Kind;
+  agent: string; // agents.json id ("posts" for a post)
+  duration: number; // minutes, work items
   event: string;
   type: string;
   variant: string;
@@ -51,7 +62,9 @@ export type SlotView = Slot & {
   variants: { key: string; name: string; png: string; caption: string }[]; // made posts of this graphic to pick from
   checks: Check[];
   link: string; // the graphic's Post Generator page
+  path: PathStep[]; // data → populate → approve → post, with who and when
 };
+export type NeedsYou = { id: string; text: string; due: string | null; tone: "orange" | "red" };
 export type TrayItem = {
   type: string;
   variant: string;
@@ -67,6 +80,15 @@ export type TrayItem = {
 const COLLECTION = "scheduledPosts";
 const GRAPH = "https://graph.facebook.com/v26.0/";
 const EVENTS_JSON = path.join(HUB, "scheduler", "events.json");
+const AGENTS_JSON = path.join(HUB, "scheduler", "agents.json");
+
+export function agents(): Agent[] {
+  try {
+    return JSON.parse(fs.readFileSync(AGENTS_JSON, "utf8")).agents ?? [];
+  } catch {
+    return [];
+  }
+}
 const META_ENV = path.join(os.homedir(), ".config", "pickem-scheduler", "meta.env");
 
 /** Its own named app: the Mac's gcloud login (application default credentials), never the site's keys. */
@@ -91,6 +113,9 @@ const iso = (v: unknown): string | null => (v instanceof Timestamp ? v.toDate().
 function toSlot(id: string, d: FirebaseFirestore.DocumentData): Slot {
   return {
     id,
+    kind: d.kind ?? "post",
+    agent: d.agent ?? "posts",
+    duration: d.duration ?? 0,
     event: d.event ?? "",
     type: d.type ?? "",
     variant: d.variant ?? "",
@@ -145,6 +170,10 @@ function checks(s: Slot, stage: string, data: SlotView["data"]): Check[] {
   const out: Check[] = [];
   const block = (text: string) => out.push({ level: "block", text });
   const warn = (text: string) => out.push({ level: "warn", text });
+  if (s.kind !== "post") {
+    if (!s.publishAt) block("No time set");
+    return out;
+  }
   if (stage !== "signed_off") block("Template not signed off yet (Post Generator)");
   if (!s.slides.length) block(stage === "signed_off" ? "Templated: final post not made yet (Populate once the data is in)" : "Final post not made yet");
   for (const sl of s.slides) if (!fs.existsSync(path.join(GEN, sl))) block(`Slide missing on disk: ${path.basename(path.dirname(sl))}`);
@@ -164,7 +193,48 @@ function checks(s: Slot, stage: string, data: SlotView["data"]): Check[] {
   return out;
 }
 
+/** The chain behind a post: data → populate (general manager) → approve (James) → post. */
+function pathFor(s: Slot, stage: string, data: SlotView["data"], placeholder: boolean): PathStep[] {
+  if (s.kind !== "post") return [];
+  const posted = s.status === "posted";
+  const approved = s.status === "approved" || s.status === "sending" || posted;
+  const made = !placeholder;
+  const waiting = data.waiting.length > 0;
+  const at = s.publishAt ?? "";
+  const steps: PathStep[] = [];
+  if (stage !== "signed_off") steps.push({ label: "Template signed off", agent: "james", state: "now", when: "" });
+  steps.push({
+    label: waiting ? `Data: waiting on ${data.waiting.map((w) => w.label).join(", ")}` : made ? `Data in (${data.source || "source"})` : "Data in",
+    agent: "data",
+    state: made ? "done" : waiting ? "blocked" : stage === "signed_off" ? "now" : "next",
+    when: "",
+  });
+  steps.push({ label: "Populate the final post", agent: "gm", state: made ? "done" : waiting ? "next" : stage === "signed_off" ? "now" : "next", when: "" });
+  steps.push({ label: approved ? "Approved" : "You approve", agent: "james", state: approved ? "done" : made && !waiting ? "now" : "next", when: approved ? s.approvedAt ?? "" : at });
+  steps.push({ label: posted ? "Posted" : s.status === "failed" ? "Post failed" : "Posts to Instagram + Facebook", agent: "posts", state: posted ? "done" : s.status === "failed" ? "blocked" : approved ? "now" : "next", when: at });
+  return steps;
+}
+
 function view(s: Slot): SlotView {
+  if (s.kind !== "post") {
+    const data = { source: "", madeAt: "", test: false, typed: {}, waiting: [] };
+    return {
+      ...s,
+      templated: false,
+      label: s.kind === "work" ? "Agent work" : "Your action",
+      graphic: "",
+      phase: "",
+      priority: "",
+      stage: "",
+      placeholder: false,
+      preview: [],
+      data,
+      variants: [],
+      checks: checks(s, "", data),
+      link: "",
+      path: [],
+    };
+  }
   const p = packItem(s.type);
   const f = finals(s.event, s.type);
   const st = readStatus(s.event, s.type);
@@ -191,7 +261,28 @@ function view(s: Slot): SlotView {
     variants,
     checks: checks(s, st.stage, data),
     link: `/admin/generator/${s.event}/${baseOf(s.type)}/${s.type}`,
+    path: pathFor(s, st.stage, data, placeholder),
   };
+}
+
+/**
+ * The "needs you" strip: everything only James can move, oldest deadline first. Derived from the slots,
+ * so there is nothing to keep up to date by hand.
+ */
+export function needsYou(slots: SlotView[]): NeedsYou[] {
+  const out: NeedsYou[] = [];
+  for (const s of slots) {
+    if (s.kind === "action" && s.agent === "james" && s.status !== "done") out.push({ id: s.id, text: s.title, due: s.publishAt, tone: "orange" });
+    if (s.kind !== "post") continue;
+    const blocks = s.checks.filter((c) => c.level === "block");
+    if (s.status === "failed") out.push({ id: s.id, text: `Failed: ${s.title} (${s.error || "see the panel"})`, due: s.publishAt, tone: "red" });
+    else if (s.status === "draft" && !blocks.length) out.push({ id: s.id, text: `Approve ${s.title}`, due: s.publishAt, tone: "orange" });
+    else if (s.status === "draft" && s.placeholder && !s.templated && s.variants.length) out.push({ id: s.id, text: `Pick the version for ${s.title}`, due: s.publishAt, tone: "orange" });
+    else if (s.status === "draft" && s.data.waiting.some((w) => /tab|xlsx|databook|add /i.test(w.hint)))
+      for (const w of s.data.waiting.filter((w) => /tab|xlsx|databook|add /i.test(w.hint))) out.push({ id: s.id, text: `${w.hint.split(" (")[0]} (for ${s.title})`, due: s.publishAt, tone: "orange" });
+    if (s.status === "approved" && s.checks.some((c) => c.text.startsWith("The graphic was re-made"))) out.push({ id: s.id, text: `Re-approve ${s.title} (graphic re-made)`, due: s.publishAt, tone: "orange" });
+  }
+  return out.sort((a, b) => (a.due ?? "9").localeCompare(b.due ?? "9"));
 }
 
 export async function listSlots(event: string): Promise<SlotView[]> {
@@ -206,7 +297,7 @@ export async function listSlots(event: string): Promise<SlotView[]> {
  */
 export function tray(event: string, slots: Slot[]): TrayItem[] {
   const out: TrayItem[] = [];
-  const taken = new Set(slots.map((s) => `${s.type}|${s.variant}`));
+  const taken = new Set(slots.filter((s) => s.kind === "post").map((s) => `${s.type}|${s.variant}`));
   for (const p of eventPack()) {
     for (const g of graphics(event, p.key)) {
       const made = madePosts(event, g.key);
@@ -268,6 +359,8 @@ export async function addSlot(event: string, type: string, variant: string, at: 
   const ref = await db()
     .collection(COLLECTION)
     .add({
+      kind: "post",
+      agent: "posts",
       event,
       type,
       variant,
@@ -285,12 +378,14 @@ export async function addSlot(event: string, type: string, variant: string, at: 
 /** Edit a draft: time (ET), caption, notes, slides, or pick the made post a placeholder becomes. */
 export async function saveSlot(
   id: string,
-  patch: { at?: string; caption?: string; notes?: string; slides?: string[]; variant?: string },
+  patch: { at?: string; caption?: string; notes?: string; slides?: string[]; variant?: string; title?: string; duration?: number },
 ): Promise<void> {
   const s = await getSlot(id);
   const onlyNotes = Object.keys(patch).every((k) => k === "notes");
-  if (s.status !== "draft" && s.status !== "failed" && !onlyNotes) throw new Error("Un-approve it first to change it");
+  if (s.kind === "post" && s.status !== "draft" && s.status !== "failed" && !onlyNotes) throw new Error("Un-approve it first to change it");
   const up: Record<string, unknown> = {};
+  if (patch.title !== undefined && s.kind !== "post") up.title = patch.title.trim() || s.title;
+  if (patch.duration !== undefined && s.kind === "work") up.duration = Math.max(0, Math.round(patch.duration));
   if (patch.at !== undefined) up.publishAt = Timestamp.fromDate(eastern(patch.at));
   if (patch.caption !== undefined) up.caption = patch.caption;
   if (patch.notes !== undefined) up.notes = patch.notes;
@@ -306,8 +401,76 @@ export async function saveSlot(
     up.slides = [m.png];
     if (!s.caption.trim()) up.caption = m.caption;
   }
-  if (s.status === "failed" && !onlyNotes) up.status = "draft";
+  if (s.kind === "post" && s.status === "failed" && !onlyNotes) up.status = "draft";
   await db().collection(COLLECTION).doc(id).update(up);
+}
+
+/**
+ * "Spread these": lay a group of made posts over a date range as drafts, `times` per day (ET, e.g.
+ * ["12:00", "18:00"]), in the order given, evenly across the days. Returns how many were added.
+ */
+export async function spread(event: string, type: string, variants: string[], from: string, to: string, times: string[]): Promise<number> {
+  const made = madePosts(event, type);
+  const picked = variants.map((v) => made.find((m) => m.key === v)).filter((m): m is NonNullable<typeof m> => !!m);
+  if (!picked.length) throw new Error("Nothing to spread");
+  if (!times.length) throw new Error("Pick at least one time a day");
+  const days: string[] = [];
+  for (let d = new Date(`${from}T12:00:00Z`); d.toISOString().slice(0, 10) <= to; d.setUTCDate(d.getUTCDate() + 1)) days.push(d.toISOString().slice(0, 10));
+  if (!days.length) throw new Error("The date range is empty");
+  const slotsAvail = days.length * times.length;
+  if (picked.length > slotsAvail) throw new Error(`${picked.length} posts won't fit in ${slotsAvail} slots: add days or times`);
+  // Even spacing: pick `picked.length` of the available slots, spread across the range.
+  const all = days.flatMap((day) => times.map((t) => `${day}T${t}`));
+  const chosen = picked.map((_, i) => all[Math.floor(((i + 0.5) * all.length) / picked.length)]);
+  const batch = db().batch();
+  picked.forEach((m, i) =>
+    batch.set(db().collection(COLLECTION).doc(), {
+      kind: "post",
+      agent: "posts",
+      event,
+      type,
+      variant: m.key,
+      title: titleFor(event, type, m.key),
+      status: "draft",
+      publishAt: Timestamp.fromDate(eastern(chosen[i])),
+      caption: m.caption,
+      slides: [m.png],
+      notes: "",
+      createdAt: FieldValue.serverTimestamp(),
+    }),
+  );
+  await batch.commit();
+  return picked.length;
+}
+
+/** A task on the Schedule: an agent's work or something James must do. Agents add theirs through this too. */
+export async function addTask(event: string, kind: "work" | "action", agent: string, title: string, at: string, duration: number, notes: string): Promise<string> {
+  if (!agents().some((a) => a.id === agent)) throw new Error("Unknown agent");
+  if (!title.trim()) throw new Error("Give the task a name");
+  const ref = await db()
+    .collection(COLLECTION)
+    .add({
+      kind,
+      agent,
+      event,
+      type: "",
+      variant: "",
+      title: title.trim(),
+      status: "planned",
+      publishAt: Timestamp.fromDate(eastern(at)),
+      duration: Math.max(0, Math.round(duration || 0)),
+      caption: "",
+      slides: [],
+      notes,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  return ref.id;
+}
+
+export async function setDone(id: string, done: boolean): Promise<void> {
+  const s = await getSlot(id);
+  if (s.kind === "post") throw new Error("Posts are approved, not ticked");
+  await db().collection(COLLECTION).doc(id).update({ status: done ? "done" : "planned", doneAt: done ? FieldValue.serverTimestamp() : FieldValue.delete() });
 }
 
 async function uploadHidden(slide: string, env: Record<string, string>): Promise<string> {
@@ -379,7 +542,7 @@ export async function postNow(id: string): Promise<void> {
 
 export async function removeSlot(id: string): Promise<void> {
   const s = await getSlot(id);
-  if (s.status === "sending" || s.status === "posted") throw new Error("It has gone out (or is going out), so it stays on the calendar");
+  if (s.kind === "post" && (s.status === "sending" || s.status === "posted")) throw new Error("It has gone out (or is going out), so it stays on the calendar");
   if (s.status === "approved") await unapprove(id);
   await db().collection(COLLECTION).doc(id).delete();
 }

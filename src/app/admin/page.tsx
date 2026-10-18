@@ -19,8 +19,8 @@ const PAGES = [
   },
   {
     href: "/admin/scheduler",
-    title: "Scheduler",
-    blurb: "An event's posts on a calendar. Click one for its caption, data and blockers; approve it and it goes out on Instagram + Facebook by itself.",
+    title: "Schedule",
+    blurb: "One calendar of an event's posts, the agents' work and what needs you. Click anything for the detail; approve a post and it goes out on Instagram + Facebook by itself.",
   },
   { title: "Event setup", blurb: "Later." },
   { title: "Site + subscription metrics", blurb: "Later." },

@@ -26,7 +26,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             TO DO
           </Link>
           <Link href="/admin/scheduler" className="hover:text-gray-900 dark:hover:text-white">
-            Scheduler
+            Schedule
           </Link>
         </nav>
         <span className="ml-auto text-[9px] uppercase tracking-widest text-gray-300 dark:text-white/25">
