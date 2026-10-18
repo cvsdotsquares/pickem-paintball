@@ -79,6 +79,25 @@ function humanAction(l: LogLine, byId: Record<string, AgentRow>, jobName: (id: s
   return `${who} · ${job}: ${l.action}${l.note ? ` — ${l.note}` : ""}`;
 }
 
+/**
+ * "Chat to the Manager / Data agent / Social agent" (James, 18 Oct): a new Claude Code session in pickem-hub with the
+ * agent's role as its first message, like the TO DO board's "Work on this in Claude". The Manager's chat is where the
+ * team's ways of working change (playbook, agents.json, skills) and it cascades to the other agents; an agent's own chat
+ * is for its own work and responsibilities. Stage 2 gives Data and Social their skills.
+ */
+function chatLink(a: AgentRow): string {
+  const skill = { gm: "pickem-manager", data: "pickem-data", social: "pickem-social-growth" }[a.id] ?? "";
+  const lines = [
+    `Let's talk. You are the ${a.name} ${a.icon} on Pick'Em Paintball's team of agents (plan: ideas/2026-10-18-agents-plan.md; the team: scheduler/agents.json; every job: scheduler/playbook.json; how runs work: agents/README.md).`,
+    a.id === "gm"
+      ? "Follow the pickem-manager skill (section “Chat with James”). This chat is where we discuss tasks, the agents' responsibilities and our ways of working. When I ask for a change: a responsibility → agents.json blurb and the playbook; a task → the playbook (and a Schedule slot through the admin API if it's dated); a way of working → your skill and the plan doc. Cascade anything that belongs to the Data agent or the Social media agent: change their playbook jobs and leave them a dated note under “From the Manager” in their skill (pickem-data / pickem-social-growth; until those exist in stage 2, in ideas/2026-10-18-agents-plan.md under a “Notes for stage 2” heading)."
+      : `${skill ? `Your skill will be ${skill} (stage 2); until it exists, this chat is for your responsibilities and how your jobs should work, not for doing them. ` : ""}When I ask for a change to your work: edit your jobs in scheduler/playbook.json (when, needs-first, done-looks-like, checks, writes vs asks) and note decisions in ideas/2026-10-18-agents-plan.md under “Notes for stage 2”. Anything that changes another agent's work or the team's rules goes to the Manager: say so and I'll take it there.`,
+    "James's rules: one step at a time, plain language, one question at a time, approval before building anything, never deploy without being asked. Start by telling me in a short paragraph where things stand for you right now (python3 agents/playbook.py schedule, your latest reports in agents/runs/), then ask what I want to talk about.",
+  ];
+  const q = new URLSearchParams({ q: lines.join("\n\n").slice(0, 13000), folder: "~/Documents/pickem-hub" });
+  return `claude://code/new?${q.toString()}`;
+}
+
 export default function WorkflowsBoard() {
   const [data, setData] = useState<View | null>(null);
   const [error, setError] = useState("");
@@ -145,6 +164,11 @@ export default function WorkflowsBoard() {
           <h1 className="text-2xl font-black uppercase tracking-wide">{dayOf(today + "T12:00:00")}</h1>
           <div className="text-[12px] text-gray-500 dark:text-white/50">{phase} · lock {dayOf(data.anchors.lock)} {timeOf(data.anchors.lock)} ET · event {dayOf(data.anchors.day_one)} – {dayOf(data.anchors.event_end)}</div>
         </div>
+        {byId.gm && (
+          <a href={chatLink(byId.gm)} className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-black uppercase tracking-widest hover:border-gray-900 dark:border-white/20 dark:hover:border-white" title="Discuss tasks, responsibilities and ways of working; the Manager cascades changes to the agents">
+            💬 Chat to the Manager
+          </a>
+        )}
         <button className={primaryButton} disabled={busy} onClick={() => act({ action: "run", agent: "gm", job: "morning" })} title="Plan if needed, update the inputs list, post the brief">
           🧢 Run the Manager now
         </button>
@@ -426,6 +450,9 @@ function Desk({ c, byId, today, busy, act, onOpen, jobName }: { c: Card; byId: R
           <div className="text-sm font-black uppercase tracking-widest">{a.name}&apos;s desk</div>
           <div className="text-[11px] text-gray-500 dark:text-white/50">{a.blurb}</div>
         </div>
+        <a href={chatLink(a)} className="rounded-lg border border-gray-300 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest hover:border-gray-900 dark:border-white/20 dark:hover:border-white" title={a.id === "gm" ? "Discuss tasks, responsibilities and ways of working" : "Discuss this agent's own work and responsibilities"}>
+          💬 Chat to {a.id === "gm" ? "the Manager" : a.name.replace(" media agent", "").replace(" agent", "")}
+        </a>
         <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
           {a.enabled ? "On" : "Off"}
           <button role="switch" aria-checked={a.enabled} disabled={busy} onClick={() => act({ action: "switch", id: a.id, enabled: !a.enabled })} className={`relative h-5 w-9 rounded-full border transition-colors ${a.enabled ? "border-gray-900 bg-gray-900 dark:border-white dark:bg-white" : "border-gray-300 bg-gray-200 dark:border-white/20 dark:bg-white/10"}`} title={a.enabled ? "Switch off: the Manager won't start it; a running job finishes" : "Switch on"}>
