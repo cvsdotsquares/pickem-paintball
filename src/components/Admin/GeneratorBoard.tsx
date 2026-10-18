@@ -160,9 +160,19 @@ export default function GeneratorBoard() {
             {data.feedbackToReview === 1 ? "" : "s"} to review
           </b>
           <span className="text-white/85">
-            Say &quot;review feedback&quot; to Claude in chat — you decide
-            together what becomes a rule, a guideline or a one-off.
+            You and Claude decide together what becomes a rule, a guideline or a one-off.
           </span>
+          {/* a new Claude Code session in pickem-hub, already asked to start the review (James, 18 Oct) */}
+          <a
+            href={`claude://code/new?${new URLSearchParams({
+              q: "Review feedback: go through the open Post Generator feedback items with me (skill pickem-feedback-review), one at a time, in plain language.",
+              folder: "/Users/jamesgreen/Documents/pickem-hub",
+            }).toString()}`}
+            title="Opens a new Claude Code session in pickem-hub that starts the feedback review"
+            className="ml-auto shrink-0 rounded bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-orange-600 hover:bg-white/85"
+          >
+            ▶ Review in Claude
+          </a>
         </div>
       )}
       {message && <div className="text-[11px] text-red-400">{message}</div>}
