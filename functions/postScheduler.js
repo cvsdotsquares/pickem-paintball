@@ -97,7 +97,8 @@ async function runDue(cfg) {
   // composite index is needed.
   const approved = await db.collection('scheduledPosts').where('status', '==', 'approved').get();
   const now = Timestamp.now().toMillis();
-  const due = approved.docs.filter((d) => d.get('publishAt') && d.get('publishAt').toMillis() <= now);
+  // Only posts: the Schedule also holds agents' work and James's actions (kind 'work' / 'action'), never sent.
+  const due = approved.docs.filter((d) => (d.get('kind') ?? 'post') === 'post' && d.get('publishAt') && d.get('publishAt').toMillis() <= now);
 
   for (const doc of due) {
     // Claim it, so an overlapping pass (or Post now) can't send it twice.
