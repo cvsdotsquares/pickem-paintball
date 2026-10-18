@@ -86,7 +86,10 @@ function reports(): Report[] {
     if (!fs.statSync(dir).isDirectory()) continue;
     for (const f of fs.readdirSync(dir).filter((f) => f.endsWith(".json"))) {
       try {
-        out.push({ ...JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")), file: path.relative(HUB, path.join(dir, f)) });
+        const r = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
+        // Agents also leave working files (plans, drafts) here; only run reports carry a result
+        if (typeof r?.result !== "string") continue;
+        out.push({ ...r, file: path.relative(HUB, path.join(dir, f)) });
       } catch {}
     }
   }
