@@ -59,6 +59,7 @@ export type View = {
   inputsCard: string; // TO DO card id, "" if none yet
   needsYou: { text: string; due: string; link: string; kind: "input" | "approve" | "blocked" | "review" }[]; // the inbox, soonest first
   anchors: Record<string, string>; // picks_open, lock, day_one, event_end (ET ISO)
+  listener: { on: boolean; lastWake: string; lastWakeText: string }; // the Slack listener (launchd com.pickem.listener)
   cards: Card[];
   error?: string;
 };
@@ -170,7 +171,7 @@ export async function view(): Promise<View> {
       const next = mine
         .filter((j) => !["done", "not_built", "off"].includes(j.state) && j.repeat !== "own_timer" && Date.parse(j.due) >= now - 3600000)
         .sort((a, b) => a.due.localeCompare(b.due))[0];
-      const nextRun = agent.id === "gm" ? { when: "7:00 AM ET daily", why: "launchd timer com.pickem.manager", job: "daily_brief" } : next ? { when: niceWhen(next.due), why: `${next.name} · ${REPEAT_WHY[next.repeat] ?? next.repeat}`, job: next.id } : null;
+      const nextRun = agent.id === "gm" ? { when: "7:00 AM ET daily", why: "and whenever you @Management, DM it, or reply in its thread on Slack", job: "daily_brief" } : next ? { when: niceWhen(next.due), why: `${next.name} · ${REPEAT_WHY[next.repeat] ?? next.repeat}`, job: next.id } : null;
       const needs = (lastRun?.needs ?? []).map((n) => (typeof n === "string" ? n : [n.who, n.why].filter(Boolean).join(": ")));
       const waiting = mine.filter((j) => j.state === "waiting").map((j) => `${j.name}: waiting on ${(j.waiting_on ?? []).join(", ")}`);
       const waitingOn = Array.from(new Set([...needs, ...waiting])).slice(0, 8);
@@ -195,7 +196,14 @@ export async function view(): Promise<View> {
     ...(planRep ? [{ text: "Review the event plan the Manager put on the Schedule", due: "", link: "/admin/scheduler", kind: "review" as const }] : []),
   ].sort((a, b) => (a.due || "9").localeCompare(b.due || "9"));
 
-  return { event: pb.event, eventName: pb.name, date: pb.date, planningStart: pb.planning_start, team, completed, upcoming, brief, inputs, inputsCard: card?.id ?? "", needsYou: inbox, anchors: pb.anchors, cards };
+  let on = false;
+  try {
+    on = execFileSync("launchctl", ["list"], { encoding: "utf8", timeout: 5000 }).split("\n").some((l) => l.endsWith("com.pickem.listener") && /^\d+/.test(l));
+  } catch {}
+  const wake = log.find((l) => l.action === "woken by Slack");
+  const listener = { on, lastWake: wake?.at ?? "", lastWakeText: wake ? `${team.find((a) => a.id === wake.agent)?.icon ?? ""} ${wake.note ?? ""}`.trim() : "" };
+
+  return { event: pb.event, eventName: pb.name, date: pb.date, planningStart: pb.planning_start, team, completed, upcoming, brief, inputs, inputsCard: card?.id ?? "", needsYou: inbox, anchors: pb.anchors, listener, cards };
 }
 
 /** One report by its hub-relative path (agents/runs/<agent>/<file>.json only). */

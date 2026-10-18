@@ -34,7 +34,7 @@ type NeedsYou = { text: string; due: string; link: string; kind: "input" | "appr
 type View = {
   event: string; eventName: string; date: string; planningStart: string; team: AgentRow[]; completed: Done[]; upcoming: Upcoming[];
   brief: { text: string; at: string; test: boolean; file: string } | null; inputs: { text: string; done: boolean }[]; inputsCard: string; needsYou: NeedsYou[];
-  anchors: Record<string, string>; cards: Card[]; error?: string;
+  anchors: Record<string, string>; listener: { on: boolean; lastWake: string; lastWakeText: string }; cards: Card[]; error?: string;
 };
 
 const TZ = "America/New_York";
@@ -163,6 +163,10 @@ export default function WorkflowsBoard() {
           <div className={sectionLabel}>Workflows · {data.eventName}</div>
           <h1 className="text-2xl font-black uppercase tracking-wide">{dayOf(today + "T12:00:00")}</h1>
           <div className="text-[12px] text-gray-500 dark:text-white/50">{phase} · lock {dayOf(data.anchors.lock)} {timeOf(data.anchors.lock)} ET · event {dayOf(data.anchors.day_one)} – {dayOf(data.anchors.event_end)}</div>
+          <div className="mt-1 text-[11px] text-gray-500 dark:text-white/50" title="Slack listener (launchd com.pickem.listener): wakes an agent the moment you post">
+            💬 Slack listener {data.listener.on ? "on" : "⏻ off — messages wait until it's back"}
+            {data.listener.lastWake ? ` · last woke ${ago(data.listener.lastWake)}: ${data.listener.lastWakeText.slice(0, 60)}` : " · no wakes yet"}
+          </div>
         </div>
         {byId.gm && (
           <a href={chatLink(byId.gm)} className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-black uppercase tracking-widest hover:border-gray-900 dark:border-white/20 dark:hover:border-white" title="Discuss tasks, responsibilities and ways of working; the Manager cascades changes to the agents">
