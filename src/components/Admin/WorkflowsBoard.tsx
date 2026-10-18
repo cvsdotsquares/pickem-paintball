@@ -161,7 +161,7 @@ export default function WorkflowsBoard() {
 
       {/* ── Roadmap ───────────────────────────────────────────────────────── */}
       <section className={`${card} mb-4 p-4`}>
-        <div className={`${sectionLabel} mb-2`}>The road to {data.eventName} · week by week</div>
+        <div className={`${sectionLabel} mb-2`}>The next two weeks · what each agent does each day</div>
         <WeekCalendar jobs={allJobs} upcoming={data.upcoming} anchors={data.anchors} today={today} byId={byId} />
       </section>
 
@@ -240,70 +240,73 @@ function Tile({ icon, n, label, sub, href }: { icon: string; n: number; label: s
   );
 }
 
-/** Week by week (James, 18 Oct): one row per week from this week to the last post-event job, Monday to Sunday. Today is
- *  outlined, event days shaded, milestones named in their day, every job as its agent's icon + a short name in its day. */
+/** The next two weeks (James, 18 Oct): this week and next, Monday to Sunday, tall cells, each day's plan grouped by agent.
+ *  ‹ › move a week at a time; "This week" comes back. Today outlined, event days shaded, milestones named in their day. */
 function WeekCalendar({ jobs, upcoming, anchors, today, byId }: { jobs: Job[]; upcoming: Upcoming[]; anchors: Record<string, string>; today: string; byId: Record<string, AgentRow> }) {
-  const d0 = new Date(today + "T12:00:00Z");
-  const monday = new Date(d0.getTime() - ((d0.getUTCDay() + 6) % 7) * DAY);
-  const lastJob = Math.max(...jobs.map((j) => Date.parse(j.due.slice(0, 10) + "T12:00:00Z")), Date.parse(anchors.event_end.slice(0, 10) + "T12:00:00Z"));
-  const weeks = Math.max(1, Math.min(10, Math.ceil((lastJob + DAY - monday.getTime()) / (7 * DAY))));
+  const [offset, setOffset] = useState(0); // weeks from today
+  const monday = new Date(Date.parse(today + "T12:00:00Z") + offset * 7 * DAY); // the window's first day (today, not Monday)
   const key = (t: number) => new Date(t).toISOString().slice(0, 10);
   const miles: Record<string, string[]> = {};
   for (const [k, label] of [["picks_open", "Picks open"], ["lock", "Picks lock"], ["day_one", "Day 1"], ["event_end", "Finals"]] as const) (miles[anchors[k].slice(0, 10)] ??= []).push(label);
-  const byDay: Record<string, { icon: string; text: string; title: string; state: string }[]> = {};
-  for (const j of jobs.filter((j) => j.repeat !== "own_timer" && j.agent !== "gm")) {
-    (byDay[j.due.slice(0, 10)] ??= []).push({ icon: byId[j.agent]?.icon ?? "•", text: j.name.split(/[:(—]/)[0].trim(), title: `${j.name} · ${STATE[j.state]?.label ?? j.state}${j.repeat !== "once" ? ` · ${j.repeat.replace(/_/g, " ")}` : ""}`, state: j.state });
-  }
-  for (const u of upcoming.filter((u) => u.agent === "posts")) (byDay[etDate(u.due)] ??= []).push({ icon: u.icon, text: u.task.replace(/^Post: /, ""), title: `${u.task} · ${timeOf(u.due)} · ${u.waiting}`, state: u.state });
+  type Item = { text: string; title: string; state: string; time: string };
+  const byDay: Record<string, Record<string, Item[]>> = {}; // day → agent → items
+  const put = (day: string, agent: string, it: Item) => ((byDay[day] ??= {})[agent] ??= []).push(it);
+  for (const j of jobs.filter((j) => j.repeat !== "own_timer"))
+    put(j.due.slice(0, 10), j.agent, { text: j.name.split(/[:(—]/)[0].trim(), title: `${j.name} · ${STATE[j.state]?.label ?? j.state}${j.repeat !== "once" ? ` · ${j.repeat.replace(/_/g, " ")}` : ""}`, state: j.state, time: timeOf(j.due) });
+  for (const u of upcoming.filter((u) => u.agent === "posts")) put(etDate(u.due), "posts", { text: u.task.replace(/^Post: /, ""), title: `${u.task} · ${timeOf(u.due)} · ${u.waiting}`, state: u.state, time: timeOf(u.due) });
   const ev0 = anchors.day_one.slice(0, 10), ev1 = anchors.event_end.slice(0, 10);
   const monthOf = (t: number) => new Date(t).toLocaleString("en-GB", { month: "short", timeZone: "UTC" });
+  const order = ["gm", "data", "social", "posts", "inspo", "james"];
   return (
-    <div className="overflow-x-auto">
-      <div className="min-w-[760px]">
-        <div className="mb-1 grid grid-cols-[44px_repeat(7,minmax(0,1fr))] gap-1 text-center text-[9px] font-black uppercase tracking-widest text-gray-400">
-          <div />
-          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => <div key={d}>{d}</div>)}
-        </div>
-        {Array.from({ length: weeks }, (_, w) => {
-          const t0 = monday.getTime() + w * 7 * DAY;
-          const wkMiles = Array.from({ length: 7 }, (_, i) => miles[key(t0 + i * DAY)] ?? []).flat();
-          return (
-            <div key={w} className="mb-1 grid grid-cols-[44px_repeat(7,minmax(0,1fr))] gap-1">
-              <div className="flex flex-col justify-center pr-1 text-right">
-                <div className="text-[9px] font-black uppercase tracking-widest text-gray-400">{monthOf(t0) === monthOf(t0 + 6 * DAY) ? monthOf(t0) : `${monthOf(t0)}–${monthOf(t0 + 6 * DAY)}`}</div>
-              </div>
-              {Array.from({ length: 7 }, (_, i) => {
-                const k = key(t0 + i * DAY);
-                const isToday = k === today, past = k < today, inEvent = k >= ev0 && k <= ev1;
-                const items = byDay[k] ?? [];
-                return (
-                  <div key={k} className={`min-h-[72px] min-w-0 rounded-lg border p-1 ${isToday ? "border-2 border-gray-900 dark:border-white" : "border-gray-100 dark:border-white/5"} ${inEvent ? "bg-gray-100 dark:bg-white/10" : past ? "bg-gray-50/60 dark:bg-white/[0.02]" : "bg-white dark:bg-[#0d0d0d]"} ${past && !isToday ? "opacity-60" : ""}`}>
-                    <div className="flex items-baseline justify-between">
-                      <span className={`text-[10px] ${isToday ? "font-black" : "text-gray-400"}`}>{isToday ? "Today" : new Date(t0 + i * DAY).getUTCDate()}</span>
-                      {miles[k] && <span className="truncate rounded bg-gray-900 px-1 text-[8px] font-black uppercase tracking-wider text-white dark:bg-white dark:text-black" title={miles[k].join(" · ")}>{miles[k].join(" · ")}</span>}
-                    </div>
-                    <div className="mt-0.5 space-y-0.5">
-                      {items.slice(0, 3).map((it, n) => (
-                        <div key={n} className={`flex items-center gap-1 truncate text-[9px] leading-tight ${it.state === "done" || it.state === "posted" ? "line-through text-gray-400" : ""}`} title={it.title}>
-                          <span>{it.icon}</span>
-                          <span className="truncate">{it.text}</span>
-                        </div>
-                      ))}
-                      {items.length > 3 && (
-                        <div className="group relative text-[9px] text-gray-400">
-                          +{items.length - 3} more
-                          <div className="absolute left-0 top-4 z-10 hidden w-52 rounded-lg border border-gray-200 bg-white p-2 shadow-lg group-hover:block dark:border-white/10 dark:bg-[#111]">
-                            {items.map((it, n) => <div key={n} className="truncate text-gray-700 dark:text-white/70" title={it.title}>{it.icon} {it.text}</div>)}
+    <div>
+      <div className="mb-2 flex items-center gap-2 text-[10px]">
+        <button className="rounded border border-gray-200 px-2 py-0.5 hover:border-gray-500 dark:border-white/10" onClick={() => setOffset(offset - 1)} title="A week earlier">‹</button>
+        <button className="rounded border border-gray-200 px-2 py-0.5 hover:border-gray-500 dark:border-white/10" onClick={() => setOffset(offset + 1)} title="A week later">›</button>
+        {offset !== 0 && <button className="underline" onClick={() => setOffset(0)}>From today</button>}
+        <span className="ml-2 text-gray-400">{dayOf(key(monday.getTime()) + "T12:00:00")} – {dayOf(key(monday.getTime() + 13 * DAY) + "T12:00:00")}</span>
+      </div>
+      <div className="overflow-x-auto">
+        <div className="min-w-[760px]">
+          {[0, 1].map((w) => {
+            const t0 = monday.getTime() + w * 7 * DAY;
+            return (
+              <div key={w} className="mb-1 grid grid-cols-[36px_repeat(7,minmax(0,1fr))] gap-1">
+                <div className="pt-2 text-right text-[9px] font-black uppercase tracking-widest text-gray-400">{monthOf(t0) === monthOf(t0 + 6 * DAY) ? monthOf(t0) : `${monthOf(t0)}/${monthOf(t0 + 6 * DAY)}`}</div>
+                {Array.from({ length: 7 }, (_, i) => {
+                  const k = key(t0 + i * DAY);
+                  const isToday = k === today, past = k < today, inEvent = k >= ev0 && k <= ev1;
+                  const agents = Object.keys(byDay[k] ?? {}).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+                  return (
+                    <div key={k} className={`min-h-[170px] min-w-0 rounded-xl border p-1.5 ${isToday ? "border-2 border-gray-900 dark:border-white" : "border-gray-100 dark:border-white/5"} ${inEvent ? "bg-gray-100 dark:bg-white/10" : past ? "bg-gray-50/60 dark:bg-white/[0.02]" : "bg-white dark:bg-[#0d0d0d]"} ${past && !isToday ? "opacity-60" : ""}`}>
+                      <div className="flex items-baseline justify-between gap-1">
+                        <span className={`text-[11px] ${isToday ? "font-black" : "text-gray-400"}`}>{isToday ? "Today" : new Date(t0 + i * DAY).toLocaleString("en-GB", { weekday: "short", day: "numeric", timeZone: "UTC" })}</span>
+                        {miles[k] && <span className="truncate rounded bg-gray-900 px-1 text-[8px] font-black uppercase tracking-wider text-white dark:bg-white dark:text-black" title={miles[k].join(" · ")}>{miles[k].join(" · ")}</span>}
+                      </div>
+                      {agents.length === 0 && <div className="mt-6 text-center text-[9px] text-gray-300 dark:text-white/20">—</div>}
+                      <div className="mt-1 space-y-1.5">
+                        {agents.map((ag) => (
+                          <div key={ag}>
+                            <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wide text-gray-500 dark:text-white/50">
+                              <span className="text-[11px]">{byId[ag]?.icon ?? "•"}</span>
+                              <span className="truncate">{byId[ag]?.name ?? ag}</span>
+                            </div>
+                            <ul className="ml-1 border-l border-gray-200 pl-1.5 dark:border-white/10">
+                              {byDay[k][ag].map((it, n) => (
+                                <li key={n} className={`truncate text-[10px] leading-tight ${it.state === "done" || it.state === "posted" ? "text-gray-400 line-through" : it.state === "not_built" ? "text-gray-400" : ""}`} title={it.title}>
+                                  {STATE[it.state]?.glyph && <span className="mr-0.5">{STATE[it.state].glyph}</span>}{it.text}
+                                </li>
+                              ))}
+                            </ul>
                           </div>
-                        </div>
-                      )}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
