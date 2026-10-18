@@ -161,8 +161,8 @@ export default function WorkflowsBoard() {
 
       {/* ── Roadmap ───────────────────────────────────────────────────────── */}
       <section className={`${card} mb-4 p-4`}>
-        <div className={`${sectionLabel} mb-2`}>The road to {data.eventName}</div>
-        <Roadmap jobs={allJobs} anchors={data.anchors} today={today} start={data.planningStart} byId={byId} />
+        <div className={`${sectionLabel} mb-2`}>The road to {data.eventName} · week by week</div>
+        <WeekCalendar jobs={allJobs} upcoming={data.upcoming} anchors={data.anchors} today={today} byId={byId} />
       </section>
 
       {/* ── Needs you + Up next ───────────────────────────────────────────── */}
@@ -240,64 +240,71 @@ function Tile({ icon, n, label, sub, href }: { icon: string; n: number; label: s
   );
 }
 
-/** One line from planning start to the last post-event job: milestones, today, and every job as a dot at its date. */
-function Roadmap({ jobs, anchors, today, start, byId }: { jobs: Job[]; anchors: Record<string, string>; today: string; start: string; byId: Record<string, AgentRow> }) {
-  const t0 = Date.parse(start + "T00:00:00Z");
-  const lastJob = Math.max(...jobs.map((j) => Date.parse(j.due.slice(0, 10) + "T00:00:00Z")), Date.parse(anchors.event_end.slice(0, 10) + "T00:00:00Z"));
-  const t1 = lastJob + 2 * DAY;
-  const x = (iso: string) => Math.min(100, Math.max(0, ((Date.parse(iso.slice(0, 10) + "T00:00:00Z") - t0) / (t1 - t0)) * 100));
-  const nowX = x(today);
-  const miles: { at: string; label: string }[] = [];
-  for (const m of [
-    { at: anchors.picks_open, label: "Picks open" },
-    { at: anchors.lock, label: "Lock" },
-    { at: anchors.day_one, label: "Day 1" },
-    { at: anchors.event_end, label: "Finals" },
-  ]) {
-    const same = miles.find((x) => x.at.slice(0, 10) === m.at.slice(0, 10)); // lock + day 1 share a date
-    same ? (same.label += ` · ${m.label}`) : miles.push({ ...m });
+/** Week by week (James, 18 Oct): one row per week from this week to the last post-event job, Monday to Sunday. Today is
+ *  outlined, event days shaded, milestones named in their day, every job as its agent's icon + a short name in its day. */
+function WeekCalendar({ jobs, upcoming, anchors, today, byId }: { jobs: Job[]; upcoming: Upcoming[]; anchors: Record<string, string>; today: string; byId: Record<string, AgentRow> }) {
+  const d0 = new Date(today + "T12:00:00Z");
+  const monday = new Date(d0.getTime() - ((d0.getUTCDay() + 6) % 7) * DAY);
+  const lastJob = Math.max(...jobs.map((j) => Date.parse(j.due.slice(0, 10) + "T12:00:00Z")), Date.parse(anchors.event_end.slice(0, 10) + "T12:00:00Z"));
+  const weeks = Math.max(1, Math.min(10, Math.ceil((lastJob + DAY - monday.getTime()) / (7 * DAY))));
+  const key = (t: number) => new Date(t).toISOString().slice(0, 10);
+  const miles: Record<string, string[]> = {};
+  for (const [k, label] of [["picks_open", "Picks open"], ["lock", "Picks lock"], ["day_one", "Day 1"], ["event_end", "Finals"]] as const) (miles[anchors[k].slice(0, 10)] ??= []).push(label);
+  const byDay: Record<string, { icon: string; text: string; title: string; state: string }[]> = {};
+  for (const j of jobs.filter((j) => j.repeat !== "own_timer" && j.agent !== "gm")) {
+    (byDay[j.due.slice(0, 10)] ??= []).push({ icon: byId[j.agent]?.icon ?? "•", text: j.name.split(/[:(—]/)[0].trim(), title: `${j.name} · ${STATE[j.state]?.label ?? j.state}${j.repeat !== "once" ? ` · ${j.repeat.replace(/_/g, " ")}` : ""}`, state: j.state });
   }
-  // group jobs by ET date so dots stack
-  const byDay: Record<string, Job[]> = {};
-  for (const j of jobs.filter((j) => j.repeat !== "own_timer" && j.agent !== "gm")) (byDay[j.due.slice(0, 10)] ??= []).push(j);
+  for (const u of upcoming.filter((u) => u.agent === "posts")) (byDay[etDate(u.due)] ??= []).push({ icon: u.icon, text: u.task.replace(/^Post: /, ""), title: `${u.task} · ${timeOf(u.due)} · ${u.waiting}`, state: u.state });
+  const ev0 = anchors.day_one.slice(0, 10), ev1 = anchors.event_end.slice(0, 10);
+  const monthOf = (t: number) => new Date(t).toLocaleString("en-GB", { month: "short", timeZone: "UTC" });
   return (
-    <div className="relative mt-8 h-24 select-none">
-      {/* line + progress */}
-      <div className="absolute left-0 right-0 top-8 h-1 rounded bg-gray-100 dark:bg-white/10" />
-      <div className="absolute left-0 top-8 h-1 rounded bg-gray-900 dark:bg-white" style={{ width: `${nowX}%` }} />
-      {/* event days band */}
-      <div className="absolute top-6 h-5 rounded bg-gray-200/70 dark:bg-white/10" style={{ left: `${x(anchors.day_one)}%`, width: `${Math.max(1, x(anchors.event_end) - x(anchors.day_one) + 1)}%` }} title="Event days" />
-      {/* milestones */}
-      {miles.map((m) => (
-        <div key={m.label} className="absolute top-0 -translate-x-1/2 text-center" style={{ left: `${x(m.at)}%` }}>
-          <div className="whitespace-nowrap text-[9px] font-black uppercase tracking-widest text-gray-500 dark:text-white/50">{m.label}</div>
-          <div className="mx-auto mt-0.5 h-3 w-px bg-gray-400 dark:bg-white/40" />
+    <div className="overflow-x-auto">
+      <div className="min-w-[760px]">
+        <div className="mb-1 grid grid-cols-[44px_repeat(7,minmax(0,1fr))] gap-1 text-center text-[9px] font-black uppercase tracking-widest text-gray-400">
+          <div />
+          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => <div key={d}>{d}</div>)}
         </div>
-      ))}
-      {/* today */}
-      <div className="absolute top-3 -translate-x-1/2" style={{ left: `${nowX}%` }}>
-        <div className="mx-auto h-9 w-0.5 bg-gray-900 dark:bg-white" />
-        <div className="-mt-0.5 whitespace-nowrap rounded bg-gray-900 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white dark:bg-white dark:text-black">Today</div>
+        {Array.from({ length: weeks }, (_, w) => {
+          const t0 = monday.getTime() + w * 7 * DAY;
+          const wkMiles = Array.from({ length: 7 }, (_, i) => miles[key(t0 + i * DAY)] ?? []).flat();
+          return (
+            <div key={w} className="mb-1 grid grid-cols-[44px_repeat(7,minmax(0,1fr))] gap-1">
+              <div className="flex flex-col justify-center pr-1 text-right">
+                <div className="text-[9px] font-black uppercase tracking-widest text-gray-400">{monthOf(t0) === monthOf(t0 + 6 * DAY) ? monthOf(t0) : `${monthOf(t0)}–${monthOf(t0 + 6 * DAY)}`}</div>
+              </div>
+              {Array.from({ length: 7 }, (_, i) => {
+                const k = key(t0 + i * DAY);
+                const isToday = k === today, past = k < today, inEvent = k >= ev0 && k <= ev1;
+                const items = byDay[k] ?? [];
+                return (
+                  <div key={k} className={`min-h-[72px] min-w-0 rounded-lg border p-1 ${isToday ? "border-2 border-gray-900 dark:border-white" : "border-gray-100 dark:border-white/5"} ${inEvent ? "bg-gray-100 dark:bg-white/10" : past ? "bg-gray-50/60 dark:bg-white/[0.02]" : "bg-white dark:bg-[#0d0d0d]"} ${past && !isToday ? "opacity-60" : ""}`}>
+                    <div className="flex items-baseline justify-between">
+                      <span className={`text-[10px] ${isToday ? "font-black" : "text-gray-400"}`}>{isToday ? "Today" : new Date(t0 + i * DAY).getUTCDate()}</span>
+                      {miles[k] && <span className="truncate rounded bg-gray-900 px-1 text-[8px] font-black uppercase tracking-wider text-white dark:bg-white dark:text-black" title={miles[k].join(" · ")}>{miles[k].join(" · ")}</span>}
+                    </div>
+                    <div className="mt-0.5 space-y-0.5">
+                      {items.slice(0, 3).map((it, n) => (
+                        <div key={n} className={`flex items-center gap-1 truncate text-[9px] leading-tight ${it.state === "done" || it.state === "posted" ? "line-through text-gray-400" : ""}`} title={it.title}>
+                          <span>{it.icon}</span>
+                          <span className="truncate">{it.text}</span>
+                        </div>
+                      ))}
+                      {items.length > 3 && (
+                        <div className="group relative text-[9px] text-gray-400">
+                          +{items.length - 3} more
+                          <div className="absolute left-0 top-4 z-10 hidden w-52 rounded-lg border border-gray-200 bg-white p-2 shadow-lg group-hover:block dark:border-white/10 dark:bg-[#111]">
+                            {items.map((it, n) => <div key={n} className="truncate text-gray-700 dark:text-white/70" title={it.title}>{it.icon} {it.text}</div>)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
-      {/* job dots */}
-      {Object.entries(byDay).map(([day, list]) => (
-        <div key={day} className="group absolute top-12 -translate-x-1/2" style={{ left: `${x(day)}%` }}>
-          <div className="flex -space-x-1">
-            {list.slice(0, 4).map((j) => (
-              <span key={j.id} className={`flex h-5 w-5 items-center justify-center rounded-full border bg-white text-[10px] dark:bg-[#0d0d0d] ${j.state === "done" ? "border-gray-900 dark:border-white" : "border-gray-300 dark:border-white/20"}`} title={`${j.name} · ${dayOf(j.due)} · ${STATE[j.state]?.label ?? j.state}`}>
-                {byId[j.agent]?.icon}
-              </span>
-            ))}
-            {list.length > 4 && <span className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 bg-white text-[9px] dark:border-white/20 dark:bg-[#0d0d0d]">+{list.length - 4}</span>}
-          </div>
-          <div className="pointer-events-none absolute left-1/2 top-6 z-10 hidden w-56 -translate-x-1/2 rounded-lg border border-gray-200 bg-white p-2 text-[10px] shadow-lg group-hover:block dark:border-white/10 dark:bg-[#111]">
-            <div className="mb-1 font-black uppercase tracking-widest text-gray-500">{dayOf(day + "T12:00:00")}</div>
-            {list.map((j) => (
-              <div key={j.id} className="truncate">{STATE[j.state]?.glyph} {byId[j.agent]?.icon} {j.name}</div>
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
