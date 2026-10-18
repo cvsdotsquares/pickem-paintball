@@ -184,7 +184,7 @@ function checks(s: Slot, stage: string, data: SlotView["data"]): Check[] {
   if (s.caption.length > 2200) block(`Caption too long for Instagram (${s.caption.length}/2,200)`);
   if ((s.caption.match(/#\w+/g) ?? []).length > 30) block("More than 30 hashtags (Instagram limit)");
   if (!s.publishAt) block("No time set");
-  else if (s.status === "draft" && new Date(s.publishAt).getTime() < Date.now()) block("The time has passed: pick a new one");
+  else if (s.status === "draft" && new Date(s.publishAt).getTime() < Date.now() - 10 * 60_000) block("The time has passed: pick a new one");
   const typed = Object.entries(data.typed).filter(([, v]) => v);
   if (typed.length) warn(`Uses typed-in numbers (${typed.map(([k, v]) => `${k.replace(/_/g, " ")}: ${showTyped(v)}`).join(", ")}). Populate again once Pick'Em has the real ones`);
   if (s.status === "approved" && s.slidesStamp && s.slidesStamp !== stamp(s.slides))
@@ -545,6 +545,145 @@ export async function removeSlot(id: string): Promise<void> {
   if (s.kind === "post" && (s.status === "sending" || s.status === "posted")) throw new Error("It has gone out (or is going out), so it stays on the calendar");
   if (s.status === "approved") await unapprove(id);
   await db().collection(COLLECTION).doc(id).delete();
+}
+
+/**
+ * Generator step 5 (James, 18 Oct): approve the caption + time there, so a finished post never becomes a
+ * "needs you" item on the Schedule. What step 5 shows for one graphic: its made posts with captions, which are
+ * already on the Schedule, and a recommended time.
+ */
+export async function forGraphic(event: string, type: string) {
+  const posts = madePosts(event, type);
+  const snap = await db().collection(COLLECTION).where("event", "==", event).where("type", "==", type).get();
+  const scheduled: Record<string, { id: string; status: SlotStatus; publishAt: string | null }> = {};
+  for (const d of snap.docs) {
+    const s = toSlot(d.id, d.data());
+    if (s.kind === "post" && s.variant) scheduled[s.variant] = { id: s.id, status: s.status, publishAt: s.publishAt };
+  }
+  const all = (await db().collection(COLLECTION).where("event", "==", event).get()).docs.map((d) => toSlot(d.id, d.data()));
+  const rec = recommend(event, type, all, Math.max(1, posts.length));
+  return { posts, scheduled, recommend: rec.slots, why: rec.why };
+}
+
+const toET = (iso: string) => {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+      .formatToParts(new Date(iso))
+      .map((x) => [x.type, x.value]),
+  );
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+};
+
+/**
+ * A recommended time (ET "YYYY-MM-DDTHH:MM") for the next n posts of a graphic. Until the social media agent
+ * plans the event's content calendar, a plain rule: the next free noon / 6 PM slots, at most two posts a day,
+ * kept in the graphic's window (pre-event posts before the picks lock, live posts on event days, post-event
+ * posts after the last day). The agent's plan will replace this; the buttons stay the same.
+ */
+export function recommend(event: string, type: string, slots: Slot[], n = 1): { slots: string[]; why: string } {
+  const phase = packItem(type)?.phase ?? "";
+  const dates = keyDates(event);
+  const lock = dates.find((d) => /lock/i.test(d.label))?.date;
+  const eventDays = dates.filter((d) => /event day|finals day/i.test(d.label)).map((d) => d.date).sort();
+  const first = eventDays[0], last = eventDays[eventDays.length - 1];
+  const today = toET(new Date().toISOString()).slice(0, 10);
+  let from = today, to = "";
+  let why = "next free noon / 6 PM slot";
+  if (/pre/i.test(phase) && lock) {
+    to = lock;
+    why += ` before the picks lock (${lock})`;
+    // Picks CTAs (countdown) only make sense once picks are open.
+    const open = dates.find((d) => /picks open/i.test(d.label))?.date;
+    if (baseOf(type) === "countdown" && open && open > from) {
+      from = open;
+      why += `, from picks open (${open})`;
+    }
+  } else if (/live/i.test(phase) && first && last) {
+    from = first > today ? first : today;
+    to = last;
+    why += ` on an event day (${first} – ${last})`;
+  } else if (/post/i.test(phase) && last) {
+    const d = new Date(`${last}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 1);
+    from = d.toISOString().slice(0, 10) > today ? d.toISOString().slice(0, 10) : today;
+    why += ` after the event (from ${from})`;
+  }
+  const taken = new Set(slots.filter((s) => s.kind === "post" && s.publishAt).map((s) => toET(s.publishAt!)));
+  const perDay: Record<string, number> = {};
+  taken.forEach((t) => (perDay[t.slice(0, 10)] = (perDay[t.slice(0, 10)] ?? 0) + 1));
+  const nowET = toET(new Date().toISOString());
+  const out: string[] = [];
+  const d = new Date(`${from}T12:00:00Z`);
+  for (let i = 0; i < 120 && out.length < n; i++) {
+    const day = d.toISOString().slice(0, 10);
+    if (to && day > to) break;
+    for (const t of ["12:00", "18:00"]) {
+      const at = `${day}T${t}`;
+      if (at <= nowET || taken.has(at) || (perDay[day] ?? 0) >= 2) continue;
+      out.push(at);
+      taken.add(at);
+      perDay[day] = (perDay[day] ?? 0) + 1;
+      if (out.length >= n) break;
+    }
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  if (!out.length) why = "no free slot in the window: pick a time";
+  return { slots: out, why: `${why} (the social media agent's plan will replace this rule)` };
+}
+
+/**
+ * Generator step 5: approve a finished post with its caption and time in one go. Reuses a draft already on the
+ * Schedule for the same post (so nothing doubles up). `at` null = post now (the cloud job's next pass).
+ */
+export async function scheduleApproved(event: string, type: string, variant: string, at: string | null, caption: string): Promise<string> {
+  const made = madePosts(event, type).find((m) => m.key === variant);
+  if (!made) throw new Error("That post isn't made");
+  const existing = (await db().collection(COLLECTION).where("event", "==", event).where("type", "==", type).get()).docs
+    .map((d) => toSlot(d.id, d.data()))
+    .find((s) => s.kind === "post" && s.variant === variant);
+  if (existing && existing.status !== "draft" && existing.status !== "failed") throw new Error(`Already on the Schedule (${existing.status}); change it there`);
+  const publishAt = at ? Timestamp.fromDate(eastern(at)) : Timestamp.now();
+  let id: string;
+  if (existing) {
+    id = existing.id;
+    await db().collection(COLLECTION).doc(id).update({ publishAt, caption, slides: [made.png], status: "draft", error: FieldValue.delete() });
+  } else {
+    id = (
+      await db().collection(COLLECTION).add({
+        kind: "post",
+        agent: "posts",
+        event,
+        type,
+        variant,
+        title: titleFor(event, type, variant),
+        status: "draft",
+        publishAt,
+        caption,
+        slides: [made.png],
+        notes: "",
+        createdAt: FieldValue.serverTimestamp(),
+      })
+    ).id;
+  }
+  await approve(id);
+  return id;
+}
+
+/** Generator step 5: "Approve all + spread": lay the posts out, then approve each (uploads its hidden photo). */
+export async function spreadApproved(event: string, type: string, variants: string[], from: string, to: string, times: string[]): Promise<number> {
+  const before = new Set((await db().collection(COLLECTION).where("event", "==", event).where("type", "==", type).get()).docs.map((d) => d.id));
+  const n = await spread(event, type, variants, from, to, times);
+  const after = (await db().collection(COLLECTION).where("event", "==", event).where("type", "==", type).get()).docs.filter((d) => !before.has(d.id));
+  const failed: string[] = [];
+  for (const d of after) {
+    try {
+      await approve(d.id);
+    } catch (e) {
+      failed.push(`${d.get("title")}: ${(e as Error).message}`);
+    }
+  }
+  if (failed.length) throw new Error(`${n - failed.length} approved; ${failed.length} left as drafts on the Schedule: ${failed.join("; ")}`);
+  return n;
 }
 
 /** Every made post of the event, for adding carousel slides. */

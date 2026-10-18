@@ -11,7 +11,10 @@ import {
   spread,
   eventPosts,
   events,
+  forGraphic,
   keyDates,
+  scheduleApproved,
+  spreadApproved,
   listSlots,
   postNow,
   removeSlot,
@@ -22,12 +25,25 @@ import {
 
 export const dynamic = "force-dynamic";
 
-/** GET ?event= → the event's calendar: slots, what's not on it yet (tray), key dates, made posts for carousels. */
+/**
+ * GET ?event= → the event's calendar: slots, what's not on it yet (tray), key dates, made posts for carousels.
+ * GET ?event=&type= → what Generator step 5 needs for one graphic (made posts + captions, what's scheduled, a recommended time).
+ */
 export async function GET(request: Request) {
   const blocked = adminGate();
   if (blocked) return blocked;
   const list = events();
-  const q = new URL(request.url).searchParams.get("event");
+  const sp = new URL(request.url).searchParams;
+  const q = sp.get("event");
+  const type = sp.get("type");
+  if (q && type) {
+    if (!validId(q) || !/^[a-z0-9_]+$/.test(type)) return NextResponse.json({ error: "Unknown graphic" }, { status: 400 });
+    try {
+      return NextResponse.json(await forGraphic(q, type));
+    } catch (e) {
+      return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    }
+  }
   const event = q && list.some((e) => e.id === q) ? q : list.find((e) => e.id === "world_cup_2026")?.id ?? list[0]?.id ?? "";
   try {
     const slots = event ? await listSlots(event) : [];
@@ -57,6 +73,8 @@ export async function GET(request: Request) {
  *   spread    {event, type, variants[], from, to, times[]}   lay a group of made posts over a date range as drafts
  *   task      {event, kind: work|action, agent, title, at, duration?, notes?}   a task on the Schedule
  *   done      {id, done}   tick / untick a task
+ *   approve-now   {event, type, variant, at|null, caption}   Generator step 5: approve + schedule (at = ET) or post now (at null)
+ *   spread-approved {event, type, variants[], from, to, times[]}   Generator step 5: lay out + approve each
  */
 export async function POST(request: Request) {
   const blocked = adminGate();
@@ -71,6 +89,15 @@ export async function POST(request: Request) {
     if (b.action === "spread") {
       if (!validId(String(b.event)) || !/^[a-z0-9_]+$/.test(String(b.type))) throw new Error("Unknown post");
       const n = await spread(b.event, b.type, (b.variants ?? []).map(String), String(b.from), String(b.to), (b.times ?? []).map(String));
+      return NextResponse.json({ ok: true, added: n });
+    }
+    if (b.action === "approve-now") {
+      if (!validId(String(b.event)) || !/^[a-z0-9_]+$/.test(String(b.type))) throw new Error("Unknown post");
+      return NextResponse.json({ ok: true, id: await scheduleApproved(b.event, b.type, String(b.variant ?? ""), b.at ? String(b.at) : null, String(b.caption ?? "")) });
+    }
+    if (b.action === "spread-approved") {
+      if (!validId(String(b.event)) || !/^[a-z0-9_]+$/.test(String(b.type))) throw new Error("Unknown post");
+      const n = await spreadApproved(b.event, b.type, (b.variants ?? []).map(String), String(b.from), String(b.to), (b.times ?? []).map(String));
       return NextResponse.json({ ok: true, added: n });
     }
     if (b.action === "task") {

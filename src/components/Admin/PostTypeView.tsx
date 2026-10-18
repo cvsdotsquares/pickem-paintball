@@ -126,6 +126,191 @@ function etToIso(local: string): string {
 }
 
 /**
+ * Step 5, after the posts are made (James, 18 Oct): approve the caption + time here, so a finished post lands on
+ * the Schedule already approved instead of becoming a "needs you" item there. The recommended time is a plain
+ * rule for now (next free noon / 6 PM in the graphic's window); the social media agent's plan will replace it.
+ */
+type ForGraphic = {
+  posts: { key: string; name: string; png: string; caption: string }[];
+  scheduled: Record<string, { id: string; status: string; publishAt: string | null }>;
+  recommend: string[];
+  why: string;
+};
+const etShow = (iso: string | null) =>
+  iso
+    ? `${new Date(iso).toLocaleString("en-GB", { timeZone: "America/New_York", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true })} ET`
+    : "";
+const SPREAD_TIMES = ["09:00", "12:00", "15:00", "18:00", "20:00"];
+
+function ApproveAndSchedule({ event, type, single, picked, disabled, onChanged }: { event: string; type: string; single: boolean; picked: string[]; disabled: boolean; onChanged: () => void }) {
+  const [g, setG] = useState<ForGraphic | null>(null);
+  const [caption, setCaption] = useState("");
+  const [at, setAt] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [times, setTimes] = useState<Record<string, boolean>>({ "12:00": true, "18:00": true });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [showSpread, setShowSpread] = useState(false);
+
+  const load = useCallback(async () => {
+    const r = await fetch(`/api/admin/scheduler?event=${event}&type=${type}`);
+    const d = (await r.json()) as ForGraphic & { error?: string };
+    if (d.error) return setErr(d.error);
+    setG(d);
+    setCaption((c) => c || d.posts[0]?.caption || "");
+    setAt((a) => a || d.recommend[0] || "");
+    setFrom((f) => f || d.recommend[0]?.slice(0, 10) || "");
+    setTo((t) => t || d.recommend[d.recommend.length - 1]?.slice(0, 10) || "");
+  }, [event, type]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const post = async (body: Record<string, unknown>, confirmText: string) => {
+    if (!window.confirm(confirmText)) return;
+    setBusy(true);
+    setErr("");
+    try {
+      const r = await fetch("/api/admin/scheduler", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event, type, ...body }) });
+      const j = await r.json();
+      if (j.error) setErr(j.error);
+      await load();
+      onChanged();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!g) return null;
+  const field = "rounded border border-gray-300 bg-white px-2 py-1 text-[11px] dark:border-white/20 dark:bg-black";
+  const schedLink = (
+    <Link href="/admin/scheduler" className="text-[10px] text-gray-500 underline dark:text-white/50">
+      Open the Schedule ↗
+    </Link>
+  );
+
+  // One post for the event: caption + time + two buttons.
+  if (single) {
+    const p = g.posts[0];
+    const sc = p ? g.scheduled[p.key] : undefined;
+    const done = sc && sc.status !== "draft" && sc.status !== "failed";
+    const [d, t] = at.split("T");
+    return (
+      <div className="flex flex-col gap-2 rounded-lg border border-gray-100 p-3 dark:border-white/10 md:w-2/3">
+        <div className="text-[11px] font-bold">Approve + schedule</div>
+        {done ? (
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            <span className={`rounded-full px-2 py-0.5 font-bold text-white ${sc!.status === "posted" ? "bg-green-600" : sc!.status === "failed" ? "bg-red-500" : "bg-[#1a3c6e]"}`}>
+              {sc!.status === "posted" ? "Posted ✓" : sc!.status === "approved" ? "Scheduled" : sc!.status}
+            </span>
+            <span>{etShow(sc!.publishAt)}</span>
+            {schedLink}
+            <span className="text-gray-400">Change the time or un-approve it on the Schedule.</span>
+          </div>
+        ) : (
+          <>
+            <p className="text-[10px] text-gray-500 dark:text-white/50">The design is signed off; this approves the caption and the time. It then goes out on Instagram + Facebook by itself.</p>
+            <textarea value={caption} onChange={(e) => setCaption(e.target.value)} rows={7} className={`${field} w-full font-mono`} disabled={busy} />
+            <span className={`text-[10px] ${caption.length > 2200 ? "text-red-600" : "text-gray-400"}`}>{caption.length}/2,200 characters · {(caption.match(/#\w+/g) ?? []).length}/30 hashtags</span>
+            <div className="flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="text-gray-500">Goes out (ET)</span>
+              <input type="date" value={d ?? ""} onChange={(e) => setAt(`${e.target.value}T${t ?? "12:00"}`)} className={field} disabled={busy} />
+              <input type="time" value={t ?? "12:00"} step={300} onChange={(e) => setAt(`${d}T${e.target.value}`)} className={field} disabled={busy} />
+              {g.recommend[0] && <span className="text-[10px] text-gray-400">Suggested: {g.why}</span>}
+            </div>
+            {err && <div className="text-[11px] text-red-600">{err}</div>}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                className={primaryButton}
+                disabled={disabled || busy || !at || !caption.trim() || caption.length > 2200}
+                onClick={() => post({ action: "approve-now", variant: p.key, at, caption }, `Approve and schedule "${p.name === p.key ? "this post" : p.name}" for ${at.replace("T", " at ")} ET?\n\nIt goes out on Instagram and Facebook by itself.`)}
+              >
+                {busy ? "Working…" : "Approve + schedule"}
+              </button>
+              <button
+                className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-black uppercase tracking-widest hover:border-gray-500 disabled:opacity-40 dark:border-white/20"
+                disabled={disabled || busy || !caption.trim() || caption.length > 2200}
+                onClick={() => post({ action: "approve-now", variant: p.key, at: null, caption }, "Approve and post NOW? It goes out on Instagram and Facebook within 5 minutes.")}
+              >
+                Approve + post now
+              </button>
+              {sc && <span className="text-[10px] text-gray-400">A draft of this is on the Schedule; this approves it.</span>}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // Many posts (one per team / bracket): approve all (or the selected) and spread them.
+  const chosen = (picked.length ? g.posts.filter((p) => picked.includes(p.key)) : g.posts).filter((p) => {
+    const sc = g.scheduled[p.key];
+    return !sc || sc.status === "draft" || sc.status === "failed";
+  });
+  const already = g.posts.length - chosen.length;
+  const nTimes = Object.values(times).filter(Boolean).length;
+  const nDays = from && to ? Math.max(0, Math.round((new Date(`${to}T12:00:00`).getTime() - new Date(`${from}T12:00:00`).getTime()) / 86400000) + 1) : 0;
+  const fits = chosen.length <= nDays * nTimes;
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-gray-100 p-3 dark:border-white/10">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] font-bold">Approve + schedule</span>
+        <span className="text-[10px] text-gray-500 dark:text-white/50">
+          {already ? `${already} already on the Schedule · ` : ""}
+          {chosen.length} to approve{picked.length ? " (selected above)" : ""}. Captions come from each post; edit one on the Schedule.
+        </span>
+        {schedLink}
+      </div>
+      {!showSpread ? (
+        <div>
+          <button className={primaryButton} disabled={disabled || busy || !chosen.length} onClick={() => setShowSpread(true)}>
+            {picked.length ? `Approve ${chosen.length} selected + spread…` : `Approve all ${chosen.length} + spread…`}
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="text-gray-500">From</span>
+            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={field} />
+            <span className="text-gray-500">to</span>
+            <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} className={field} />
+            <span className="text-gray-500">at</span>
+            {SPREAD_TIMES.map((tm) => (
+              <button key={tm} onClick={() => setTimes((x) => ({ ...x, [tm]: !x[tm] }))} className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${times[tm] ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-black" : "border-gray-200 text-gray-500 dark:border-white/10"}`}>
+                {tm.replace(/^0/, "").replace(":00", "")}{Number(tm.slice(0, 2)) < 12 ? " AM" : " PM"}
+              </button>
+            ))}
+          </div>
+          <span className="text-[10px] text-gray-400">Suggested: {g.why}</span>
+          <span className={`text-[11px] ${fits ? "text-gray-500" : "text-red-600"}`}>
+            {chosen.length} posts over {nDays} day{nDays === 1 ? "" : "s"} × {nTimes} time{nTimes === 1 ? "" : "s"} = {nDays * nTimes} slots{fits ? ` (about ${nDays ? (chosen.length / nDays).toFixed(1) : 0} a day), in the order shown above` : ": add days or times"}
+          </span>
+          {err && <div className="text-[11px] text-red-600">{err}</div>}
+          <div className="flex flex-wrap gap-2">
+            <button
+              className={primaryButton}
+              disabled={disabled || busy || !fits || !chosen.length || !nTimes}
+              onClick={() =>
+                post(
+                  { action: "spread-approved", variants: chosen.map((p) => p.key), from, to, times: SPREAD_TIMES.filter((tm) => times[tm]) },
+                  `Approve ${chosen.length} posts and spread them ${from} – ${to}?\n\nThey go out on Instagram and Facebook by themselves at those times.`,
+                )
+              }
+            >
+              {busy ? "Approving… (uploads each one, give it a minute)" : `Approve ${chosen.length} + schedule`}
+            </button>
+            <button className="text-[10px] text-gray-400 underline" onClick={() => setShowSpread(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * Step 5 "Populate" (James, 17 Oct): fill the signed-off template with the latest numbers and make every version
  * (all teams / brackets, or the one post) → Drive kit. Runs in the background like steps 1–3. A number that isn't
  * live yet is listed; ones James can type (lock time, entries) get a box.
@@ -135,11 +320,17 @@ function FinalPosts({
   working,
   canAct,
   onPopulate,
+  event,
+  type,
+  onChanged,
 }: {
   f: Finals;
   working: boolean;
   canAct: boolean;
   onPopulate: (teams: string[], set: Record<string, string>) => void;
+  event: string;
+  type: string;
+  onChanged: () => void;
 }) {
   const [picked, setPicked] = useState<string[]>([]);
   const [typed, setTyped] = useState<Record<string, string>>({});
@@ -269,6 +460,7 @@ function FinalPosts({
               </div>
             ))}
           </div>
+          <ApproveAndSchedule event={event} type={type} single={f.single} picked={picked} disabled={!canAct || working} onChanged={onChanged} />
         </>
       )}
     </div>
@@ -829,6 +1021,9 @@ export default function PostTypeView({
               working={!!working}
               canAct={!sending}
               onPopulate={(teams, set) => act("populate", { teams: teams.join(","), set })}
+              event={event}
+              type={type}
+              onChanged={load}
             />
           </>
         )}
