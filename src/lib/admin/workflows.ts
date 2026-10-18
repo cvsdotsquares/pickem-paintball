@@ -2,7 +2,7 @@ import { execFileSync, spawn } from "child_process";
 import fs from "fs";
 import path from "path";
 import { HUB } from "./library";
-import { agents as scheduleAgents, listSlots, type SlotView } from "./scheduler";
+import { agents as scheduleAgents, listSlots, needsYou, type SlotView } from "./scheduler";
 import { readBoard } from "./todo";
 import { listRuns } from "./jobs";
 
@@ -57,6 +57,8 @@ export type View = {
   brief: { text: string; at: string; test: boolean; file: string } | null;
   inputs: { text: string; done: boolean }[];
   inputsCard: string; // TO DO card id, "" if none yet
+  needsYou: { text: string; due: string; link: string; kind: "input" | "approve" | "blocked" | "review" }[]; // the inbox, soonest first
+  anchors: Record<string, string>; // picks_open, lock, day_one, event_end (ET ISO)
   cards: Card[];
   error?: string;
 };
@@ -71,7 +73,7 @@ function readAgents(): AgentRow[] {
   });
 }
 
-function playbook(): { event: string; name: string; date: string; planning_start: string; workflows: { id: string; agent: string; name: string }[]; jobs: Omit<Job, "slot">[] } {
+function playbook(): { event: string; name: string; date: string; planning_start: string; anchors: Record<string, string>; workflows: { id: string; agent: string; name: string }[]; jobs: Omit<Job, "slot">[] } {
   return JSON.parse(execFileSync("python3", ["-I", PLAYBOOK_PY, "schedule"], { cwd: HUB, encoding: "utf8", timeout: 20000 }));
 }
 
@@ -179,7 +181,21 @@ export async function view(): Promise<View> {
       return { agent, children: team.filter((c) => c.parent === agent.id), lastRun, nextRun, waitingOn, workflows, actions, jobRuns };
     });
 
-  return { event: pb.event, eventName: pb.name, date: pb.date, planningStart: pb.planning_start, team, completed, upcoming, brief, inputs, inputsCard: card?.id ?? "", cards };
+  // Needs you: the inbox. Inputs (from the card or the draft), the Schedule's needs-you strip, the plan review.
+  const planRep = reps.find((r) => r.agent === "gm" && r.job === "event_plan" && r.result === "ok" && !r.test);
+  const inputDue = (t: string) => {
+    const m = t.match(/by ([A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2})/);
+    if (!m) return "";
+    const d = new Date(`${m[1]} ${new Date().getFullYear()} 12:00`);
+    return isNaN(+d) ? "" : d.toISOString();
+  };
+  const inbox: View["needsYou"] = [
+    ...inputs.filter((i) => !i.done).map((i) => ({ text: i.text, due: inputDue(i.text), link: card ? "/admin/todo" : "", kind: "input" as const })),
+    ...needsYou(slots).map((n) => ({ text: n.text, due: n.due ?? "", link: "/admin/scheduler", kind: n.tone === "red" ? ("blocked" as const) : ("approve" as const) })),
+    ...(planRep ? [{ text: "Review the event plan the Manager put on the Schedule", due: "", link: "/admin/scheduler", kind: "review" as const }] : []),
+  ].sort((a, b) => (a.due || "9").localeCompare(b.due || "9"));
+
+  return { event: pb.event, eventName: pb.name, date: pb.date, planningStart: pb.planning_start, team, completed, upcoming, brief, inputs, inputsCard: card?.id ?? "", needsYou: inbox, anchors: pb.anchors, cards };
 }
 
 /** One report by its hub-relative path (agents/runs/<agent>/<file>.json only). */
