@@ -881,6 +881,27 @@ exports.recalcBadgesTask = onTaskDispatched(
   },
   async (req) => {
     const eventId = req.data && req.data.eventId;
+    const scheduledFor = req.data && req.data.scheduledFor;
+
+    /*
+     * A task is only good for the eventEndsAt it was enqueued for. If the end time has
+     * since moved, scheduleBadgeRecalc enqueued a new task for the new time, so this one
+     * stands down — otherwise moving eventEndsAt later would still lock the event and
+     * stop the live crawl at the old time. Tasks enqueued before scheduledFor existed
+     * carry none and run as before.
+     */
+    if (eventId && scheduledFor) {
+      const evSnap = await db.doc(`events/${eventId}`).get();
+      const ends = evSnap.exists ? evSnap.get('eventEndsAt') : null;
+      const currentIso = ends && typeof ends.toDate === 'function' ? ends.toDate().toISOString() : null;
+      if (currentIso !== scheduledFor) {
+        console.log(
+          `⏭️  Badge recalc for ${eventId} superseded: scheduled for ${scheduledFor}, eventEndsAt is now ${currentIso || 'unset'}`,
+        );
+        return;
+      }
+    }
+
     const appUrl = (process.env.APP_URL || 'https://pickempaintball.com').replace(/\/$/, '');
     const apiKey = apiSecretKey.value();
     if (!apiKey) {
@@ -959,7 +980,7 @@ exports.scheduleBadgeRecalc = functions.firestore
 
     try {
       const queue = getFunctions().taskQueue(BADGE_TASK_QUEUE);
-      await queue.enqueue({ eventId }, { scheduleTime });
+      await queue.enqueue({ eventId, scheduledFor: endsIso }, { scheduleTime });
       await markerRef.set({
         scheduledFor: endsIso,
         scheduleTime: admin.firestore.Timestamp.fromDate(scheduleTime),
