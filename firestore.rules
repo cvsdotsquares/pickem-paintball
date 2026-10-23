@@ -35,6 +35,13 @@ service cloud.firestore {
         allow read: if true;
         allow write: if false;
       }
+
+      // Pick % per event: `pickPct` frozen at the lock, `pickPctLive` hourly while picks
+      // are open. Written only by the server (Data agent, refreshLivePickPct).
+      match /summaries/{summaryId} {
+        allow read: if true;
+        allow write: if false;
+      }
     }
 
     match /leaderboards/{leaderboardId} {
