@@ -271,6 +271,21 @@ function resolveDisplayName(data) {
   );
 }
 
+// ─── Live pick % while picks are open ─────────────────────────────────────
+// Hourly, only for the live event before its lock: writes events/{id}/summaries/pickPctLive
+// so the career page can show how often a player is being picked so far. At the lock the
+// Data agent freezes the real number into summaries/pickPct (pickPct.js says why), and this
+// marks the live count closed. One read when no event has picks open... plus the event list.
+exports.refreshLivePickPct = functions
+  .runWith({ timeoutSeconds: 120, memory: '512MB' })
+  .pubsub.schedule('every 60 minutes')
+  .onRun(async () => {
+    const { refreshLive } = require('./pickPct');
+    const done = await refreshLive(db, admin);
+    console.log(done.length ? `📊 Live pick %: ${done.join('; ')}` : '💤 No event with picks open.');
+    return null;
+  });
+
 // ─── Leaderboard Recalculation ────────────────────────────────────────────
 // Triggers once per macro upload (watches last_updated on event doc).
 // Reads all players once + all users once → batch writes summary docs + flat fields.
