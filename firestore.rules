@@ -99,8 +99,76 @@ service cloud.firestore {
     // use the client SDK, so they have no auth context to key a rule on yet.
     // TODO(stage 3): require request.auth and restrict to the owning document.
 
+    // users/{uid} — doc id == Firebase Auth uid (login, register and every client
+    // write use doc(db, "users", user.uid)). Reads stay public for now (stage 3).
+    //
+    // Writes:
+    //  * create — only the signed-in owner, and never with picks in it (a new doc
+    //    starts with `pickems: {}` or none; picks are always saved by update).
+    //  * update by the owner — anything, except that a change to the `pickems` map
+    //    must be a pick save for ONE event whose picks are still open:
+    //      - the same write sets top-level `pickemsEventId` to that event's id
+    //        (rules cannot pull a key out of a set, so the client names the event);
+    //      - every changed pickems key is <id>, <id>_captain, <id>_draft or
+    //        <id>_draft_captain;
+    //      - events/<id>.lockDate is a timestamp and the server clock is before it.
+    //        No lockDate (or not a timestamp) = locked, same as the pick page.
+    //  * update by anyone else — still needed because ~10 server routes write user
+    //    docs with the CLIENT SDK and so arrive here anonymous (see stage 2 above).
+    //    Limited to exactly the fields those routes write; never pickems or profile.
+    //  * delete — nobody; no client deletes a user doc (admin scripts bypass rules).
     match /users/{userId} {
-      allow read, write: if true;
+      function isOwner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function mapOrEmpty(data) {
+        return data.get('pickems', {}) is map ? data.get('pickems', {}) : {};
+      }
+
+      function picksOpen(eventId) {
+        let ev = /databases/$(database)/documents/events/$(eventId);
+        return exists(ev)
+          && get(ev).data.get('lockDate', null) is timestamp
+          && request.time < get(ev).data.lockDate;
+      }
+
+      function pickemsWriteOk() {
+        let changed = mapOrEmpty(request.resource.data).diff(mapOrEmpty(resource.data)).affectedKeys();
+        let e = request.resource.data.get('pickemsEventId', null);
+        return changed.size() == 0
+          || (e is string
+              && e.size() > 0
+              && !e.matches('.*/.*')
+              && changed.hasOnly([e, e + '_captain', e + '_draft', e + '_draft_captain'])
+              && picksOpen(e));
+      }
+
+      // Fields written by the client-SDK server routes (leagues/*, stripe/*,
+      // share/link). Remove this branch once stage 2 moves them to firebase-admin.
+      function serverRouteFieldsOnly() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'leagues', 'adminLeagues', 'leagueRequests',
+          'isSubscribed', 'subscriptionTier', 'subscriptionStatus',
+          'subscriptionCurrentPeriodEnd', 'subscriptionCancelAtPeriodEnd',
+          'stripeCustomerId', 'stripeSubscriptionId',
+          'lastPaymentDate', 'lastPaymentAmount', 'paymentFailed', 'lastPaymentFailedDate',
+          'updatedAt', 'shareId'
+        ]);
+      }
+
+      allow read: if true;
+
+      allow create: if isOwner()
+        && (!('pickems' in request.resource.data)
+            || (request.resource.data.pickems is map && request.resource.data.pickems.size() == 0));
+
+      allow update: if (isOwner()
+                        && (!('pickems' in request.resource.data) || request.resource.data.pickems is map)
+                        && pickemsWriteOk())
+                    || serverRouteFieldsOnly();
+
+      allow delete: if false;
     }
 
     match /leagues/{leagueId} {
