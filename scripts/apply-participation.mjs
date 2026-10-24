@@ -60,9 +60,10 @@ import {
   planJson,
   pendingOf,
 } from "./participation-plan.mjs";
+import { registryPath } from "./identity-registry-path.mjs";
 
 const DEFAULT_CSV = `${homedir()}/Documents/nxl-pro-players/Player_Roster_Historic.csv`;
-const REGISTRY = "scripts/player-identity-registry.json";
+const REGISTRY = registryPath();   // the master ID list (identity-registry-path.mjs)
 const BATCH = 400;
 
 const line = (c = "─") => console.log(c.repeat(78));
