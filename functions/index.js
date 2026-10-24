@@ -3,6 +3,7 @@ const admin = require('firebase-admin');
 const { onTaskDispatched } = require('firebase-functions/v2/tasks');
 const { defineSecret } = require('firebase-functions/params');
 const { getFunctions } = require('firebase-admin/functions');
+const { playerChangeNotices } = require('./playerNotices');
 
 // Shared secret used to authenticate the function -> /api/badges/calculate call.
 // Set once with: firebase functions:secrets:set API_SECRET_KEY
@@ -802,16 +803,19 @@ async function handlePlayerStatusChange(eventId, playerId, change) {
   const before = change.before.exists ? change.before.data() || {} : {};
   const newStatus = after.Status;
   const oldStatus = before.Status;
+  const statusChanged = Boolean(newStatus) && newStatus !== oldStatus;
+  const teamChanged = change.before.exists && Boolean(before.team_id) && Boolean(after.team_id) &&
+    String(before.team_id) !== String(after.team_id);
 
-  if (!newStatus || newStatus === oldStatus) return;
+  if (!statusChanged && !teamChanged) return;
 
-  // Stamp StatusUpdatedAt if missing/unchanged on this write.
+  // Stamp StatusUpdatedAt if missing/unchanged on this write (status changes only).
   const beforeTs = before.StatusUpdatedAt;
   const afterTs = after.StatusUpdatedAt;
   const tsUnchanged =
     (beforeTs && afterTs && beforeTs.isEqual && beforeTs.isEqual(afterTs)) ||
     (!beforeTs && !afterTs);
-  if (tsUnchanged) {
+  if (statusChanged && tsUnchanged) {
     try {
       await change.after.ref.update({
         StatusUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -839,6 +843,10 @@ async function handlePlayerStatusChange(eventId, playerId, change) {
     }
   } catch (_) {}
 
+  // Status change and/or team move (playerNotices.js; a team move notifies pickers too, James 24 Oct 2026).
+  const notices = playerChangeNotices({ before, after, beforeExists: change.before.exists, playerName, eventName });
+  if (!notices.length) return;
+
   const batch = db.batch();
   let count = 0;
   usersSnap.docs.forEach((userDoc) => {
@@ -846,27 +854,27 @@ async function handlePlayerStatusChange(eventId, playerId, change) {
     const ids = Array.isArray(pickems[eventId]) ? pickems[eventId] : [];
     const matched = ids.some((id) => String(id) === String(playerId));
     if (!matched) return;
-    const ref = db.collection('notifications').doc();
-    batch.set(ref, {
-      userId: userDoc.id,
-      type: 'player_status_changed',
-      playerId: String(playerId),
-      playerName,
-      eventId,
-      eventName,
-      oldStatus: oldStatus || null,
-      newStatus,
-      message: `${playerName} is now ${newStatus} for ${eventName}`,
-      read: false,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-    count += 1;
+    for (const n of notices) {
+      const ref = db.collection('notifications').doc();
+      batch.set(ref, {
+        userId: userDoc.id,
+        playerId: String(playerId),
+        playerName,
+        eventId,
+        eventName,
+        ...n,
+        read: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      count += 1;
+    }
   });
 
   if (count > 0) {
     await batch.commit();
     console.log(
-      `📨 Sent ${count} player_status_changed notification(s) for ${playerName} (${oldStatus || 'none'} → ${newStatus})`,
+      `📨 Sent ${count} notification(s) for ${playerName}: ` + notices.map((n) => n.type === 'player_team_changed'
+        ? `team ${n.oldTeam} → ${n.newTeam}` : `${n.oldStatus || 'none'} → ${n.newStatus}`).join(', '),
     );
   }
 }
