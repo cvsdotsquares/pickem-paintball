@@ -36,7 +36,12 @@ export type Job = {
   writes: string; built: boolean; model: string; notes?: string; due: string; first_due: string; state: string; waiting_on?: string[];
   last_report: string; last_result: string; last_started: string; last_summary: string; icon: string; agent_name: string;
   slot: string; // Schedule slot id (notes contain job:<id>), "" if none
+  slot_status?: string; short?: string; until_date?: string; last_ok?: string;
+  // How the Workflows track shows it (James 24 Oct 2026), worked out here so the page only draws:
+  vstate: string; // done · today (a repeating job ran today) · ticking (own timer, in its window) · listen (on_message) · or the playbook state
+  when1: string; when2: string; how: string; next_at: string; counts: boolean; // counts = part of "N of M steps done"
 };
+export type Timer = { label: string; name: string; ok: boolean; running: boolean; exit: string; lastOutput: string };
 export type Done = { icon: string; agent: string; task: string; when: string; result: string; link: string; kind: "run" | "post" | "task" };
 export type Upcoming = { icon: string; agent: string; task: string; due: string; waiting: string; link: string; state: string };
 export type Card = {
@@ -60,6 +65,8 @@ export type View = {
   needsYou: { text: string; due: string; link: string; kind: "input" | "approve" | "blocked" | "review" }[]; // the inbox, soonest first
   anchors: Record<string, string>; // picks_open, lock, day_one, event_end (ET ISO)
   listener: { on: boolean; lastWake: string; lastWakeText: string }; // the Slack listener (launchd com.pickem.listener)
+  timers: Timer[]; // every launchd com.pickem.* timer: last exit (0 = fine), running, last output
+  wakeups: string[]; // the day planner's wake-ups still to fire (ET ISO), soonest first
   cards: Card[];
   error?: string;
 };
@@ -106,8 +113,102 @@ function logLines(): LogLine[] {
 
 const REPEAT_WHY: Record<string, string> = {
   once: "once", daily: "daily", weekly: "weekly (Mondays)", each_event_day: "every event day", after_each_upload: "after each long-data upload",
-  every_30_min_event_days: "every 30 min on event days", own_timer: "on its own timer",
+  every_30_min_event_days: "every 30 min on event days", own_timer: "on its own timer", on_message: "when you answer in Slack",
 };
+const ymdET = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // YYYY-MM-DD
+const dayET = (iso: string) => new Date(iso).toLocaleString("en-GB", { timeZone: "America/New_York", weekday: "short", day: "numeric", month: "short" });
+const timeET = (iso: string) => new Date(iso).toLocaleString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" });
+const dayYmd = (ymd: string) => dayET(ymd + "T16:00:00Z");
+
+/**
+ * One step as the Workflows track draws it (James 24 Oct 2026). A once-job is done when it ran for real (a slot dated
+ * later and not ticked = a re-run still to come). A repeating job is done only after its last day, "ran today" in
+ * between; test runs never count. Own-timer jobs tick in their window; on-message jobs wait for James.
+ */
+function stepView(j: Omit<Job, "vstate" | "when1" | "when2" | "how" | "next_at" | "counts">, today: string, now: number) {
+  const rep = j.repeat;
+  const start = ymdET(j.first_due);
+  const t = timeET(j.first_due);
+  const standing = j.workflow.endsWith("_standing");
+  let how = rep === "own_timer" ? "own timer" : rep === "on_message" ? "when you ✅ in Slack" : !j.built ? "not built yet" : j.agent === "james" ? "yours" : "starts itself";
+  if (j.writes === "asks" && rep !== "on_message") how += " · asks your ✅";
+  let vstate = j.state, when1 = "", when2 = "", next_at = "";
+  if (rep === "once") {
+    const later = Date.parse(j.first_due) > now;
+    const rerun = later && !!j.slot && j.slot_status !== "done";
+    if (j.state === "done" && !rerun) {
+      vstate = "done";
+      when1 = `done ${dayET(j.last_ok || j.first_due)}`;
+    } else {
+      if (j.state === "done") vstate = "not_due";
+      when1 = dayET(j.first_due);
+      when2 = t;
+      next_at = later ? j.first_due : "";
+    }
+  } else if (rep === "on_message") {
+    vstate = j.state === "running" ? "running" : "listen";
+    when1 = j.last_ok ? `last ${dayET(j.last_ok)}` : "not used yet";
+  } else {
+    const end = j.until_date ?? "";
+    when1 = standing ? "all year" : end === start ? dayYmd(start) : end ? `${dayYmd(start)} → ${dayYmd(end)}` : `from ${dayYmd(start)}`;
+    when2 = rep === "own_timer" ? (standing ? `daily ${t}` : `from ${t}`) : `${REPEAT_WHY[rep] ?? rep} ${t}`;
+    if (end && today > end) {
+      vstate = "done";
+      when1 = `finished ${dayYmd(end)}`;
+      when2 = "";
+    } else if (today < start) {
+      vstate = j.built ? "not_due" : j.state;
+      next_at = j.first_due;
+    } else if (rep === "own_timer") {
+      vstate = "ticking";
+    } else {
+      if (j.state === "done") vstate = "today";
+      else if (j.state === "not_due") vstate = "not_due";
+      const todayAt = Date.parse(j.due);
+      const next = j.state === "done" || todayAt <= now ? todayAt + 86400000 : todayAt;
+      if (!end || ymdET(new Date(next).toISOString()) <= end) next_at = new Date(next).toISOString();
+    }
+  }
+  return { vstate, when1, when2, how, next_at, counts: rep !== "on_message" && !standing };
+}
+
+const TIMER_NAME: Record<string, string> = {
+  "com.pickem.manager": "Manager 7 AM", "com.pickem.dayplan": "Day planner 00:01", "com.pickem.listener": "Slack listener",
+  "com.pickem.livecrawl": "Live crawl", "com.pickem.eventday": "Event-day runner", "com.pickem.longdatacheck": "Long data check",
+  "com.pickem.safetydiff": "Safety diff", "com.pickem.surveyrefresh": "Survey refresh",
+};
+
+/** Every launchd com.pickem.* timer (handoff 24 Oct 2026: the Manager sat at exit 78 for two days and nobody saw). */
+function timers(): { timers: Timer[]; wakeups: string[] } {
+  let out = "";
+  try {
+    out = execFileSync("launchctl", ["list"], { encoding: "utf8", timeout: 5000 });
+  } catch {
+    return { timers: [], wakeups: [] };
+  }
+  const la = path.join(process.env.HOME || "", "Library/LaunchAgents");
+  const list: Timer[] = [];
+  const wakeups: string[] = [];
+  for (const line of out.split("\n")) {
+    const [pid, exit, label] = line.split("\t");
+    if (!label?.startsWith("com.pickem.")) continue;
+    const w = label.match(/^com\.pickem\.wake\.(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})$/);
+    if (w) {
+      wakeups.push(`${w[1]}-${w[2]}-${w[3]}T${w[4]}:${w[5]}`);
+      continue;
+    }
+    if (label.startsWith("com.pickem.wake.")) continue;
+    let lastOutput = "";
+    try {
+      const plist = fs.readFileSync(path.join(la, `${label}.plist`), "utf8");
+      const m = plist.match(/<key>StandardOutPath<\/key>\s*<string>([^<]+)<\/string>/);
+      if (m && fs.existsSync(m[1])) lastOutput = fs.statSync(m[1]).mtime.toISOString();
+    } catch {}
+    const running = /^\d+$/.test(pid);
+    list.push({ label, name: TIMER_NAME[label] ?? label.replace("com.pickem.", ""), ok: running || exit === "0", running, exit, lastOutput });
+  }
+  return { timers: list.sort((a, b) => a.name.localeCompare(b.name)), wakeups: wakeups.sort() };
+}
 const niceWhen = (iso: string) => {
   if (!iso) return "";
   const d = new Date(iso);
@@ -127,9 +228,12 @@ export async function view(): Promise<View> {
     slots = [];
   }
   const slotFor = (jobId: string) => slots.find((s) => s.kind !== "post" && (s.notes ?? "").includes(`job:${jobId}`));
-  const jobs: Job[] = pb.jobs.map((j) => ({ ...j, slot: slotFor(j.id)?.id ?? "" }));
-  const icon = (id: string) => team.find((a) => a.id === id)?.icon ?? "•";
   const now = Date.now();
+  const jobs: Job[] = pb.jobs.map((j) => {
+    const base = { ...j, slot: slotFor(j.id)?.id ?? "", slot_status: slotFor(j.id)?.status ?? "" };
+    return { ...base, ...stepView(base, pb.date, now) };
+  });
+  const icon = (id: string) => team.find((a) => a.id === id)?.icon ?? "•";
 
   // Recently completed: finished runs + posted posts + done tasks, newest first, 15
   const completed: Done[] = [
@@ -171,14 +275,14 @@ export async function view(): Promise<View> {
     .map((agent) => {
       const mine = jobs.filter((j) => j.agent === agent.id || team.find((c) => c.id === j.agent)?.parent === agent.id);
       const lastRun = reps.find((r) => r.agent === agent.id) ?? null;
-      const next = mine
-        .filter((j) => !["done", "not_built", "off"].includes(j.state) && j.repeat !== "own_timer" && Date.parse(j.due) >= now - 3600000)
-        .sort((a, b) => a.due.localeCompare(b.due))[0];
-      const nextRun = agent.id === "gm" ? { when: "7:00 AM ET daily", why: "and whenever you @Management, DM it, or reply in its thread on Slack", job: "daily_brief" } : next ? { when: niceWhen(next.due), why: `${next.name} · ${REPEAT_WHY[next.repeat] ?? next.repeat}`, job: next.id } : null;
+      const next = mine.filter((j) => j.next_at && j.built && agent.status === "on").sort((a, b) => Date.parse(a.next_at) - Date.parse(b.next_at))[0];
+      const nextRun = agent.id === "gm" ? { when: "7:00 AM ET daily", why: "the brief; the day planner sets today's wake-ups at 00:01 and whenever you move a slot", job: "daily_brief" } : next ? { when: niceWhen(next.next_at), why: `${next.short || next.name} · starts itself`, job: next.id } : null;
       const needs = (lastRun?.needs ?? []).map((n) => (typeof n === "string" ? n : [n.who, n.why].filter(Boolean).join(": ")));
       const waiting = mine.filter((j) => j.state === "waiting").map((j) => `${j.name}: waiting on ${(j.waiting_on ?? []).join(", ")}`);
       const waitingOn = Array.from(new Set([...needs, ...waiting])).slice(0, 8);
-      const workflows = pb.workflows.filter((w) => w.agent === agent.id).map((w) => ({ id: w.id, name: w.name, steps: mine.filter((j) => j.workflow === w.id) }));
+      // in time order (James 24 Oct 2026): by first date, then time; on-message jobs last
+      const order = (j: Job) => (j.repeat === "on_message" ? "9" : j.first_due ? new Date(j.first_due).toISOString() : "8");
+      const workflows = pb.workflows.filter((w) => w.agent === agent.id).map((w) => ({ id: w.id, name: w.name, steps: mine.filter((j) => j.workflow === w.id).sort((a, b) => order(a).localeCompare(order(b))) }));
       const childIds = team.filter((c) => c.parent === agent.id).map((c) => c.id);
       const actions = log.filter((l) => l.agent === agent.id || childIds.includes(l.agent)).slice(0, 10);
       const jobRuns = agent.id === "social" ? panelRuns.filter((r) => r.job === "check-inspo").slice(0, 3).map((r) => ({ id: r.id, label: r.label, status: r.status, startedAt: r.startedAt, summary: r.summary ?? "" })) : [];
@@ -206,7 +310,8 @@ export async function view(): Promise<View> {
   const wake = log.find((l) => l.action === "woken by Slack");
   const listener = { on, lastWake: wake?.at ?? "", lastWakeText: wake ? `${team.find((a) => a.id === wake.agent)?.icon ?? ""} ${wake.note ?? ""}`.trim() : "" };
 
-  return { event: pb.event, eventName: pb.name, date: pb.date, planningStart: pb.planning_start, team, completed, upcoming, brief, inputs, inputsCard: card?.id ?? "", needsYou: inbox, anchors: pb.anchors, listener, cards };
+  const tm = timers();
+  return { event: pb.event, eventName: pb.name, date: pb.date, planningStart: pb.planning_start, team, completed, upcoming, brief, inputs, inputsCard: card?.id ?? "", needsYou: inbox, anchors: pb.anchors, listener, timers: tm.timers, wakeups: tm.wakeups, cards };
 }
 
 /** One report by its hub-relative path (agents/runs/<agent>/<file>.json only). */
