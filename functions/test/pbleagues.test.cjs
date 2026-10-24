@@ -13,7 +13,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const zlib = require("node:zlib");
 
-const { parseRankings, parseSchedule, CRAWLER_TEAM_ALIAS } = require("../pbleagues");
+const { parseRankings, parseSchedule, CRAWLER_TEAM_ALIAS, resolveClub } = require("../pbleagues");
 
 const page = (id, kind) =>
   zlib.gunzipSync(fs.readFileSync(path.join(__dirname, "fixtures/pbleagues", `${id}_${kind}.html.gz`))).toString();
@@ -161,4 +161,53 @@ test("lock, one table: finishRank from the table as before", async () => {
   const { update, errors } = await lock("9321", teams, champion);
   assert.deepEqual(errors, []);
   for (const r of rk.rows) assert.equal(update.teams[club(r.team)].finishRank, r.rank);
+});
+
+/* The club vocabulary as of the Midwest Open 2026, the last event in data/nxlHistory.json. */
+const HISTORY = require("../data/nxlHistory.json");
+const VOCAB = [...new Set(HISTORY.events.flatMap((e) => Object.keys(e.teams || {})))].sort(
+  (a, b) => b.length - a.length,
+);
+
+test("World Cup 2026: all 24 Pro teams resolve, each to the right club", () => {
+  const rk = parseRankings(page("9322", "rankings"));
+  const got = Object.fromEntries(rk.rows.map((r) => [r.team, resolveClub(r.team, VOCAB)]));
+  assert.deepEqual(got, {
+    "Edmonton Impact": "Impact",
+    "Ranger Warsaw": "Ranger",
+    "Red Legion": "Red Legion",
+    "Tampa Bay Damage": "Damage",
+    "ALA Warsaw": "ALA",
+    "Atlanta Jungle Cats": "Jungle Cats",
+    "Chicago Aftershock": "Aftershock",
+    "Chicago Distortion": "Distortion",
+    "CK Hurricanes": "Hurricanes",
+    "Detroit Infamous": "Infamous",
+    "Houston Heat": "Heat",
+    "Los Angeles Collision": "Collision",
+    "Los Angeles Ironmen": "Ironmen",
+    LTF: "LTF",
+    "New Jersey Leverage": "Leverage",
+    "New York Xtreme": "Xtreme",
+    PaintballFIT: "PaintballFIT",
+    "Perris ASG Aftermath": "Aftermath",
+    "Puerto Rico tppcrew": "TPP Crew",
+    "Royal City Seadogs": "Seadogs",
+    "San Antonio X-Factor": "X-Factor",
+    "San Diego Dynasty": "Dynasty",
+    "Seattle Uprising": "Uprising",
+    "TonTon Arsenal": "TonTons", // the alias, not the "Arsenal" suffix match
+  });
+});
+
+test("World Cup 2026: every club has a team_id, so its players get appearances", () => {
+  const rk = parseRankings(page("9322", "rankings"));
+  const missing = rk.rows.map((r) => resolveClub(r.team, VOCAB)).filter((c) => !HISTORY.clubTeamId[c]);
+  assert.deepEqual(missing, []);
+  const ids = Object.values(HISTORY.clubTeamId);
+  assert.equal(new Set(ids).size, ids.length, "one team_id per club");
+});
+
+test("resolveClub: an unlisted unknown name is still null, never passed through", () => {
+  assert.equal(resolveClub("Somewhere Nobody", VOCAB), null);
 });

@@ -181,6 +181,16 @@ const CRAWLER_TEAM_ALIAS = {
   "Baltimore Revo": "Arsenal",
   "TonTon FSU": "TonTons",
   "TonTon Arsenal": "TonTons",
+  /*
+   * FIRST NXL EVENT FOR THESE FOUR: World Cup 2026 (9322) runs the international clubs in
+   * the one Pro division, and none of them is in any earlier event, so no vocabulary
+   * match can exist. An alias target is a club by declaration (see resolveClub), so these
+   * carry the short name the history will keep, city dropped as for every other club.
+   */
+  "Ranger Warsaw": "Ranger",
+  "ALA Warsaw": "ALA",
+  LTF: "LTF",
+  "Puerto Rico tppcrew": "TPP Crew",
 };
 
 /**
@@ -189,11 +199,16 @@ const CRAWLER_TEAM_ALIAS = {
  * Returns null rather than the raw name when nothing matches, so the caller can COUNT the
  * failures instead of silently filing results under a club that does not exist. A silent
  * fallback is how TonTons went missing from a whole event.
+ *
+ * An ALIASED name is trusted even when the vocabulary does not have it yet: the
+ * vocabulary is built from finished events, so a club's first event could otherwise
+ * never be recorded. Only names someone deliberately listed get through this way.
  */
 function resolveClub(name, clubs) {
   const aliased = CRAWLER_TEAM_ALIAS[name] || name;
   return (
     clubs.find((c) => aliased === c) ||
+    (CRAWLER_TEAM_ALIAS[name] ? aliased : null) ||
     clubs.find((c) => aliased.endsWith(` ${c}`)) ||
     clubs.find((c) => aliased.startsWith(`${c} `)) ||
     null

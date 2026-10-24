@@ -33,6 +33,12 @@ export const CRAWLER_TEAM_ALIAS = {
   "Baltimore Revo": "Arsenal", // renamed Baltimore Arsenal in 2025
   "TonTon FSU": "TonTons",
   "TonTon Arsenal": "TonTons", // NOT Baltimore Arsenal — see above
+  // World Cup 2026 (9322): first NXL event for all four, so nothing earlier can pair them.
+  // Kept identical to functions/pbleagues.js, where the live crawl trusts an alias target.
+  "Ranger Warsaw": "Ranger",
+  "ALA Warsaw": "ALA",
+  LTF: "LTF",
+  "Puerto Rico tppcrew": "TPP Crew",
 };
 
 /**
@@ -96,6 +102,7 @@ export const PICKEM_EVENT_ID = {
 export const CLUB_TEAM_ID = {
   Aftermath: "SDA",
   Aftershock: "AFT",
+  ALA: "ALA", // ALA, LTF, Ranger, TPP Crew: first NXL event is World Cup 2026
   Arsenal: "ARS",
   "Breakout Spa": "BKS",
   Collision: "COL",
@@ -110,13 +117,16 @@ export const CLUB_TEAM_ID = {
   "Joy Division": "JYD",
   "Jungle Cats": "JNG",
   Leverage: "LEV",
+  LTF: "LTF",
   "Lucky 15s": "LKY",
   "NRG Elite": "NRG",
   PaintballFIT: "FIT",
   "Papeletto Team": "PLT",
+  Ranger: "RGR",
   "Red Legion": "LEG",
   Seadogs: "RCS",
   TonTons: "TON",
+  "TPP Crew": "TPP",
   Uprising: "UPR",
   "X-Factor": "XFA",
   Xtreme: "NYX",
