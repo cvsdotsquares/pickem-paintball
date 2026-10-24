@@ -41,6 +41,8 @@ export type Job = {
   vstate: string; // done · today (a repeating job ran today) · ticking (own timer, in its window) · listen (on_message) · or the playbook state
   when1: string; when2: string; how: string; next_at: string; counts: boolean; // counts = part of "N of M steps done"
 };
+/** One line of the "Approve posts" checklist (James 24 Oct 2026): ticked = approved / scheduled; link opens it on the Schedule. */
+export type PostCheck = { id: string; title: string; due: string; done: boolean; note: string; link: string };
 export type Timer = { label: string; name: string; ok: boolean; running: boolean; exit: string; lastOutput: string };
 export type Done = { icon: string; agent: string; task: string; when: string; result: string; link: string; kind: "run" | "post" | "task" };
 export type Upcoming = { icon: string; agent: string; task: string; due: string; waiting: string; link: string; state: string };
@@ -62,7 +64,7 @@ export type View = {
   brief: { text: string; at: string; test: boolean; file: string } | null;
   inputs: { text: string; done: boolean }[];
   inputsCard: string; // TO DO card id, "" if none yet
-  needsYou: { text: string; due: string; link: string; kind: "input" | "approve" | "blocked" | "review" }[]; // the inbox, soonest first
+  needsYou: { text: string; due: string; link: string; kind: "input" | "approve" | "blocked" | "review" | "posts"; posts?: PostCheck[] }[]; // the inbox, soonest first
   anchors: Record<string, string>; // picks_open, lock, day_one, event_end (ET ISO)
   listener: { on: boolean; lastWake: string; lastWakeText: string }; // the Slack listener (launchd com.pickem.listener)
   timers: Timer[]; // every launchd com.pickem.* timer: last exit (0 = fine), running, last output
@@ -298,9 +300,28 @@ export async function view(): Promise<View> {
     const d = new Date(`${m[1]} ${new Date().getFullYear()} 12:00`);
     return isNaN(+d) ? "" : d.toISOString();
   };
+  // Post approvals fold into one "Approve posts" checklist (James 24 Oct 2026): what needs a ✅ unticked, the upcoming
+  // approved posts ticked, each linking to its slot on the Schedule. Failed posts and James's own tasks stay as lines.
+  const slotById = new Map(slots.map((s) => [s.id, s]));
+  const POST_ASK = /^(Approve|Re-approve|Pick the version for) /;
+  const asks = needsYou(slots);
+  const postAsks = asks.filter((n) => slotById.get(n.id)?.kind === "post" && POST_ASK.test(n.text));
+  const askIds = new Set(postAsks.map((n) => n.id));
+  const toLink = (id: string) => `/admin/scheduler?slot=${id}`;
+  const posts: PostCheck[] = [
+    ...postAsks.map((n) => ({
+      id: n.id, title: n.text.replace(POST_ASK, ""), due: n.due ?? "", done: false, link: toLink(n.id),
+      note: n.text.startsWith("Re-approve") ? "re-approve (graphic re-made)" : n.text.startsWith("Pick") ? "pick the version, then approve" : "needs your approval",
+    })),
+    ...slots
+      .filter((s) => s.kind === "post" && ["approved", "scheduled"].includes(s.status) && !askIds.has(s.id) && s.publishAt && Date.parse(s.publishAt) >= now)
+      .map((s) => ({ id: s.id, title: s.title, due: s.publishAt ?? "", done: true, link: toLink(s.id), note: "approved, goes out by itself" })),
+  ].sort((a, b) => Date.parse(a.due || "9999") - Date.parse(b.due || "9999"));
+  const firstAsk = posts.find((p) => !p.done);
   const inbox: View["needsYou"] = [
     ...inputs.filter((i) => !i.done).map((i) => ({ text: i.text, due: inputDue(i.text), link: card ? "/admin/todo" : "", kind: "input" as const })),
-    ...needsYou(slots).map((n) => ({ text: n.text, due: n.due ?? "", link: "/admin/scheduler", kind: n.tone === "red" ? ("blocked" as const) : ("approve" as const) })),
+    ...asks.filter((n) => !postAsks.includes(n)).map((n) => ({ text: n.text, due: n.due ?? "", link: n.id ? toLink(n.id) : "/admin/scheduler", kind: n.tone === "red" ? ("blocked" as const) : ("input" as const) })), // what's left is your own tasks (a tab to add …), not approvals
+    ...(postAsks.length ? [{ text: "Approve posts", due: firstAsk?.due ?? "", link: "/admin/scheduler", kind: "posts" as const, posts }] : []),
     ...(planRep ? [{ text: "Review the event plan the Manager put on the Schedule", due: "", link: "/admin/scheduler", kind: "review" as const }] : []),
   ].sort((a, b) => (a.due || "9").localeCompare(b.due || "9"));
 
