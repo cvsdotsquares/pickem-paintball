@@ -4,11 +4,11 @@ export const PLACEHOLDER_HEADSHOT = "/placeholder.svg";
 /**
  * Whether a stored image URL is an actual headshot.
  *
- * `img_url` is the one source of truth: the data job empties it when the photo shows a
- * player's old team, so an empty field means "no headshot", and so does a placeholder
- * URL — the data job writes "/placeholder.svg" to hide a moved player's photo, and some
- * older rows carry one too. Same test as `looksLikePhoto` in functions/playerSummaries.js. Pages used to fall back to the legacy `players/` Storage
- * folder here, which brought back the very photos that were cleared on purpose.
+ * `img_url` is the one source of truth. Empty means no headshot, and so does a
+ * placeholder URL: the data job hides a moved player's wrong-team photo by writing
+ * "/placeholder.svg", and some older rows carry one too. Same test as `looksLikePhoto` in
+ * functions/playerSummaries.js. Pages used to fall back to the legacy `players/` Storage
+ * folder when `img_url` was empty, which brought back the very photos hidden on purpose.
  */
 export function isRealHeadshot(url: string | null | undefined): url is string {
   const u = typeof url === "string" ? url.trim() : "";
