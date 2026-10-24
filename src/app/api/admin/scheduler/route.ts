@@ -1,4 +1,7 @@
+import { spawn } from "child_process";
+import path from "path";
 import { NextResponse } from "next/server";
+import { HUB } from "@/src/lib/admin/library";
 import { adminGate } from "@/src/lib/admin/gate";
 import { validId } from "@/src/lib/admin/generator";
 import {
@@ -24,6 +27,21 @@ import {
 } from "@/src/lib/admin/scheduler";
 
 export const dynamic = "force-dynamic";
+
+/** The Manager's day planner (pickem-hub agents/manager/dayplan.py, James 24 Oct 2026): a slot added, moved, ticked or
+ * removed re-plans today's wake-ups, so a job fires at its slot's new time. Detached; never blocks or fails the save. */
+function replan(why: string) {
+  try {
+    const py = process.env.PICKEM_PYTHON || path.join(process.env.HOME || "", "anaconda3/bin/python3");
+    const child = spawn(py, [path.join(HUB, "agents/manager/dayplan.py"), "plan", "--reason", `schedule: ${why}`], {
+      cwd: HUB, detached: true, stdio: "ignore",
+    });
+    child.on("error", () => {});
+    child.unref();
+  } catch {
+    /* the 7 AM run catches up anything missed */
+  }
+}
 
 /**
  * GET ?event= → the event's calendar: slots, what's not on it yet (tray), key dates, made posts for carousels.
@@ -103,11 +121,14 @@ export async function POST(request: Request) {
     if (b.action === "task") {
       if (!validId(String(b.event))) throw new Error("Unknown event");
       if (b.kind !== "work" && b.kind !== "action") throw new Error("A task is work or an action");
-      return NextResponse.json({ ok: true, id: await addTask(b.event, b.kind, String(b.agent), String(b.title ?? ""), String(b.at), Number(b.duration ?? 0), String(b.notes ?? "")) });
+      const taskId = await addTask(b.event, b.kind, String(b.agent), String(b.title ?? ""), String(b.at), Number(b.duration ?? 0), String(b.notes ?? ""));
+      replan("task added");
+      return NextResponse.json({ ok: true, id: taskId });
     }
     if (!/^[A-Za-z0-9]{10,40}$/.test(id)) throw new Error("Unknown slot");
     if (b.action === "done") {
       await setDone(id, !!b.done);
+      replan("slot ticked");
       return NextResponse.json({ ok: true });
     }
     if (b.action === "save") {
@@ -125,6 +146,7 @@ export async function POST(request: Request) {
     else if (b.action === "postnow") await postNow(id);
     else if (b.action === "remove") await removeSlot(id);
     else throw new Error("Unknown action");
+    if (b.action === "save" || b.action === "remove") replan(b.action === "save" ? "slot saved" : "slot removed");
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });

@@ -23,7 +23,9 @@ type LogLine = { at: string; agent: string; job: string; action: string; link?: 
 type Job = {
   id: string; name: string; agent: string; workflow: string; repeat: string; needs_first: string[]; inputs: string[]; done: string; checks: string[]; writes: string; built: boolean;
   model: string; due: string; first_due: string; state: string; waiting_on?: string[]; last_report: string; last_result: string; last_summary: string; icon: string; agent_name: string; slot: string;
+  short?: string; until_date?: string; vstate: string; when1: string; when2: string; how: string; next_at: string; counts: boolean;
 };
+type Timer = { label: string; name: string; ok: boolean; running: boolean; exit: string; lastOutput: string };
 type Done = { icon: string; agent: string; task: string; when: string; result: string; link: string; kind: string };
 type Upcoming = { icon: string; agent: string; task: string; due: string; waiting: string; link: string; state: string };
 type Card = {
@@ -34,7 +36,7 @@ type NeedsYou = { text: string; due: string; link: string; kind: "input" | "appr
 type View = {
   event: string; eventName: string; date: string; planningStart: string; team: AgentRow[]; completed: Done[]; upcoming: Upcoming[];
   brief: { text: string; at: string; test: boolean; file: string } | null; inputs: { text: string; done: boolean }[]; inputsCard: string; needsYou: NeedsYou[];
-  anchors: Record<string, string>; listener: { on: boolean; lastWake: string; lastWakeText: string }; cards: Card[]; error?: string;
+  anchors: Record<string, string>; listener: { on: boolean; lastWake: string; lastWakeText: string }; timers: Timer[]; wakeups: string[]; cards: Card[]; error?: string;
 };
 
 const TZ = "America/New_York";
@@ -62,6 +64,13 @@ const STATE: Record<string, { glyph: string; label: string }> = {
   done: { glyph: "✓", label: "done" }, running: { glyph: "⏳", label: "running" }, failed: { glyph: "✗", label: "failed" }, due: { glyph: "▶", label: "due now" },
   overdue: { glyph: "‼", label: "overdue" }, waiting: { glyph: "⏸", label: "waiting" }, not_due: { glyph: "○", label: "later" }, not_built: { glyph: "◌", label: "not built yet" },
   off: { glyph: "⏻", label: "switched off" }, skipped: { glyph: "–", label: "skipped" },
+  today: { glyph: "✓", label: "ran today" }, ticking: { glyph: "↻", label: "on its timer" }, listen: { glyph: "↩", label: "waits for your ✅" },
+};
+const shortName = (j: { short?: string; name: string }) => j.short || j.name.split(/[:(—]/)[0].trim();
+/** "2026-10-25T08:30" (ET wall time, the day planner's wake-ups) → "8:30 AM" */
+const wallTime = (w: string) => {
+  const [h, m] = w.slice(11, 16).split(":").map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
 };
 const KIND_ICON: Record<NeedsYou["kind"], string> = { input: "📥", approve: "✅", blocked: "⛔", review: "📋" };
 const card = "rounded-2xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#0d0d0d]";
@@ -90,11 +99,11 @@ function chatLink(a: AgentRow): string {
   const lines = [
     `Let's talk. You are the ${a.name} ${a.icon} on Pick'Em Paintball's team of agents (plan: ideas/2026-10-18-agents-plan.md; the team: scheduler/agents.json; every job: scheduler/playbook.json; how runs work: agents/README.md).`,
     a.id === "data"
-      ? "Follow the pickem-data skill. World Cup 2026 is the learning event: we do each data job together here, and as each one is done you (1) write or update its task file in the skill's tasks/ folder from tasks/_TEMPLATE.md, (2) record it with python3 agents/record.py data <job_id> --result ok --minutes <n> --summary \"…\" so the Manager and the Workflows page see it, and (3) log anything you touched with agents/log.py. When a task file is complete, mark it ready and ask me before setting the job built in scheduler/playbook.json. Changes to your responsibilities or to the team's rules go to the Manager."
+      ? "Follow the pickem-data skill. Every Data job is built and runs on its own (docs/DATA_FLOW.md): the Manager's day planner starts dated jobs at their Schedule slot time, timers run the rest, and my ✅s in Slack wake the listener. Use this chat to run one by hand, change one (its task file + the playbook; my OK before `built` changes), or explain a result. Log anything you touch with agents/log.py. Changes to your responsibilities or to the team's rules go to the Manager."
       : a.id === "social"
       ? "Follow the pickem-social-growth skill. You plan and run our Instagram + Facebook content and coach me on growth: when you suggest something, say why in one line (which signal, which past result). World Cup 2026 is the learning event: we do each social job together here, and as each one is done you write or update its task file in the skill's tasks/ folder, record it with python3 agents/record.py social <job_id> --result ok --minutes <n> --summary \"…\", and log what you touched. You only draft on the Schedule (agents/schedule.py); you never approve or post. Changes to your responsibilities or the team's rules go to the Manager."
       : a.id === "gm"
-      ? "Follow the pickem-manager skill (section “Chat with James”). This chat is where we discuss tasks, the agents' responsibilities and our ways of working. When I ask for a change: a responsibility → agents.json blurb and the playbook; a task → the playbook (and a Schedule slot through the admin API if it's dated); a way of working → your skill and the plan doc. Cascade anything that belongs to the Data agent or the Social media agent: change their playbook jobs and leave them a dated note under “From the Manager” in their skill (pickem-data / pickem-social-growth; until those exist in stage 2, in ideas/2026-10-18-agents-plan.md under a “Notes for stage 2” heading)."
+      ? "Follow the pickem-manager skill (section “Chat with James”). This chat is where we discuss tasks, the agents' responsibilities and our ways of working. When I ask for a change: a responsibility → agents.json blurb and the playbook; a task → the playbook (and a Schedule slot through the admin API if it's dated); a way of working → your skill and the plan doc. Cascade anything that belongs to the Data agent or the Social media agent: change their playbook jobs and leave them a dated note under “From the Manager” in their skill (pickem-data / pickem-social-growth) and, for a Data job, its task file."
       : `${skill ? `Your skill will be ${skill} (stage 2); until it exists, this chat is for your responsibilities and how your jobs should work, not for doing them. ` : ""}When I ask for a change to your work: edit your jobs in scheduler/playbook.json (when, needs-first, done-looks-like, checks, writes vs asks) and note decisions in ideas/2026-10-18-agents-plan.md under “Notes for stage 2”. Anything that changes another agent's work or the team's rules goes to the Manager: say so and I'll take it there.`,
     "James's rules: one step at a time, plain language, one question at a time, approval before building anything, never deploy without being asked. Start by telling me in a short paragraph where things stand for you right now (python3 agents/playbook.py schedule, your latest reports in agents/runs/), then ask what I want to talk about.",
   ];
@@ -171,6 +180,7 @@ export default function WorkflowsBoard() {
             💬 Slack listener {data.listener.on ? "on" : "⏻ off — messages wait until it's back"}
             {data.listener.lastWake ? ` · last woke ${ago(data.listener.lastWake)}: ${data.listener.lastWakeText.slice(0, 60)}` : " · no wakes yet"}
           </div>
+          <Timers timers={data.timers} wakeups={data.wakeups} />
         </div>
         {byId.gm && (
           <a href={chatLink(byId.gm)} className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-black uppercase tracking-widest hover:border-gray-900 dark:border-white/20 dark:hover:border-white" title="Discuss tasks, responsibilities and ways of working; the Manager cascades changes to the agents">
@@ -283,8 +293,24 @@ function WeekCalendar({ jobs, upcoming, anchors, today, byId }: { jobs: Job[]; u
   type Item = { text: string; title: string; state: string; time: string };
   const byDay: Record<string, Record<string, Item[]>> = {}; // day → agent → items
   const put = (day: string, agent: string, it: Item) => ((byDay[day] ??= {})[agent] ??= []).push(it);
-  for (const j of jobs.filter((j) => j.repeat !== "own_timer"))
-    put(j.due.slice(0, 10), j.agent, { text: j.name.split(/[:(—]/)[0].trim(), title: `${j.name} · ${STATE[j.state]?.label ?? j.state}${j.repeat !== "once" ? ` · ${j.repeat.replace(/_/g, " ")}` : ""}`, state: j.state, time: timeOf(j.due) });
+  // Every day a job runs (James 24 Oct 2026): once-jobs on their day; repeating and own-timer jobs on each day of their
+  // window (today's real state, "later" after); standing checks and on-message jobs are left out (they'd fill every day).
+  const winEnd = key(monday.getTime() + 13 * DAY);
+  for (const j of jobs) {
+    if (j.repeat === "on_message" || j.workflow.endsWith("_standing")) continue;
+    const title = `${j.name} · ${[j.when1, j.when2].filter(Boolean).join(" · ")} · ${j.how}`;
+    if (j.repeat === "once") {
+      put(etDate(j.vstate === "done" ? j.due : j.next_at || j.due), j.agent, { text: shortName(j), title, state: j.vstate === "done" ? "done" : j.state, time: timeOf(j.first_due) });
+      continue;
+    }
+    const start = etDate(j.first_due);
+    const end = j.until_date || start;
+    for (let t = Math.max(Date.parse(start + "T12:00:00Z"), monday.getTime()); key(t) <= end && key(t) <= winEnd; t += DAY) {
+      const k = key(t);
+      const state = k === today ? (j.vstate === "today" ? "done" : j.repeat === "own_timer" ? "ticking" : j.state) : k < today ? "" : "not_due";
+      put(k, j.agent, { text: shortName(j), title, state, time: timeOf(j.first_due) });
+    }
+  }
   for (const u of upcoming.filter((u) => u.agent === "posts")) put(etDate(u.due), "posts", { text: u.task.replace(/^Post: /, ""), title: `${u.task} · ${timeOf(u.due)} · ${u.waiting}`, state: u.state, time: timeOf(u.due) });
   const ev0 = anchors.day_one.slice(0, 10), ev1 = anchors.event_end.slice(0, 10);
   const monthOf = (t: number) => new Date(t).toLocaleString("en-GB", { month: "short", timeZone: "UTC" });
@@ -348,7 +374,7 @@ function WeekCalendar({ jobs, upcoming, anchors, today, byId }: { jobs: Job[]; u
 function Agenda({ items, today }: { items: Upcoming[]; today: string }) {
   const groups: { day: string; items: Upcoming[] }[] = [];
   for (const u of items) {
-    const d = u.due.slice(0, 10);
+    const d = etDate(u.due); // the ET day (a bare "YYYY-MM-DD" reads as UTC midnight = the evening before in ET)
     const g = groups.find((g) => g.day === d);
     g ? g.items.push(u) : groups.push({ day: d, items: [u] });
   }
@@ -356,7 +382,7 @@ function Agenda({ items, today }: { items: Upcoming[]; today: string }) {
     <div className="space-y-3">
       {groups.map((g) => (
         <div key={g.day}>
-          <div className="mb-1 text-[10px] font-black uppercase tracking-widest">{relDay(g.day, today)}{inDays(g.day, today) > 1 ? "" : ` · ${dayOf(g.day + "T12:00:00")}`}</div>
+          <div className="mb-1 text-[10px] font-black uppercase tracking-widest">{relDay(g.day + "T16:00:00Z", today)}{inDays(g.day, today) > 1 ? "" : ` · ${dayOf(g.day + "T16:00:00Z")}`}</div>
           <ul className="space-y-1">
             {g.items.map((u, i) => (
               <li key={i} className="flex items-center gap-2 text-[11px]">
@@ -448,8 +474,9 @@ function Desk({ c, byId, today, busy, act, onOpen, jobName }: { c: Card; byId: R
   const [openStep, setOpenStep] = useState<string | null>(null);
   useEffect(() => setPause(a.paused_until), [a.paused_until, a.id]);
   const last = c.lastRun;
-  const total = c.workflows.flatMap((w) => w.steps).filter((s) => s.repeat !== "own_timer").length;
-  const doneN = c.workflows.flatMap((w) => w.steps).filter((s) => s.state === "done").length;
+  const counted = c.workflows.flatMap((w) => w.steps).filter((s) => s.counts);
+  const total = counted.length;
+  const doneN = counted.filter((s) => s.vstate === "done").length;
   return (
     <div className="mt-5 rounded-2xl border border-gray-200 p-4 dark:border-white/10">
       <div className="flex flex-wrap items-center gap-3">
@@ -494,7 +521,7 @@ function Desk({ c, byId, today, busy, act, onOpen, jobName }: { c: Card; byId: R
               <div className="text-gray-500 dark:text-white/50">{c.nextRun.why}</div>
             </>
           ) : (
-            <div className="text-gray-400">nothing scheduled{a.id !== "gm" ? " · its jobs come in stage 2" : ""}</div>
+            <div className="text-gray-400">nothing scheduled</div>
           )}
         </Stat>
         <Stat label="Waiting on">
@@ -554,38 +581,55 @@ function Stat({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-/** One workflow as a track: nodes on a line, the current step ringed, short labels, click a node for the detail. */
+/**
+ * One workflow as a track: nodes on a line in time order, short labels, the day/time and how each starts underneath,
+ * click a node for the detail. "now:" only when something is running or due today; otherwise "next:" (James 24 Oct 2026).
+ */
+const LIVE = ["running", "due", "overdue", "failed", "waiting"];
 function Track({ w, agent, byId, today, busy, act, onOpen, openStep, setOpenStep }: { w: { id: string; name: string; steps: Job[] }; agent: AgentRow; byId: Record<string, AgentRow>; today: string; busy: boolean; act: (b: Record<string, unknown>) => Promise<void>; onOpen: (f: string) => void; openStep: string | null; setOpenStep: (id: string | null) => void }) {
   const steps = w.steps;
-  const done = steps.filter((s) => s.state === "done").length;
-  const current = steps.find((s) => ["running", "due", "overdue", "failed", "waiting"].includes(s.state)) ?? steps.find((s) => s.state !== "done");
+  const counted = steps.filter((s) => s.counts);
+  const done = counted.filter((s) => s.vstate === "done").length;
+  const nowSteps = steps.filter((s) => LIVE.includes(s.vstate));
+  const next = steps.filter((s) => s.next_at).sort((a, b) => Date.parse(a.next_at) - Date.parse(b.next_at))[0];
+  const head = nowSteps.length
+    ? `now: ${nowSteps.map((s) => `${shortName(s)} (${STATE[s.vstate]?.label ?? s.vstate})`).join(", ")}`
+    : next
+    ? `next: ${shortName(next)} · ${relDay(next.next_at, today)} ${timeOf(next.next_at)}`
+    : counted.length && done === counted.length
+    ? "all done"
+    : "";
+  const ringed = new Set(nowSteps.length ? nowSteps.map((s) => s.id) : next ? [next.id] : []);
   return (
     <div>
       <div className="mb-2 flex items-baseline gap-2">
         <div className="text-[11px] font-black uppercase tracking-wide">{w.name}</div>
-        <div className="text-[10px] text-gray-400">{done}/{steps.length}{current ? ` · now: ${current.name}` : " · all done"}</div>
+        <div className="text-[10px] text-gray-400">{counted.length ? `${done}/${counted.length}` : ""}{head ? `${counted.length ? " · " : ""}${head}` : ""}</div>
       </div>
       <ol className="relative flex flex-wrap gap-y-4">
         {steps.map((s, i) => {
-          const st = STATE[s.state] ?? { glyph: "", label: s.state };
-          const isCur = current?.id === s.id;
-          const short = s.name.split(/[:(—]/)[0].trim();
+          const st = STATE[s.vstate] ?? { glyph: "", label: s.vstate };
+          const isCur = ringed.has(s.id);
+          const filled = s.vstate === "done";
           return (
             <li key={s.id} className="relative flex w-28 flex-col items-center text-center">
-              {i > 0 && <span className={`absolute right-1/2 top-4 h-px w-full ${steps[i - 1].state === "done" ? "bg-gray-900 dark:bg-white" : "bg-gray-200 dark:bg-white/10"}`} />}
+              {i > 0 && <span className={`absolute right-1/2 top-4 h-px w-full ${steps[i - 1].vstate === "done" ? "bg-gray-900 dark:bg-white" : "bg-gray-200 dark:bg-white/10"}`} />}
               <button
                 onClick={() => setOpenStep(openStep === s.id ? null : s.id)}
-                className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-[12px] ${s.state === "done" ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-black" : isCur ? "border-gray-900 bg-white dark:border-white dark:bg-[#0d0d0d]" : s.state === "not_built" ? "border-dashed border-gray-300 bg-white dark:border-white/20 dark:bg-[#0d0d0d]" : "border-gray-300 bg-white dark:border-white/20 dark:bg-[#0d0d0d]"} ${isCur ? "ring-4 ring-gray-200 dark:ring-white/20" : ""}`}
+                className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-[12px] ${filled ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-black" : isCur || s.vstate === "today" ? "border-gray-900 bg-white dark:border-white dark:bg-[#0d0d0d]" : s.vstate === "not_built" ? "border-dashed border-gray-300 bg-white dark:border-white/20 dark:bg-[#0d0d0d]" : "border-gray-300 bg-white dark:border-white/20 dark:bg-[#0d0d0d]"} ${isCur ? "ring-4 ring-gray-200 dark:ring-white/20" : ""}`}
                 title={`${s.name} · ${st.label}`}
               >
-                {s.state === "done" ? "✓" : st.glyph}
+                {st.glyph}
               </button>
-              <span className={`mt-1.5 line-clamp-2 px-1 text-[10px] leading-tight ${isCur ? "font-bold" : ""}`} title={s.name}>{short}</span>
-              <span className="text-[9px] text-gray-400">{s.agent !== agent.id ? `${byId[s.agent]?.icon} ` : ""}{s.state === "done" ? "done" : s.repeat === "once" ? relDay(s.due, today) : `${relDay(s.due, today)} · ${s.repeat.replace(/_/g, " ")}`}</span>
+              <span className={`mt-1.5 line-clamp-2 px-1 text-[10px] leading-tight ${isCur ? "font-bold" : ""}`} title={s.name}>{shortName(s)}</span>
+              <span className="text-[9px] leading-tight text-gray-500 dark:text-white/50">{s.agent !== agent.id ? `${byId[s.agent]?.icon} ` : ""}{s.when1}</span>
+              {s.when2 && <span className="text-[9px] leading-tight text-gray-500 dark:text-white/50">{s.when2}</span>}
+              <span className="text-[9px] leading-tight text-gray-400">{s.vstate === "today" ? "ran today · " : ""}{s.how}</span>
               {openStep === s.id && (
                 <div className="absolute left-1/2 top-10 z-20 w-64 -translate-x-1/2 rounded-xl border border-gray-200 bg-white p-3 text-left text-[11px] shadow-xl dark:border-white/10 dark:bg-[#111]" onClick={(e) => e.stopPropagation()}>
                   <div className="mb-1 font-black">{s.name}</div>
-                  <div className="mb-1 text-gray-500 dark:text-white/50">{byId[s.agent]?.icon} {s.agent_name} · {st.label} · {dayOf(s.due)} {timeOf(s.due)} ET{s.repeat !== "once" ? ` · ${s.repeat.replace(/_/g, " ")}` : ""}</div>
+                  <div className="mb-1 text-gray-500 dark:text-white/50">{byId[s.agent]?.icon} {s.agent_name} · {st.label} · {[s.when1, s.when2].filter(Boolean).join(" · ")} ET · {s.how}</div>
+                  {s.next_at && <div className="mb-1">Next run: {dayOf(s.next_at)} {timeOf(s.next_at)} ET</div>}
                   {s.waiting_on?.length ? <div className="mb-1">Waiting on: {s.waiting_on.map((x) => x.replace(/_/g, " ")).join(", ")}</div> : null}
                   <div className="mb-1"><b>Done looks like:</b> {s.done}</div>
                   <div className="mb-1"><b>Checks:</b> {s.checks.join("; ")}</div>
@@ -602,6 +646,25 @@ function Track({ w, agent, byId, today, busy, act, onOpen, openStep, setOpenStep
           );
         })}
       </ol>
+    </div>
+  );
+}
+
+/** The Mac's timers in one line (handoff 24 Oct 2026): ● fine, ✗ stopped (its last exit), when each last wrote output; the day planner's wake-ups still to fire today. */
+function Timers({ timers, wakeups }: { timers: Timer[]; wakeups: string[] }) {
+  if (!timers.length) return null;
+  const bad = timers.filter((t) => !t.ok);
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-gray-500 dark:text-white/50">
+      <span title="launchd timers on this Mac (launchctl list | grep pickem)">⏱ Timers {bad.length ? `· ${bad.length} stopped` : "· all fine"}:</span>
+      {timers.map((t) => (
+        <span key={t.label} title={`${t.label} · last exit ${t.exit}${t.running ? " · running now" : ""}${t.lastOutput ? ` · last output ${new Date(t.lastOutput).toLocaleString()}` : ""}`} className={t.ok ? "" : "font-bold text-gray-900 dark:text-white"}>
+          {t.ok ? "●" : "✗"} {t.name}{t.ok ? "" : ` (exit ${t.exit})`}{t.lastOutput ? ` · ${ago(t.lastOutput)}` : ""}
+        </span>
+      ))}
+      <span title="The Manager's day planner: one wake-up per slot time today (agents/manager/dayplan.py list)">
+        ⏰ {wakeups.length ? `wake-ups: ${wakeups.map(wallTime).join(", ")} ET` : "no wake-ups left today"}
+      </span>
     </div>
   );
 }
