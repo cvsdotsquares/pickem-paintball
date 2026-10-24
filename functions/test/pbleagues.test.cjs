@@ -200,6 +200,14 @@ test("World Cup 2026: all 24 Pro teams resolve, each to the right club", () => {
   });
 });
 
+test("World Cup 2026: every club has a team_id, so its players get appearances", () => {
+  const rk = parseRankings(page("9322", "rankings"));
+  const missing = rk.rows.map((r) => resolveClub(r.team, VOCAB)).filter((c) => !HISTORY.clubTeamId[c]);
+  assert.deepEqual(missing, []);
+  const ids = Object.values(HISTORY.clubTeamId);
+  assert.equal(new Set(ids).size, ids.length, "one team_id per club");
+});
+
 test("resolveClub: an unlisted unknown name is still null, never passed through", () => {
   assert.equal(resolveClub("Somewhere Nobody", VOCAB), null);
 });
