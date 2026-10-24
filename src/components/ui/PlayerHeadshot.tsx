@@ -4,6 +4,14 @@ import { useState, type CSSProperties } from "react";
 import { cn } from "@/src/lib/utils";
 import { PLACEHOLDER_HEADSHOT, isRealHeadshot, teamLogoPath } from "@/src/lib/teamLogos";
 
+/**
+ * URLs that failed to load, kept for the whole page visit rather than per component.
+ * Some cards are re-created on every re-render (scrolling re-renders the dashboard), and
+ * per-card state made a broken photo retry each time — the card flickered between the
+ * failing photo and the logo.
+ */
+const failedUrls = new Set<string>();
+
 interface PlayerHeadshotProps {
   /** The player's `img_url` (or the page's resolved `picture`). */
   src?: string | null;
@@ -46,10 +54,12 @@ export default function PlayerHeadshot({
   logoClassName = "h-[70%] w-[70%]",
   loading,
 }: PlayerHeadshotProps) {
-  // The URLs that failed to load — keyed by URL so a new src gets a fresh try.
-  const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set());
-  const markFailed = (url: string) =>
-    setFailed((prev) => (prev.has(url) ? prev : new Set(prev).add(url)));
+  const [, rerender] = useState(0);
+  const markFailed = (url: string) => {
+    if (failedUrls.has(url)) return;
+    failedUrls.add(url);
+    rerender((n) => n + 1);
+  };
 
   // An image in server-rendered HTML can fail before React attaches onError, so also
   // check when it mounts: a finished load with no pixels is a failure.
@@ -57,7 +67,7 @@ export default function PlayerHeadshot({
     if (img?.complete && img.naturalWidth === 0) onFail();
   };
 
-  if (isRealHeadshot(src) && !failed.has(src)) {
+  if (isRealHeadshot(src) && !failedUrls.has(src)) {
     return (
       <img key="photo" src={src} alt={alt} loading={loading} draggable={false}
         className={cn(className, photoClassName)} style={photoStyle}
@@ -67,7 +77,7 @@ export default function PlayerHeadshot({
   }
 
   const logo = teamLogoPath(teamId);
-  if (logo && !failed.has(logo)) {
+  if (logo && !failedUrls.has(logo)) {
     return (
       <div key="logo" className={cn(logoBoxClassName ?? className, "flex items-center justify-center")}>
         <img src={logo} alt={alt} loading={loading} draggable={false}
