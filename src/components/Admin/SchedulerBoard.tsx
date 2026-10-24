@@ -185,6 +185,18 @@ export default function SchedulerBoard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ?slot=<id> (links from the Workflows page's "Approve posts", James 24 Oct 2026): open that slot on its week, once.
+  const [deepLinked, setDeepLinked] = useState(false);
+  useEffect(() => {
+    if (!data || deepLinked) return;
+    setDeepLinked(true);
+    const id = new URLSearchParams(window.location.search).get("slot");
+    const s = id ? data.slots.find((x) => x.id === id) : undefined;
+    if (!s) return;
+    if (s.publishAt) setAnchor(et(s.publishAt).date);
+    setOpen(s.id);
+  }, [data, deepLinked]);
+
   // Keep statuses fresh (Scheduled → Posted ✓) without a reload: every minute, and when the tab comes back.
   useEffect(() => {
     const again = () => document.visibilityState === "visible" && load();

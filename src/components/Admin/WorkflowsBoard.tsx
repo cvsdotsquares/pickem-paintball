@@ -32,7 +32,8 @@ type Card = {
   agent: AgentRow; children: AgentRow[]; lastRun: Report | null; nextRun: { when: string; why: string; job: string } | null; waitingOn: string[];
   workflows: { id: string; name: string; steps: Job[] }[]; actions: LogLine[]; jobRuns: { id: string; label: string; status: string; startedAt: string; summary: string }[];
 };
-type NeedsYou = { text: string; due: string; link: string; kind: "input" | "approve" | "blocked" | "review" };
+type PostCheck = { id: string; title: string; due: string; done: boolean; note: string; link: string };
+type NeedsYou = { text: string; due: string; link: string; kind: "input" | "approve" | "blocked" | "review" | "posts"; posts?: PostCheck[] };
 type View = {
   event: string; eventName: string; date: string; planningStart: string; team: AgentRow[]; completed: Done[]; upcoming: Upcoming[];
   brief: { text: string; at: string; test: boolean; file: string } | null; inputs: { text: string; done: boolean }[]; inputsCard: string; needsYou: NeedsYou[];
@@ -72,7 +73,7 @@ const wallTime = (w: string) => {
   const [h, m] = w.slice(11, 16).split(":").map(Number);
   return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
 };
-const KIND_ICON: Record<NeedsYou["kind"], string> = { input: "📥", approve: "✅", blocked: "⛔", review: "📋" };
+const KIND_ICON: Record<NeedsYou["kind"], string> = { input: "📥", approve: "✅", blocked: "⛔", review: "📋", posts: "📣" };
 const card = "rounded-2xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#0d0d0d]";
 const field = "rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] outline-none focus:border-gray-400 dark:border-white/10 dark:bg-white/5";
 const reportUrl = (rel: string) => `/api/admin/workflows?report=${encodeURIComponent(rel)}`;
@@ -217,6 +218,7 @@ export default function WorkflowsBoard() {
           {data.needsYou.length === 0 && <Empty>Nothing. Enjoy it.</Empty>}
           <ol className="space-y-2">
             {data.needsYou.map((n, i) => {
+              if (n.kind === "posts") return <ApprovePosts key={i} n={n} today={today} />;
               const [what, forWhat] = n.text.split(" — ");
               return (
                 <li key={i} className="flex items-start gap-3 rounded-xl border border-gray-100 p-3 dark:border-white/5">
@@ -262,6 +264,45 @@ export default function WorkflowsBoard() {
 
       {open && <ReportDrawer r={open} onClose={() => setOpen(null)} />}
     </main>
+  );
+}
+
+/**
+ * Every post that needs a ✅ in one box (James 24 Oct 2026): closed, it's one line with the count and the first date;
+ * open, a checklist (ticked = approved, goes out by itself) where each post opens its slot on the Schedule to approve it.
+ */
+function ApprovePosts({ n, today }: { n: NeedsYou; today: string }) {
+  const posts = n.posts ?? [];
+  const waiting = posts.filter((p) => !p.done);
+  return (
+    <li className="rounded-xl border border-gray-100 dark:border-white/5">
+      <details>
+        <summary className="flex cursor-pointer list-none items-start gap-3 p-3">
+          <span className="text-lg leading-none">{KIND_ICON.posts}</span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-bold">Approve posts · {waiting.length} waiting</div>
+            <div className="text-[11px] text-gray-500 dark:text-white/50">
+              {posts.length - waiting.length} of {posts.length} upcoming approved{waiting[0] ? ` · first: ${waiting[0].title}` : ""} · click to see them
+            </div>
+          </div>
+          <div className="shrink-0 text-right">
+            {n.due && <div className={`text-[11px] font-bold ${inDays(n.due, today) <= 2 ? "" : "text-gray-500 dark:text-white/50"}`}>{relDay(n.due, today)}</div>}
+            <span className="text-[10px] text-gray-400">▾</span>
+          </div>
+        </summary>
+        <ul className="space-y-1 border-t border-gray-100 p-3 dark:border-white/5">
+          {posts.map((p) => (
+            <li key={p.id} className="flex items-center gap-2 text-[11px]">
+              <span className="w-4 text-center" aria-label={p.done ? "approved" : "needs approval"}>{p.done ? "☑" : "☐"}</span>
+              <span className={`min-w-0 flex-1 truncate ${p.done ? "text-gray-400 line-through" : "font-bold"}`} title={p.title}>{p.title}</span>
+              <span className="shrink-0 text-gray-500 dark:text-white/50">{p.due ? `${relDay(p.due, today)} ${timeOf(p.due)}` : "no date"}</span>
+              <span className="hidden w-36 shrink-0 truncate text-gray-400 sm:block" title={p.note}>{p.note}</span>
+              <Link href={p.link} className="shrink-0 text-gray-400 underline hover:text-gray-900 dark:hover:text-white">{p.done ? "view" : "approve"}</Link>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </li>
   );
 }
 
