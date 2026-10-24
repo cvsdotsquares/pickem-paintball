@@ -50,7 +50,12 @@ export const SHORT = {
   tampa_bay_2026: "TB26",
   mid_atlantic_open_2026: "MA26",
   mid_west_open_2026: "MW26",
+  lone_star_open_2026: "LS26",
+  world_cup_2026: "WC26",
 };
+
+/** Short label for the reports; any event id works, listed or not. */
+export const shortOf = (eventId) => SHORT[eventId] ?? eventId;
 
 /**
  * `{event}|{year}` as the crawler writes it -> our event id.
@@ -82,6 +87,19 @@ export const ABSENT_STATUSES = new Set(["DNP", "Out", "Injured", "Dropped"]);
  * recoverable — a wrongly-emptied event is not.
  */
 export const SHEET_COVERAGE_FLOOR = 0.8;
+
+/**
+ * The per-team check: how many of a team's rostered players must be on its league sheet
+ * before an absence on that team is believed.
+ *
+ * Not a percentage, deliberately. A team's coverage counts its own absentees against it
+ * (they are off the sheet - that is what makes them absent), so an 80% team floor would
+ * have undone 56 correct absences across the 2025-26 events, 25 of Mid West 2026's 37.
+ * What this guards against is one team's league roster coming back empty or broken while
+ * the rest of the event looks fine. Five is a line on the field; every team at every
+ * event 2025-26 had at least six on its sheet.
+ */
+export const TEAM_SHEET_MIN = 5;
 
 export const VERDICTS = ["played", "absent", "unknown"];
 
@@ -122,6 +140,50 @@ export function loadRegistry(json) {
 }
 
 /**
+ * One event's team sheet from a fresh crawl, instead of the historic CSV.
+ *
+ * The CSV is a manual, occasional crawl, so during a live event it is days or weeks
+ * stale. The PickEm hub's Data agent re-crawls the event's pbleagues rosters just before
+ * each run and passes them here as JSON: a list of `{ league_id, name, team }`, players
+ * only (coaches and staff are separate tables on the league page). A team with no players
+ * on the league site comes through as `{ team, empty: true }` and adds nobody.
+ *
+ * Returns the same shape as `loadTeamSheet`, holding just this one event.
+ */
+export function loadSheetJson(json, eventId) {
+  const rows = Array.isArray(json) ? json : json.players ?? [];
+  const forEvent = new Map();
+  for (const r of rows) {
+    if (r.empty || r.league_id == null || String(r.league_id).trim() === "") continue;
+    forEvent.set(String(r.league_id).trim(), r.name ?? "");
+  }
+  return { sheet: new Map([[eventId, forEvent]]), skipped: new Map() };
+}
+
+/**
+ * Corrections James made by hand: event id -> Map(player_id -> { verdict, note }).
+ *
+ * They are the final word for that player at that event. `buildPlan` applies them with a
+ * reason starting "James", and any stored reason starting "James" is never overwritten by
+ * a later run, so a Monday re-run cannot undo a Saturday correction.
+ */
+export function loadOverrides(json) {
+  const out = new Map();
+  for (const [eventId, players] of Object.entries(json ?? {})) {
+    const m = new Map();
+    for (const [playerId, o] of Object.entries(players ?? {})) {
+      if (!VERDICTS.includes(o?.verdict)) throw new Error(`override ${eventId}/${playerId}: bad verdict ${o?.verdict}`);
+      m.set(String(playerId), { verdict: o.verdict, note: o.note ?? "" });
+    }
+    out.set(eventId, m);
+  }
+  return out;
+}
+
+export const JAMES = "James";
+export const isJames = (reason) => String(reason ?? "").startsWith(JAMES);
+
+/**
  * The scraped team sheets: event id -> Map(league_id -> name).
  *
  * Only `role=Player` rows count. The crawler also emits coaches, and a playing
@@ -151,9 +213,9 @@ export function loadTeamSheet(csvText) {
   return { sheet, skipped };
 }
 
-export async function loadRosters(db, { collection, getDocs }) {
+export async function loadRosters(db, { collection, getDocs }, events = EVENTS) {
   const rosters = new Map();
-  for (const eventId of EVENTS) {
+  for (const eventId of events) {
     const snap = await getDocs(collection(db, "events", eventId, "players"));
     const byId = new Map();
     snap.docs.forEach((d) => byId.set(d.id, d.data()));
@@ -172,7 +234,7 @@ export function sheetCoverage(roster, sheetForEvent, leagueIdOf) {
   let joinable = 0;
   let found = 0;
   for (const playerId of roster.keys()) {
-    const lid = leagueIdOf(playerId);
+    const lid = leagueIdOf(playerId, roster.get(playerId));
     if (!lid) continue;
     joinable++;
     if (sheetForEvent?.has(lid)) found++;
@@ -211,21 +273,51 @@ export function resolveOne({ kills, leagueId, sheetUsable, onSheet, status }) {
 }
 
 /**
- * Build the full plan across every event.
+ * Build the plan for the given events (every listed event by default).
  *
  * `rows` carries one entry per roster document, whether or not the verdict changes
  * anything, so the dry run can report totals and the apply step can write only the
  * documents whose stored value differs.
+ *
+ * Options added for the live-event runs (Data agent, Oct 2026):
+ *   events     which events to plan (any id, listed in EVENTS or not)
+ *   teams      only these team_ids get rows; coverage is still measured for every team
+ *   overrides  James's corrections (`loadOverrides`)
+ *
+ * TWO COVERAGE CHECKS. The event's sheet must cover 80% of the joinable roster, and each
+ * TEAM's sheet must hold at least TEAM_SHEET_MIN of its players: one team whose league
+ * roster came back empty would otherwise slip through an event-wide check and have its
+ * whole squad marked absent.
  */
-export function buildPlan({ rosters, sheet, registry }) {
-  const leagueIdOf = (playerId) => registry.get(String(playerId)) ?? null;
-  const byEvent = new Map();
+export function buildPlan({ rosters, sheet, registry, events = EVENTS, teams = null, overrides = null }) {
   const warnings = [];
+  /*
+   * The registry first, as before. A player it does not know yet (a new face at this
+   * event, added after the registry was last written) falls back to the league_id on the
+   * roster document itself, which syncRoster writes - better than "no league id".
+   */
+  const leagueIdOf = (playerId, data) => {
+    const fromRegistry = registry.get(String(playerId)) ?? null;
+    const raw = data?.league_id;
+    const fromDoc = raw == null || String(raw).trim() === "" ? null : String(Math.trunc(Number(raw)) || String(raw).trim());
+    return fromRegistry ?? fromDoc;
+  };
+  const byEvent = new Map();
   const totals = { played: 0, absent: 0, unknown: 0 };
+  const teamFilter = teams ? new Set([...teams].map(String)) : null;
 
-  for (const eventId of EVENTS) {
+  for (const eventId of events) {
     const roster = rosters.get(eventId) ?? new Map();
     const sheetForEvent = sheet.get(eventId);
+    const fixes = overrides?.get(eventId) ?? new Map();
+
+    for (const [playerId, data] of roster) {
+      const reg = registry.get(String(playerId));
+      const own = leagueIdOf(null, data);
+      if (reg && own && reg !== own) {
+        warnings.push(`${eventId}: ${data.Player} (${playerId}) registry league_id ${reg} ≠ roster doc ${own} — using the registry`);
+      }
+    }
 
     if (!sheetForEvent) {
       warnings.push(`${eventId}: no team sheet rows — every player resolves to unknown`);
@@ -240,31 +332,73 @@ export function buildPlan({ rosters, sheet, registry }) {
       );
     }
 
+    // Per-team coverage, keyed by team_id (the roster's own team key).
+    const teamOf = (data) => String(data.team_id ?? data.Team ?? "—");
+    const teamRosters = new Map();
+    for (const [playerId, data] of roster) {
+      const t = teamOf(data);
+      if (!teamRosters.has(t)) teamRosters.set(t, new Map());
+      teamRosters.get(t).set(playerId, data);
+    }
+    const teamStats = new Map();
+    for (const [t, tr] of teamRosters) {
+      const c = sheetCoverage(tr, sheetForEvent, leagueIdOf);
+      const name = [...tr.values()][0]?.Team ?? t;
+      const teamUsable = usable && c.found >= Math.min(TEAM_SHEET_MIN, c.joinable);
+      teamStats.set(t, { teamId: t, name, players: tr.size, ...c, usable: teamUsable });
+      if (usable && !teamUsable && (!teamFilter || teamFilter.has(t))) {
+        warnings.push(
+          `${eventId}: ${name} — only ${c.found} of its ${c.joinable} joinable players are on ` +
+            `its team sheet (fewer than ${TEAM_SHEET_MIN}) — nobody on it marked absent`,
+        );
+      }
+    }
+
     const rows = [];
     for (const [playerId, data] of roster) {
-      const leagueId = leagueIdOf(playerId);
+      const t = teamOf(data);
+      if (teamFilter && !teamFilter.has(t)) continue;
+      const leagueId = leagueIdOf(playerId, data);
       const kills = num(data["Confirmed Kills"]);
       const status = data.Status != null && data.Status !== "" ? String(data.Status) : null;
-      const { verdict, reason } = resolveOne({
+      let { verdict, reason } = resolveOne({
         kills,
         leagueId,
-        sheetUsable: usable,
+        sheetUsable: teamStats.get(t).usable,
         onSheet: Boolean(leagueId) && Boolean(sheetForEvent?.has(leagueId)),
         status,
       });
+      const stored = data.participation ?? null;
+      const storedReason = data.participationReason ?? null;
+      let locked = false;
+      const fix = fixes.get(String(playerId));
+      if (fix) {
+        // James has looked at this player himself: his call is final.
+        verdict = fix.verdict;
+        reason = fix.note ? `${JAMES}: ${fix.note}` : JAMES;
+        locked = true;
+      } else if (isJames(storedReason) && stored) {
+        // Decided by James on an earlier run. Never overwritten by the rules.
+        verdict = stored;
+        reason = storedReason;
+        locked = true;
+      }
       totals[verdict]++;
       rows.push({
         eventId,
         playerId,
         name: data.Player ?? "(unnamed)",
         team: data.Team ?? "—",
+        teamId: t,
         kills,
         status,
         leagueId,
         verdict,
         reason,
-        stored: data.participation ?? null,
-        changed: (data.participation ?? null) !== verdict,
+        locked,
+        stored,
+        storedReason,
+        changed: stored !== verdict || (Boolean(fix) && storedReason !== reason),
       });
     }
 
@@ -275,8 +409,38 @@ export function buildPlan({ rosters, sheet, registry }) {
       (r) => r.kills > 0 && r.leagueId && usable && !sheetForEvent?.has(r.leagueId),
     );
 
-    byEvent.set(eventId, { rows, coverage, usable, scoredOffSheet });
+    byEvent.set(eventId, { rows, coverage, usable, scoredOffSheet, teams: teamStats });
   }
 
   return { byEvent, warnings, totals };
+}
+
+/**
+ * The plan as plain JSON, for the hub's Data agent: it builds James's message from this
+ * and hands the same file back to `apply-participation.mjs --plan` so the apply can
+ * refuse anything that is not exactly what he approved.
+ */
+export function planJson({ byEvent, warnings, totals }, meta = {}) {
+  const events = {};
+  for (const [eventId, p] of byEvent) {
+    events[eventId] = {
+      coverage: p.coverage,
+      usable: p.usable,
+      teams: Object.fromEntries([...p.teams].map(([t, s]) => [t, s])),
+      rows: p.rows,
+      scoredOffSheet: p.scoredOffSheet.map((r) => r.playerId),
+    };
+  }
+  return { ...meta, warnings, totals, events, pending: pendingOf(byEvent) };
+}
+
+/** The writes a plan implies: [{ eventId, playerId, verdict, reason }], sorted. */
+export function pendingOf(byEvent) {
+  const out = [];
+  for (const [, p] of byEvent) {
+    for (const r of p.rows) {
+      if (r.changed) out.push({ eventId: r.eventId, playerId: r.playerId, verdict: r.verdict, reason: r.reason });
+    }
+  }
+  return out.sort((a, b) => `${a.eventId}/${a.playerId}`.localeCompare(`${b.eventId}/${b.playerId}`));
 }
