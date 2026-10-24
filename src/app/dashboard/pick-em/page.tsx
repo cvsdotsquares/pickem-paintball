@@ -14,7 +14,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { IoMdClose } from "react-icons/io";
-import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
+import { getDownloadURL, getStorage, ref } from "firebase/storage";
 import { PiPlusBold } from "react-icons/pi";
 import { MdShuffle, MdFavorite, MdFavoriteBorder, MdTune } from "react-icons/md";
 import { toast } from "react-toastify";
@@ -31,6 +31,7 @@ import {
   type UserBadges,
 } from "@/src/lib/badges";
 import ShareTeamButton from "@/src/components/Dashboard/ShareTeamButton";
+import PlayerHeadshot from "@/src/components/ui/PlayerHeadshot";
 import { individualEventDisplayName } from "@/src/lib/eventDisplayName";
 import {
   PlayerStatus,
@@ -110,7 +111,7 @@ const PlayerRow = memo(({ player, isSelected, isFavourite, onToggleFavourite, on
     className={`border-b border-black/5 dark:border-white/5 cursor-pointer transition-colors ${isSelected ? "bg-black/5 dark:bg-white/10" : "hover:bg-black/3 dark:hover:bg-white/5"}`}
     style={{ display: "grid", gridTemplateColumns: GRID_COLS, alignItems: "center", gap: "12px", padding: "8px 12px" }}>
     <div className="relative w-12 h-12 rounded overflow-hidden bg-[#1a1a1a] flex-shrink-0">
-      <div className="absolute inset-0 bg-cover bg-top" style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }} />
+      <PlayerHeadshot src={player.picture} teamId={player.team_id} loading="lazy" />
     </div>
     <div className="min-w-0 flex flex-col items-start leading-none gap-[2px]">
       <div className="text-gray-900 dark:text-white font-bold text-[11px] truncate max-w-full">{player.Player}</div>
@@ -152,7 +153,7 @@ const MobilePlayerRow = memo(({ player, isSelected, isFavourite, onToggleFavouri
     className={`border-b border-black/5 dark:border-white/5 cursor-pointer transition-colors ${isSelected ? "bg-black/5 dark:bg-white/10" : ""}`}
     style={{ display: "grid", gridTemplateColumns: MOBILE_GRID_COLS, alignItems: "center", gap: "8px", padding: "8px 12px" }}>
     <div className="relative w-10 h-10 rounded overflow-hidden bg-[#1a1a1a] flex-shrink-0">
-      <div className="absolute inset-0 bg-cover bg-top" style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }} />
+      <PlayerHeadshot src={player.picture} teamId={player.team_id} loading="lazy" />
     </div>
     <div className="min-w-0 flex flex-col items-start leading-none gap-[2px]">
       <div className="text-gray-900 dark:text-white font-bold text-[11px] truncate max-w-full">{player.Player}</div>
@@ -182,6 +183,60 @@ const MobilePlayerRow = memo(({ player, isSelected, isFavourite, onToggleFavouri
     </button>
   </div>
 ));
+
+// Defined outside the page so it keeps its identity across renders: inside, every
+// re-render (scrolling does it) made a new component type and re-created all ten cards.
+// ── SLOT CARD ────────────────────────────────────────────────────────────────
+const SlotCard = memo(({ player, isCaptain, isLocked, onRemove, onSetCaptain }: {
+  player: Player; isCaptain: boolean; isLocked?: boolean; onRemove: () => void; onSetCaptain: () => void;
+}) => (
+  <div className={`relative rounded-lg overflow-hidden group cursor-pointer h-full w-full ${isCaptain ? "ring-2 ring-yellow-400" : "ring-1 ring-black/10 dark:ring-white/10"}`}>
+    <div className="absolute inset-0 bg-[#1a1a1a]" />
+    {/* Logo sits in the upper part of the card, clear of the name block. */}
+    <PlayerHeadshot src={player.picture} teamId={player.team_id}
+      logoBoxClassName="absolute inset-x-0 top-0 bottom-[38%]"
+      logoClassName="max-h-[72%] max-w-[64%]" />
+    <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 to-transparent" />
+    {/* Status tick top-right — always visible when player has a status */}
+    {player.Status && (
+      <div className="absolute top-1.5 right-1.5 z-10 flex leading-none">
+        <PlayerStatusTick status={player.Status} size={14} />
+      </div>
+    )}
+    {/* Remove button top-right (over the status tick on hover) — hidden when locked */}
+    {!isLocked && (
+      <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="absolute top-1 right-1 z-30 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <IoMdClose className="text-white text-[8px]" />
+      </button>
+    )}
+    {/* Player info bottom-left */}
+    <div className={`absolute bottom-0 inset-x-0 p-1 ${isLocked ? "pr-7" : ""}`}>
+      <div className="text-white font-bold text-[8px] truncate">{player.Player}</div>
+      <div className="text-white/40 text-[7px] truncate">{player.Team}</div>
+      <div className="pickem-numeric text-white/60 text-[8px] font-bold">{formatCost(player.Cost)}</div>
+    </div>
+    {/* CPT button top-left — disabled after lock */}
+    <button
+      onClick={(e) => { e.stopPropagation(); if (!isLocked) onSetCaptain(); }}
+      className={`absolute top-1 left-1 z-10 font-black uppercase tracking-widest px-1 py-0.5 rounded transition-all flex flex-col items-center leading-none gap-[1px]
+        ${isCaptain ? "bg-yellow-400 text-black" : "bg-black/50 text-white/30 border border-white/20"}
+        ${isLocked ? "opacity-50 cursor-not-allowed" : ""}`}>
+      <span className="text-[6px]">{isCaptain ? "★ CPT" : "CPT"}</span>
+      {isCaptain && <span className="text-[5px] opacity-80">1.5× PTS</span>}
+    </button>
+    {/* Kill count bottom-right — only once the event is live (locked) */}
+    {isLocked && (
+      <div className="absolute bottom-1 right-1 z-10 flex flex-col items-end leading-none">
+        <span className="pickem-numeric text-white font-black text-[19px]">
+          {(player as unknown as { ["Confirmed Kills"]?: number })["Confirmed Kills"] ?? 0}
+        </span>
+        <span className="text-white/50 text-[5px] font-bold uppercase tracking-widest mt-[1px]">Kills</span>
+      </div>
+    )}
+  </div>
+));
+
+SlotCard.displayName = "SlotCard";
 
 export default function Pickems() {
   const [playerSlots, setPlayerSlots] = useState<PlayerSlot[]>(
@@ -217,7 +272,6 @@ export default function Pickems() {
   const [shuffledIds, setShuffledIds] = useState<string[] | null>(null);
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
   const [showFavourites, setShowFavourites] = useState(false);
-  const [teamLogos, setTeamLogos] = useState<Record<string, string>>({});
   const reportPickEmDesktopListScroll = useDashboardNestedScrollHandler("pick-em-desktop-rows");
 
   const db = getFirestore();
@@ -331,14 +385,6 @@ export default function Pickems() {
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   };
 
-  const fetchPlayerPicture = async (leagueId: string): Promise<string> => {
-    try {
-      const fileList = await listAll(ref(getStorage(), `players/`));
-      const match = fileList.items.find((item) => item.name.startsWith(`${leagueId}_`));
-      return match ? await getDownloadURL(match) : "/placeholder.svg";
-    } catch { return "/placeholder.svg"; }
-  };
-
   useEffect(() => {
     const fetchLiveEvent = async () => {
       try {
@@ -410,8 +456,7 @@ export default function Pickems() {
           // roster is clean) and a silent scoring bug the first time it is not.
           player_id: r.id, league_id: r.league_id, Player: r.Player, Team: r.Team,
           Rank: r.Rank, team_id: r.team_id, Cost: r.Cost, img_url: r.img_url,
-          picture: r.img_url?.trim() ? r.img_url : undefined,
-          pictureLoading: !r.img_url?.trim(),
+          picture: r.img_url,
           Status: isPlayerStatus(r.Status) ? r.Status : undefined,
           StatusUpdatedAt: r.StatusUpdatedAt,
           elimsByEvent: Object.fromEntries(
@@ -439,23 +484,6 @@ export default function Pickems() {
       ),
     })));
   }, [elimsVersion]);
-
-  useEffect(() => {
-    const fetchPics = async () => {
-      if (!visiblePlayers.length) return;
-      const updates = await Promise.all(visiblePlayers.map(async (p) => {
-        if (p.picture) return null;
-        const picture = p.img_url?.trim() ? p.img_url : await fetchPlayerPicture(p.league_id).catch(() => "/placeholder.svg");
-        return { player_id: p.player_id, picture };
-      }));
-      setRowData((prev) => prev.map((p) => {
-        const u = updates.find((u) => u?.player_id === p.player_id);
-        return u ? { ...p, picture: u.picture, pictureLoading: false } : p;
-      }));
-    };
-    const t = setTimeout(fetchPics, 200);
-    return () => clearTimeout(t);
-  }, [visiblePlayers]);
 
   useEffect(() => {
     if (!user || !liveEvent.id) return;
@@ -521,10 +549,10 @@ export default function Pickems() {
           : data.pickems?.[`${liveEvent.id}_captain`];
 
         const docs = await Promise.all(ids.map((id: string) => getDoc(doc(db, `events/${liveEvent.id}/players`, id.toString()))));
-        const picks = await Promise.all(docs.filter((d) => d.exists()).map(async (d) => {
+        const picks = docs.filter((d) => d.exists()).map((d) => {
           const pd = { ...d.data(), player_id: d.id } as any;
-          return { ...pd, picture: pd.img_url?.trim() ? pd.img_url : await fetchPlayerPicture(pd.league_id) };
-        }));
+          return { ...pd, picture: pd.img_url };
+        });
         const captainIdValue = rawCaptainId != null ? String(rawCaptainId) : null;
         if (isDraft && picks.length > 0) {
           toast.info(`Restored ${picks.length} draft pick${picks.length !== 1 ? 's' : ''} — confirm when you're ready!`, { autoClose: 4000 });
@@ -551,17 +579,6 @@ export default function Pickems() {
     setRemainingBudget(budget);
     remainingBudgetRef.current = budget;
   }, [temporaryPicks]);
-
-  useEffect(() => {
-    const fetchLogos = async () => {
-      try {
-        const fileList = await listAll(ref(getStorage(), "t-logo/"));
-        const logos = await Promise.all(fileList.items.map(async (item) => ({ teamId: item.name.split("_")[0], url: await getDownloadURL(item) })));
-        setTeamLogos(logos.reduce((acc, { teamId, url }) => { acc[teamId] = url; return acc; }, {} as Record<string, string>));
-      } catch (e) { console.error(e); }
-    };
-    fetchLogos();
-  }, []);
 
   const toggleFavourite = useCallback((playerId: string) => {
     setFavouriteIds((prev) => {
@@ -777,52 +794,6 @@ export default function Pickems() {
 
   const budgetPct = Math.min(100, ((TOTAL_BUDGET - remainingBudget) / TOTAL_BUDGET) * 100);
 
-  // ── SLOT CARD ────────────────────────────────────────────────────────────────
-  const SlotCard = memo(({ player, isCaptain, isLocked, onRemove, onSetCaptain }: {
-    player: Player; isCaptain: boolean; isLocked?: boolean; onRemove: () => void; onSetCaptain: () => void;
-  }) => (
-    <div className={`relative rounded-lg overflow-hidden group cursor-pointer h-full w-full ${isCaptain ? "ring-2 ring-yellow-400" : "ring-1 ring-black/10 dark:ring-white/10"}`}>
-      <div className="absolute inset-0 bg-cover bg-top bg-[#1a1a1a]" style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }} />
-      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 to-transparent" />
-      {/* Status tick top-right — always visible when player has a status */}
-      {player.Status && (
-        <div className="absolute top-1.5 right-1.5 z-10 flex leading-none">
-          <PlayerStatusTick status={player.Status} size={14} />
-        </div>
-      )}
-      {/* Remove button top-right (over the status tick on hover) — hidden when locked */}
-      {!isLocked && (
-        <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="absolute top-1 right-1 z-30 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <IoMdClose className="text-white text-[8px]" />
-        </button>
-      )}
-      {/* Player info bottom-left */}
-      <div className={`absolute bottom-0 inset-x-0 p-1 ${isLocked ? "pr-7" : ""}`}>
-        <div className="text-white font-bold text-[8px] truncate">{player.Player}</div>
-        <div className="text-white/40 text-[7px] truncate">{player.Team}</div>
-        <div className="pickem-numeric text-white/60 text-[8px] font-bold">{formatCost(player.Cost)}</div>
-      </div>
-      {/* CPT button top-left — disabled after lock */}
-      <button
-        onClick={(e) => { e.stopPropagation(); if (!isLocked) onSetCaptain(); }}
-        className={`absolute top-1 left-1 z-10 font-black uppercase tracking-widest px-1 py-0.5 rounded transition-all flex flex-col items-center leading-none gap-[1px]
-          ${isCaptain ? "bg-yellow-400 text-black" : "bg-black/50 text-white/30 border border-white/20"}
-          ${isLocked ? "opacity-50 cursor-not-allowed" : ""}`}>
-        <span className="text-[6px]">{isCaptain ? "★ CPT" : "CPT"}</span>
-        {isCaptain && <span className="text-[5px] opacity-80">1.5× PTS</span>}
-      </button>
-      {/* Kill count bottom-right — only once the event is live (locked) */}
-      {isLocked && (
-        <div className="absolute bottom-1 right-1 z-10 flex flex-col items-end leading-none">
-          <span className="pickem-numeric text-white font-black text-[19px]">
-            {(player as unknown as { ["Confirmed Kills"]?: number })["Confirmed Kills"] ?? 0}
-          </span>
-          <span className="text-white/50 text-[5px] font-bold uppercase tracking-widest mt-[1px]">Kills</span>
-        </div>
-      )}
-    </div>
-  ));
-
   // ── EMPTY SLOT ───────────────────────────────────────────────────────────────
   const EmptySlot = ({ slot }: { slot: PlayerSlot }) => (
     <button onClick={() => { setPlayerSlots((p) => p.map((s) => ({ ...s, isSelected: s.id === slot.id }))); setIsDrawerOpen(true); }}
@@ -831,7 +802,6 @@ export default function Pickems() {
       <span className="text-[7px] uppercase text-black/20 dark:text-white/20 font-bold tracking-widest text-center px-1 leading-tight">Add Player</span>
     </button>
   );
-
 
   const pickEmBannerModel = useMemo(() => {
     if (!liveEvent?.id) return null;

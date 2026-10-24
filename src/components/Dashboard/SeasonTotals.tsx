@@ -6,6 +6,7 @@ import { db } from "@/src/lib/firebaseClient";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { motion } from "framer-motion";
 import { MatchupTable } from "./datatable";
+import PlayerHeadshot from "@/src/components/ui/PlayerHeadshot";
 
 interface SeasonPlayer {
   playerId: string;
@@ -99,6 +100,7 @@ export default function SeasonTotals({
             Pressure: data.pressure || 0,
             Trades: data.trades || 0,
             Unclassified: data.unclassified || 0,
+            team_id: data.team_id || data.teamId || null,
             picture: data.img_url || '/placeholder.svg'
           };
           
@@ -179,15 +181,10 @@ export default function SeasonTotals({
                     )}
                     <span className="font-bold text-lg text-white">#{player.Rank}</span>
                   </div>
-                  <img 
-                    src={player.picture} 
-                    alt={player.Player}
-                    className="w-10 h-10 rounded-full object-cover mr-3 flex-shrink-0"
-                    onError={(e) => { 
-                      console.log('Image failed to load:', player.picture);
-                      e.currentTarget.src = '/placeholder.svg'; 
-                    }}
-                  />
+                  <div className="relative w-10 h-10 rounded-full overflow-hidden bg-[#1a1a1a] mr-3 flex-shrink-0">
+                    <PlayerHeadshot src={player.picture} teamId={player.team_id} alt={player.Player}
+                      photoClassName="object-cover" />
+                  </div>
                   <div>
                     <h4 className="font-bold text-white">{player.Player}</h4>
                     <p className="text-sm text-gray-400">{player.Team}</p>

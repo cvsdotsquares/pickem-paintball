@@ -23,6 +23,7 @@ import ShareCareerButton, { type ShareScopeOption } from "@/src/components/Dashb
 import SubscriberBlur, { useBetaGate } from "@/src/components/Dashboard/SubscriberBlur";
 import { cn } from "@/src/lib/utils";
 import { useAuth } from "@/src/contexts/authProvider";
+import PlayerHeadshot from "@/src/components/ui/PlayerHeadshot";
 
 /** Shared column template — header and rows must use the same constant (style guide). */
 /**
@@ -739,16 +740,20 @@ export default function PlayerPage() {
             name — so it was the first thing read and the least worth reading.
           */}
           <div className="flex flex-col items-start gap-3.5 border-b border-white/[0.08] p-5 lg:border-b-0 lg:border-r">
-            <div
-              className="h-[104px] w-[104px] flex-none rounded-xl bg-[#1a1a1a] lg:h-[132px] lg:w-[132px]"
-              style={{
-                backgroundImage: `url('${career.imgUrl || "/placeholder.svg"}')`,
-                // portraits are square head-to-waist; favour the upper body so the face
-                // reads at this size
-                backgroundSize: "125%",
-                backgroundPosition: "50% 8%",
-              }}
-            />
+            <div className="relative h-[104px] w-[104px] flex-none overflow-hidden rounded-xl bg-[#1a1a1a] lg:h-[132px] lg:w-[132px]">
+              <PlayerHeadshot
+                src={career.imgUrl}
+                teamId={career.currentTeamId}
+                alt={career.name}
+                className="absolute"
+                photoClassName=""
+                // portraits are square head-to-waist; scale to 125% and favour the upper
+                // body so the face reads at this size (what background-size 125% /
+                // position 50% 8% did before)
+                photoStyle={{ width: "125%", height: "125%", maxWidth: "none", left: "-12.5%", top: "-2%" }}
+                logoBoxClassName="absolute inset-0"
+              />
+            </div>
             <div className="min-w-0">
               <h1
                 className={cn(
@@ -2069,6 +2074,11 @@ function leagueOnlyStub(
 ): PlayerCareer {
   return {
     playerId, name: p.name, number: null, imgUrl: null, leagueId: p.leagueId, currentTeam: p.currentTeam,
+    // The club of his latest NXL event, so the portrait falls back to that team's logo.
+    currentTeamId:
+      [...(nxl?.events ?? [])]
+        .filter((e) => e.teamId)
+        .sort((a, b) => (b.start ?? "").localeCompare(a.start ?? ""))[0]?.teamId ?? null,
     appearances: [], totalKills: 0, playedCount: 0, careerRank: null, careerRankField: 0, avgKills: 0,
     avgRank: null, bestRank: null, bestRankEvent: null, topTenCount: 0, currentCost: null, typeTotals: [],
     nxl, trackedFrom: null,
