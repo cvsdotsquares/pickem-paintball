@@ -5,12 +5,10 @@ import { cn } from "@/src/lib/utils";
 import { PLACEHOLDER_HEADSHOT, isRealHeadshot, teamLogoPath } from "@/src/lib/teamLogos";
 
 /**
- * URLs that failed to load, kept for the whole page visit rather than per component.
- * Some cards are re-created on every re-render (scrolling re-renders the dashboard), and
- * per-card state made a broken photo retry each time — the card flickered between the
- * failing photo and the logo.
+ * Photo URLs that failed to load, kept for the whole page visit rather than per card, so
+ * a card that gets re-created doesn't retry a broken photo and flicker to the logo again.
  */
-const failedUrls = new Set<string>();
+const failedPhotos = new Set<string>();
 
 interface PlayerHeadshotProps {
   /** The player's `img_url` (or the page's resolved `picture`). */
@@ -29,7 +27,7 @@ interface PlayerHeadshotProps {
    */
   logoBoxClassName?: string;
   /**
-   * The logo's size inside that area — in % of the area's own width AND height, so it
+   * The logo's maximum size inside that area — in % of the area's own width AND height, so it
    * scales with the card at every screen size. Never padding: CSS resolves vertical %
    * padding against the WIDTH, which crushed the logo on wide desktop cards.
    */
@@ -51,39 +49,53 @@ export default function PlayerHeadshot({
   photoClassName = "object-cover object-top",
   photoStyle,
   logoBoxClassName,
-  logoClassName = "h-[70%] w-[70%]",
+  logoClassName = "max-h-[70%] max-w-[70%]",
   loading,
 }: PlayerHeadshotProps) {
   const [, rerender] = useState(0);
-  const markFailed = (url: string) => {
-    if (failedUrls.has(url)) return;
-    failedUrls.add(url);
+  const markPhotoFailed = (url: string) => {
+    if (failedPhotos.has(url)) return;
+    failedPhotos.add(url);
     rerender((n) => n + 1);
   };
+  // Logos are our own static files: a failure only affects this one image and is never
+  // remembered page-wide, so a spurious error can't take a team's logo off every card.
+  const [logoFailed, setLogoFailed] = useState<string | null>(null);
 
-  // An image in server-rendered HTML can fail before React attaches onError, so also
-  // check when it mounts: a finished load with no pixels is a failure.
-  const failedBeforeHydration = (onFail: () => void) => (img: HTMLImageElement | null) => {
-    if (img?.complete && img.naturalWidth === 0) onFail();
+  /**
+   * An image can fail before React attaches onError (server-rendered HTML, or a 404
+   * that comes back fast). If it looks failed when it mounts, confirm with a real load
+   * before believing it — some browsers report a lazy image that hasn't started yet as
+   * "complete" with no pixels.
+   */
+  const confirmIfFailedOnMount = (url: string) => (img: HTMLImageElement | null) => {
+    if (!img || !img.complete || img.naturalWidth > 0) return;
+    const probe = new Image();
+    probe.onerror = () => markPhotoFailed(url);
+    probe.src = url;
   };
 
-  if (isRealHeadshot(src) && !failedUrls.has(src)) {
+  if (isRealHeadshot(src) && !failedPhotos.has(src)) {
     return (
       <img key="photo" src={src} alt={alt} loading={loading} draggable={false}
         className={cn(className, photoClassName)} style={photoStyle}
-        ref={failedBeforeHydration(() => markFailed(src))}
-        onError={() => markFailed(src)} />
+        ref={confirmIfFailedOnMount(src)}
+        onError={() => markPhotoFailed(src)} />
     );
   }
 
   const logo = teamLogoPath(teamId);
-  if (logo && !failedUrls.has(logo)) {
+  if (logo && logoFailed !== logo) {
     return (
-      <div key="logo" className={cn(logoBoxClassName ?? className, "flex items-center justify-center")}>
+      // Flex column with spacers 3:2, so the space above the logo is 1.5x the space below.
+      <div key="logo" className={cn(logoBoxClassName ?? className, "flex flex-col items-center")}>
+        <div className="min-h-0 flex-[3]" />
         <img src={logo} alt={alt} loading={loading} draggable={false}
-          className={cn("object-contain", logoClassName)}
-          ref={failedBeforeHydration(() => markFailed(logo))}
-          onError={() => markFailed(logo)} />
+          // h/w auto + max-h/max-w: the box is exactly the logo, so the 3:2 spacers
+          // measure the visible gap (object-contain would add its own equal margins).
+          className={cn("h-auto w-auto min-h-0 shrink-0 object-contain", logoClassName)}
+          onError={() => setLogoFailed(logo)} />
+        <div className="min-h-0 flex-[2]" />
       </div>
     );
   }

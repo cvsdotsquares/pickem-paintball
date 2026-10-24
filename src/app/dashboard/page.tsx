@@ -115,7 +115,7 @@ const SlotCard = memo(({ player, isCaptain, showKills }: { player: Player; isCap
       src={player.picture}
       teamId={player.team_id}
       logoBoxClassName="absolute inset-x-0 top-0 bottom-[38%]"
-      logoClassName="h-[72%] w-[64%]"
+      logoClassName="max-h-[72%] max-w-[64%]"
     />
     <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 to-transparent" />
     {isPlayerStatus(player.Status) && (() => {
