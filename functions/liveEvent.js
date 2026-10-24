@@ -15,7 +15,7 @@
  */
 
 const { parseSchedule, parseRankings, resolveClub } = require("./pbleagues");
-const { COLLECTION, docIdFor, loadHistory } = require("./nxlEventsStore");
+const { COLLECTION, docIdFor, loadHistory, loadCrawlerAliases } = require("./nxlEventsStore");
 
 const BASE = "https://pbleagues.com";
 const UA = { "User-Agent": "Mozilla/5.0 (pickem-live-crawler)" };
@@ -137,13 +137,13 @@ function isoDay(text, year) {
  * restart at 1 in each, so there are two #1s and no single order to read off. `split`
  * names the tables so the caller can say why.
  */
-async function finalRanks(pbleaguesId, clubs) {
+async function finalRanks(pbleaguesId, clubs, extraAliases = {}) {
   const { rows, tables } = parseRankings(await fetchText(`/event/${pbleaguesId}/rankings`));
   if (tables.length > 1) return { ranks: null, missing: [], split: tables.map((t) => t.division) };
   const vocab = [...clubs].sort((a, b) => b.length - a.length);
   const ranks = {};
   for (const r of rows) {
-    const club = resolveClub(r.team, vocab);
+    const club = resolveClub(r.team, vocab, extraAliases);
     if (club) ranks[club] = r.rank;
   }
   const missing = clubs.filter((c) => ranks[c] == null);
@@ -165,12 +165,20 @@ async function lockNxlEvent(db, pickemEventId, { collection = COLLECTION } = {})
     .where("live", "==", true)
     .get();
   const locked = [];
+  /* The same Slack-approved team-name matches the crawl used to file these results. */
+  let aliases = {};
+  try {
+    if (snap.docs.length) aliases = await loadCrawlerAliases(db);
+  } catch (err) {
+    /* Lock regardless: the results are final. Only names in code will place in the ranks. */
+    console.error("⚠️ could not read crawlerAliases from meta — locking with the code aliases only.", err);
+  }
   for (const d of snap.docs) {
     const e = d.data();
     const update = { live: false, lockedAt: new Date().toISOString() };
     const clubs = Object.keys(e.teams || {});
     try {
-      const { ranks, missing, split } = await finalRanks(e.pbleaguesId, clubs);
+      const { ranks, missing, split } = await finalRanks(e.pbleaguesId, clubs, aliases);
       if (ranks) {
         // The whole map rather than dotted paths: a club name may contain a "."
         update.teams = Object.fromEntries(
@@ -346,7 +354,8 @@ async function crawlLiveEvent(
   const clubs = [...new Set(history.events.flatMap((e) => Object.keys(e.teams || {})))].sort(
     (a, b) => b.length - a.length,
   );
-  const clubOf = (name) => resolveClub(name, clubs);
+  /* Plus the team-name matches James approved in Slack, which the hub writes to meta. */
+  const clubOf = (name) => resolveClub(name, clubs, history.crawlerAliases);
   /*
    * Names the crawl used that our vocabulary cannot place. Reported, never swallowed: an
    * unresolved club silently drops that team's entire record, which is exactly how TonTons

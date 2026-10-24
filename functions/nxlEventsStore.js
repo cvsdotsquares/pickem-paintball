@@ -4,7 +4,9 @@
  *   nxlEvents/{slug}          an event — its teams' results, its matches, and which club
  *                             each player was rostered for. `live: true` while it is being
  *                             played; the crawler rewrites it until the event ends.
- *   projections/nxlHistoryMeta  the lookups that are not per event (club -> team_id).
+ *   projections/nxlHistoryMeta  the lookups that are not per event (club -> team_id, and
+ *                             crawlerAliases: pbleagues team name -> club, written by the
+ *                             hub's Data agent when James answers a "team match" question).
  *
  * This replaces `data/nxlHistory.json` as the store the career pages are built from. The
  * workbook the file came from stays as a manual backup, but it is no longer the source:
@@ -110,6 +112,12 @@ function historyFromDocs(eventDocs, meta = {}) {
 
   return {
     clubTeamId: meta.clubTeamId || {},
+    /*
+     * pbleagues team name -> club, on top of CRAWLER_TEAM_ALIAS in pbleagues.js. The hub's
+     * Data agent writes `crawlerAliases.<name>` when James answers a "team match" question
+     * in Slack, so a new name reaches the crawl without a code change or a deploy.
+     */
+    crawlerAliases: meta.crawlerAliases || {},
     names: meta.names || {},
     events: events.map((e) => ({
       key: e.key,
@@ -137,4 +145,22 @@ async function loadHistory(db) {
   );
 }
 
-module.exports = { COLLECTION, META_DOC, docIdFor, docsFromHistory, historyFromDocs, loadHistory };
+/**
+ * Just the crawler's team-name aliases, from meta alone.
+ *
+ * For the lock, which needs only these and should not read every event to get them.
+ */
+async function loadCrawlerAliases(db) {
+  const meta = await db.doc(META_DOC).get();
+  return (meta.exists && meta.get("crawlerAliases")) || {};
+}
+
+module.exports = {
+  COLLECTION,
+  META_DOC,
+  docIdFor,
+  docsFromHistory,
+  historyFromDocs,
+  loadHistory,
+  loadCrawlerAliases,
+};
