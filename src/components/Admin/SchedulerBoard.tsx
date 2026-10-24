@@ -73,6 +73,32 @@ const field =
   "w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-gray-400 dark:border-white/10 dark:bg-white/5";
 
 /** ISO → US Eastern date + time ("2026-11-12", "08:00"). */
+/** ET wall time ("2026-11-02", "09:00") → an ISO instant, right across the clock change. */
+function etToISO(day: string, time: string): string {
+  const guess = Date.parse(`${day}T${time}:00Z`);
+  const w = et(new Date(guess).toISOString());
+  return new Date(guess - (Date.parse(`${w.date}T${w.time}:00Z`) - guess)).toISOString();
+}
+
+/**
+ * A repeating job has one slot, on its first day; its notes carry `to:YYYY-MM-DD` (James 24 Oct 2026). Draw it again
+ * on every later day up to then, same ET time, as a copy: id `<slot id>~<day>`, opens the real slot, can't be dragged.
+ */
+function withRepeats(slots: Slot[]): Slot[] {
+  const out: Slot[] = [];
+  for (const s of slots) {
+    out.push(s);
+    const to = s.kind !== "post" && s.publishAt ? (s.notes ?? "").match(/\bto:(\d{4}-\d{2}-\d{2})/)?.[1] : undefined;
+    if (!to || !s.publishAt) continue;
+    const { date, time } = et(s.publishAt);
+    for (let d = addDays(date, 1), n = 0; d <= to && n < 120; d = addDays(d, 1), n++) {
+      out.push({ ...s, id: `${s.id}~${d}`, publishAt: etToISO(d, time), status: "planned" });
+    }
+  }
+  return out;
+}
+const realId = (id: string) => id.split("~")[0];
+
 function et(iso: string | null): { date: string; time: string } {
   if (!iso) return { date: "", time: "" };
   const p = Object.fromEntries(
@@ -191,7 +217,7 @@ export default function SchedulerBoard() {
   const agents = useMemo(() => data?.agents ?? [], [data]);
   const byDay = useMemo(() => {
     const m: Record<string, Slot[]> = {};
-    for (const s of data?.slots ?? []) (m[et(s.publishAt).date || "unscheduled"] ??= []).push(s);
+    for (const s of withRepeats(data?.slots ?? [])) (m[et(s.publishAt).date || "unscheduled"] ??= []).push(s);
     for (const k of Object.keys(m)) m[k].sort((a, b) => (a.publishAt ?? "").localeCompare(b.publishAt ?? ""));
     return m;
   }, [data]);
@@ -237,7 +263,7 @@ export default function SchedulerBoard() {
     }
   };
 
-  const slot = data?.slots.find((s) => s.id === open) ?? null;
+  const slot = data?.slots.find((s) => s.id === realId(open ?? "")) ?? null;
   const today = todayET();
   // Lanes: the agents (never the design reviewer, which is never on the Schedule) plus any job that has something this week.
   const lanes = agents.filter((a) => a.id !== "reviewer" && (a.kind !== "job" || days.some((d) => (byDay[d] ?? []).some((s) => s.agent === a.id))));
@@ -444,9 +470,22 @@ export default function SchedulerBoard() {
                           {l}
                         </span>
                       ))}
-                      {(byDay[day] ?? []).map((s) => (
-                        <SlotChip key={s.id} s={s} agents={agents} size={mode === "week" ? "big" : "small"} onClick={() => setOpen(s.id)} />
-                      ))}
+                      {(byDay[day] ?? [])
+                        .filter((s) => mode === "week" || !s.id.includes("~"))
+                        .map((s) => (
+                          <SlotChip key={s.id} s={s} agents={agents} size={mode === "week" ? "big" : "small"} onClick={() => setOpen(s.id)} />
+                        ))}
+                      {mode !== "week" && (() => {
+                        // Month: a repeating job's later days fold into one line, so posts keep their room (James 24 Oct 2026)
+                        const reps = (byDay[day] ?? []).filter((s) => s.id.includes("~"));
+                        if (!reps.length) return null;
+                        const names = reps.map((s) => `${findAgent(agents, s.agent).icon} ${s.title}`);
+                        return (
+                          <button onClick={() => setOpen(reps[0].id)} title={`Repeats today: ${names.join(", ")}`} className="truncate text-left text-[9px] text-gray-400 hover:text-gray-700 dark:hover:text-white">
+                            ↻ {reps.length === 1 ? names[0] : `${reps.length} daily: ${reps.map((s) => s.title).join(", ")}`}
+                          </button>
+                        );
+                      })()}
                     </div>
                   );
                 })}
@@ -653,7 +692,8 @@ function SlotChip({ s, agents, size, onClick }: { s: Slot; agents: Agent[]; size
   const p = statusPill(s);
   const a = findAgent(agents, s.agent);
   const time = et(s.publishAt).time;
-  const movable = s.kind !== "post" || s.status === "draft" || s.status === "failed";
+  const repeat = s.id.includes("~"); // a repeating job's later day: move its first-day slot instead
+  const movable = !repeat && (s.kind !== "post" || s.status === "draft" || s.status === "failed");
   const isPost = s.kind === "post";
   const thumb = isPost ? (
     s.preview[0] ? (
@@ -687,6 +727,7 @@ function SlotChip({ s, agents, size, onClick }: { s: Slot; agents: Agent[]; size
           {time ? nice(time) : "—"}
           {isPost && s.slides.length > 1 && <span className="font-normal text-gray-400">· {s.slides.length} slides</span>}
           {!isPost && s.duration > 0 && <span className="font-normal text-gray-400">· ~{s.duration} min</span>}
+          {repeat && <span className="font-normal text-gray-400" title="Repeats daily: open it to see or move the first day">↻</span>}
           {size === "small" && isPost && <span className="ml-auto text-[10px]">{a.icon}</span>}
         </span>
         <span className={`block ${size === "small" ? "truncate" : ""}`}>{s.title}</span>

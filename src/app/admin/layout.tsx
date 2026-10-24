@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
+import ThemeToggle from "@/src/components/Admin/ThemeToggle";
 import { adminEnabled } from "@/src/lib/admin/gate";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +36,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <span className="ml-auto text-[9px] uppercase tracking-widest text-gray-300 dark:text-white/25">
           Runs on this Mac only
         </span>
+        <ThemeToggle />
       </header>
       {children}
     </div>
