@@ -33,6 +33,12 @@ export const CRAWLER_TEAM_ALIAS = {
   "Baltimore Revo": "Arsenal", // renamed Baltimore Arsenal in 2025
   "TonTon FSU": "TonTons",
   "TonTon Arsenal": "TonTons", // NOT Baltimore Arsenal — see above
+  // World Cup 2026 (9322): first NXL event for all four, so nothing earlier can pair them.
+  // Kept identical to functions/pbleagues.js, where the live crawl trusts an alias target.
+  "Ranger Warsaw": "Ranger",
+  "ALA Warsaw": "ALA",
+  LTF: "LTF",
+  "Puerto Rico tppcrew": "TPP Crew",
 };
 
 /**
