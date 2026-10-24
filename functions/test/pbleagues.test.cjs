@@ -119,17 +119,32 @@ test("scripts/nxl-history/crawl-results.mjs stays in step", async () => {
 });
 
 /* lockNxlEvent against a fake Firestore and the saved rankings page. */
-async function lock(id, teams, champion, meta = null) {
+/* Saved /event/{id}/teams + every Pro /team/roster/{id} page, keyed by path (24 Oct 2026). */
+const rosterPages = (id) =>
+  JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(__dirname, "fixtures/pbleagues", `${id}_rosters.json.gz`))));
+
+/* pbleagues as the lock sees it: the rankings page plus the saved roster pages; `pages` overrides a path
+   (null = that page fails). Anything else is a 404. */
+async function lock(id, teams, champion, meta = null, { appearances = {}, pages = {} } = {}) {
   const { lockNxlEvent } = require("../liveEvent");
   const realFetch = global.fetch;
   const realError = console.error;
+  const realLog = console.log;
   const errors = [];
+  const logs = [];
   const updates = [];
-  global.fetch = async () => ({ ok: true, status: 200, text: async () => page(id, "rankings") });
+  const site = { ...rosterPages(id), [`/event/${id}/rankings`]: page(id, "rankings"), ...pages };
+  global.fetch = async (url) => {
+    const body = site[String(url).replace("https://pbleagues.com", "")];
+    return body == null
+      ? { ok: false, status: 404, text: async () => "" }
+      : { ok: true, status: 200, text: async () => body };
+  };
   console.error = (...a) => errors.push(a.join(" "));
+  console.log = (...a) => logs.push(a.join(" "));
   const doc = {
     id: `2026_${id}`,
-    data: () => ({ key: `2026|${id}`, pbleaguesId: id, teams, champion }),
+    data: () => ({ key: `2026|${id}`, pbleaguesId: id, teams, champion, appearances }),
     ref: { update: async (u) => updates.push(u) },
   };
   const q = { where: () => q, get: async () => ({ docs: [doc] }) };
@@ -139,8 +154,9 @@ async function lock(id, teams, champion, meta = null) {
   } finally {
     global.fetch = realFetch;
     console.error = realError;
+    console.log = realLog;
   }
-  return { update: updates[0], errors };
+  return { update: updates[0], errors, logs };
 }
 
 test("lock, two tables: positions left blank, champion keeps 1, says why", async () => {
@@ -150,8 +166,9 @@ test("lock, two tables: positions left blank, champion keeps 1, says why", async
   const { update, errors } = await lock("9322", teams, "Red Legion");
   assert.equal(update.live, false);
   assert.equal(update.teams, undefined);
-  assert.equal(errors.length, 1);
-  assert.match(errors[0], /^❌ .*2 tables .*finish positions left blank\.$/);
+  const rankErrors = errors.filter((x) => /finish positions/.test(x));
+  assert.equal(rankErrors.length, 1);
+  assert.match(rankErrors[0], /^❌ .*2 tables .*finish positions left blank\.$/);
 });
 
 test("lock, one table: finishRank from the table as before", async () => {
@@ -282,4 +299,77 @@ test("lock: a Firestore alias places a team the code cannot", async () => {
   const withAlias = await lock("9321", teams, champ, { crawlerAliases: { [renamed.team]: "Renamed Club" } });
   assert.deepEqual(withAlias.errors, []);
   assert.equal(withAlias.update.teams["Renamed Club"].finishRank, renamed.rank);
+});
+
+/* ── Appearances from the league's rosters, set at the lock (James, 24 Oct 2026) ── */
+
+const { parseTeams, parseRoster } = require("../pbleagues");
+const club9321 = (t) => CRAWLER_TEAM_ALIAS[t] || t;
+const lsTeams = () =>
+  Object.fromEntries(parseRankings(page("9321", "rankings")).rows.map((r) => [club9321(r.team), { finishRank: null }]));
+/* Lone Star 2026's league rosters as league_id -> club, read straight off the saved pages. */
+function lsLeague() {
+  const pages = rosterPages("9321");
+  const out = {};
+  for (const t of parseTeams(pages["/event/9321/teams"])) {
+    for (const p of parseRoster(pages[`/team/roster/${t.rosterId}`])) out[p.leagueId] = club9321(t.team);
+  }
+  return out;
+}
+
+test("parseTeams / parseRoster: Lone Star 2026 is 20 Pro teams, 187 players; World Cup 2026 is 24 teams", () => {
+  assert.equal(parseTeams(rosterPages("9321")["/event/9321/teams"]).length, 20);
+  assert.equal(Object.keys(lsLeague()).length, 187);
+  const wc = parseTeams(rosterPages("9322")["/event/9322/teams"]).map((t) => t.team);
+  assert.equal(wc.length, 24);
+  for (const t of ["Edmonton Impact", "Ranger Warsaw", "ALA Warsaw", "Puerto Rico tppcrew"]) assert.ok(wc.includes(t), t);
+});
+
+test("lock, Lone Star 2026: appearances become the league's rosters (Out players off, a missed player on)", async () => {
+  const league = lsLeague();
+  const crawled = { ...league, 7482: "Red Legion", 176342: "TonTons" }; // Out / Injured, not on the league's roster
+  delete crawled["100329"]; // Travis Baskin: on the league's roster, not on ours
+  const champion = club9321(parseRankings(page("9321", "rankings")).rows.find((r) => r.rank === 1).team);
+  const { update, errors, logs } = await lock("9321", lsTeams(), champion, null, { appearances: crawled });
+  assert.deepEqual(errors, []);
+  assert.deepEqual(update.appearances, league);
+  assert.ok(logs.some((l) => /^👥 .*187 \(−2 \+1, 0 moved club\); off: 7482, 176342$/.test(l)), logs.join("\n"));
+});
+
+test("lock: a club whose league roster is empty keeps the crawl's players, and says so", async () => {
+  const pages = rosterPages("9321");
+  const damage = parseTeams(pages["/event/9321/teams"]).find((t) => /Damage/.test(t.team));
+  const crawled = { ...lsLeague(), 999001: "Tampa Bay Damage" };
+  const { update, errors } = await lock("9321", lsTeams(), "Tampa Bay Damage", null, {
+    appearances: crawled,
+    pages: { [`/team/roster/${damage.rosterId}`]: "<html>no roster yet</html>" },
+  });
+  assert.equal(update.appearances, undefined); // nothing changed: Damage kept as crawled, the rest already right
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /^❌ .*no league roster for Tampa Bay Damage — kept the crawl's players for them\.$/);
+});
+
+test("lock: pbleagues rosters unreadable → appearances left exactly as crawled, still locks", async () => {
+  const crawled = { 7482: "Red Legion" };
+  const { update, errors } = await lock("9321", lsTeams(), "Tampa Bay Damage", null, {
+    appearances: crawled,
+    pages: { "/event/9321/teams": null },
+  });
+  assert.equal(update.live, false);
+  assert.equal(update.appearances, undefined);
+  assert.ok(errors.some((x) => /could not read the league's rosters — appearances left as crawled/.test(x)));
+});
+
+test("appearancesFromRosters: league teams outside this event's results are ignored", () => {
+  const { appearancesFromRosters } = require("../liveEvent");
+  const r = appearancesFromRosters(
+    [
+      { team: "Red Legion", players: [{ leagueId: "1", name: "A" }] },
+      { team: "Some International Club", players: [{ leagueId: "2", name: "B" }] },
+    ],
+    ["Red Legion"],
+    {},
+  );
+  assert.deepEqual(r.appearances, { 1: "Red Legion" });
+  assert.deepEqual(r.ignored, ["Some International Club"]);
 });
