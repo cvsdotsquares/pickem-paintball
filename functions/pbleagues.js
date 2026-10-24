@@ -227,4 +227,45 @@ function resolveClub(name, clubs, extraAliases = {}) {
   );
 }
 
-module.exports = { isPro, parseSchedule, parseRankings, CRAWLER_TEAM_ALIAS, resolveClub };
+/**
+ * The event's Pro teams and their roster pages, from `/event/{id}/teams`.
+ *
+ * The page lists every division under its own heading, each team linking to
+ * `/team/roster/{rosterId}`; only teams under a Pro heading are kept (a World Cup has two:
+ * "Championship - Pro X-Ball" and "Pro X-Ball"). The same reading as the hub's
+ * agents/cost_allocation/sources.py `fetch_roster`, which cost allocation has used all season.
+ */
+function parseTeams(html) {
+  const out = [];
+  const seen = new Set();
+  let heading = "";
+  const re = /<h[1-4][^>]*>([\s\S]*?)<\/h[1-4]>|<a [^>]*href="\/team\/roster\/([A-Za-z0-9]{12,})"[^>]*>([^<]*)<\/a>/g;
+  for (const m of html.matchAll(re)) {
+    if (m[1] !== undefined) heading = text(m[1]);
+    else if (isPro(heading) && !seen.has(m[2])) {
+      seen.add(m[2]);
+      out.push({ rosterId: m[2], team: text(m[3]) });
+    }
+  }
+  return out;
+}
+
+/**
+ * The players on one team's roster page for the event: [{ leagueId, name }].
+ *
+ * Players only — coaches and staff are other tables. The league id is on `<tr data-id>`,
+ * with the `/pictures_crop/{id}.png` headshot as the fallback (past events link players to
+ * /profile/, upcoming ones to rosterclass.cgi, and both carry these two).
+ */
+function parseRoster(html) {
+  const table = (html.match(/id="roster-player"[\s\S]*?<\/table>/) || [""])[0];
+  const out = [];
+  for (const [tr] of table.matchAll(/<tr data-id="\d*"[\s\S]*?<\/tr>/g)) {
+    const id = (tr.match(/data-id="(\d+)"/) || tr.match(/\/pictures(?:_crop)?\/(\d+)\./) || [])[1];
+    const name = (tr.match(/class="itemName"[^>]*>([\s\S]*?)<\/a>/) || [])[1];
+    if (id && name) out.push({ leagueId: id, name: text(name) });
+  }
+  return out;
+}
+
+module.exports = { isPro, parseSchedule, parseRankings, parseTeams, parseRoster, CRAWLER_TEAM_ALIAS, resolveClub };
