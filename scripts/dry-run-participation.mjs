@@ -35,12 +35,13 @@ import {
   loadRosters,
   buildPlan,
 } from "./participation-plan.mjs";
+import { registryPath } from "./identity-registry-path.mjs";
 
 const { initializeApp } = await import("firebase/app");
 const { getFirestore, collection, getDocs } = await import("firebase/firestore");
 
 const DEFAULT_CSV = `${homedir()}/Documents/nxl-pro-players/Player_Roster_Historic.csv`;
-const REGISTRY = "scripts/player-identity-registry.json";
+const REGISTRY = registryPath();   // the master ID list (identity-registry-path.mjs)
 
 const line = (c = "─") => console.log(c.repeat(78));
 
