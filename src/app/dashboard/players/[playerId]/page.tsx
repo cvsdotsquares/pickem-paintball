@@ -692,7 +692,7 @@ export default function PlayerPage() {
                 // body so the face reads at this size (what background-size 125% /
                 // position 50% 8% did before)
                 photoStyle={{ width: "125%", height: "125%", maxWidth: "none", left: "-12.5%", top: "-2%" }}
-                logoClassName="inset-0 h-full w-full object-contain object-center p-[15%]"
+                logoBoxClassName="absolute inset-0"
               />
             </div>
             <div className="min-w-0">

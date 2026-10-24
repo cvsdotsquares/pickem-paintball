@@ -748,7 +748,8 @@ export default function Pickems() {
       <div className="absolute inset-0 bg-[#1a1a1a]" />
       {/* Logo sits in the upper part of the card, clear of the name block. */}
       <PlayerHeadshot src={player.picture} teamId={player.team_id}
-        logoClassName="object-contain object-top px-[18%] pt-[14%] pb-[38%]" />
+        logoBoxClassName="absolute inset-x-0 top-0 bottom-[38%]"
+        logoClassName="h-[72%] w-[64%]" />
       <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 to-transparent" />
       {/* Status tick top-right — always visible when player has a status */}
       {player.Status && (

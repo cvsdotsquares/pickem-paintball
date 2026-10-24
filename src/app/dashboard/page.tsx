@@ -339,7 +339,8 @@ export default function Dashboard() {
       <PlayerHeadshot
         src={player.picture}
         teamId={player.team_id}
-        logoClassName="object-contain object-top px-[18%] pt-[14%] pb-[38%]"
+        logoBoxClassName="absolute inset-x-0 top-0 bottom-[38%]"
+        logoClassName="h-[72%] w-[64%]"
       />
       <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 to-transparent" />
       {isPlayerStatus(player.Status) && (() => {

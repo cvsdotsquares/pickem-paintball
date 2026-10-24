@@ -1623,7 +1623,7 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                         loading="lazy"
                         className={`h-full w-full transition-opacity duration-200 ${row.pictureLoading ? "opacity-0" : "opacity-100"}`}
                         photoClassName="object-cover"
-                        logoClassName="object-contain object-center p-[18%]"
+                        logoClassName="h-[64%] w-[64%]"
                       />
                     </div>
 

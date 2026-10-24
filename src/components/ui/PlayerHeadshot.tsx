@@ -15,7 +15,16 @@ interface PlayerHeadshotProps {
   /** How a real photo (and the grey placeholder) fills the box. */
   photoClassName?: string;
   photoStyle?: CSSProperties;
-  /** How the team logo sits in the box: contained and centred, never cropped. */
+  /**
+   * The area the team logo is centred in (default: the same box as the photo). Cards
+   * with a name block along the bottom pass a box that stops above it.
+   */
+  logoBoxClassName?: string;
+  /**
+   * The logo's size inside that area — in % of the area's own width AND height, so it
+   * scales with the card at every screen size. Never padding: CSS resolves vertical %
+   * padding against the WIDTH, which crushed the logo on wide desktop cards.
+   */
   logoClassName?: string;
   loading?: "lazy" | "eager";
 }
@@ -33,7 +42,8 @@ export default function PlayerHeadshot({
   className = "absolute inset-0 h-full w-full",
   photoClassName = "object-cover object-top",
   photoStyle,
-  logoClassName = "object-contain object-center p-[15%]",
+  logoBoxClassName,
+  logoClassName = "h-[70%] w-[70%]",
   loading,
 }: PlayerHeadshotProps) {
   // The URLs that failed to load — keyed by URL so a new src gets a fresh try.
@@ -59,10 +69,12 @@ export default function PlayerHeadshot({
   const logo = teamLogoPath(teamId);
   if (logo && !failed.has(logo)) {
     return (
-      <img key="logo" src={logo} alt={alt} loading={loading} draggable={false}
-        className={cn(className, logoClassName)}
-        ref={failedBeforeHydration(() => markFailed(logo))}
-        onError={() => markFailed(logo)} />
+      <div key="logo" className={cn(logoBoxClassName ?? className, "flex items-center justify-center")}>
+        <img src={logo} alt={alt} loading={loading} draggable={false}
+          className={cn("object-contain", logoClassName)}
+          ref={failedBeforeHydration(() => markFailed(logo))}
+          onError={() => markFailed(logo)} />
+      </div>
     );
   }
 
