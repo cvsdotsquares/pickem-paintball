@@ -17,6 +17,7 @@ import {
 } from "@/src/lib/badges";
 import { getBannerPhase } from "@/src/lib/bannerPhase";
 import { resolveCurrentEvent } from "@/src/lib/currentEvent";
+import { isRealHeadshot, teamLogoPath } from "@/src/lib/teamLogos";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
@@ -42,6 +43,8 @@ interface Pick {
   cost: number;
   kills: number;
   picture: string;
+  /** Team logo (data URI) — drawn in place of a missing or unloadable headshot. */
+  logo: string;
   status: string;
   isCaptain: boolean;
 }
@@ -346,18 +349,20 @@ export async function GET(request: NextRequest) {
   const playerDocs = await Promise.all(
     ids.map((id) => getDoc(doc(db, `events/${eventId}/players`, String(id)))),
   );
-  const picks: Pick[] = playerDocs
+  const picks: (Pick & { logoPath: string | null })[] = playerDocs
     .filter((d) => d.exists())
     .map((d) => {
       const pd = d.data() as AnyRec;
       const img = typeof pd.img_url === "string" ? pd.img_url.trim() : "";
       return {
+        logoPath: teamLogoPath(pd.team_id as string | undefined),
         id: d.id,
         name: String(pd.Player ?? "Unknown"),
         team: String(pd.Team ?? ""),
         cost: Number(pd.Cost ?? 0),
         kills: Number(pd["Confirmed Kills"] ?? 0),
-        picture: img,
+        picture: isRealHeadshot(img) ? img : "",
+        logo: "",
         status: typeof pd.Status === "string" ? pd.Status : "",
         isCaptain: d.id === captainId,
       };
@@ -369,6 +374,9 @@ export async function GET(request: NextRequest) {
     Promise.all(
       picks.map(async (p) => {
         p.picture = await toPngCached(p.picture);
+        if (!p.picture && p.logoPath) {
+          p.logo = (await dataUriCached(p.logoPath.slice(1), "image/png")) || "";
+        }
       }),
     ),
   ]);
@@ -488,17 +496,41 @@ export async function GET(request: NextRequest) {
           : "1px solid rgba(255,255,255,0.08)",
       }}
     >
-      <img
-        src={p.picture || placeholderUri || ""}
-        width={w}
-        height={h}
-        style={{
-          width: w,
-          height: h,
-          objectFit: "cover",
-          objectPosition: "top",
-        }}
-      />
+      {!p.picture && p.logo ? (
+        // No headshot: the team logo, contained and centred in the part of the tile
+        // above the name block.
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: w,
+            height: Math.round(h * 0.66),
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <img
+            src={p.logo}
+            width={Math.round(Math.min(w, h * 0.66) * 0.62)}
+            height={Math.round(Math.min(w, h * 0.66) * 0.62)}
+            style={{ objectFit: "contain" }}
+          />
+        </div>
+      ) : (
+        <img
+          src={p.picture || placeholderUri || ""}
+          width={w}
+          height={h}
+          style={{
+            width: w,
+            height: h,
+            objectFit: "cover",
+            objectPosition: "top",
+          }}
+        />
+      )}
       {p.status ? <StatusTick status={p.status} /> : null}
       {p.isCaptain ? (
         <div

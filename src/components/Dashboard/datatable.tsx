@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { FaUser, FaSearch } from "react-icons/fa";
+import { FaSearch } from "react-icons/fa";
 import {
   FaAngleLeft,
   FaAngleRight,
@@ -10,13 +10,13 @@ import {
   FaSortUp,
   FaUserCheck,
 } from "react-icons/fa6";
-import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
 import { useTheme } from "../../contexts/ThemeContext";
 import {
   resolveProfilePictureToUrl,
   subscribeProfileImagesRefresh,
 } from "@/src/lib/resolveProfilePictureUrl";
 import { cn } from "@/src/lib/utils";
+import PlayerHeadshot from "@/src/components/ui/PlayerHeadshot";
 
 /**
  * Stat cells show scalars only. Player docs also carry Firestore Timestamps
@@ -859,57 +859,6 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
       );
     }
   }, [filteredData, rowsPerPage]);
-  const fetchPlayerPicture = async (leagueId: string): Promise<string> => {
-    const storage = getStorage();
-    const folderPath = `players/`;
-    const storageRef = ref(storage, folderPath);
-
-    try {
-      const fileList = await listAll(storageRef);
-      const matchingFile = fileList.items.find(
-        (item) =>
-          item.name.startsWith(`${leagueId}_`) ||
-          item.name.startsWith(`${leagueId}-`),
-      );
-      return matchingFile
-        ? await getDownloadURL(matchingFile)
-        : "/placeholder.svg";
-    } catch (error) {
-      console.error(`Error fetching picture for ${leagueId}:`, error);
-      return "/placeholder.svg";
-    }
-  };
-
-  const loadPlayerImages = async (players: Player[]) => {
-    // Fetch all images first
-    const imageResults = await Promise.allSettled(
-      players.map(async (player) => {
-        try {
-          if (player.img_url && player.img_url.trim() !== "") {
-            return { player_id: player.player_id, picture: player.img_url };
-          } else {
-            const picture = await fetchPlayerPicture(
-              player.league_id ? player.league_id : "",
-            );
-            return { player_id: player.player_id, picture };
-          }
-        } catch (error) {
-          return { player_id: player.player_id, picture: "/placeholder.svg" };
-        }
-      }),
-    );
-
-    // Use functional update to always work on current state (not a stale snapshot)
-    setVisibleData((prev) => prev.map((p) => {
-      const result = imageResults.find(
-        (r) => r.status === "fulfilled" && r.value.player_id === p.player_id
-      );
-      if (result && result.status === "fulfilled") {
-        return { ...p, picture: result.value.picture, pictureLoading: false };
-      }
-      return p;
-    }));
-  };
   const getCellValue = (player: TablePlayer, key: string): React.ReactNode => {
     switch (key) {
       case "Rank":
@@ -960,16 +909,10 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
         };
       }),
     );
+    // A player with no img_url has no headshot: PlayerHeadshot shows his team logo.
+    // (No lookup in the legacy `players/` Storage folder — it brings back photos the
+    // data job cleared because they show a player's old team.)
     setVisibleData(playersWithPlaceholders);
-
-    // Only load images from Firebase Storage for players without img_url or profilePicture
-    const playersNeedingFirebaseImages = players.filter(
-      (player) => (!player.img_url || player.img_url.trim() === "") && !player.profilePicture
-    );
-
-    if (playersNeedingFirebaseImages.length > 0) {
-      loadPlayerImages(playersNeedingFirebaseImages);
-    }
 
     return playersWithPlaceholders;
   };
@@ -1673,30 +1616,15 @@ export const MatchupTable: React.FC<MatchupTableProps> = ({
                         </div>
                       )}
 
-                      {/* Actual image */}
-                      <img
-                        src={row.picture || "/placeholder.svg"}
+                      <PlayerHeadshot
+                        src={row.picture}
+                        teamId={row.team_id}
                         alt={row.Player}
                         loading="lazy"
-                        className={`w-full h-full object-cover transition-opacity duration-200 ${row.pictureLoading ? "opacity-0" : "opacity-100"
-                          }`}
-                        onLoad={() => {
-                          // This will be handled by the parent component's state management
-                        }}
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = "/placeholder.svg";
-                          target.classList.remove("opacity-0");
-                          target.classList.add("opacity-100");
-                        }}
+                        className={`h-full w-full transition-opacity duration-200 ${row.pictureLoading ? "opacity-0" : "opacity-100"}`}
+                        photoClassName="object-cover"
+                        logoClassName="object-contain object-center p-[18%]"
                       />
-
-                      {/* Fallback icon if no picture */}
-                      {!row.picture && !row.pictureLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <FaUser className="text-gray-900 text-lg md:text-3xl" />
-                        </div>
-                      )}
                     </div>
 
                     <div className="min-w-0 flex-1 md:max-w-[140px]">

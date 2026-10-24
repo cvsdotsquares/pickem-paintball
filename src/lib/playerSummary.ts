@@ -59,6 +59,7 @@ interface SummaryDoc {
   imgUrl: string | null;
   leagueId: string | number | null;
   currentTeam: string;
+  currentTeamId?: string | null;
   totalKills: number;
   playedCount: number;
   careerRank: number | null;
@@ -149,6 +150,11 @@ export async function fetchPlayerSummary(playerId: string): Promise<PlayerSummar
       imgUrl: d.imgUrl ?? null,
       leagueId: d.leagueId ?? null,
       currentTeam: d.currentTeam ?? "—",
+      // The summary stores only the team name; the id comes from an appearance for it.
+      currentTeamId:
+        d.currentTeamId ??
+        appearances.find((a) => a.teamId && a.team === d.currentTeam)?.teamId ??
+        null,
       appearances,
       totalKills: d.totalKills ?? 0,
       playedCount: d.playedCount ?? 0,
