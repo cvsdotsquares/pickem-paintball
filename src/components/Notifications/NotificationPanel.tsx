@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { LeagueNotification } from '@/src/lib/league-types';
-import { FaTimes, FaTrash, FaUsers, FaUserInjured } from 'react-icons/fa';
+import { FaTimes, FaTrash, FaUsers, FaUserInjured, FaExchangeAlt } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/src/hooks/useToast';
 import Toast from '../ui/Toast';
@@ -25,7 +25,7 @@ export default function NotificationPanel({ notifications, onClose, onMarkAsRead
     if (notification.type === 'league_approved') {
       router.push('/dashboard/leaderboard');
       onClose();
-    } else if (notification.type === 'player_status_changed') {
+    } else if (notification.type === 'player_status_changed' || notification.type === 'player_team_changed') {
       router.push('/dashboard/pick-em');
       onClose();
     }
@@ -183,11 +183,13 @@ export default function NotificationPanel({ notifications, onClose, onMarkAsRead
                     <div className="flex items-center gap-2 mb-1">
                       {notification.type === 'player_status_changed' ? (
                         <FaUserInjured className="text-amber-500 text-sm" />
+                      ) : notification.type === 'player_team_changed' ? (
+                        <FaExchangeAlt className="text-amber-500 text-sm" />
                       ) : (
                         <FaUsers className="text-blue-400 text-sm" />
                       )}
                       <span className="text-gray-900 dark:text-white font-medium text-sm">
-                        {notification.type === 'player_status_changed'
+                        {notification.type === 'player_status_changed' || notification.type === 'player_team_changed'
                           ? notification.playerName || 'Player update'
                           : notification.leagueName}
                       </span>
