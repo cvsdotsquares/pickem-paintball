@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { fetchPlayerSummary } from "@/src/lib/playerSummary";
+import { fetchLivePickPct, type LivePickPct } from "@/src/lib/livePickPct";
 import {
   isAbsent,
   KILL_TYPES,
@@ -254,6 +255,7 @@ export default function PlayerPage() {
   const [hovered, setHovered] = useState<string | null>(null);
   const [styleScope, setStyleScope] = useState<StyleScope>("career");
   const [ownership, setOwnership] = useState<Map<string, number> | null>(null);
+  const [livePick, setLivePick] = useState<LivePickPct | null>(null);
   /* Beta gate — see SubscriberBlur. Sharing is a subscriber benefit for the beta. */
   const { locked: betaLocked, showModal: showSubscribeModal } = useBetaGate();
   const canShare = !betaLocked;
@@ -328,6 +330,18 @@ export default function PlayerPage() {
       cancelled = true;
     };
   }, [playerId, user, leagueOnly, authLoading]);
+
+  /* The event whose picks are open now: not in the career rows until it produces kills. */
+  useEffect(() => {
+    let cancelled = false;
+    setLivePick(null);
+    fetchLivePickPct(playerId)
+      .then((v) => !cancelled && setLivePick(v))
+      .catch((e) => console.error("Failed to load live pick %:", e));
+    return () => {
+      cancelled = true;
+    };
+  }, [playerId]);
 
   const labelled = useMemo(
     () =>
@@ -943,6 +957,7 @@ export default function PlayerPage() {
             <p className="mt-2 text-[12px] text-gray-500 dark:text-white/40">
               Cost per kill and player Pick %
             </p>
+            {livePick && <LivePickLine live={livePick} />}
             <PickemStats appearances={labelled} ownership={ownership} />
           </SubscriberBlur>
         </section>
@@ -1256,6 +1271,30 @@ export default function PlayerPage() {
  * the lines cross is an artefact of the two scales, not a fact. The axes are labelled
  * and colour-matched to their series so which-line-is-which is unambiguous.
  */
+/**
+ * One line for the event whose picks are open: how often this player is being picked so far.
+ * Hourly, so it says when it was counted; the frozen number replaces it at the lock.
+ */
+function LivePickLine({ live }: { live: LivePickPct }) {
+  const at = live.updatedAt
+    ? live.updatedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+    : null;
+  return (
+    <div className="mt-3 flex items-baseline justify-between gap-3 rounded-lg bg-white/70 px-3 py-2 dark:bg-white/5">
+      <div className="min-w-0">
+        <p className={LABEL}>{`Picks open · ${individualEventDisplayName({ id: live.eventId, name: live.eventName })}`}</p>
+        <p className="mt-0.5 text-[11px] text-gray-500 dark:text-white/40">
+          {`${live.entries} entries so far${at ? ` · counted ${at}` : ""}`}
+        </p>
+      </div>
+      <div className="text-right">
+        <p className="pickem-numeric text-[18px] font-black text-[#0f9d58] dark:text-white">{`${live.pickPct.toFixed(1)}%`}</p>
+        <p className="pickem-numeric text-[10px] text-gray-500 dark:text-white/40">{`${live.captainPct.toFixed(1)}% captain`}</p>
+      </div>
+    </div>
+  );
+}
+
 function PickemStats({
   appearances,
   ownership,

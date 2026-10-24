@@ -293,6 +293,7 @@ const PickTableData = ({ heading, data }: TableDataProps) => {
       try {
         await updateDoc(doc(db, "users", user.uid), {
           [`pickems.${liveEventId}`]: picksIds,
+          pickemsEventId: liveEventId,
         });
 
       } catch (error) {

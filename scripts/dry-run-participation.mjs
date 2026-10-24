@@ -9,6 +9,9 @@
  *   node scripts/dry-run-participation.mjs
  *   node scripts/dry-run-participation.mjs --csv ~/path/to/Player_Roster_Historic.csv
  *   node scripts/dry-run-participation.mjs --event mid_west_open_2026
+ *   node scripts/dry-run-participation.mjs --event world_cup_2026 --sheet sheet.json --teams HEAT,JC
+ *
+ * --sheet / --teams / --overrides work as in `apply-participation.mjs` (see there).
  *
  * The CSV is the crawler's role-aware output (the one with a `role` column). The
  * older `nxl_pro_players_long.csv` has no role column and sweeps in staff and pit
@@ -23,19 +26,22 @@ import { homedir } from "node:os";
 
 import {
   EVENTS,
-  SHORT,
+  shortOf,
   SHEET_COVERAGE_FLOOR,
   loadRegistry,
   loadTeamSheet,
+  loadSheetJson,
+  loadOverrides,
   loadRosters,
   buildPlan,
 } from "./participation-plan.mjs";
+import { registryPath } from "./identity-registry-path.mjs";
 
 const { initializeApp } = await import("firebase/app");
 const { getFirestore, collection, getDocs } = await import("firebase/firestore");
 
 const DEFAULT_CSV = `${homedir()}/Documents/nxl-pro-players/Player_Roster_Historic.csv`;
-const REGISTRY = "scripts/player-identity-registry.json";
+const REGISTRY = registryPath();   // the master ID list (identity-registry-path.mjs)
 
 const line = (c = "─") => console.log(c.repeat(78));
 
@@ -47,6 +53,12 @@ function arg(flag) {
 async function main() {
   const csvPath = arg("--csv") ?? DEFAULT_CSV;
   const onlyEvent = arg("--event");
+  const sheetPath = arg("--sheet");
+  const teamsArg = arg("--teams");
+  const overridesPath = arg("--overrides");
+  if (sheetPath && !onlyEvent) throw new Error("--sheet needs --event");
+  const events = onlyEvent ? [onlyEvent] : EVENTS;
+  const teams = teamsArg ? teamsArg.split(",").map((t) => t.trim()).filter(Boolean) : null;
 
   const app = initializeApp({
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -55,13 +67,17 @@ async function main() {
   const db = getFirestore(app);
 
   const registry = loadRegistry(JSON.parse(readFileSync(REGISTRY, "utf8")));
-  const { sheet, skipped } = loadTeamSheet(readFileSync(csvPath, "utf8"));
-  const rosters = await loadRosters(db, { collection, getDocs });
-  const { byEvent, warnings, totals } = buildPlan({ rosters, sheet, registry });
+  const { sheet, skipped } = sheetPath
+    ? loadSheetJson(JSON.parse(readFileSync(sheetPath, "utf8")), onlyEvent)
+    : loadTeamSheet(readFileSync(csvPath, "utf8"));
+  const overrides = overridesPath ? loadOverrides(JSON.parse(readFileSync(overridesPath, "utf8"))) : null;
+  const rosters = await loadRosters(db, { collection, getDocs }, events);
+  const { byEvent, warnings, totals } = buildPlan({ rosters, sheet, registry, events, teams, overrides });
 
   console.log("\nDRY RUN — player participation.  NOTHING IS WRITTEN.");
   line("=");
-  console.log(`team sheet : ${csvPath}`);
+  console.log(`team sheet : ${sheetPath ?? csvPath}`);
+  if (teams) console.log(`teams      : ${teams.join(", ")}`);
   console.log(`registry   : ${REGISTRY} (${registry.size} players with a league id)`);
   if (onlyEvent) console.log(`filtered to: ${onlyEvent}`);
 
@@ -78,7 +94,6 @@ async function main() {
     warnings.forEach((w) => console.log(`  ! ${w}`));
   }
 
-  const events = onlyEvent ? [onlyEvent] : EVENTS;
 
   console.log("\nPER EVENT");
   line();
@@ -118,7 +133,7 @@ async function main() {
       .sort((a, b) => String(a.name).localeCompare(String(b.name)));
     if (!absent.length) continue;
     absentTotal += absent.length;
-    console.log(`\n  ${SHORT[eventId]} ${eventId}  (${absent.length})`);
+    console.log(`\n  ${shortOf(eventId)} ${eventId}  (${absent.length})`);
     absent.forEach((r) =>
       console.log(
         `     ${String(r.name).padEnd(26)} ${String(r.team).padEnd(16)} ` +
@@ -137,7 +152,7 @@ async function main() {
     const unknown = plan.rows.filter((r) => r.verdict === "unknown");
     if (!unknown.length) continue;
     unknownTotal += unknown.length;
-    console.log(`\n  ${SHORT[eventId]} ${eventId}  (${unknown.length})`);
+    console.log(`\n  ${shortOf(eventId)} ${eventId}  (${unknown.length})`);
     unknown
       .slice(0, 25)
       .forEach((r) =>
@@ -154,7 +169,7 @@ async function main() {
     const plan = byEvent.get(eventId);
     if (!plan?.scoredOffSheet.length) continue;
     oddTotal += plan.scoredOffSheet.length;
-    console.log(`\n  ${SHORT[eventId]} ${eventId}  (${plan.scoredOffSheet.length})`);
+    console.log(`\n  ${shortOf(eventId)} ${eventId}  (${plan.scoredOffSheet.length})`);
     plan.scoredOffSheet.forEach((r) =>
       console.log(
         `     ${String(r.name).padEnd(26)} ${String(r.team).padEnd(16)} ` +
@@ -171,7 +186,7 @@ async function main() {
     `TOTAL  ${grand} roster rows -> ` +
       `played ${totals.played}, absent ${totals.absent}, unknown ${totals.unknown}`,
   );
-  const toWrite = EVENTS.reduce(
+  const toWrite = events.reduce(
     (n, e) => n + (byEvent.get(e)?.rows.filter((r) => r.changed).length ?? 0),
     0,
   );

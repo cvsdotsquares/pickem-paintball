@@ -25,6 +25,7 @@
  */
 
 import fs from "node:fs";
+import { registryPath } from "./identity-registry-path.mjs";
 import admin from "firebase-admin";
 import { createRequire } from "module";
 
@@ -253,7 +254,7 @@ const norm = (s) => String(s ?? "").toLowerCase().replace(/[^a-z]/g, "");
 // ── 7. The registry still describes reality ───────────────────────────────────
 
 {
-  const path = new URL("./player-identity-registry.json", import.meta.url);
+  const path = registryPath();
   let drift = [];
   let note = "registry not found";
   if (fs.existsSync(path)) {

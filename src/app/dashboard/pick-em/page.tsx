@@ -638,6 +638,8 @@ export default function Pickems() {
     await updateDoc(doc(db, "users", user.uid), {
       [`pickems.${liveEvent.id}`]: picksIds,
       [`pickems.${liveEvent.id}_captain`]: captainId ? String(captainId) : null,
+      // firestore.rules reads this to know which event's lockDate to check.
+      pickemsEventId: liveEvent.id,
     });
   }, [temporaryPicks, captainId, user, liveEvent?.id]);
 
@@ -720,6 +722,7 @@ export default function Pickems() {
         await updateDoc(doc(db, "users", user.uid), {
           [`pickems.${liveEvent.id}_draft`]: picksIds,
           [`pickems.${liveEvent.id}_draft_captain`]: captainId ? String(captainId) : null,
+          pickemsEventId: liveEvent.id,
         });
       } catch { /* draft save failure is silent */ }
     }, 3000);

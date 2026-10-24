@@ -21,6 +21,7 @@
  */
 
 import fs from "node:fs";
+import { registryPath, refuseHubWrite } from "./identity-registry-path.mjs";
 
 const APPLY = process.argv.includes("--apply");
 
@@ -91,7 +92,8 @@ for (const [id, f] of Object.entries({ ...FIXES, ...ADDS, ...REGISTRY_ONLY })) {
   console.log(`   firestore docs to update: ${hits.length ? hits.map((t) => t.ev).join(", ") : "none (registry only)"}`);
 }
 
-const regPath = new URL("./player-identity-registry.json", import.meta.url);
+const regPath = registryPath();
+if (APPLY) refuseHubWrite("fix-league-ids.mjs");   // before any Firestore write: it changes league_ids on the list
 const reg = JSON.parse(fs.readFileSync(regPath));
 const regChanges = [];
 for (const p of reg.players) {

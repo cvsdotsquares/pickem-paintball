@@ -39,6 +39,7 @@
  * Read from `nxlEvents` once at the start of each build and swapped in whole, so one
  * build sees one consistent copy even if the crawler writes mid-rebuild.
  */
+const { loadFrozen, countEvent } = require("./pickPct");
 const { eventRecord, matchResult, nxlCareer, ourRound, setHistory } = require("./nxlHistory");
 const { loadHistory } = require("./nxlEventsStore");
 
@@ -94,42 +95,29 @@ async function loadEvents(db) {
 }
 
 /**
- * Pick % per event, from the one place it exists today.
+ * Pick % per event: the snapshot frozen at the lock where there is one, a recount otherwise.
  *
- * Ownership freezes at pick lock, so for a finished event this value never changes
- * again and belongs in the summary. The live-event refresh is a separate cadence job;
- * this is the historic backstop and the initial fill.
+ * The frozen snapshot (events/{id}/summaries/pickPct, see pickPct.js) is the number for an
+ * event from its lock onwards and is never recounted. Events locked before snapshots existed
+ * are backfilled once by the Data agent; anything still without one (an event whose lock has
+ * not been frozen yet, or an old event nobody backfilled) is recounted from the users
+ * collection with the same counting rule, so the two sources cannot disagree on method.
  */
-async function loadOwnership(db) {
-  const snap = await db.collection("users").get();
-  const entrants = new Map();
-  const picked = new Map(); // eventId -> Map(playerId -> count)
+async function loadOwnership(db, eventIds) {
+  const frozen = await loadFrozen(db, eventIds);
+  const missing = eventIds.filter((id) => !frozen.has(id));
+  if (!missing.length) return frozen;
 
-  snap.docs.forEach((u) => {
-    const pickems = u.get("pickems") || {};
-    for (const [key, value] of Object.entries(pickems)) {
-      if (key.includes("_captain") || key.endsWith("_draft")) continue;
-      if (!Array.isArray(value) || value.length === 0) continue;
-      entrants.set(key, (entrants.get(key) ?? 0) + 1);
-      if (!picked.has(key)) picked.set(key, new Map());
-      const byPlayer = picked.get(key);
-      for (const id of value) {
-        const pid = String(id);
-        byPlayer.set(pid, (byPlayer.get(pid) ?? 0) + 1);
-      }
-    }
-  });
-
-  const pct = new Map(); // eventId -> Map(playerId -> percent)
-  for (const [eventId, total] of Array.from(entrants)) {
-    if (total <= 0) continue;
-    const out = new Map();
-    for (const [pid, n] of Array.from(picked.get(eventId) ?? new Map())) {
-      out.set(pid, (n / total) * 100);
-    }
-    pct.set(eventId, { total, byPlayer: out });
+  const users = await db.collection("users").select("pickems").get();
+  const pickemsList = users.docs.map((u) => u.get("pickems") || {});
+  for (const eventId of missing) {
+    const { entries, picks } = countEvent(pickemsList, eventId);
+    if (entries <= 0) continue;
+    const byPlayer = new Map();
+    for (const [pid, n] of Array.from(picks)) byPlayer.set(pid, (n / entries) * 100);
+    frozen.set(eventId, { total: entries, byPlayer, frozen: false });
   }
-  return pct;
+  return frozen;
 }
 
 /** Firestore Timestamp, Date or ISO string -> YYYY-MM-DD, for the fixture join. */
@@ -280,7 +268,7 @@ async function buildAll(
    */
   const [rosterSnaps, ownership, longSnap] = await Promise.all([
     Promise.all(events.map((ev) => db.collection(`events/${ev.id}/players`).get())),
-    loadOwnership(db),
+    loadOwnership(db, events.map((ev) => ev.id)),
     db.collection("long_data").get(),
   ]);
 
@@ -1169,4 +1157,4 @@ async function rebuild(db, { now } = {}) {
   return { players: summaries.length, changed, unchanged, aggregates };
 }
 
-module.exports = { buildAll, buildAggregates, writeAll, rebuild, DNP_STATUS };
+module.exports = { buildAll, buildAggregates, writeAll, rebuild, loadOwnership, DNP_STATUS };

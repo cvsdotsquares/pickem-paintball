@@ -21,6 +21,7 @@
  */
 
 import fs from "node:fs";
+import { registryPath, refuseHubWrite } from "./identity-registry-path.mjs";
 
 const APPLY = process.argv.includes("--apply");
 const TEST_EVENTS = new Set(["windy_city_open_2024", "worldcup_2024"]);
@@ -47,7 +48,8 @@ for (const ev of events) {
   }
 }
 
-const regPath = new URL("./player-identity-registry.json", import.meta.url);
+const regPath = registryPath();
+if (APPLY) refuseHubWrite("rebuild-identity-registry.mjs");   // it can remove players: the hub list is add-only
 const old = JSON.parse(fs.readFileSync(regPath));
 const oldById = new Map(old.players.map((p) => [String(p.player_id), p]));
 

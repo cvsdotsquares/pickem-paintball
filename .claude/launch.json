@@ -2,27 +2,49 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "Admin panel",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "admin"
+      ],
+      "port": 3005,
+      "url": "http://127.0.0.1:3005"
+    },
+    {
       "name": "Next.js Dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000
     },
     {
       "name": "Next.js Dev (Turbopack)",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:turbo"],
+      "runtimeArgs": [
+        "run",
+        "dev:turbo"
+      ],
       "port": 3000
     },
     {
       "name": "Next.js Dev LAN",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:lan"],
+      "runtimeArgs": [
+        "run",
+        "dev:lan"
+      ],
       "port": 3001
     },
     {
       "name": "Firebase Functions Emulator",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "serve"],
+      "runtimeArgs": [
+        "run",
+        "serve"
+      ],
       "port": 5001
     }
   ]

@@ -12,7 +12,8 @@ interface Notification {
     | 'league_request'
     | 'league_approved'
     | 'league_rejected'
-    | 'player_status_changed';
+    | 'player_status_changed'
+    | 'player_team_changed';
   leagueId?: string;
   leagueName?: string;
   requestUserId?: string;
