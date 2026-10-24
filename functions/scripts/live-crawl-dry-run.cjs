@@ -59,6 +59,9 @@ const iso = (t) => (t && typeof t.toDate === "function" ? t.toDate().toISOString
     (a, b) => b.length - a.length,
   );
   const clubByTeamId = new Map(Object.entries(history.clubTeamId || {}).map(([c, id]) => [id, c]));
+  const fsAliases = Object.entries(history.crawlerAliases || {});
+  console.log(`\n== crawlerAliases in meta (${fsAliases.length})`);
+  for (const [name, club] of fsAliases) console.log(`${name.padEnd(24)} → ${club}`);
 
   console.log(`\n== Players by team_id (events/${ev.id}/players)`);
   const players = await db.collection(`events/${ev.id}/players`).get();
@@ -79,7 +82,7 @@ const iso = (t) => (t && typeof t.toDate === "function" ? t.toDate().toISOString
   for (const t of rk.tables) {
     console.log(`-- ${t.division}`);
     for (const r of t.rows) {
-      const club = resolveClub(r.team, clubs);
+      const club = resolveClub(r.team, clubs, history.crawlerAliases);
       const id = club && history.clubTeamId[club];
       console.log(`${r.team.padEnd(24)} → ${club || "UNRESOLVED"}${club ? `  (${clubs.includes(club) ? "in history" : "NEW"}, team_id ${id || "none"})` : ""}`);
     }

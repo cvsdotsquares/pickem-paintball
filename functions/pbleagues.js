@@ -203,12 +203,24 @@ const CRAWLER_TEAM_ALIAS = {
  * An ALIASED name is trusted even when the vocabulary does not have it yet: the
  * vocabulary is built from finished events, so a club's first event could otherwise
  * never be recorded. Only names someone deliberately listed get through this way.
+ *
+ * `extraAliases` is `crawlerAliases` from projections/nxlHistoryMeta: the matches James
+ * has approved in Slack since the last deploy. They win over CRAWLER_TEAM_ALIAS on a
+ * clash, since Firestore holds his latest decision, and are trusted the same way.
  */
-function resolveClub(name, clubs) {
-  const aliased = CRAWLER_TEAM_ALIAS[name] || name;
+function resolveClub(name, clubs, extraAliases = {}) {
+  /*
+   * Non-string values are dropped BEFORE the merge: kept, they would knock out the code
+   * alias and let "TonTon Arsenal" fall through to Baltimore's "Arsenal".
+   */
+  const extra = Object.entries(extraAliases || {}).filter(([, club]) => typeof club === "string" && club);
+  const aliases = { ...CRAWLER_TEAM_ALIAS, ...Object.fromEntries(extra) };
+  /* Own entries only, so a team called "constructor" is not listed by accident. */
+  const listed = Object.prototype.hasOwnProperty.call(aliases, name) && aliases[name];
+  const aliased = listed || name;
   return (
     clubs.find((c) => aliased === c) ||
-    (CRAWLER_TEAM_ALIAS[name] ? aliased : null) ||
+    (listed ? aliased : null) ||
     clubs.find((c) => aliased.endsWith(` ${c}`)) ||
     clubs.find((c) => aliased.startsWith(`${c} `)) ||
     null

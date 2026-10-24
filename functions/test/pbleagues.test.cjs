@@ -119,7 +119,7 @@ test("scripts/nxl-history/crawl-results.mjs stays in step", async () => {
 });
 
 /* lockNxlEvent against a fake Firestore and the saved rankings page. */
-async function lock(id, teams, champion) {
+async function lock(id, teams, champion, meta = null) {
   const { lockNxlEvent } = require("../liveEvent");
   const realFetch = global.fetch;
   const realError = console.error;
@@ -134,7 +134,8 @@ async function lock(id, teams, champion) {
   };
   const q = { where: () => q, get: async () => ({ docs: [doc] }) };
   try {
-    await lockNxlEvent({ collection: () => q }, "evt");
+    const metaDoc = { exists: !!meta, data: () => meta, get: (f) => meta && meta[f] };
+    await lockNxlEvent({ collection: () => q, doc: () => ({ get: async () => metaDoc }) }, "evt");
   } finally {
     global.fetch = realFetch;
     console.error = realError;
@@ -210,4 +211,75 @@ test("World Cup 2026: every club has a team_id, so its players get appearances",
 
 test("resolveClub: an unlisted unknown name is still null, never passed through", () => {
   assert.equal(resolveClub("Somewhere Nobody", VOCAB), null);
+});
+
+/* crawlerAliases: team-name matches James approves in Slack, read from Firestore meta. */
+
+test("resolveClub: a Firestore alias places a name the code has never seen", () => {
+  assert.equal(resolveClub("Somewhere Nobody", VOCAB, { "Somewhere Nobody": "Nobodies" }), "Nobodies");
+  assert.equal(resolveClub("Somewhere Nobody", VOCAB, { "Someone Else": "Else" }), null);
+});
+
+test("resolveClub: Firestore wins over a code alias on a clash", () => {
+  assert.equal(resolveClub("TonTon Arsenal", VOCAB), "TonTons");
+  assert.equal(resolveClub("TonTon Arsenal", VOCAB, { "TonTon Arsenal": "Arsenal" }), "Arsenal");
+});
+
+test("resolveClub: names with spaces and dots, as the backtick-quoted field paths allow", () => {
+  const extra = { "St. Louis Ironmen Jr.": "Ironmen Jr", "A.B.C. Paintball Club": "ABC" };
+  assert.equal(resolveClub("St. Louis Ironmen Jr.", VOCAB, extra), "Ironmen Jr");
+  assert.equal(resolveClub("A.B.C. Paintball Club", VOCAB, extra), "ABC");
+});
+
+test("resolveClub: no extra aliases, or junk in them, changes nothing", () => {
+  for (const name of ["TonTon Arsenal", "Ranger Warsaw", "Somewhere Nobody", "constructor"]) {
+    const want = resolveClub(name, VOCAB);
+    assert.equal(resolveClub(name, VOCAB, {}), want, name);
+    assert.equal(resolveClub(name, VOCAB, { [name]: 42 }), want, name);
+  }
+  assert.equal(resolveClub("constructor", VOCAB), null);
+});
+
+/* A Firestore stand-in: the nxlEvents collection plus the meta document. */
+function fakeDb(eventDocs, meta) {
+  const { META_DOC } = require("../nxlEventsStore");
+  return {
+    collection: () => ({ get: async () => ({ docs: eventDocs.map((e) => ({ data: () => e })) }) }),
+    doc: (p) => {
+      assert.equal(p, META_DOC);
+      return { get: async () => ({ exists: !!meta, data: () => meta, get: (f) => meta && meta[f] }) };
+    },
+  };
+}
+
+test("loadHistory: returns crawlerAliases from meta, {} when meta has none", async () => {
+  const { loadHistory, loadCrawlerAliases } = require("../nxlEventsStore");
+  const aliases = { "St. Louis Ironmen Jr.": "Ironmen Jr", "TonTon Arsenal": "TonTons" };
+  const meta = { clubTeamId: { TonTons: "t1" }, names: {}, crawlerAliases: aliases };
+  const h = await loadHistory(fakeDb([], meta));
+  assert.deepEqual(h.crawlerAliases, aliases);
+  assert.deepEqual(h.clubTeamId, { TonTons: "t1" });
+  assert.deepEqual(await loadCrawlerAliases(fakeDb([], meta)), aliases);
+  assert.deepEqual((await loadHistory(fakeDb([], { clubTeamId: {} }))).crawlerAliases, {});
+  assert.deepEqual((await loadHistory(fakeDb([], null))).crawlerAliases, {});
+  assert.deepEqual(await loadCrawlerAliases(fakeDb([], null)), {});
+});
+
+test("lock: a Firestore alias places a team the code cannot", async () => {
+  const rk = parseRankings(page("9321", "rankings"));
+  const club = (t) => CRAWLER_TEAM_ALIAS[t] || t;
+  const renamed = rk.rows.find((r) => !CRAWLER_TEAM_ALIAS[r.team]);
+  const teams = Object.fromEntries(rk.rows.map((r) => [club(r.team), { finishRank: null }]));
+  teams["Renamed Club"] = teams[renamed.team];
+  delete teams[renamed.team];
+  const champion = club(rk.rows.find((r) => r.rank === 1).team);
+  const champ = champion === renamed.team ? "Renamed Club" : champion;
+
+  const without = await lock("9321", teams, champ);
+  assert.equal(without.update.teams, undefined);
+  assert.match(without.errors.join("\n"), /missing Renamed Club/);
+
+  const withAlias = await lock("9321", teams, champ, { crawlerAliases: { [renamed.team]: "Renamed Club" } });
+  assert.deepEqual(withAlias.errors, []);
+  assert.equal(withAlias.update.teams["Renamed Club"].finishRank, renamed.rank);
 });

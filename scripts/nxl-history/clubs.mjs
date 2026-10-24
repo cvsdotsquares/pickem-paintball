@@ -35,6 +35,8 @@ export const CRAWLER_TEAM_ALIAS = {
   "TonTon Arsenal": "TonTons", // NOT Baltimore Arsenal — see above
   // World Cup 2026 (9322): first NXL event for all four, so nothing earlier can pair them.
   // Kept identical to functions/pbleagues.js, where the live crawl trusts an alias target.
+  // The live crawl also reads crawlerAliases from projections/nxlHistoryMeta (approved in
+  // Slack); these offline scripts use only this map. Copy a lasting one here when it lands.
   "Ranger Warsaw": "Ranger",
   "ALA Warsaw": "ALA",
   LTF: "LTF",
