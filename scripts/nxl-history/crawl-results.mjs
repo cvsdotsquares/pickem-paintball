@@ -184,18 +184,26 @@ export function parseSchedule(html, { teams = null } = {}) {
  * ⚠️ THIS IS THE NUMBER THE WORKBOOK HAS NEVER HAD. It records how far a team got, so 479
  * of 964 team-events in our history carry no placing at all. The league ranks everyone,
  * including the teams knocked out in the prelims.
+ *
+ * ⚠️ A Pro field can be split over SEVERAL tables (World Cup 2026: "Championship - Pro
+ * X-Ball" with the four Champions teams, then "Pro X-Ball" with the rest), so every Pro
+ * table is collected. Ranks restart at 1 in each table: `rows` is the team list, `tables`
+ * keeps them apart. With one table the result is what it always was. Kept in step with
+ * `functions/pbleagues.js`.
  */
 export function parseRankings(html) {
   const divisions = [...html.matchAll(/<div class="ranking"[^>]*data-division="([^"]*)"([\s\S]*?)(?=<div class="ranking"|<\/body>)/g)];
+  const tables = [];
   for (const [, division, body] of divisions) {
     if (!isPro(division)) continue;
     const rows = [...body.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)]
       .map(([, tr]) => [...tr.matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/g)].map(([, c]) => text(c)))
       .filter((cells) => cells.length >= 3 && /^\d{1,2}$/.test(cells[0]))
       .map(([rank, team, points]) => ({ rank: Number(rank), team, points: Number(points.replace(/[^\d]/g, "")) || 0 }));
-    if (rows.length) return { division, rows };
+    if (rows.length) tables.push({ division, rows });
   }
-  return { division: null, rows: [] };
+  if (!tables.length) return { division: null, rows: [], tables };
+  return { division: tables.map((t) => t.division).join(" + "), rows: tables.flatMap((t) => t.rows), tables };
 }
 
 export async function crawlEvent(eventId) {
