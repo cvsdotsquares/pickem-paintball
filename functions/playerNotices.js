@@ -6,9 +6,14 @@
 //                                         (James, 24 Oct 2026: a roster move notifies pickers too)
 // A new doc (the roster's first sync) only counts for Status, as before; a team change needs a team on both sides,
 // so a field being filled in for the first time notifies nobody.
+//
+// Notices are only there to tell pickers they may need to change a pick (James, 24 Oct 2026), so a player becoming
+// Confirmed, Unconfirmed or Addition notifies nobody: e.g. Unconfirmed → Confirmed at roster lock, or Out → Confirmed.
+const NO_NOTICE = new Set(['confirmed', 'unconfirmed', 'addition']);
+
 function playerChangeNotices({ before = {}, after = {}, beforeExists = false, playerName, eventName }) {
   const out = [];
-  if (after.Status && after.Status !== before.Status) {
+  if (after.Status && after.Status !== before.Status && !NO_NOTICE.has(String(after.Status).trim().toLowerCase())) {
     out.push({
       type: 'player_status_changed',
       oldStatus: before.Status || null,
@@ -30,4 +35,4 @@ function playerChangeNotices({ before = {}, after = {}, beforeExists = false, pl
   return out;
 }
 
-module.exports = { playerChangeNotices };
+module.exports = { playerChangeNotices, NO_NOTICE };
