@@ -248,13 +248,14 @@ export async function view(): Promise<View> {
     j.state === "not_built" ? "not built yet" : j.state === "off" ? `${j.agent_name} is off` : j.waiting_on?.length ? `waiting on ${j.waiting_on.join(", ")}` : j.inputs.length ? `needs: ${j.inputs[0]}` : j.state === "overdue" ? "overdue" : "";
   const upcoming: Upcoming[] = [
     ...jobs
-      .filter((j) => !["done", "running"].includes(j.state) && j.repeat !== "own_timer" && Date.parse(j.due) >= now - 86400000)
-      .map((j) => ({ icon: j.icon, agent: j.agent, task: j.name, due: j.due, waiting: waitingText(j), link: j.slot ? "/admin/scheduler" : "", state: j.state })),
+      // each job's next run (a daily job's next day once today's has run), by its short name (James 24 Oct 2026)
+      .filter((j) => j.repeat !== "own_timer" && j.repeat !== "on_message" && (j.next_at || (!["done", "running"].includes(j.state) && Date.parse(j.due) >= now - 86400000)))
+      .map((j) => ({ icon: j.icon, agent: j.agent, task: j.short || j.name, due: j.next_at || j.due, waiting: waitingText(j), link: j.slot ? "/admin/scheduler" : "", state: j.state })),
     ...slots
       .filter((s) => s.kind === "post" && ["draft", "approved"].includes(s.status) && s.publishAt && Date.parse(s.publishAt) >= now)
       .map((s) => ({ icon: icon("posts"), agent: "posts", task: `Post: ${s.title}`, due: s.publishAt ?? "", waiting: s.status === "draft" ? "needs your approval" : "approved, goes out by itself", link: "/admin/scheduler", state: s.status })),
   ]
-    .sort((a, b) => a.due.localeCompare(b.due))
+    .sort((a, b) => Date.parse(a.due) - Date.parse(b.due)) // jobs carry an offset, posts are UTC: compare instants, not strings
     .slice(0, 15);
 
   // The Manager's latest brief (real or test) + the Inputs needed card
