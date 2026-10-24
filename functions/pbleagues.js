@@ -9,6 +9,7 @@
  * TWO PAGES PER EVENT, and no per-match fetches: the score sits on the schedule row.
  *   /event/{id}/schedule   teams, score, round, kickoff, and whether the score is approved
  *   /event/{id}/rankings   the Pro field, which doubles as the team allowlist below
+ *                          (every Pro table on it — a field can be split, see parseRankings)
  *
  * Three traps, each of which cost real time offline and all of which are handled here:
  *
@@ -35,13 +36,24 @@ const text = (h) =>
     .replace(/\s+/g, " ")
     .trim();
 
-/** The Pro division's full placing table — also the authoritative list of who competed. */
+/**
+ * The Pro division's full placing table — also the authoritative list of who competed.
+ *
+ * ⚠️ A Pro field can be split over SEVERAL ranking tables. World Cup 2026 (9322) puts the
+ * four Champions teams in "Championship - Pro X-Ball (Thu-Sun)" and the other twenty in
+ * "Pro X-Ball (Thu-Sun)", while its schedule runs them as one "Pro X-Ball™" division.
+ * Taking only the first table made a 4-team allowlist and dropped 40 of 46 prelim games.
+ * So every Pro table is collected: `rows` is all of them in page order, `tables` keeps
+ * them apart — each table's ranks restart at 1, so a rank only means something within
+ * its own table. With one table, `division` and `rows` are exactly what they always were.
+ */
 function parseRankings(html) {
   const divisions = [
     ...html.matchAll(
       /<div class="ranking"[^>]*data-division="([^"]*)"([\s\S]*?)(?=<div class="ranking"|<\/body>)/g,
     ),
   ];
+  const tables = [];
   for (const [, division, body] of divisions) {
     if (!isPro(text(division))) continue;
     const rows = [...body.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)]
@@ -52,9 +64,14 @@ function parseRankings(html) {
         team,
         points: Number(String(points).replace(/\D/g, "")) || 0,
       }));
-    if (rows.length) return { division: text(division), rows };
+    if (rows.length) tables.push({ division: text(division), rows });
   }
-  return { division: null, rows: [] };
+  if (!tables.length) return { division: null, rows: [], tables };
+  return {
+    division: tables.map((t) => t.division).join(" + "),
+    rows: tables.flatMap((t) => t.rows),
+    tables,
+  };
 }
 
 /**

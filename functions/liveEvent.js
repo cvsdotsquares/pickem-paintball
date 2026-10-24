@@ -132,9 +132,14 @@ function isoDay(text, year) {
  * thrown. Returns null unless EVERY team in the event is ranked: a partial table means
  * the league has not finished publishing it, and half a set of positions is worse than
  * none.
+ *
+ * Also null when the Pro field is split over more than one table (World Cup 2026): ranks
+ * restart at 1 in each, so there are two #1s and no single order to read off. `split`
+ * names the tables so the caller can say why.
  */
 async function finalRanks(pbleaguesId, clubs) {
-  const { rows } = parseRankings(await fetchText(`/event/${pbleaguesId}/rankings`));
+  const { rows, tables } = parseRankings(await fetchText(`/event/${pbleaguesId}/rankings`));
+  if (tables.length > 1) return { ranks: null, missing: [], split: tables.map((t) => t.division) };
   const vocab = [...clubs].sort((a, b) => b.length - a.length);
   const ranks = {};
   for (const r of rows) {
@@ -165,7 +170,7 @@ async function lockNxlEvent(db, pickemEventId, { collection = COLLECTION } = {})
     const update = { live: false, lockedAt: new Date().toISOString() };
     const clubs = Object.keys(e.teams || {});
     try {
-      const { ranks, missing } = await finalRanks(e.pbleaguesId, clubs);
+      const { ranks, missing, split } = await finalRanks(e.pbleaguesId, clubs);
       if (ranks) {
         // The whole map rather than dotted paths: a club name may contain a "."
         update.teams = Object.fromEntries(
@@ -175,6 +180,11 @@ async function lockNxlEvent(db, pickemEventId, { collection = COLLECTION } = {})
         if (e.champion && first !== e.champion) {
           console.error(`❌ ${e.key}: rankings put ${first} first but the Final was won by ${e.champion}.`);
         }
+      } else if (split) {
+        /* The champion keeps the finishRank 1 the Final gave it in scoreTeams. */
+        console.error(
+          `❌ ${e.key}: rankings missing a single Pro order — ${split.length} tables (${split.join(" + ")}) each rank from 1 — finish positions left blank.`,
+        );
       } else {
         console.error(`❌ ${e.key}: rankings missing ${missing.join(", ")} — finish positions left blank.`);
       }
@@ -318,6 +328,14 @@ async function crawlLiveEvent(
   );
 
   const rankings = parseRankings(await fetchText(`/event/${pbleaguesId}/rankings`));
+  /*
+   * A split Pro field is expected (World Cup 2026), not a fault — so ℹ️, never ❌/⚠️, which
+   * crawler_flags and the hub's live_crawl watcher alert on.
+   */
+  if (rankings.tables.length > 1) {
+    const names = rankings.tables.map((t) => t.division.replace(/\s*\([^)]*\)\s*$/, "")).join(" + ");
+    console.log(`ℹ️ ${key}: ${rankings.tables.length} Pro ranking tables (${names}), ${rankings.rows.length} teams`);
+  }
   const allow = rankings.rows.length ? new Set(rankings.rows.map((r) => r.team)) : null;
   const parsed = parseSchedule(await fetchText(`/event/${pbleaguesId}/schedule`), { teams: allow });
 
