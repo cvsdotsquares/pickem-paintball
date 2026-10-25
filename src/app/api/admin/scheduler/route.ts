@@ -86,7 +86,8 @@ export async function GET(request: Request) {
 /**
  * POST { action, ... } → { ok, id? }
  *   add       {event, type, variant, at}   put a tray item on the calendar as a draft (at = ET "YYYY-MM-DDTHH:MM")
- *   save      {id, at?, caption?, notes?, slides?, variant?, waitFor?}   waitFor = playbook data job ids ([] clears); ok on an approved post
+ *   save      {id, at?, caption?, notes?, slides?, variant?, waitFor?, collaborators?}   waitFor = playbook data job ids ([] clears);
+ *             collaborators = Instagram usernames, max 3 ("@" optional; [] = none); both ok on an approved post
  *   approve   {id}    uploads the slides as hidden Page photos; refused while anything blocks
  *   unapprove {id}
  *   postnow   {id}    goes out at the cloud job's next pass (≤ 5 min)
@@ -94,7 +95,7 @@ export async function GET(request: Request) {
  *   spread    {event, type, variants[], from, to, times[]}   lay a group of made posts over a date range as drafts
  *   task      {event, kind: work|action, agent, title, at, duration?, notes?}   a task on the Schedule
  *   done      {id, done}   tick / untick a task
- *   approve-now   {event, type, variant, at|null, caption}   Generator step 5: approve + schedule (at = ET) or post now (at null)
+ *   approve-now   {event, type, variant, at|null, caption, collaborators?}   Generator step 5: approve + schedule (at = ET) or post now (at null)
  *   spread-approved {event, type, variants[], from, to, times[]}   Generator step 5: lay out + approve each
  *   jobResult {event, job, result: ok|failed, finishedAt: ISO}   a Data job's latest run → agentJobs/{event}__{job} (post holds)
  */
@@ -115,7 +116,7 @@ export async function POST(request: Request) {
     }
     if (b.action === "approve-now") {
       if (!validId(String(b.event)) || !/^[a-z0-9_]+$/.test(String(b.type))) throw new Error("Unknown post");
-      return NextResponse.json({ ok: true, id: await scheduleApproved(b.event, b.type, String(b.variant ?? ""), b.at ? String(b.at) : null, String(b.caption ?? "")) });
+      return NextResponse.json({ ok: true, id: await scheduleApproved(b.event, b.type, String(b.variant ?? ""), b.at ? String(b.at) : null, String(b.caption ?? ""), Array.isArray(b.collaborators) ? b.collaborators.map(String) : undefined) });
     }
     if (b.action === "spread-approved") {
       if (!validId(String(b.event)) || !/^[a-z0-9_]+$/.test(String(b.type))) throw new Error("Unknown post");
@@ -150,6 +151,7 @@ export async function POST(request: Request) {
         title: b.title === undefined ? undefined : String(b.title),
         duration: b.duration === undefined ? undefined : Number(b.duration),
         waitFor: Array.isArray(b.waitFor) ? b.waitFor.map(String) : undefined,
+        collaborators: Array.isArray(b.collaborators) ? b.collaborators.map(String) : undefined,
       });
     } else if (b.action === "approve") await approve(id);
     else if (b.action === "unapprove") await unapprove(id);

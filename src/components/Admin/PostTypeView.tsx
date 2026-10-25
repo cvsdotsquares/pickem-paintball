@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Markdown } from "./ReelStudy";
 import StagePill from "./StagePill";
+import { readCollab, showCollab } from "@/src/lib/admin/collab";
 import { MODEL_CHOICES, modelLabel, PICKABLE_DEFAULTS } from "@/src/lib/admin/models";
 import {
   genUrl,
@@ -136,6 +137,7 @@ type ForGraphic = {
   scheduled: Record<string, { id: string; status: string; publishAt: string | null }>;
   recommend: string[];
   why: string;
+  collab: Record<string, string[]>; // each made post's collaborators: its draft's, else the rule's (Player + Team + NXL)
 };
 const etShow = (iso: string | null) =>
   iso
@@ -146,6 +148,7 @@ const SPREAD_TIMES = ["09:00", "12:00", "15:00", "18:00", "20:00"];
 function ApproveAndSchedule({ event, type, single, picked, disabled, onChanged }: { event: string; type: string; single: boolean; picked: string[]; disabled: boolean; onChanged: () => void }) {
   const [g, setG] = useState<ForGraphic | null>(null);
   const [caption, setCaption] = useState("");
+  const [collab, setCollab] = useState<string | null>(null); // "Collab with" box (one post); null = not loaded yet
   const [at, setAt] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -160,6 +163,7 @@ function ApproveAndSchedule({ event, type, single, picked, disabled, onChanged }
     if (d.error) return setErr(d.error);
     setG(d);
     setCaption((c) => c || d.posts[0]?.caption || "");
+    setCollab((c) => c ?? showCollab(d.collab?.[d.posts[0]?.key ?? ""]));
     setAt((a) => a || d.recommend[0] || "");
     setFrom((f) => f || d.recommend[0]?.slice(0, 10) || "");
     setTo((t) => t || d.recommend[d.recommend.length - 1]?.slice(0, 10) || "");
@@ -197,6 +201,8 @@ function ApproveAndSchedule({ event, type, single, picked, disabled, onChanged }
     const sc = p ? g.scheduled[p.key] : undefined;
     const done = sc && sc.status !== "draft" && sc.status !== "failed";
     const [d, t] = at.split("T");
+    const collabN = readCollab(collab ?? "").length;
+    const collaborators = readCollab(collab ?? "");
     return (
       <div className="flex flex-col gap-2 rounded-lg border border-gray-100 p-3 dark:border-white/10 md:w-2/3">
         <div className="text-[11px] font-bold">Approve + schedule</div>
@@ -215,6 +221,11 @@ function ApproveAndSchedule({ event, type, single, picked, disabled, onChanged }
             <textarea value={caption} onChange={(e) => setCaption(e.target.value)} rows={7} className={`${field} w-full font-mono`} disabled={busy} />
             <span className={`text-[10px] ${caption.length > 2200 ? "text-red-600" : "text-gray-400"}`}>{caption.length}/2,200 characters · {(caption.match(/#\w+/g) ?? []).length}/30 hashtags</span>
             <div className="flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="text-gray-500">Collab with</span>
+              <input value={collab ?? ""} onChange={(e) => setCollab(e.target.value)} className={`${field} min-w-[16rem] flex-1`} disabled={busy} placeholder="@player, @team, @nxlpaintball" />
+              <span className={`text-[10px] ${collabN > 3 ? "text-red-600" : "text-gray-400"}`}>{collabN}/3 · Player + Team + NXL, filled in for you</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[11px]">
               <span className="text-gray-500">Goes out (ET)</span>
               <input type="date" value={d ?? ""} onChange={(e) => setAt(`${e.target.value}T${t ?? "12:00"}`)} className={field} disabled={busy} />
               <input type="time" value={t ?? "12:00"} step={300} onChange={(e) => setAt(`${d}T${e.target.value}`)} className={field} disabled={busy} />
@@ -224,15 +235,15 @@ function ApproveAndSchedule({ event, type, single, picked, disabled, onChanged }
             <div className="flex flex-wrap items-center gap-2">
               <button
                 className={primaryButton}
-                disabled={disabled || busy || !at || !caption.trim() || caption.length > 2200}
-                onClick={() => post({ action: "approve-now", variant: p.key, at, caption }, `Approve and schedule "${p.name === p.key ? "this post" : p.name}" for ${at.replace("T", " at ")} ET?\n\nIt goes out on Instagram and Facebook by itself.`)}
+                disabled={disabled || busy || !at || !caption.trim() || caption.length > 2200 || collabN > 3}
+                onClick={() => post({ action: "approve-now", variant: p.key, at, caption, collaborators }, `Approve and schedule "${p.name === p.key ? "this post" : p.name}" for ${at.replace("T", " at ")} ET?\n\nIt goes out on Instagram and Facebook by itself.`)}
               >
                 {busy ? "Working…" : "Approve + schedule"}
               </button>
               <button
                 className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-black uppercase tracking-widest hover:border-gray-500 disabled:opacity-40 dark:border-white/20"
-                disabled={disabled || busy || !caption.trim() || caption.length > 2200}
-                onClick={() => post({ action: "approve-now", variant: p.key, at: null, caption }, "Approve and post NOW? It goes out on Instagram and Facebook within 5 minutes.")}
+                disabled={disabled || busy || !caption.trim() || caption.length > 2200 || collabN > 3}
+                onClick={() => post({ action: "approve-now", variant: p.key, at: null, caption, collaborators }, "Approve and post NOW? It goes out on Instagram and Facebook within 5 minutes.")}
               >
                 Approve + post now
               </button>
@@ -259,10 +270,19 @@ function ApproveAndSchedule({ event, type, single, picked, disabled, onChanged }
         <span className="text-[11px] font-bold">Approve + schedule</span>
         <span className="text-[10px] text-gray-500 dark:text-white/50">
           {already ? `${already} already on the Schedule · ` : ""}
-          {chosen.length} to approve{picked.length ? " (selected above)" : ""}. Captions come from each post; edit one on the Schedule.
+          {chosen.length} to approve{picked.length ? " (selected above)" : ""}. Captions and collaborators come from each post; change one on the Schedule.
         </span>
         {schedLink}
       </div>
+      {chosen.length > 0 && (
+        <ul className="flex flex-col gap-0.5 text-[10px] text-gray-500 dark:text-white/50">
+          {chosen.map((p) => (
+            <li key={p.key}>
+              <b>{p.name}</b>: collab with {g.collab?.[p.key]?.length ? showCollab(g.collab[p.key]) : "nobody"}
+            </li>
+          ))}
+        </ul>
+      )}
       {!showSpread ? (
         <div>
           <button className={primaryButton} disabled={disabled || busy || !chosen.length} onClick={() => setShowSpread(true)}>

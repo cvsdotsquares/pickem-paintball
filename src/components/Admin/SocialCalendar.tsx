@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IoMdClose } from "react-icons/io";
 import { genUrl, toneClass } from "./generatorTypes";
 import { pill, primaryButton, sectionLabel } from "./types";
+import { readCollab, showCollab } from "@/src/lib/admin/collab";
 
 /**
  * Social calendar (the Social hub's Calendar tab, James 25 Oct 2026): every post of an event with its preview, Month
@@ -54,6 +55,8 @@ export type Slot = {
   waitFor?: string[]; // post holds: playbook data jobs it waits for
   waiting?: string; // set while the posting job holds it
   hold?: { text: string; waiting: boolean } | null; // the ⏳ chip's words
+  collaborators?: string[]; // Instagram collab usernames (no "@"), max 3: Player + Team + NXL by the rule
+  collabSet?: boolean; // changed by hand
 };
 type TrayItem = { type: string; variant: string; title: string; label: string; phase: string; priority: string; png: string; placeholder: boolean; templated: boolean };
 type NeedsYou = { id: string; text: string; due: string | null; tone: "orange" | "red" };
@@ -1161,6 +1164,46 @@ export function TaskDrawer({ s, agents, busy, act, onClose }: { s: Slot; agents:
   );
 }
 
+/**
+ * "Collab with" (James 25 Oct 2026): the Instagram collaborators the post goes out with, filled by the rule (Player +
+ * Team + NXL, max 3) and changeable. A draft saves as you leave the box; an approved post asks first (Save / Back) and
+ * stays approved, like its caption. Read-only once it has gone out.
+ */
+export function CollabField({ value, editable, approved, busy, onSave }: { value: string[]; editable: boolean; approved: boolean; busy: boolean; onSave: (list: string[]) => void }) {
+  const joined = value.join(",");
+  const [text, setText] = useState(showCollab(value));
+  useEffect(() => setText(showCollab(joined ? joined.split(",") : [])), [joined]); // the saved (cleaned) list after a save
+  const changed = readCollab(text).map((x) => x.replace(/^@/, "").toLowerCase()).join(",") !== joined;
+  const n = readCollab(text).length;
+  return (
+    <div className="flex flex-col gap-1">
+      <span className={sectionLabel}>Collab with (Instagram)</span>
+      <input
+        value={text}
+        disabled={!(editable || approved) || busy}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={() => editable && changed && onSave(readCollab(text))}
+        className={field}
+        placeholder="@player, @team, @nxlpaintball"
+      />
+      {approved && changed && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg bg-[#39b5e6]/10 p-2 text-[11px] text-[#1a3c6e] dark:text-[#39b5e6]">
+          <span className="flex-1">This post was approved. Save the new collaborators? It stays approved and goes out with them.</span>
+          <button className={primaryButton} disabled={busy || n > 3} onClick={() => onSave(readCollab(text))}>
+            Save
+          </button>
+          <button className={pill(false)} disabled={busy} onClick={() => setText(showCollab(value))}>
+            Back
+          </button>
+        </div>
+      )}
+      <span className={`text-[10px] ${n > 3 ? "text-red-600" : "text-gray-400"}`}>
+        {n}/3 · Player + Team + NXL, filled in for you; anyone without a known handle is left out. Instagram drops anyone who refuses, and the post still goes out.
+      </span>
+    </div>
+  );
+}
+
 function SlotDrawer({ s, agents, posts, busy, act, onClose }: { s: Slot; agents: Agent[]; posts: { png: string; title: string }[]; busy: boolean; act: Act; onClose: () => void }) {
   const t = et(s.publishAt);
   const [date, setDate] = useState(t.date);
@@ -1395,6 +1438,14 @@ function SlotDrawer({ s, agents, posts, busy, act, onClose }: { s: Slot; agents:
           {caption.length}/2,200 characters · {tags}/30 hashtags
         </span>
       </div>
+
+      <CollabField
+        value={s.collaborators ?? []}
+        editable={editable}
+        approved={approvedCaption}
+        busy={busy}
+        onSave={(collaborators) => act({ action: "save", id: s.id, collaborators })}
+      />
 
       {/* Data */}
       <div className="flex flex-col gap-1.5">
