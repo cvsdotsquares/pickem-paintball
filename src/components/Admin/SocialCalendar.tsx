@@ -168,7 +168,8 @@ export default function SocialCalendar() {
   const scroller = useRef<HTMLDivElement>(null);
   const [trayOpen, setTrayOpen] = useState(false);
   const [overDay, setOverDay] = useState(""); // the day a dragged post is over (highlighted)
-  const [moved, setMoved] = useState<{ id: string; title: string; from: string; to: string } | null>(null); // last move, for Undo // phone: the tray opens full screen from a button
+  const [moved, setMoved] = useState<{ id: string; title: string; from: string; to: string; approved: boolean } | null>(null); // last move, for Undo
+  const [confirmMove, setConfirmMove] = useState<{ id: string; title: string; from: string; to: string } | null>(null); // an approved post dropped on a new day // phone: the tray opens full screen from a button
   const [earlier, setEarlier] = useState(false); // phone list: also show the last two weeks
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState<TrayItem | null>(null);
@@ -339,11 +340,14 @@ export default function SocialCalendar() {
     } else if (it.slot) {
       const s = data?.slots.find((x) => x.id === it.slot);
       if (!s) return;
-      if (s.kind === "post" && s.status !== "draft" && s.status !== "failed") return setErr("Un-approve it first to move it");
       const from = et(s.publishAt);
       if (from.date === day) return;
       const to = `${day}T${from.time || DEFAULT_TIME}`;
-      if ((await act({ action: "save", id: s.id, at: to })) !== false) setMoved({ id: s.id, title: s.title, from: from.date ? `${from.date}T${from.time}` : "", to });
+      const fromAt = from.date ? `${from.date}T${from.time}` : "";
+      // an approved post asks first (James 25 Oct 2026): Yes moves it and it stays approved, Back leaves it
+      if (s.kind === "post" && s.status === "approved") return setConfirmMove({ id: s.id, title: s.title, from: fromAt, to });
+      if (s.kind === "post" && s.status !== "draft" && s.status !== "failed") return setErr("This post is going out or has gone out: it can't be moved");
+      if ((await act({ action: "save", id: s.id, at: to })) !== false) setMoved({ id: s.id, title: s.title, from: fromAt, to, approved: false });
     }
   };
 
@@ -520,7 +524,7 @@ export default function SocialCalendar() {
               className="font-bold underline"
               disabled={busy}
               onClick={async () => {
-                await act({ action: "save", id: moved.id, at: moved.from });
+                await act({ action: moved.approved ? "move" : "save", id: moved.id, at: moved.from });
                 setMoved(null);
               }}
             >
@@ -632,6 +636,32 @@ export default function SocialCalendar() {
           }}
           onClose={() => setSpreading(null)}
         />
+      )}
+      {confirmMove && (
+        <Modal onClose={() => setConfirmMove(null)}>
+          <div className="text-sm font-black">This post was approved. Move it?</div>
+          <div className="text-[12px] text-gray-600 dark:text-white/60">
+            <b>{confirmMove.title}</b> moves from {confirmMove.from ? `${parse(confirmMove.from.slice(0, 10)).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} ${nice(confirmMove.from.slice(11, 16))}` : "—"} to{" "}
+            {parse(confirmMove.to.slice(0, 10)).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} {nice(confirmMove.to.slice(11, 16))} ET. It stays approved and goes out by itself at the new time.
+          </div>
+          <div className="flex gap-2">
+            <button
+              className={primaryButton}
+              disabled={busy}
+              autoFocus
+              onClick={async () => {
+                const c = confirmMove;
+                setConfirmMove(null);
+                if ((await act({ action: "move", id: c.id, at: c.to })) !== false) setMoved({ ...c, approved: true });
+              }}
+            >
+              Yes, move it
+            </button>
+            <button className={pill(false)} onClick={() => setConfirmMove(null)}>
+              Back
+            </button>
+          </div>
+        </Modal>
       )}
       {slot && slot.kind === "post" && <SlotDrawer key={slot.id} s={slot} agents={agents} posts={data?.posts ?? []} busy={busy} act={act} onClose={() => setOpen(null)} />}
     </main>
@@ -755,7 +785,7 @@ function SlotChip({ s, agents, size, onClick }: { s: Slot; agents: Agent[]; size
   const a = findAgent(agents, s.agent);
   const time = et(s.publishAt).time;
   const repeat = s.id.includes("~"); // a repeating job's later day: move its first-day slot instead
-  const movable = !repeat && (s.kind !== "post" || s.status === "draft" || s.status === "failed");
+  const movable = !repeat && (s.kind !== "post" || s.status === "draft" || s.status === "failed" || s.status === "approved");
   const isPost = s.kind === "post";
   const thumb = isPost ? (
     s.preview[0] ? (
@@ -777,7 +807,7 @@ function SlotChip({ s, agents, size, onClick }: { s: Slot; agents: Agent[]; size
       onDragStart={(e) => e.dataTransfer.setData("text/plain", JSON.stringify({ slot: s.id }))}
       onDragEnd={() => window.dispatchEvent(new Event("pickem-dragend"))}
       onClick={onClick}
-      title={`${a.name}: ${s.title} · ${p.label}${movable ? " · drag to another day to move it" : s.kind === "post" ? " · approved: open it and un-approve to move it" : ""}`}
+      title={`${a.name}: ${s.title} · ${p.label}${movable ? ` · drag to another day to move it${s.status === "approved" ? " (asks first: it's approved)" : ""}` : ""}`}
       style={{ borderLeftColor: a.colour }}
       className={`flex w-full ${size === "big" ? "flex-col" : "items-center"} ${size === "row" ? "gap-3 p-2 text-[12px]" : "gap-1.5 p-1 text-[10px]"} rounded-md border border-l-4 border-gray-100 bg-white text-left ${movable ? "cursor-grab active:cursor-grabbing" : ""} hover:border-gray-400 dark:border-white/5 dark:bg-[#141414] dark:hover:border-white/30 ${
         s.placeholder ? "border-dashed opacity-80" : ""
