@@ -99,7 +99,7 @@ export const PICKEM_EVENT_ID = {
  *
  * Only needed where the two disagree; everything else matches on the name. Taken from
  * the live rosters. Aftermath was `SDA` and Aftershock `AFT` until 25 Oct 2026, when
- * they became `AFM` (the Social Media Kit's code) and `SHK`; the league still says `SDA`.
+ * they became `AFM` (the Social Media Kit's code) and `SHK`.
  */
 export const CLUB_TEAM_ID = {
   Aftermath: "AFM",
