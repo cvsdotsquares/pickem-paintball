@@ -13,7 +13,7 @@ import WeekBullets, { type BAgent, type BItem, type BJob, type BSlot } from "./W
  * Click a job or task for its panel (move it, tick it, notes); click a post and it opens on the Social calendar, where
  * posts are approved. "+ Task" adds agent work or something for James. Data: /api/admin/workflows (jobs, states,
  * slots) + /api/admin/scheduler (the slots in full, for the panels). Month + ‹ › ("Previous" / "Next") are what
- * agents/calendar_shot.mjs clicks for the Slack screenshots.
+ * ?from=YYYY-MM-DD shows the 7 days from that day: agents/calendar_shot.mjs screenshots it for Slack (#calendar).
  */
 
 type View = {
@@ -31,6 +31,11 @@ export default function TeamSchedule() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [deepLinked, setDeepLinked] = useState(false);
+  const [from, setFrom] = useState<string | undefined>(undefined); // ?from=YYYY-MM-DD: the next 7 days from then (the Slack picture)
+  useEffect(() => {
+    const f = new URLSearchParams(window.location.search).get("from");
+    if (f && /^\d{4}-\d{2}-\d{2}$/.test(f)) setFrom(f);
+  }, []);
 
   const load = useCallback(async () => {
     const [v, s] = await Promise.all([
@@ -100,7 +105,9 @@ export default function TeamSchedule() {
         {!view ? (
           <div className="text-[11px] text-gray-400">Loading…</div>
         ) : (
-          <WeekBullets jobs={jobs} slots={view.slots} anchors={view.anchors} today={view.date} byId={byId} months tall onItem={onItem} />
+          <section id="calendar">
+            <WeekBullets jobs={jobs} slots={view.slots} anchors={view.anchors} today={view.date} byId={byId} months={!from} tall from={from} onItem={onItem} />
+          </section>
         )}
       </section>
       {adding && sched && (

@@ -6,16 +6,40 @@ import { useState } from "react";
  * The team's calendar as bullet points (James 25 Oct 2026): Monday → Sunday rows, each day's plan grouped by agent,
  * one line per job or post. Used by the Workflows page (two weeks) and the Schedule tab (two weeks or a month).
  * The rows always start on a Monday; ‹ › move a whole week (or month), "This week" comes back.
- * Repeating jobs show on every day of their window; posts show their state (needs ✅, needs a template, approved…).
+ * Repeating jobs show on every day of their window, greyed after their first day so a start or a one-off stands out;
+ * posts show their state (needs ✅, needs a template, approved…).
+ * Each line has a status dot (James 25 Oct 2026; the one place colour is used): green = built, runs by itself at that
+ * time · blue = ready, but needs James on the day (a ✅, his action, the post's data) · orange = not built yet (or no
+ * template) · red = blocked (waiting on another job, failed, overdue, or needs a job that isn't built).
  */
 
 export type BJob = {
   id: string; name: string; short?: string; agent: string; repeat: string; workflow: string; first_due: string; due: string; next_at: string;
   until_date?: string; state: string; vstate: string; when1: string; when2: string; how: string; slot: string;
+  built: boolean; writes: string; needs_first: string[];
 };
 export type BSlot = { id: string; kind: string; agent: string; title: string; at: string; status: string; job: string; placeholder: boolean; templated: boolean };
 export type BAgent = { id: string; name: string; icon: string };
-export type BItem = { text: string; title: string; state: string; time: string; sort: string; slot: string; kind: string };
+export type Dot = "green" | "blue" | "orange" | "red";
+export type BItem = { text: string; title: string; state: string; time: string; sort: string; slot: string; kind: string; dot: Dot; again: boolean };
+export const DOT: Record<Dot, { cls: string; label: string }> = {
+  green: { cls: "bg-green-500", label: "built: runs by itself" },
+  blue: { cls: "bg-blue-500", label: "ready, needs you on the day" },
+  orange: { cls: "bg-orange-400", label: "not built yet" },
+  red: { cls: "bg-red-500", label: "blocked" },
+};
+
+/** A job's dot on one day. Live states (waiting / failed / overdue) only count for today. */
+function jobDot(j: BJob, day: string, today: string, built: Record<string, boolean>): Dot {
+  if (day === today && ["waiting", "failed", "overdue"].includes(j.state)) return "red";
+  if (!j.built || j.state === "not_built") return "orange";
+  if (j.needs_first.some((n) => built[n] === false)) return "red";
+  if (j.agent === "james" || j.writes === "asks" || j.writes === "james") return "blue";
+  return "green";
+}
+function postDot(st: string): Dot {
+  return st === "failed" ? "red" : st === "template" ? "orange" : st === "approve" || st === "data" ? "blue" : "green";
+}
 
 const TZ = "America/New_York";
 const DAY = 86400000;
@@ -59,6 +83,7 @@ export function bulletDays(jobs: BJob[], slots: BSlot[], today: string, start: s
     if (day < start || day > end) return;
     ((byDay[day] ??= {})[agent] ??= []).push(it);
   };
+  const built = Object.fromEntries(jobs.map((j) => [j.id, !!j.built]));
   for (const j of jobs) {
     // left out: on-message jobs, the posting job itself (each post is listed), and anything that runs every day for
     // good (standing checks, the Manager's own morning runs): they'd fill every day. Weekly jobs show on their weekday.
@@ -69,7 +94,7 @@ export function bulletDays(jobs: BJob[], slots: BSlot[], today: string, start: s
     const sort = fmt(j.first_due, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
     if (j.repeat === "once") {
       const day = etDate(j.vstate === "done" ? j.due : j.next_at || j.due);
-      put(day, j.agent, { text: shortName(j), title, state: j.vstate === "done" ? "done" : j.state === "done" ? "not_due" : j.state, time: t, sort, slot: j.slot, kind: "work" }); // done before + a slot to come = a re-run
+      put(day, j.agent, { text: shortName(j), title, state: j.vstate === "done" ? "done" : j.state === "done" ? "not_due" : j.state, time: t, sort, slot: j.slot, kind: "work", dot: jobDot(j, day, today, built), again: false }); // done before + a slot to come = a re-run
       continue;
     }
     const first = etDate(j.first_due);
@@ -80,17 +105,19 @@ export function bulletDays(jobs: BJob[], slots: BSlot[], today: string, start: s
     for (let d = d0; key(d) <= last && key(d) <= end; d += step) {
       const k = key(d);
       const state = k === today ? (j.vstate === "today" ? "done" : j.repeat === "own_timer" ? "ticking" : j.state) : k < today ? "past" : "not_due";
-      put(k, j.agent, { text: shortName(j), title, state, time: t, sort, slot: j.slot, kind: "work" });
+      put(k, j.agent, { text: shortName(j), title, state, time: t, sort, slot: j.slot, kind: "work", dot: jobDot(j, k, today, built), again: k !== first });
     }
   }
   // Posts, and the Schedule's own tasks that aren't a playbook job (James's actions, the Manager's follow-ups, Check inspo)
   for (const s of slots) {
     if (!s.at || (s.kind !== "post" && s.job)) continue;
     const st = s.kind === "post" ? postState(s) : s.status === "done" ? "done" : s.kind === "action" ? "you" : "not_due";
+    // posts by their state; James's own tasks need him (blue); other free tasks aren't a built job (orange)
+    const dot: Dot = s.kind === "post" ? postDot(st) : st === "done" ? "green" : s.kind === "action" ? "blue" : "orange";
     const label = BULLET_STATE[st]?.label ?? st;
     put(etDate(s.at), s.agent, {
       text: s.title, title: `${s.title} · ${fmt(s.at, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} ET · ${label}`,
-      state: st, time: timeOf(s.at), sort: fmt(s.at, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }), slot: s.id, kind: s.kind,
+      state: st, time: timeOf(s.at), sort: fmt(s.at, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }), slot: s.id, kind: s.kind, dot, again: false,
     });
   }
   for (const d of Object.values(byDay)) for (const list of Object.values(d)) list.sort((a, b) => a.sort.localeCompare(b.sort));
@@ -100,11 +127,12 @@ export function bulletDays(jobs: BJob[], slots: BSlot[], today: string, start: s
 const ORDER = ["gm", "data", "social", "posts", "inspo", "james"];
 
 export default function WeekBullets({
-  jobs, slots, anchors, today, byId, months = false, weeks = 2, tall = false, onItem, onModeChange,
+  jobs, slots, anchors, today, byId, months = false, weeks = 2, tall = false, from, onItem, onModeChange,
 }: {
   jobs: BJob[]; slots: BSlot[]; anchors: Record<string, string>; today: string; byId: Record<string, BAgent>;
   months?: boolean; // offer a Month view next to the weeks (the Schedule tab)
   weeks?: number; tall?: boolean; onItem?: (it: BItem) => void; onModeChange?: (m: "weeks" | "month") => void;
+  from?: string; // one row of 7 days starting that day, not a Monday (the Slack picture: the next 7 days)
 }) {
   const [mode, setMode] = useState<"weeks" | "month">("weeks");
   const [offset, setOffset] = useState(0); // weeks (or months) from this one
@@ -121,6 +149,9 @@ export default function WeekBullets({
     rows = Math.floor((lastDay.getTime() - first) / DAY / 7) + 1;
     monthLabel = d.toLocaleString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
     inMonth = (k: string) => k.slice(0, 7) === m0;
+  } else if (from) {
+    first = noon(from) + offset * 7 * DAY;
+    rows = 1;
   } else {
     first = thisMonday + offset * 7 * DAY;
     rows = weeks;
@@ -151,12 +182,17 @@ export default function WeekBullets({
         <button className={btn} aria-label="Next" title={mode === "month" ? "A month later" : "A week later"} onClick={() => setOffset(offset + 1)}>›</button>
         {offset !== 0 && <button className="underline" onClick={() => setOffset(0)}>{mode === "month" ? "This month" : "This week"}</button>}
         <span className="ml-2 font-bold">{mode === "month" ? monthLabel : `${fmtDay(first)} – ${fmtDay(first + (rows * 7 - 1) * DAY)}`}</span>
-        <span className="ml-auto hidden text-gray-400 md:inline">✋ needs you · ◷ approved · ◌ needs a template · ↻ timer · ✓ done</span>
+        <span className="ml-auto hidden items-center gap-2 text-gray-400 md:flex">
+          {(Object.keys(DOT) as Dot[]).map((d) => (
+            <span key={d} className="flex items-center gap-1"><span className={`inline-block h-1.5 w-1.5 rounded-full ${DOT[d].cls}`} />{DOT[d].label}</span>
+          ))}
+          <span>· ✋ needs your ✅ · ◷ approved · ✓ done · grey = repeat</span>
+        </span>
       </div>
       <div className="overflow-x-auto">
         <div className="min-w-[760px]">
           <div className="mb-1 grid grid-cols-7 gap-1 text-[9px] font-black uppercase tracking-widest text-gray-400">
-            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => <div key={d} className="px-1.5">{d}</div>)}
+            {Array.from({ length: 7 }, (_, i) => new Date(first + i * DAY).toLocaleString("en-GB", { weekday: "short", timeZone: "UTC" })).map((d) => <div key={d} className="px-1.5">{d}</div>)}
           </div>
           {Array.from({ length: rows }, (_, w) => (
             <div key={w} className="mb-1 grid grid-cols-7 gap-1">
@@ -182,9 +218,10 @@ export default function WeekBullets({
                           <ul className="ml-1 border-l border-gray-200 pl-1.5 dark:border-white/10">
                             {byDay[k][ag].map((it, n) => {
                               const st = BULLET_STATE[it.state];
-                              const cls = `block w-full truncate text-left text-[10px] leading-tight ${st?.strike ? "text-gray-400 line-through" : st?.grey ? "text-gray-400" : ""}`;
+                              const cls = `block w-full truncate text-left text-[10px] leading-tight ${st?.strike ? "text-gray-400 line-through" : st?.grey || it.again ? "text-gray-400 dark:text-white/35" : ""}`;
                               const body = (
                                 <>
+                                  <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle ${DOT[it.dot].cls} ${it.again ? "opacity-50" : ""}`} title={DOT[it.dot].label} />
                                   {st?.glyph && <span className="mr-0.5">{st.glyph}</span>}
                                   {tall && it.time && <span className="mr-1 text-gray-400">{it.time}</span>}
                                   {it.text}

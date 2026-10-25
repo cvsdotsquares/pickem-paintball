@@ -391,16 +391,17 @@ export default function SocialCalendar() {
 
         {/* Calendar */}
         <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-100 bg-white dark:border-white/5 dark:bg-[#0d0d0d]">
-          {(
-            <>
-              <div className="grid grid-cols-7 border-b border-gray-100 text-[9px] font-black uppercase tracking-widest text-gray-400 dark:border-white/5 dark:text-white/40">
+          {/* Week scrolls sideways (wide columns, big previews); Month scrolls down (rows grow to fit) — James 25 Oct 2026 */}
+          <div className="min-h-0 flex-1 overflow-auto">
+            <div className={mode === "week" ? "min-w-[1680px]" : "min-w-[900px]"}>
+              <div className="sticky top-0 z-10 grid grid-cols-7 border-b border-gray-100 bg-white text-[9px] font-black uppercase tracking-widest text-gray-400 dark:border-white/5 dark:bg-[#0d0d0d] dark:text-white/40">
                 {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
                   <div key={d} className="px-2 py-1.5">
                     {d}
                   </div>
                 ))}
               </div>
-              <div className={`grid min-h-0 flex-1 grid-cols-7 ${mode === "month" ? "grid-rows-6" : "grid-rows-1"} overflow-y-auto`}>
+              <div className={`grid grid-cols-7 ${mode === "month" ? "auto-rows-[minmax(190px,auto)]" : "min-h-[calc(100vh-300px)]"}`}>
                 {days.map((day) => {
                   const other = mode === "month" && day.slice(0, 7) !== anchor.slice(0, 7);
                   const past = day < today;
@@ -409,7 +410,7 @@ export default function SocialCalendar() {
                       key={day}
                       onDragOver={(e) => !past && e.preventDefault()}
                       onDrop={(e) => onDrop(day, e)}
-                      className={`flex min-h-0 flex-col gap-1 overflow-y-auto border-b border-r border-gray-100 p-1.5 dark:border-white/5 ${
+                      className={`flex flex-col gap-1 border-b border-r border-gray-100 p-1.5 dark:border-white/5 ${
                         other || past ? "bg-gray-50/60 dark:bg-white/[0.02]" : ""
                       }`}
                     >
@@ -441,8 +442,8 @@ export default function SocialCalendar() {
                   );
                 })}
               </div>
-            </>
-          )}
+            </div>
+          </div>
         </section>
       </div>
 
