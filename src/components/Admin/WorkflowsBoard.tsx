@@ -206,7 +206,7 @@ export default function WorkflowsBoard() {
       </div>
 
       {/* ── Roadmap ───────────────────────────────────────────────────────── */}
-      <section className={`${card} order-3 mb-4 p-4 md:order-none`}>
+      <section className={`${card} order-1 mb-4 p-4 md:order-none`}>
         <div className={`${sectionLabel} mb-2`}>Two weeks, Monday to Sunday · what each agent does each day · the full calendar is the Schedule tab</div>
         <WeekBullets
           jobs={allJobs}
@@ -219,7 +219,7 @@ export default function WorkflowsBoard() {
       </section>
 
       {/* ── Needs you + Up next ───────────────────────────────────────────── */}
-      <div className="order-1 mb-4 grid gap-4 md:order-none md:grid-cols-2 [&>*]:min-w-0">
+      <div className="order-2 mb-4 grid gap-4 md:order-none md:grid-cols-2 [&>*]:min-w-0">
         <section id="needs-you" className={`${card} scroll-mt-16 p-4`}>
           <div className="mb-2 flex items-baseline justify-between">
             <div className={sectionLabel}>✋ Needs you</div>
@@ -261,7 +261,7 @@ export default function WorkflowsBoard() {
       </section>
 
       {/* ── Brief + what happened ─────────────────────────────────────────── */}
-      <div className="order-2 mb-4 grid gap-4 md:order-none md:mb-0 md:grid-cols-[3fr_2fr] [&>*]:min-w-0">
+      <div className="order-3 mb-4 grid gap-4 md:order-none md:mb-0 md:grid-cols-[3fr_2fr] [&>*]:min-w-0">
         <section className={`${card} p-4`}>
           <div className={`${sectionLabel} mb-3`}>🧢 The Manager&apos;s brief</div>
           {data.brief ? <BriefMessage brief={data.brief} onOpen={openReport} /> : <Empty>No brief yet. Press “Run the Manager now” or wait for 7 AM ET.</Empty>}
@@ -383,9 +383,9 @@ function OrgChart({ team, cards, selected, onSelect }: { team: AgentRow[]; cards
       <button
         disabled={!clickable}
         onClick={() => clickable && onSelect(a.id)}
-        className={`group flex ${big ? "w-56" : "w-44"} flex-col items-center rounded-2xl border p-3 text-center transition-colors ${selected === a.id ? "border-gray-900 dark:border-white" : "border-gray-100 dark:border-white/5"} ${clickable ? "hover:border-gray-400 dark:hover:border-white/30" : "cursor-default"} ${a.status === "on" ? "" : "opacity-50"}`}
+        className={`group flex ${big ? "w-44 sm:w-56" : "w-[9.5rem] sm:w-44"} flex-col items-center rounded-2xl border p-2 text-center sm:p-3 transition-colors ${selected === a.id ? "border-gray-900 dark:border-white" : "border-gray-100 dark:border-white/5"} ${clickable ? "hover:border-gray-400 dark:hover:border-white/30" : "cursor-default"} ${a.status === "on" ? "" : "opacity-50"}`}
       >
-        <span className={`relative flex ${big ? "h-14 w-14 text-3xl" : "h-11 w-11 text-2xl"} items-center justify-center rounded-full border-2 ${last?.result === "running" ? "border-gray-900 border-dashed dark:border-white" : "border-gray-200 dark:border-white/10"} bg-gray-50 dark:bg-white/5`}>
+        <span className={`relative flex ${big ? "h-12 w-12 text-2xl sm:h-14 sm:w-14 sm:text-3xl" : "h-10 w-10 text-xl sm:h-11 sm:w-11 sm:text-2xl"} items-center justify-center rounded-full border-2 ${last?.result === "running" ? "border-gray-900 border-dashed dark:border-white" : "border-gray-200 dark:border-white/10"} bg-gray-50 dark:bg-white/5`}>
           {a.icon}
           {a.status !== "on" && <span className="absolute -bottom-1 -right-1 rounded-full bg-white px-1 text-[9px] dark:bg-black">{a.status === "off" ? "⏻" : "⏸"}</span>}
         </span>
@@ -399,37 +399,17 @@ function OrgChart({ team, cards, selected, onSelect }: { team: AgentRow[]; cards
   const root = team.find((a) => !a.parent);
   const manager = root ? kids(root.id)[0] : undefined;
   const agents = manager ? kids(manager.id) : [];
-  // Phone (James 25 Oct 2026): the tree is too wide, so the team is a list: tap someone for their desk below
-  const phoneList = [root, manager, ...agents].filter(Boolean) as AgentRow[];
+  // The tree on every screen (James 25 Oct 2026: show the real structure on the phone too); smaller cards on a phone
   return (
     <>
-    <div className="space-y-2 md:hidden">
-      {phoneList.map((a) => {
-        const c = cardOf(a.id);
-        const last = c?.lastRun;
-        return (
-          <button key={a.id} disabled={!c} onClick={() => c && onSelect(a.id)} className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left ${selected === a.id ? "border-gray-900 dark:border-white" : "border-gray-100 dark:border-white/5"} ${a.status === "on" ? "" : "opacity-50"} ${a.parent && a.parent !== root?.id ? "ml-4 w-[calc(100%-1rem)]" : ""}`}>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-50 text-2xl dark:bg-white/5">{a.icon}</span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[12px] font-black uppercase tracking-wide">{a.name}</span>
-              <span className="block truncate text-[12px] text-gray-500 dark:text-white/50">
-                {!c ? a.blurb.split(".")[0] : last ? `${last.result === "running" ? "working on" : last.result === "ok" ? "last did" : "failed"} ${last.name || last.job} · ${ago(last.finished || last.started)}` : "nothing yet"}
-              </span>
-              {c?.nextRun && <span className="block truncate text-[11px] text-gray-400">next: {c.nextRun.when}</span>}
-            </span>
-            {c && <span className="text-gray-300">›</span>}
-          </button>
-        );
-      })}
-    </div>
-    <div className="hidden flex-col items-center md:flex">
+    <div className="flex flex-col items-center">
       {root && <Avatar a={root} />}
       {manager && (
         <>
           <div className="h-5 w-px bg-gray-300 dark:bg-white/20" />
           <Avatar a={manager} big />
           <div className="h-5 w-px bg-gray-300 dark:bg-white/20" />
-          <div className="relative flex w-full justify-center gap-10 pt-5">
+          <div className="relative flex w-full justify-center gap-3 pt-5 sm:gap-10">
             <div className="absolute left-1/4 right-1/4 top-0 h-px bg-gray-300 dark:bg-white/20" />
             {agents.map((ag) => (
               <div key={ag.id} className="relative flex flex-col items-center">
@@ -438,11 +418,11 @@ function OrgChart({ team, cards, selected, onSelect }: { team: AgentRow[]; cards
                 {kids(ag.id).length > 0 && (
                   <>
                     <div className="h-4 w-px bg-gray-300 dark:bg-white/20" />
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 sm:gap-2">
                       {kids(ag.id).map((k) => (
-                        <div key={k.id} className="flex w-24 flex-col items-center rounded-xl border border-dashed border-gray-200 p-2 text-center dark:border-white/10" title={k.blurb}>
-                          <span className="text-xl">{k.icon}</span>
-                          <span className="text-[9px] font-black uppercase tracking-wide">{k.name}</span>
+                        <div key={k.id} className="flex w-12 flex-col items-center rounded-xl border border-dashed border-gray-200 p-1 text-center dark:border-white/10 sm:w-24 sm:p-2" title={k.blurb}>
+                          <span className="text-lg sm:text-xl">{k.icon}</span>
+                          <span className="text-[7px] font-black uppercase leading-tight tracking-wide sm:text-[9px]">{k.name}</span>
                           <span className="text-[8px] uppercase tracking-widest text-gray-400">{k.kind}</span>
                         </div>
                       ))}
