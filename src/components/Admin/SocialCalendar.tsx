@@ -273,17 +273,27 @@ export default function SocialCalendar() {
     return out;
   }, [data, anchor]);
 
-  // Scroll to the anchor: its week (Week) or the week holding the 1st of its month (Month)
-  useEffect(() => {
+  // Scroll to the anchor: its week (Week) or the week holding the 1st of its month (Month). Only when asked (‹ › Today, a
+  // link, switching Month / Week) and once when the posts first arrive; never on a reload after a move or a save, so a
+  // drag and drop keeps the view where it is (James 25 Oct 2026).
+  const scrollToAnchor = useCallback(() => {
     const el = scroller.current;
-    if (!el || !data) return;
+    if (!el) return false;
     // Month: the first week that is mostly that month (its Thursday is in it), so 1 Nov on a Sunday doesn't land on October
     const target = mode === "week" ? monday(anchor) : monday(addDays(`${anchor.slice(0, 7)}-01`, 3));
     const cell = el.querySelector<HTMLElement>(`[data-day="${target}"]`);
-    if (!cell) return;
+    if (!cell) return false;
     if (mode === "week") el.scrollTo({ left: cell.offsetLeft });
     else el.scrollTo({ top: cell.offsetTop - 28 });
-  }, [anchor, jump, mode, data]);
+    return true;
+  }, [anchor, mode]);
+  const placed = useRef(false); // the first scroll, once the posts are in
+  useEffect(() => {
+    if (data) scrollToAnchor();
+  }, [anchor, jump, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (data && !placed.current) placed.current = scrollToAnchor();
+  }, [data, scrollToAnchor]);
 
   // The heading follows the scroll: the first day in view
   const onScroll = () => {
