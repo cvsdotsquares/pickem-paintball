@@ -146,7 +146,7 @@ export function autoCollab(slide: string | undefined): string[] {
 function checkCollab(list: string[]): string[] {
   const c = cleanList(list);
   if (c.bad.length) throw new Error(`Not an Instagram username: ${c.bad.join(", ")}`);
-  if (c.own.length) throw new Error(`That's our own account (@${c.own.join(", @")}): leave it out`);
+  if (c.own.length) throw new Error(`That's one of our own accounts (@${c.own.join(", @")}): leave it out`);
   if (c.tooMany) throw new Error(`Instagram takes ${MAX_COLLABORATORS} collaborators at most`);
   return c.ok;
 }
