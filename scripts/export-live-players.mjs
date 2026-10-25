@@ -22,6 +22,7 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 import fs from "node:fs";
+import { registryPath } from "./identity-registry-path.mjs";
 import XLSX from "xlsx";
 
 const { initializeApp } = await import("firebase/app");
@@ -31,7 +32,7 @@ const out = process.argv[2] ?? "live-players-export.xlsx";
 const TEST_EVENTS = new Set(["windy_city_open_2024", "worldcup_2024"]);
 
 const registry = JSON.parse(
-  fs.readFileSync(new URL("./player-identity-registry.json", import.meta.url)),
+  fs.readFileSync(registryPath()),
 );
 const regLid = new Map(
   registry.players.filter((p) => p.league_id).map((p) => [String(p.player_id), String(p.league_id)]),

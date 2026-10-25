@@ -9,6 +9,7 @@
  * TWO PAGES PER EVENT, and no per-match fetches: the score sits on the schedule row.
  *   /event/{id}/schedule   teams, score, round, kickoff, and whether the score is approved
  *   /event/{id}/rankings   the Pro field, which doubles as the team allowlist below
+ *                          (every Pro table on it — a field can be split, see parseRankings)
  *
  * Three traps, each of which cost real time offline and all of which are handled here:
  *
@@ -35,13 +36,24 @@ const text = (h) =>
     .replace(/\s+/g, " ")
     .trim();
 
-/** The Pro division's full placing table — also the authoritative list of who competed. */
+/**
+ * The Pro division's full placing table — also the authoritative list of who competed.
+ *
+ * ⚠️ A Pro field can be split over SEVERAL ranking tables. World Cup 2026 (9322) puts the
+ * four Champions teams in "Championship - Pro X-Ball (Thu-Sun)" and the other twenty in
+ * "Pro X-Ball (Thu-Sun)", while its schedule runs them as one "Pro X-Ball™" division.
+ * Taking only the first table made a 4-team allowlist and dropped 40 of 46 prelim games.
+ * So every Pro table is collected: `rows` is all of them in page order, `tables` keeps
+ * them apart — each table's ranks restart at 1, so a rank only means something within
+ * its own table. With one table, `division` and `rows` are exactly what they always were.
+ */
 function parseRankings(html) {
   const divisions = [
     ...html.matchAll(
       /<div class="ranking"[^>]*data-division="([^"]*)"([\s\S]*?)(?=<div class="ranking"|<\/body>)/g,
     ),
   ];
+  const tables = [];
   for (const [, division, body] of divisions) {
     if (!isPro(text(division))) continue;
     const rows = [...body.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)]
@@ -52,9 +64,14 @@ function parseRankings(html) {
         team,
         points: Number(String(points).replace(/\D/g, "")) || 0,
       }));
-    if (rows.length) return { division: text(division), rows };
+    if (rows.length) tables.push({ division: text(division), rows });
   }
-  return { division: null, rows: [] };
+  if (!tables.length) return { division: null, rows: [], tables };
+  return {
+    division: tables.map((t) => t.division).join(" + "),
+    rows: tables.flatMap((t) => t.rows),
+    tables,
+  };
 }
 
 /**
@@ -164,6 +181,16 @@ const CRAWLER_TEAM_ALIAS = {
   "Baltimore Revo": "Arsenal",
   "TonTon FSU": "TonTons",
   "TonTon Arsenal": "TonTons",
+  /*
+   * FIRST NXL EVENT FOR THESE FOUR: World Cup 2026 (9322) runs the international clubs in
+   * the one Pro division, and none of them is in any earlier event, so no vocabulary
+   * match can exist. An alias target is a club by declaration (see resolveClub), so these
+   * carry the short name the history will keep, city dropped as for every other club.
+   */
+  "Ranger Warsaw": "Ranger",
+  "ALA Warsaw": "ALA",
+  LTF: "LTF",
+  "Puerto Rico tppcrew": "TPP Crew",
 };
 
 /**
@@ -172,15 +199,73 @@ const CRAWLER_TEAM_ALIAS = {
  * Returns null rather than the raw name when nothing matches, so the caller can COUNT the
  * failures instead of silently filing results under a club that does not exist. A silent
  * fallback is how TonTons went missing from a whole event.
+ *
+ * An ALIASED name is trusted even when the vocabulary does not have it yet: the
+ * vocabulary is built from finished events, so a club's first event could otherwise
+ * never be recorded. Only names someone deliberately listed get through this way.
+ *
+ * `extraAliases` is `crawlerAliases` from projections/nxlHistoryMeta: the matches James
+ * has approved in Slack since the last deploy. They win over CRAWLER_TEAM_ALIAS on a
+ * clash, since Firestore holds his latest decision, and are trusted the same way.
  */
-function resolveClub(name, clubs) {
-  const aliased = CRAWLER_TEAM_ALIAS[name] || name;
+function resolveClub(name, clubs, extraAliases = {}) {
+  /*
+   * Non-string values are dropped BEFORE the merge: kept, they would knock out the code
+   * alias and let "TonTon Arsenal" fall through to Baltimore's "Arsenal".
+   */
+  const extra = Object.entries(extraAliases || {}).filter(([, club]) => typeof club === "string" && club);
+  const aliases = { ...CRAWLER_TEAM_ALIAS, ...Object.fromEntries(extra) };
+  /* Own entries only, so a team called "constructor" is not listed by accident. */
+  const listed = Object.prototype.hasOwnProperty.call(aliases, name) && aliases[name];
+  const aliased = listed || name;
   return (
     clubs.find((c) => aliased === c) ||
+    (listed ? aliased : null) ||
     clubs.find((c) => aliased.endsWith(` ${c}`)) ||
     clubs.find((c) => aliased.startsWith(`${c} `)) ||
     null
   );
 }
 
-module.exports = { isPro, parseSchedule, parseRankings, CRAWLER_TEAM_ALIAS, resolveClub };
+/**
+ * The event's Pro teams and their roster pages, from `/event/{id}/teams`.
+ *
+ * The page lists every division under its own heading, each team linking to
+ * `/team/roster/{rosterId}`; only teams under a Pro heading are kept (a World Cup has two:
+ * "Championship - Pro X-Ball" and "Pro X-Ball"). The same reading as the hub's
+ * agents/cost_allocation/sources.py `fetch_roster`, which cost allocation has used all season.
+ */
+function parseTeams(html) {
+  const out = [];
+  const seen = new Set();
+  let heading = "";
+  const re = /<h[1-4][^>]*>([\s\S]*?)<\/h[1-4]>|<a [^>]*href="\/team\/roster\/([A-Za-z0-9]{12,})"[^>]*>([^<]*)<\/a>/g;
+  for (const m of html.matchAll(re)) {
+    if (m[1] !== undefined) heading = text(m[1]);
+    else if (isPro(heading) && !seen.has(m[2])) {
+      seen.add(m[2]);
+      out.push({ rosterId: m[2], team: text(m[3]) });
+    }
+  }
+  return out;
+}
+
+/**
+ * The players on one team's roster page for the event: [{ leagueId, name }].
+ *
+ * Players only — coaches and staff are other tables. The league id is on `<tr data-id>`,
+ * with the `/pictures_crop/{id}.png` headshot as the fallback (past events link players to
+ * /profile/, upcoming ones to rosterclass.cgi, and both carry these two).
+ */
+function parseRoster(html) {
+  const table = (html.match(/id="roster-player"[\s\S]*?<\/table>/) || [""])[0];
+  const out = [];
+  for (const [tr] of table.matchAll(/<tr data-id="\d*"[\s\S]*?<\/tr>/g)) {
+    const id = (tr.match(/data-id="(\d+)"/) || tr.match(/\/pictures(?:_crop)?\/(\d+)\./) || [])[1];
+    const name = (tr.match(/class="itemName"[^>]*>([\s\S]*?)<\/a>/) || [])[1];
+    if (id && name) out.push({ leagueId: id, name: text(name) });
+  }
+  return out;
+}
+
+module.exports = { isPro, parseSchedule, parseRankings, parseTeams, parseRoster, CRAWLER_TEAM_ALIAS, resolveClub };

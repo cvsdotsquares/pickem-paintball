@@ -14,8 +14,8 @@
  * schedule until the prelims finish — needs no special handling.
  */
 
-const { parseSchedule, parseRankings, resolveClub } = require("./pbleagues");
-const { COLLECTION, docIdFor, loadHistory } = require("./nxlEventsStore");
+const { parseSchedule, parseRankings, parseTeams, parseRoster, resolveClub } = require("./pbleagues");
+const { COLLECTION, docIdFor, loadHistory, loadCrawlerAliases } = require("./nxlEventsStore");
 
 const BASE = "https://pbleagues.com";
 const UA = { "User-Agent": "Mozilla/5.0 (pickem-live-crawler)" };
@@ -132,13 +132,18 @@ function isoDay(text, year) {
  * thrown. Returns null unless EVERY team in the event is ranked: a partial table means
  * the league has not finished publishing it, and half a set of positions is worse than
  * none.
+ *
+ * Also null when the Pro field is split over more than one table (World Cup 2026): ranks
+ * restart at 1 in each, so there are two #1s and no single order to read off. `split`
+ * names the tables so the caller can say why.
  */
-async function finalRanks(pbleaguesId, clubs) {
-  const { rows } = parseRankings(await fetchText(`/event/${pbleaguesId}/rankings`));
+async function finalRanks(pbleaguesId, clubs, extraAliases = {}) {
+  const { rows, tables } = parseRankings(await fetchText(`/event/${pbleaguesId}/rankings`));
+  if (tables.length > 1) return { ranks: null, missing: [], split: tables.map((t) => t.division) };
   const vocab = [...clubs].sort((a, b) => b.length - a.length);
   const ranks = {};
   for (const r of rows) {
-    const club = resolveClub(r.team, vocab);
+    const club = resolveClub(r.team, vocab, extraAliases);
     if (club) ranks[club] = r.rank;
   }
   const missing = clubs.filter((c) => ranks[c] == null);
@@ -146,8 +151,70 @@ async function finalRanks(pbleaguesId, clubs) {
 }
 
 /**
+ * Every Pro team's roster for the event, as the league published it: [{ team, players }].
+ * One page for the team list, then one per team, six at a time.
+ */
+async function leagueRosters(pbleaguesId) {
+  const teams = parseTeams(await fetchText(`/event/${pbleaguesId}/teams`));
+  const out = [];
+  for (let i = 0; i < teams.length; i += 6) {
+    out.push(
+      ...(await Promise.all(
+        teams.slice(i, i + 6).map(async (t) => ({
+          team: t.team,
+          players: parseRoster(await fetchText(`/team/roster/${t.rosterId}`)),
+        })),
+      )),
+    );
+  }
+  return out;
+}
+
+/**
+ * Who the career pages credit with the event, decided once, at the lock, from the LEAGUE'S
+ * rosters (James, 24 Oct 2026).
+ *
+ * During the event `deriveAppearances` credits every row of OUR roster, whatever its Status,
+ * so players marked Out / Injured / Dropped who never went still got the event on their
+ * career page (Lone Star 2026: 21 of 207, none in any pbleagues lineup), and a player the
+ * league rostered but we did not was missed (1). Once the event is over the league's roster
+ * is the truth, which is also what every event before 2026 was built from.
+ *
+ * Careful, never destructive: a club whose league roster cannot be found or is empty keeps
+ * the crawl's players for it, and the caller keeps everything if pbleagues cannot be read.
+ * League teams that are not in this event's results (another bracket) are ignored.
+ */
+function appearancesFromRosters(rosters, clubs, current, extraAliases = {}) {
+  const vocab = [...clubs].sort((a, b) => b.length - a.length);
+  const appearances = {};
+  const listed = new Set();
+  const ignored = [];
+  for (const { team, players } of rosters) {
+    const club = resolveClub(team, vocab, extraAliases);
+    if (!club || !clubs.includes(club)) {
+      ignored.push(team);
+      continue;
+    }
+    if (!players.length) continue;
+    listed.add(club);
+    for (const p of players) appearances[p.leagueId] = club;
+  }
+  const kept = clubs.filter((c) => !listed.has(c));
+  for (const [id, club] of Object.entries(current || {})) {
+    if (kept.includes(club) && appearances[id] === undefined) appearances[id] = club;
+  }
+  const removed = Object.keys(current || {}).filter((id) => appearances[id] === undefined);
+  const added = Object.keys(appearances).filter((id) => (current || {})[id] === undefined);
+  const moved = Object.keys(appearances).filter(
+    (id) => (current || {})[id] !== undefined && current[id] !== appearances[id],
+  );
+  return { appearances, removed, added, moved, kept, ignored };
+}
+
+/**
  * Lock an event's results at `eventEndsAt`: fill in every team's finishing position from
- * the league's final rankings, and flip `live` off so the crawl never writes it again.
+ * the league's final rankings, credit the players on the league's rosters (appearancesFromRosters),
+ * and flip `live` off so the crawl never writes it again.
  *
  * Locks even when the rankings are not complete — the results are final either way — but
  * says so loudly, since the positions then have to be filled in by hand.
@@ -160,12 +227,20 @@ async function lockNxlEvent(db, pickemEventId, { collection = COLLECTION } = {})
     .where("live", "==", true)
     .get();
   const locked = [];
+  /* The same Slack-approved team-name matches the crawl used to file these results. */
+  let aliases = {};
+  try {
+    if (snap.docs.length) aliases = await loadCrawlerAliases(db);
+  } catch (err) {
+    /* Lock regardless: the results are final. Only names in code will place in the ranks. */
+    console.error("⚠️ could not read crawlerAliases from meta — locking with the code aliases only.", err);
+  }
   for (const d of snap.docs) {
     const e = d.data();
     const update = { live: false, lockedAt: new Date().toISOString() };
     const clubs = Object.keys(e.teams || {});
     try {
-      const { ranks, missing } = await finalRanks(e.pbleaguesId, clubs);
+      const { ranks, missing, split } = await finalRanks(e.pbleaguesId, clubs, aliases);
       if (ranks) {
         // The whole map rather than dotted paths: a club name may contain a "."
         update.teams = Object.fromEntries(
@@ -175,11 +250,36 @@ async function lockNxlEvent(db, pickemEventId, { collection = COLLECTION } = {})
         if (e.champion && first !== e.champion) {
           console.error(`❌ ${e.key}: rankings put ${first} first but the Final was won by ${e.champion}.`);
         }
+      } else if (split) {
+        /* The champion keeps the finishRank 1 the Final gave it in scoreTeams. */
+        console.error(
+          `❌ ${e.key}: rankings missing a single Pro order — ${split.length} tables (${split.join(" + ")}) each rank from 1 — finish positions left blank.`,
+        );
       } else {
         console.error(`❌ ${e.key}: rankings missing ${missing.join(", ")} — finish positions left blank.`);
       }
     } catch (err) {
       console.error(`❌ ${e.key}: could not read final rankings — finish positions left blank.`, err);
+    }
+    try {
+      const fromLeague = appearancesFromRosters(
+        await leagueRosters(e.pbleaguesId),
+        clubs,
+        e.appearances || {},
+        aliases,
+      );
+      const { appearances, removed, added, moved, kept } = fromLeague;
+      if (removed.length || added.length || moved.length) update.appearances = appearances;
+      console.log(
+        `👥 ${e.key}: appearances from the league's rosters, ${Object.keys(appearances).length} ` +
+          `(−${removed.length} +${added.length}, ${moved.length} moved club)` +
+          (removed.length ? `; off: ${removed.join(", ")}` : ""),
+      );
+      if (kept.length) {
+        console.error(`❌ ${e.key}: no league roster for ${kept.join(", ")} — kept the crawl's players for them.`);
+      }
+    } catch (err) {
+      console.error(`❌ ${e.key}: could not read the league's rosters — appearances left as crawled.`, err);
     }
     await d.ref.update(update);
     locked.push(d.id);
@@ -318,6 +418,14 @@ async function crawlLiveEvent(
   );
 
   const rankings = parseRankings(await fetchText(`/event/${pbleaguesId}/rankings`));
+  /*
+   * A split Pro field is expected (World Cup 2026), not a fault — so ℹ️, never ❌/⚠️, which
+   * crawler_flags and the hub's live_crawl watcher alert on.
+   */
+  if (rankings.tables.length > 1) {
+    const names = rankings.tables.map((t) => t.division.replace(/\s*\([^)]*\)\s*$/, "")).join(" + ");
+    console.log(`ℹ️ ${key}: ${rankings.tables.length} Pro ranking tables (${names}), ${rankings.rows.length} teams`);
+  }
   const allow = rankings.rows.length ? new Set(rankings.rows.map((r) => r.team)) : null;
   const parsed = parseSchedule(await fetchText(`/event/${pbleaguesId}/schedule`), { teams: allow });
 
@@ -328,7 +436,8 @@ async function crawlLiveEvent(
   const clubs = [...new Set(history.events.flatMap((e) => Object.keys(e.teams || {})))].sort(
     (a, b) => b.length - a.length,
   );
-  const clubOf = (name) => resolveClub(name, clubs);
+  /* Plus the team-name matches James approved in Slack, which the hub writes to meta. */
+  const clubOf = (name) => resolveClub(name, clubs, history.crawlerAliases);
   /*
    * Names the crawl used that our vocabulary cannot place. Reported, never swallowed: an
    * unresolved club silently drops that team's entire record, which is exactly how TonTons
@@ -438,6 +547,8 @@ async function crawlLiveEvent(
 module.exports = {
   crawlLiveEvent,
   lockNxlEvent,
+  leagueRosters,
+  appearancesFromRosters,
   isoDay,
   fetchText,
   decideFinal,

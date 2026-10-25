@@ -228,6 +228,8 @@ export interface PlayerCareer {
   imgUrl: string | null;
   leagueId: string | number | null;
   currentTeam: string;
+  /** `team_id` on the latest appearance — whose logo stands in when there is no photo. */
+  currentTeamId: string | null;
   appearances: CareerAppearance[];
   totalKills: number;
   /** How many of `appearances` the player actually took the field for. */
@@ -484,6 +486,7 @@ export async function fetchPlayerCareer(playerId: string): Promise<PlayerCareer 
     imgUrl: (latest.data.img_url as string) ?? null,
     leagueId: (latest.data.league_id as string | number) ?? null,
     currentTeam: (latest.data.Team as string) || "—",
+    currentTeamId: (latest.data.team_id as string) ?? null,
     appearances,
     totalKills,
     careerRank,

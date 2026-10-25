@@ -37,7 +37,17 @@ Names cannot do this. Neither can jersey numbers.
 
 ## 2. The registry
 
-[`scripts/player-identity-registry.json`](./scripts/player-identity-registry.json) is the
+**Where it lives (24 Oct 2026):** the current list is `~/Documents/pickem-hub/identity/player-identity-registry.json`,
+kept by the Data agent (`agents/rosters/registry.py`): add-only, written straight after every Roster Sync that adds
+players and on every daily roster scrape — a player is never removed, a `player_id` or a non-blank `league_id` never
+changed; a clash stops it and alerts. Every script here finds it through
+[`scripts/identity-registry-path.mjs`](./scripts/identity-registry-path.mjs) (`$PICKEM_IDENTITY_REGISTRY` → the hub copy
+→ this repo's copy), and the two scripts that could rewrite it (`rebuild-identity-registry.mjs`,
+`fix-league-ids.mjs`) refuse `--apply` against the hub copy.
+[`scripts/player-identity-registry.json`](./scripts/player-identity-registry.json) in this repo is the frozen
+2 Sep 2026 copy (a fallback for machines without the hub).
+
+The registry is the
 authoritative map. **325 players, 321 with a `league_id`, zero clashes.**
 
 ```jsonc
@@ -92,7 +102,7 @@ and report why. A partially-written roster is worse than no roster.
 
 ```
 1. Crawl the event roster from the NXL           -> [{league_id, name, team, number, photo}]
-2. Load scripts/player-identity-registry.json    -> league_id -> player_id
+2. Load the registry (identity-registry-path.mjs) -> league_id -> player_id
 3. For each crawled player:
      league_id in registry?
         YES -> reuse that player_id                    (returning player)
@@ -100,7 +110,7 @@ and report why. A partially-written roster is worse than no roster.
                append to the registry                  (genuinely new player)
 4. Validate (§5). Abort entirely on any failure.
 5. Write the roster.
-6. Commit the updated registry.
+6. Update the registry (pickem-hub `agents/rosters/registry.py update`, add-only; no commit needed).
 ```
 
 **Minting:** the next id is `max(all player_id) + 1` across the whole registry — never
@@ -161,14 +171,16 @@ prefix; ids don't, which is why `gameId` and everything else keys on the id.
 
 | | | | | | |
 |---|---|---|---|---|---|
-| `ACD` ac DIESEL | `AFT` Aftershock | `ARS` Arsenal | `BKS` Breakout Spa | `COL` Collision | `DAM` Damage |
+| `ACD` ac DIESEL | `AFM` Aftermath | `ARS` Arsenal | `BKS` Breakout Spa | `COL` Collision | `DAM` Damage |
 | `DST` Distortion | `DYN` Dynasty | `FIT` PaintballFIT | `HEA` Heat | `HUR` Hurricanes | `IMF` Infamous |
 | `IMP` Impact | `IRN` Ironmen | `JNG` Jungle Cats | `JYD` Joy Division | `LEG` Red Legion | `LEV` Leverage |
-| `LKY` Lucky15s | `NRG` NRG Elite | `NYX` Xtreme | `PLT` Papeletto | `RCS` Seadogs | `SDA` Aftermath |
+| `LKY` Lucky15s | `NRG` NRG Elite | `NYX` Xtreme | `PLT` Papeletto | `RCS` Seadogs | `SHK` Aftershock |
 | `TON` TonTon | `UPR` Uprising | `XFA` X-Factor | | | |
 
-Two traps in this table: **`IMF` is Infamous, not Ironmen** (`IRN`), and **`AFT` is
-Aftershock, not Aftermath** (`SDA`). Both have been miscoded in production.
+Two traps in this table: **`IMF` is Infamous, not Ironmen** (`IRN`), and the two
+"After-" teams. Until 25 Oct 2026 Aftermath was `SDA` and Aftershock `AFT`, and both
+were miscoded in production. They are now **`AFM` Aftermath** (the Social Media Kit's
+code) and **`SHK` Aftershock**. Treat a stray `AFT` or `SDA` on a roster as a mistake.
 
 ---
 

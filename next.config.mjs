@@ -45,6 +45,12 @@ const nextConfig = {
     }
     return config;
   },
+  async rewrites() {
+    return [
+      // Roster survey for team captains (pickem-hub/roster-survey, James 23 Oct 2026): a static page in public/roster/
+      { source: "/roster", destination: "/roster/index.html" },
+    ];
+  },
   async redirects() {
     return [
       {

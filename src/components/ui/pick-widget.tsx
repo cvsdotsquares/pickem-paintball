@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { AnimatedGroup } from "./animations/grp";
 import { GiCardPickup } from "react-icons/gi";
 import ActionButtons from "./action-btns";
+import PlayerHeadshot from "./PlayerHeadshot";
 
 // Use the Player interface from pick-em page which already includes img_url
 
@@ -98,17 +99,9 @@ export const PickWidget = () => {
         return player.img_url;
       }
 
-      // Fallback to Firebase Storage lookup
-      const storage = getStorage();
-      const folderPath = `players/`;
-      const storageRef = ref(storage, folderPath);
-      const fileList = await listAll(storageRef);
-      const matchingFile = fileList.items.find((item) =>
-        item.name.startsWith(`${player.league_id}_`)
-      );
-      return matchingFile
-        ? await getDownloadURL(matchingFile)
-        : "/placeholder.svg";
+      // No img_url = no headshot (PlayerHeadshot shows the team logo). The legacy
+      // `players/` Storage folder is not consulted: it holds photos the data job cleared.
+      return "/placeholder.svg";
     } catch (error) {
       console.error(`Error fetching picture for player: ${player.Player}`, error);
       return "/placeholder.svg";
@@ -372,15 +365,11 @@ export const PickWidget = () => {
                         {player?.Player || "PLAYER"}
                       </div>
                     </div>
-                    <div
-                      className="absolute top-0 bottom-0 left-0 right-0 flex flex-col pointer-events-none"
-                      style={{
-                        backgroundImage: `url(${
-                          player?.picture || "/placeholder.svg"
-                        })`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "40 center",
-                      }}
+                    <PlayerHeadshot
+                      src={player?.picture}
+                      teamId={player?.team_id}
+                      className="absolute inset-0 h-full w-full pointer-events-none"
+                      photoClassName="object-cover object-center"
                     />
                   </>
                 )}
