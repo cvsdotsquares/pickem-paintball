@@ -12,14 +12,14 @@ test('status change notifies as before', () => {
 });
 
 test('team change notifies', () => {
-  const n = playerChangeNotices({ ...base, beforeExists: true, before: { Status: 'Confirmed', team_id: 'TPP', Team: 'TPP Crew' }, after: { Status: 'Confirmed', team_id: 'SDA', Team: 'Aftermath' } });
+  const n = playerChangeNotices({ ...base, beforeExists: true, before: { Status: 'Confirmed', team_id: 'TPP', Team: 'TPP Crew' }, after: { Status: 'Confirmed', team_id: 'AFM', Team: 'Aftermath' } });
   assert.deepStrictEqual(types(n), ['player_team_changed']);
   assert.strictEqual(n[0].message, 'Amin Rodriguez has moved to Aftermath for World Cup');
   assert.strictEqual(n[0].oldTeam, 'TPP Crew');
 });
 
 test('team and status change together give both', () => {
-  const n = playerChangeNotices({ ...base, beforeExists: true, before: { Status: 'Confirmed', team_id: 'TPP' }, after: { Status: 'Out', team_id: 'SDA', Team: 'Aftermath' } });
+  const n = playerChangeNotices({ ...base, beforeExists: true, before: { Status: 'Confirmed', team_id: 'TPP' }, after: { Status: 'Out', team_id: 'AFM', Team: 'Aftermath' } });
   assert.deepStrictEqual(types(n), ['player_status_changed', 'player_team_changed']);
 });
 
@@ -47,6 +47,18 @@ test('Questionable, Injured, Out, Dropped still notify', () => {
 });
 
 test('a team move to Confirmed still gives the team notice', () => {
-  const n = playerChangeNotices({ ...base, beforeExists: true, before: { Status: 'Unconfirmed', team_id: 'TPP' }, after: { Status: 'Confirmed', team_id: 'SDA', Team: 'Aftermath' } });
+  const n = playerChangeNotices({ ...base, beforeExists: true, before: { Status: 'Unconfirmed', team_id: 'TPP' }, after: { Status: 'Confirmed', team_id: 'AFM', Team: 'Aftermath' } });
+  assert.deepStrictEqual(types(n), ['player_team_changed']);
+});
+
+test('a new code under the same team name is a rename, not a move (James, 25 Oct 2026)', () => {
+  for (const [from, to, name] of [['SDA', 'AFM', 'Aftermath'], ['AFT', 'SHK', 'Aftershock']]) {
+    const n = playerChangeNotices({ ...base, beforeExists: true, before: { Status: 'Confirmed', team_id: from, Team: name }, after: { Status: 'Confirmed', team_id: to, Team: ` ${name.toUpperCase()} ` } });
+    assert.deepStrictEqual(types(n), [], `${from} → ${to}`);
+  }
+});
+
+test('a code change with a different team name still notifies', () => {
+  const n = playerChangeNotices({ ...base, beforeExists: true, before: { Status: 'Confirmed', team_id: 'AFT', Team: 'Aftershock' }, after: { Status: 'Confirmed', team_id: 'AFM', Team: 'Aftermath' } });
   assert.deepStrictEqual(types(n), ['player_team_changed']);
 });
