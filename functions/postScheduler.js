@@ -26,6 +26,14 @@
  * first pass after the last job passes (late is fine), and the claim clears waiting/waitingSince.
  * Contract: post-holds-contract.md (25 Oct 2026).
  *
+ * Collaborators (James, 25 Oct 2026: Player + Team + NXL on every post, max 3):
+ *
+ *   collaborators: [string]                 optional Instagram usernames ('@' optional); Instagram only, not Facebook
+ *
+ * Each one gets an invite and the post shows on their profile once they accept. If Instagram refuses the list
+ * (private or unknown account), each is tried alone and the refused ones are dropped, so one bad handle never stops
+ * the post; the dropped ones go in result.instagram.collaboratorsDropped and the Slack message.
+ *
  * Plan: pickem-hub/ideas/2026-10-17-scheduler-plan.md.
  */
 const GRAPH = 'https://graph.facebook.com/v26.0/';
@@ -56,12 +64,50 @@ async function waitReady(containerId, token) {
   throw new Error('Instagram took over a minute to process the image');
 }
 
+/** Usernames as Instagram wants them: no '@', lower case, no repeats, at most 3. Pure, so it can be tested. */
+function cleanCollaborators(list) {
+  const names = (Array.isArray(list) ? list : [])
+    .map((u) => String(u).trim().replace(/^@/, '').toLowerCase())
+    .filter(Boolean);
+  return Array.from(new Set(names)).slice(0, 3);
+}
+
+/** Make a ready-to-publish container; `collaborators` (already cleaned) go on it when there are any. */
+async function readyContainer(igUserId, params, collaborators, token) {
+  const p = collaborators.length ? { ...params, collaborators: JSON.stringify(collaborators) } : params;
+  const { id } = await graph('POST', `${igUserId}/media`, p, token);
+  await waitReady(id, token);
+  return id;
+}
+
+/**
+ * The post's container with as many collaborators as Instagram accepts. All at once first; if that's refused,
+ * each one alone (an unpublished container is harmless and expires in 24 h), then the accepted ones together.
+ * If it still fails with none of them, the error is a real one and is thrown.
+ */
+async function containerWithCollaborators(igUserId, params, wanted, token) {
+  if (!wanted.length) return { container: await readyContainer(igUserId, params, [], token), dropped: [] };
+  try {
+    return { container: await readyContainer(igUserId, params, wanted, token), dropped: [] };
+  } catch (e) {
+    console.warn(`Instagram refused collaborators ${wanted.join(', ')}: ${e.message}`);
+  }
+  const ok = [];
+  for (const name of wanted) {
+    try { await readyContainer(igUserId, params, [name], token); ok.push(name); } catch (e) {
+      console.warn(`Dropping collaborator ${name}: ${e.message}`);
+    }
+  }
+  const dropped = wanted.filter((n) => !ok.includes(n));
+  return { container: await readyContainer(igUserId, params, ok, token), dropped };
+}
+
 async function postInstagram(post, cfg) {
   const { igUserId, token } = cfg;
   const urls = await Promise.all(post.fbPhotoIds.map((id) => imageUrl(id, token)));
-  let container;
+  let params;
   if (urls.length === 1) {
-    container = (await graph('POST', `${igUserId}/media`, { image_url: urls[0], caption: post.caption }, token)).id;
+    params = { image_url: urls[0], caption: post.caption };
   } else {
     const children = [];
     for (const url of urls) {
@@ -69,16 +115,17 @@ async function postInstagram(post, cfg) {
       await waitReady(child, token);
       children.push(child);
     }
-    container = (
-      await graph('POST', `${igUserId}/media`, {
-        media_type: 'CAROUSEL', children: children.join(','), caption: post.caption,
-      }, token)
-    ).id;
+    params = { media_type: 'CAROUSEL', children: children.join(','), caption: post.caption };
   }
-  await waitReady(container, token);
+  const wanted = cleanCollaborators(post.collaborators);
+  const { container, dropped } = await containerWithCollaborators(igUserId, params, wanted, token);
+  if (cfg.dryRun) return { container, collaborators: wanted.filter((n) => !dropped.includes(n)), collaboratorsDropped: dropped };
   const { id } = await graph('POST', `${igUserId}/media_publish`, { creation_id: container }, token);
   const { permalink } = await graph('GET', id, { fields: 'permalink' }, token);
-  return { id, permalink };
+  const out = { id, permalink };
+  if (wanted.length) out.collaborators = wanted.filter((n) => !dropped.includes(n));
+  if (dropped.length) out.collaboratorsDropped = dropped;
+  return out;
 }
 
 async function postFacebook(post, cfg) {
@@ -179,7 +226,8 @@ async function runDue(cfg) {
       result.facebook = await postFacebook(post, cfg);
       await doc.ref.update({ status: 'posted', postedAt: FieldValue.serverTimestamp(), result });
       console.log(`✅ Posted ${doc.id}`, result);
-      await notifySlack(post, `✅ Posted *${post.title || doc.id}*\nInstagram: ${result.instagram.permalink}\nFacebook: ${result.facebook.permalink}`, cfg.slackToken, cfg.slackChannel);
+      const dropped = result.instagram.collaboratorsDropped;
+      await notifySlack(post, `✅ Posted *${post.title || doc.id}*\nInstagram: ${result.instagram.permalink}\nFacebook: ${result.facebook.permalink}${dropped ? `\n⚠️ Instagram refused collaborator(s) ${dropped.map((n) => '@' + n).join(', ')} (private or unknown account), posted without them` : ''}`, cfg.slackToken, cfg.slackChannel);
     } catch (e) {
       // Keep whatever did go out, so James can see a half-post (e.g. Instagram yes, Facebook no).
       await doc.ref.update({ status: 'failed', failedAt: FieldValue.serverTimestamp(), error: e.message, result });
@@ -190,4 +238,4 @@ async function runDue(cfg) {
   return due.length;
 }
 
-module.exports = { runDue, holdState };
+module.exports = { runDue, holdState, cleanCollaborators, postInstagram };
