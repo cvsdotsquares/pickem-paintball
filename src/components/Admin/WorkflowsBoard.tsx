@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { primaryButton, sectionLabel } from "./types";
-import WeekBullets, { type BSlot } from "./WeekBullets";
+import WeekBullets, { DOT, jobDot, type BSlot, type Dot } from "./WeekBullets";
 
 /**
  * Workflows (admin page 5, James 18 Oct 2026): the team of agents, for a human to read at a glance.
@@ -447,6 +447,13 @@ function Desk({ c, byId, today, busy, act, onOpen, jobName }: { c: Card; byId: R
   useEffect(() => setPause(a.paused_until), [a.paused_until, a.id]);
   const last = c.lastRun;
   const counted = c.workflows.flatMap((w) => w.steps).filter((s) => s.counts);
+  const builtMap = Object.fromEntries(c.workflows.flatMap((w) => w.steps).map((s) => [s.id, !!s.built]));
+  // Only the stage you're in starts open: the one with something running / due now, else the one with the next run
+  const nextStep = c.workflows.flatMap((w) => w.steps).filter((s) => s.next_at).sort((x, y) => Date.parse(x.next_at) - Date.parse(y.next_at))[0];
+  const openStage =
+    c.workflows.find((w) => w.steps.some((s) => ["running", "due", "overdue", "failed", "waiting"].includes(s.vstate)))?.id ??
+    c.workflows.find((w) => w.steps.some((s) => s.id === nextStep?.id))?.id ??
+    c.workflows.find((w) => w.steps.some((s) => s.counts && s.vstate !== "done"))?.id;
   const total = counted.length;
   const doneN = counted.filter((s) => s.vstate === "done").length;
   return (
@@ -519,9 +526,9 @@ function Desk({ c, byId, today, busy, act, onOpen, jobName }: { c: Card; byId: R
             <div className="text-[10px] text-gray-400">{doneN} of {total} steps done</div>
           </div>
           <div className="mb-4 h-1.5 w-full rounded bg-gray-100 dark:bg-white/10"><div className="h-1.5 rounded bg-gray-900 dark:bg-white" style={{ width: `${(100 * doneN) / Math.max(1, total)}%` }} /></div>
-          <div className="space-y-5">
+          <div className="space-y-2">
             {c.workflows.map((w) => (
-              <Track key={w.id} w={w} agent={a} byId={byId} today={today} busy={busy} act={act} onOpen={onOpen} openStep={openStep} setOpenStep={setOpenStep} />
+              <Track key={w.id} w={w} agent={a} byId={byId} today={today} busy={busy} act={act} onOpen={onOpen} openStep={openStep} setOpenStep={setOpenStep} built={builtMap} defaultOpen={w.id === openStage} />
             ))}
           </div>
         </div>
@@ -555,11 +562,16 @@ function Stat({ label, children }: { label: string; children: React.ReactNode })
 }
 
 /**
- * One workflow as a track: nodes on a line in time order, short labels, the day/time and how each starts underneath,
- * click a node for the detail. "now:" only when something is running or due today; otherwise "next:" (James 24 Oct 2026).
+ * One workflow stage (James 25 Oct 2026, "improve the workflow graphic"): it folds open and shut, its summary line says
+ * how far along it is and what's next, and only the stage you're in starts open. Every step carries the calendars'
+ * status dot (green built · blue needs you · orange not built · red blocked) and a "Today" line sits between what has
+ * started and what's still to come. Phone: a vertical timeline, one row per step. Desktop: the horizontal track.
+ * Tap a step for its detail (a bottom sheet on a phone).
  */
 const LIVE = ["running", "due", "overdue", "failed", "waiting"];
-function Track({ w, agent, byId, today, busy, act, onOpen, openStep, setOpenStep }: { w: { id: string; name: string; steps: Job[] }; agent: AgentRow; byId: Record<string, AgentRow>; today: string; busy: boolean; act: (b: Record<string, unknown>) => Promise<void>; onOpen: (f: string) => void; openStep: string | null; setOpenStep: (id: string | null) => void }) {
+function Track({ w, agent, byId, today, busy, act, onOpen, openStep, setOpenStep, built, defaultOpen }: { w: { id: string; name: string; steps: Job[] }; agent: AgentRow; byId: Record<string, AgentRow>; today: string; busy: boolean; act: (b: Record<string, unknown>) => Promise<void>; onOpen: (f: string) => void; openStep: string | null; setOpenStep: (id: string | null) => void; built: Record<string, boolean>; defaultOpen: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  useEffect(() => setOpen(defaultOpen), [defaultOpen]);
   const steps = w.steps;
   const counted = steps.filter((s) => s.counts);
   const done = counted.filter((s) => s.vstate === "done").length;
@@ -573,53 +585,126 @@ function Track({ w, agent, byId, today, busy, act, onOpen, openStep, setOpenStep
     ? "all done"
     : "";
   const ringed = new Set(nowSteps.length ? nowSteps.map((s) => s.id) : next ? [next.id] : []);
-  return (
-    <div>
-      <div className="mb-2 flex items-baseline gap-2">
-        <div className="text-[11px] font-black uppercase tracking-wide">{w.name}</div>
-        <div className="text-[10px] text-gray-400">{counted.length ? `${done}/${counted.length}` : ""}{head ? `${counted.length ? " · " : ""}${head}` : ""}</div>
+  // "Today" goes before the first step that starts after today (on-message steps sit at the end, after it)
+  let todayAt = steps.findIndex((s) => s.repeat === "on_message" || (s.vstate !== "done" && etDate(s.first_due) > today));
+  if (todayAt === -1) todayAt = steps.length;
+  // only where today falls inside the stage: a stage wholly ahead or wholly done gets no marker
+  if (todayAt === 0 || todayAt === steps.length) todayAt = -1;
+  const dotOf = (s: Job) => jobDot(s, today, today, built);
+  const dots = steps.reduce<Record<Dot, number>>((m, s) => ({ ...m, [dotOf(s)]: (m[dotOf(s)] ?? 0) + 1 }), { green: 0, blue: 0, orange: 0, red: 0 });
+
+  const detail = (s: Job) => {
+    const st = STATE[s.vstate] ?? { glyph: "", label: s.vstate };
+    return (
+      <div className="fixed inset-x-3 bottom-3 z-50 max-h-[70vh] overflow-y-auto rounded-xl border border-gray-200 bg-white p-4 text-left text-[13px] shadow-xl dark:border-white/10 dark:bg-[#111] md:absolute md:inset-x-auto md:bottom-auto md:left-1/2 md:top-10 md:z-20 md:max-h-none md:w-64 md:-translate-x-1/2 md:p-3 md:text-[11px]" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-1 font-black">{s.name}</div>
+        <div className="mb-1 flex items-center gap-1.5 text-gray-500 dark:text-white/50">
+          <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${DOT[dotOf(s)].cls}`} />
+          {DOT[dotOf(s)].label}
+        </div>
+        <div className="mb-1 text-gray-500 dark:text-white/50">{byId[s.agent]?.icon} {s.agent_name} · {st.label} · {[s.when1, s.when2].filter(Boolean).join(" · ")} ET · {s.how}</div>
+        {s.next_at && <div className="mb-1">Next run: {dayOf(s.next_at)} {timeOf(s.next_at)} ET</div>}
+        {s.waiting_on?.length ? <div className="mb-1">Waiting on: {s.waiting_on.map((x) => x.replace(/_/g, " ")).join(", ")}</div> : null}
+        <div className="mb-1"><b>Done looks like:</b> {s.done}</div>
+        <div className="mb-1"><b>Checks:</b> {s.checks.join("; ")}</div>
+        <div className="mb-2 text-gray-500 dark:text-white/50">{s.writes === "asks" ? "Asks first: a diff in #approvals, your ✅ writes it" : s.writes === "james" ? "This one is yours" : "Writes its own result"}{s.inputs.length ? ` · needs from you: ${s.inputs.join("; ")}` : ""}</div>
+        <div className="flex gap-3 text-gray-400">
+          {s.slot && <Link href={`/admin/scheduler?slot=${s.slot}`} className="underline">Schedule slot</Link>}
+          {s.last_report && <button className="underline" onClick={() => onOpen(s.last_report)}>last report</button>}
+          {s.built && s.repeat !== "own_timer" && s.state !== "running" && agent.status === "on" && <button className="underline" disabled={busy} onClick={() => act({ action: "run", agent: s.agent, job: s.id })}>run now</button>}
+          <button className="ml-auto" onClick={() => setOpenStep(null)}>✕</button>
+        </div>
       </div>
-      <ol className="relative flex flex-wrap gap-y-4">
+    );
+  };
+  const todayLine = (vertical: boolean) =>
+    vertical ? (
+      <li key="today" className="flex items-center gap-2 py-1 text-[10px] font-black uppercase tracking-widest text-gray-900 dark:text-white">
+        <span className="h-px flex-1 bg-gray-900 dark:bg-white" />Today<span className="h-px flex-1 bg-gray-900 dark:bg-white" />
+      </li>
+    ) : (
+      <li key="today" className="relative flex w-10 flex-col items-center" title="Today">
+        <span className="absolute -top-2 bottom-0 w-0.5 bg-gray-900 dark:bg-white" />
+        <span className="relative z-10 mt-2 rounded bg-gray-900 px-1 text-[8px] font-black uppercase tracking-widest text-white dark:bg-white dark:text-black">Today</span>
+      </li>
+    );
+
+  return (
+    <details open={open} onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)} className="group rounded-xl border border-gray-100 dark:border-white/5">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-2 gap-y-1 p-3">
+        <span className="text-[11px] font-black uppercase tracking-wide">{w.name}</span>
+        {counted.length > 0 && <span className="text-[10px] text-gray-500 dark:text-white/50">{done} of {counted.length} done</span>}
+        <span className="flex items-center gap-1">
+          {(Object.keys(DOT) as Dot[]).filter((d) => dots[d]).map((d) => (
+            <span key={d} className="flex items-center gap-0.5 text-[9px] text-gray-400" title={`${dots[d]} ${DOT[d].label}`}>
+              <span className={`inline-block h-1.5 w-1.5 rounded-full ${DOT[d].cls}`} />{dots[d]}
+            </span>
+          ))}
+        </span>
+        <span className="ml-auto text-[16px] leading-none text-gray-500 transition-transform group-open:rotate-180 dark:text-white/50 md:order-last">▾</span>
+        <span className="min-w-0 basis-full truncate text-[11px] text-gray-500 dark:text-white/50 md:basis-auto md:flex-1">{head}</span>
+      </summary>
+
+      {/* Phone: a vertical timeline */}
+      <ol className="px-3 pb-3 md:hidden">
+        {steps.map((s, i) => {
+          const st = STATE[s.vstate] ?? { glyph: "", label: s.vstate };
+          const isCur = ringed.has(s.id);
+          const d = dotOf(s);
+          return (
+            <Fragment key={s.id}>
+              {i === todayAt && todayLine(true)}
+              <li className="relative flex gap-3">
+                <span className="flex w-5 shrink-0 flex-col items-center">
+                  <span className={`mt-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${s.vstate === "done" ? "bg-gray-900 text-white dark:bg-white dark:text-black" : "border-2 border-gray-300 bg-white dark:border-white/20 dark:bg-[#0d0d0d]"} ${isCur ? "ring-4 ring-gray-200 dark:ring-white/20" : ""}`}>{s.vstate === "done" ? "✓" : st.glyph}</span>
+                  {i < steps.length - 1 && <span className="w-px flex-1 bg-gray-200 dark:bg-white/10" />}
+                </span>
+                <button onClick={() => setOpenStep(openStep === s.id ? null : s.id)} className="min-w-0 flex-1 pb-3 text-left">
+                  <span className={`flex items-center gap-1.5 text-[13px] ${isCur ? "font-black" : "font-bold"} ${s.vstate === "done" ? "text-gray-400" : ""}`}>
+                    <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${DOT[d].cls}`} title={DOT[d].label} />
+                    <span className="truncate">{shortName(s)}</span>
+                  </span>
+                  <span className="block text-[11px] text-gray-500 dark:text-white/50">{s.agent !== agent.id ? `${byId[s.agent]?.icon} ` : ""}{[s.when1, s.when2].filter(Boolean).join(" · ")}</span>
+                  <span className="block text-[11px] text-gray-400">{s.vstate === "today" ? "ran today · " : ""}{s.how}</span>
+                </button>
+                {openStep === s.id && detail(s)}
+              </li>
+            </Fragment>
+          );
+        })}
+      </ol>
+
+      {/* Desktop: the horizontal track */}
+      <ol className="relative hidden flex-wrap gap-y-4 px-3 pb-4 md:flex">
         {steps.map((s, i) => {
           const st = STATE[s.vstate] ?? { glyph: "", label: s.vstate };
           const isCur = ringed.has(s.id);
           const filled = s.vstate === "done";
+          const d = dotOf(s);
           return (
-            <li key={s.id} className="relative flex w-28 flex-col items-center text-center">
-              {i > 0 && <span className={`absolute right-1/2 top-4 h-px w-full ${steps[i - 1].vstate === "done" ? "bg-gray-900 dark:bg-white" : "bg-gray-200 dark:bg-white/10"}`} />}
-              <button
-                onClick={() => setOpenStep(openStep === s.id ? null : s.id)}
-                className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-[12px] ${filled ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-black" : isCur || s.vstate === "today" ? "border-gray-900 bg-white dark:border-white dark:bg-[#0d0d0d]" : s.vstate === "not_built" ? "border-dashed border-gray-300 bg-white dark:border-white/20 dark:bg-[#0d0d0d]" : "border-gray-300 bg-white dark:border-white/20 dark:bg-[#0d0d0d]"} ${isCur ? "ring-4 ring-gray-200 dark:ring-white/20" : ""}`}
-                title={`${s.name} · ${st.label}`}
-              >
-                {st.glyph}
-              </button>
-              <span className={`mt-1.5 line-clamp-2 px-1 text-[10px] leading-tight ${isCur ? "font-bold" : ""}`} title={s.name}>{shortName(s)}</span>
-              <span className="text-[9px] leading-tight text-gray-500 dark:text-white/50">{s.agent !== agent.id ? `${byId[s.agent]?.icon} ` : ""}{s.when1}</span>
-              {s.when2 && <span className="text-[9px] leading-tight text-gray-500 dark:text-white/50">{s.when2}</span>}
-              <span className="text-[9px] leading-tight text-gray-400">{s.vstate === "today" ? "ran today · " : ""}{s.how}</span>
-              {openStep === s.id && (
-                <div className="fixed inset-x-3 bottom-3 z-50 max-h-[70vh] overflow-y-auto rounded-xl border border-gray-200 bg-white p-4 text-left text-[13px] shadow-xl dark:border-white/10 dark:bg-[#111] md:absolute md:inset-x-auto md:bottom-auto md:left-1/2 md:top-10 md:z-20 md:max-h-none md:w-64 md:-translate-x-1/2 md:p-3 md:text-[11px]" onClick={(e) => e.stopPropagation()}>
-                  <div className="mb-1 font-black">{s.name}</div>
-                  <div className="mb-1 text-gray-500 dark:text-white/50">{byId[s.agent]?.icon} {s.agent_name} · {st.label} · {[s.when1, s.when2].filter(Boolean).join(" · ")} ET · {s.how}</div>
-                  {s.next_at && <div className="mb-1">Next run: {dayOf(s.next_at)} {timeOf(s.next_at)} ET</div>}
-                  {s.waiting_on?.length ? <div className="mb-1">Waiting on: {s.waiting_on.map((x) => x.replace(/_/g, " ")).join(", ")}</div> : null}
-                  <div className="mb-1"><b>Done looks like:</b> {s.done}</div>
-                  <div className="mb-1"><b>Checks:</b> {s.checks.join("; ")}</div>
-                  <div className="mb-2 text-gray-500 dark:text-white/50">{s.writes === "asks" ? "Asks first: a diff in #approvals, your ✅ writes it" : s.writes === "james" ? "This one is yours" : "Writes its own result"}{s.inputs.length ? ` · needs from you: ${s.inputs.join("; ")}` : ""}</div>
-                  <div className="flex gap-3 text-gray-400">
-                    {s.slot && <Link href={`/admin/scheduler?slot=${s.slot}`} className="underline">Schedule slot</Link>}
-                    {s.last_report && <button className="underline" onClick={() => onOpen(s.last_report)}>last report</button>}
-                    {s.built && s.repeat !== "own_timer" && s.state !== "running" && agent.status === "on" && <button className="underline" disabled={busy} onClick={() => act({ action: "run", agent: s.agent, job: s.id })}>run now</button>}
-                    <button className="ml-auto" onClick={() => setOpenStep(null)}>✕</button>
-                  </div>
-                </div>
-              )}
-            </li>
+            <Fragment key={s.id}>
+              {i === todayAt && todayLine(false)}
+              <li className="relative flex w-28 flex-col items-center text-center">
+                {i > 0 && i !== todayAt && <span className={`absolute right-1/2 top-4 h-px w-full ${steps[i - 1].vstate === "done" ? "bg-gray-900 dark:bg-white" : "bg-gray-200 dark:bg-white/10"}`} />}
+                <button
+                  onClick={() => setOpenStep(openStep === s.id ? null : s.id)}
+                  className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-[12px] ${filled ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-black" : isCur || s.vstate === "today" ? "border-gray-900 bg-white dark:border-white dark:bg-[#0d0d0d]" : s.vstate === "not_built" ? "border-dashed border-gray-300 bg-white dark:border-white/20 dark:bg-[#0d0d0d]" : "border-gray-300 bg-white dark:border-white/20 dark:bg-[#0d0d0d]"} ${isCur ? "ring-4 ring-gray-200 dark:ring-white/20" : ""}`}
+                  title={`${s.name} · ${st.label} · ${DOT[d].label}`}
+                >
+                  {st.glyph}
+                  <span className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-[#0d0d0d] ${DOT[d].cls}`} />
+                </button>
+                <span className={`mt-1.5 line-clamp-2 px-1 text-[10px] leading-tight ${isCur ? "font-bold" : ""}`} title={s.name}>{shortName(s)}</span>
+                <span className="text-[9px] leading-tight text-gray-500 dark:text-white/50">{s.agent !== agent.id ? `${byId[s.agent]?.icon} ` : ""}{s.when1}</span>
+                {s.when2 && <span className="text-[9px] leading-tight text-gray-500 dark:text-white/50">{s.when2}</span>}
+                <span className="text-[9px] leading-tight text-gray-400">{s.vstate === "today" ? "ran today · " : ""}{s.how}</span>
+                {openStep === s.id && detail(s)}
+              </li>
+            </Fragment>
           );
         })}
       </ol>
-    </div>
+    </details>
   );
 }
 

@@ -30,9 +30,10 @@ export const DOT: Record<Dot, { cls: string; label: string }> = {
 };
 
 /** A job's dot on one day. Live states (waiting / failed / overdue) only count for today. */
-function jobDot(j: BJob, day: string, today: string, built: Record<string, boolean>): Dot {
+export function jobDot(j: BJob, day: string, today: string, built: Record<string, boolean>): Dot {
   if (day === today && ["waiting", "failed", "overdue"].includes(j.state)) return "red";
   if (!j.built || j.state === "not_built") return "orange";
+  if (j.repeat === "on_message") return "blue"; // runs when James answers in Slack
   if (j.needs_first.some((n) => built[n] === false)) return "red";
   if (j.agent === "james" || j.writes === "asks" || j.writes === "james") return "blue";
   return "green";
