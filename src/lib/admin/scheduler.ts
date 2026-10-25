@@ -6,6 +6,7 @@ import { applicationDefault, getApps, initializeApp, type App } from "firebase-a
 import { getFirestore, Timestamp, FieldValue } from "firebase-admin/firestore";
 import { HUB } from "./library";
 import { baseOf, eventPack, finals, GEN, graphicName, graphics, listEvents, readStatus } from "./generator";
+import { holdBlock, holdChip, jobShort, type HoldChip, type HoldJob } from "./holds";
 
 /**
  * Post Scheduler (admin panel page 4). Plan: pickem-hub/ideas/2026-10-17-scheduler-plan.md.
@@ -47,6 +48,9 @@ export type Slot = {
   slidesStamp: string; // the slides' modified times when approved, to spot a re-made graphic
   result: { instagram?: { permalink: string }; facebook?: { permalink: string } } | null;
   error: string;
+  waitFor: string[]; // playbook data job ids this post waits for (post holds, 25 Oct 2026); [] = no hold
+  waiting: string; // set by the posting job while it holds a due post: the job ids not passed yet, comma-joined
+  waitingSince: string | null; // ISO: the first pass that held it
 };
 export type Check = { level: "block" | "warn"; text: string };
 export type SlotView = Slot & {
@@ -63,6 +67,7 @@ export type SlotView = Slot & {
   checks: Check[];
   link: string; // the graphic's Post Generator page
   path: PathStep[]; // data → populate → approve → post, with who and when
+  hold: HoldChip | null; // the ⏳ chip: "waits for …" / "waiting for …" (orange)
 };
 export type NeedsYou = { id: string; text: string; due: string | null; tone: "orange" | "red" };
 export type TrayItem = {
@@ -81,6 +86,40 @@ const COLLECTION = "scheduledPosts";
 const GRAPH = "https://graph.facebook.com/v26.0/";
 const EVENTS_JSON = path.join(HUB, "scheduler", "events.json");
 const AGENTS_JSON = path.join(HUB, "scheduler", "agents.json");
+const PLAYBOOK_JSON = path.join(HUB, "scheduler", "playbook.json");
+const JOBS_COLLECTION = "agentJobs";
+
+/** The playbook's jobs (id, name, short, agent, repeat). */
+export function playbookJobs(): HoldJob[] {
+  try {
+    return JSON.parse(fs.readFileSync(PLAYBOOK_JSON, "utf8")).jobs ?? [];
+  } catch {
+    return [];
+  }
+}
+/** The jobs a post can wait for: the Data agent's. */
+const dataJobs = () => playbookJobs().filter((j) => j.agent === "data");
+
+/**
+ * What a graphic waits for, from GEN/work/<event>/<type>/status.json (written by pickem-hub generator/waits_for.py):
+ * `waits_for` (job ids; null when it hasn't been worked out) and `waits_for_flags` (warnings).
+ */
+export function graphicWaits(event: string, type: string): { waitsFor: string[] | null; flags: string[] } {
+  const st = readStatus(event, type) as { waits_for?: unknown; waits_for_flags?: unknown };
+  const list = (v: unknown) => (Array.isArray(v) ? v.map(String).filter(Boolean) : null);
+  return { waitsFor: list(st.waits_for), flags: list(st.waits_for_flags) ?? [] };
+}
+/** For the Post Generator graphic page: the same with short names. */
+export function graphicHolds(event: string, type: string): { waitsFor: string[] | null; flags: string[] } {
+  const { waitsFor, flags } = graphicWaits(event, type);
+  const jobs = playbookJobs();
+  return { waitsFor: waitsFor && waitsFor.map((id) => jobShort(id, jobs)), flags };
+}
+/** A new post slot for a graphic starts with the graphic's `waits_for` (nothing when there isn't one). */
+const autoWaitFor = (event: string, type: string): { waitFor?: string[] } => {
+  const w = graphicWaits(event, type).waitsFor;
+  return w && w.length ? { waitFor: Array.from(new Set(w)) } : {};
+};
 
 export function agents(): Agent[] {
   try {
@@ -130,6 +169,9 @@ function toSlot(id: string, d: FirebaseFirestore.DocumentData): Slot {
     slidesStamp: d.slidesStamp ?? "",
     result: d.result ?? null,
     error: d.error ?? "",
+    waitFor: Array.isArray(d.waitFor) ? d.waitFor.map(String) : [],
+    waiting: d.waiting ?? "",
+    waitingSince: iso(d.waitingSince),
   };
 }
 
@@ -233,6 +275,7 @@ function view(s: Slot): SlotView {
       checks: checks(s, "", data),
       link: "",
       path: [],
+      hold: null,
     };
   }
   const p = packItem(s.type);
@@ -262,6 +305,7 @@ function view(s: Slot): SlotView {
     checks: checks(s, st.stage, data),
     link: `/admin/generator/${s.event}/${baseOf(s.type)}/${s.type}`,
     path: pathFor(s, st.stage, data, placeholder),
+    hold: holdChip(s.waitFor, s.waiting, playbookJobs()),
   };
 }
 
@@ -352,10 +396,24 @@ async function getSlot(id: string): Promise<Slot> {
   return toSlot(d.id, d.data()!);
 }
 
+/**
+ * The calendar block (post holds): refuse a post time before a job it waits for runs (the job's work slot on the
+ * Schedule). `at` is an ISO time. No hold, or no work slot for the job (own-timer jobs), never blocks.
+ */
+async function checkHold(event: string, waitFor: string[], at: Date): Promise<void> {
+  if (!waitFor.length) return;
+  const slots = (await db().collection(COLLECTION).where("event", "==", event).get()).docs.map((d) => toSlot(d.id, d.data()));
+  const why = holdBlock(at.toISOString(), waitFor, slots, playbookJobs(), showTyped);
+  if (why) throw new Error(why);
+}
+
 /** Put something from the tray on the calendar (as a draft). A made post brings its PNG and caption. */
 export async function addSlot(event: string, type: string, variant: string, at: string): Promise<string> {
   const made = variant ? madePosts(event, type).find((m) => m.key === variant) : undefined;
   if (variant && !made) throw new Error("That post isn't made any more");
+  const hold = autoWaitFor(event, type);
+  const when = eastern(at);
+  await checkHold(event, hold.waitFor ?? [], when);
   const ref = await db()
     .collection(COLLECTION)
     .add({
@@ -366,27 +424,45 @@ export async function addSlot(event: string, type: string, variant: string, at: 
       variant,
       title: titleFor(event, type, variant),
       status: "draft",
-      publishAt: Timestamp.fromDate(eastern(at)),
+      publishAt: Timestamp.fromDate(when),
       caption: made?.caption ?? "",
       slides: made ? [made.png] : [],
       notes: "",
+      ...hold,
       createdAt: FieldValue.serverTimestamp(),
     });
   return ref.id;
 }
 
-/** Edit a draft: time (ET), caption, notes, slides, or pick the made post a placeholder becomes. */
+/**
+ * Edit a draft: time (ET), caption, notes, slides, or pick the made post a placeholder becomes. Notes and `waitFor`
+ * (the jobs a post waits for: a hold only makes sending safer) can be changed on an approved post that hasn't gone out.
+ */
 export async function saveSlot(
   id: string,
-  patch: { at?: string; caption?: string; notes?: string; slides?: string[]; variant?: string; title?: string; duration?: number },
+  patch: { at?: string; caption?: string; notes?: string; slides?: string[]; variant?: string; title?: string; duration?: number; waitFor?: string[] },
 ): Promise<void> {
   const s = await getSlot(id);
-  const onlyNotes = Object.keys(patch).every((k) => k === "notes");
+  // (the API passes every field, unset ones as undefined)
+  const onlyNotes = Object.entries(patch).every(([k, v]) => v === undefined || k === "notes" || k === "waitFor");
   if (s.kind === "post" && s.status !== "draft" && s.status !== "failed" && !onlyNotes) throw new Error("Un-approve it first to change it");
   const up: Record<string, unknown> = {};
   if (patch.title !== undefined && s.kind !== "post") up.title = patch.title.trim() || s.title;
   if (patch.duration !== undefined && s.kind === "work") up.duration = Math.max(0, Math.round(patch.duration));
-  if (patch.at !== undefined) up.publishAt = Timestamp.fromDate(eastern(patch.at));
+  if (patch.waitFor !== undefined) {
+    if (s.kind !== "post") throw new Error("Only a post can wait for a job");
+    if (s.status === "sending" || s.status === "posted") throw new Error("It has gone out (or is going out)");
+    const known = new Set(dataJobs().map((j) => j.id));
+    const ids = Array.from(new Set(patch.waitFor.map((x) => x.trim()).filter(Boolean)));
+    const bad = ids.filter((x) => !known.has(x));
+    if (bad.length) throw new Error(`Unknown job: ${bad.join(", ")}`);
+    up.waitFor = ids.length ? ids : FieldValue.delete();
+  }
+  if (patch.at !== undefined) {
+    const when = eastern(patch.at);
+    if (s.kind === "post") await checkHold(s.event, patch.waitFor ?? s.waitFor, when);
+    up.publishAt = Timestamp.fromDate(when);
+  }
   if (patch.caption !== undefined) up.caption = patch.caption;
   if (patch.notes !== undefined) up.notes = patch.notes;
   if (patch.slides !== undefined) {
@@ -422,6 +498,7 @@ export async function spread(event: string, type: string, variants: string[], fr
   // Even spacing: pick `picked.length` of the available slots, spread across the range.
   const all = days.flatMap((day) => times.map((t) => `${day}T${t}`));
   const chosen = picked.map((_, i) => all[Math.floor(((i + 0.5) * all.length) / picked.length)]);
+  const hold = autoWaitFor(event, type);
   const batch = db().batch();
   picked.forEach((m, i) =>
     batch.set(db().collection(COLLECTION).doc(), {
@@ -436,6 +513,7 @@ export async function spread(event: string, type: string, variants: string[], fr
       caption: m.caption,
       slides: [m.png],
       notes: "",
+      ...hold,
       createdAt: FieldValue.serverTimestamp(),
     }),
   );
@@ -500,6 +578,7 @@ export async function approve(id: string): Promise<void> {
   const v = view(s);
   const blocks = v.checks.filter((c) => c.level === "block");
   if (blocks.length) throw new Error(`Can't approve yet: ${blocks.map((b) => b.text).join("; ")}`);
+  if (s.publishAt) await checkHold(s.event, s.waitFor, new Date(s.publishAt));
   const env = metaEnv();
   const fbPhotoIds: string[] = [];
   try {
@@ -531,6 +610,8 @@ export async function approve(id: string): Promise<void> {
 export async function moveApproved(id: string, at: string): Promise<void> {
   const when = eastern(at);
   if (when.getTime() < Date.now() + 10 * 60 * 1000) throw new Error("That time has passed (or is under 10 minutes away): pick a later day");
+  const s = await getSlot(id);
+  await checkHold(s.event, s.waitFor, when);
   const ref = db().collection(COLLECTION).doc(id);
   await db().runTransaction(async (tx) => {
     const d = await tx.get(ref);
@@ -678,6 +759,7 @@ export async function scheduleApproved(event: string, type: string, variant: str
         caption,
         slides: [made.png],
         notes: "",
+        ...autoWaitFor(event, type),
         createdAt: FieldValue.serverTimestamp(),
       })
     ).id;
@@ -709,4 +791,21 @@ export function eventPosts(event: string): { png: string; title: string }[] {
   for (const p of eventPack())
     for (const g of graphics(event, p.key)) for (const m of madePosts(event, g.key)) out.push({ png: m.png, title: titleFor(event, g.key, m.key) });
   return out;
+}
+
+/**
+ * A Data job's latest run (post holds): agentJobs/{event}__{job}, overwritten each run, read by the posting job to
+ * release posts that wait for it. Written from the Mac (pickem-hub run.py / record.py, through the `jobResult` action).
+ * Test runs are never sent here.
+ */
+export async function recordJobResult(event: string, job: string, result: string, finishedAt: string): Promise<void> {
+  const j = dataJobs().find((x) => x.id === job);
+  if (!j) throw new Error(`Unknown job: ${job}`);
+  if (result !== "ok" && result !== "failed") throw new Error("result is ok or failed");
+  const at = new Date(finishedAt);
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(finishedAt) || Number.isNaN(at.getTime())) throw new Error("finishedAt must be an ISO time");
+  await db()
+    .collection(JOBS_COLLECTION)
+    .doc(`${event}__${job}`)
+    .set({ event, job, result, finishedAt: Timestamp.fromDate(at), repeat: j.repeat ?? "once", updatedAt: FieldValue.serverTimestamp() });
 }
