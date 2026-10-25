@@ -7,6 +7,7 @@ import { getFirestore, Timestamp, FieldValue } from "firebase-admin/firestore";
 import { HUB } from "./library";
 import { baseOf, eventPack, finals, GEN, graphicName, graphics, listEvents, readStatus } from "./generator";
 import { holdBlock, holdChip, jobShort, type HoldChip, type HoldJob } from "./holds";
+import { autoCollaborators, cleanList, MAX_COLLABORATORS, type Handles, type Teams } from "./collab";
 
 /**
  * Post Scheduler (admin panel page 4). Plan: pickem-hub/ideas/2026-10-17-scheduler-plan.md.
@@ -51,6 +52,8 @@ export type Slot = {
   waitFor: string[]; // playbook data job ids this post waits for (post holds, 25 Oct 2026); [] = no hold
   waiting: string; // set by the posting job while it holds a due post: the job ids not passed yet, comma-joined
   waitingSince: string | null; // ISO: the first pass that held it
+  collaborators: string[]; // Instagram usernames (no "@"), max 3: Player + Team + NXL, filled by the rule (collab.ts)
+  collabSet: boolean; // true once James / Social changed them by hand: the rule never refills them then
 };
 export type Check = { level: "block" | "warn"; text: string };
 export type SlotView = Slot & {
@@ -121,6 +124,33 @@ const autoWaitFor = (event: string, type: string): { waitFor?: string[] } => {
   return w && w.length ? { waitFor: Array.from(new Set(w)) } : {};
 };
 
+function readJson<T>(p: string, fallback: T): T {
+  try {
+    return JSON.parse(fs.readFileSync(p, "utf8")) as T;
+  } catch {
+    return fallback;
+  }
+}
+/**
+ * The collaborators a post starts with (James 25 Oct 2026: Player + Team + NXL, max 3; collab.ts has the rule). Read
+ * from the made post's data.json next to its post.png; a placeholder (nothing made yet) gets NXL only, and picks up the
+ * rest when it's linked to its made post.
+ */
+export function autoCollab(slide: string | undefined): string[] {
+  const handles = readJson<Handles>(path.join(GEN, "data", "handles.json"), {});
+  const teams = readJson<Teams>(path.join(GEN, "data", "teams.json"), {});
+  const data = slide ? readJson<unknown>(path.join(GEN, path.dirname(slide), "data.json"), null) : null;
+  return autoCollaborators(data, handles, teams);
+}
+/** Typed collaborators → clean usernames, or a plain-words refusal. */
+function checkCollab(list: string[]): string[] {
+  const c = cleanList(list);
+  if (c.bad.length) throw new Error(`Not an Instagram username: ${c.bad.join(", ")}`);
+  if (c.own.length) throw new Error(`That's our own account (@${c.own.join(", @")}): leave it out`);
+  if (c.tooMany) throw new Error(`Instagram takes ${MAX_COLLABORATORS} collaborators at most`);
+  return c.ok;
+}
+
 export function agents(): Agent[] {
   try {
     return JSON.parse(fs.readFileSync(AGENTS_JSON, "utf8")).agents ?? [];
@@ -172,6 +202,8 @@ function toSlot(id: string, d: FirebaseFirestore.DocumentData): Slot {
     waitFor: Array.isArray(d.waitFor) ? d.waitFor.map(String) : [],
     waiting: d.waiting ?? "",
     waitingSince: iso(d.waitingSince),
+    collaborators: Array.isArray(d.collaborators) ? d.collaborators.map(String) : [],
+    collabSet: !!d.collabSet,
   };
 }
 
@@ -306,6 +338,8 @@ function view(s: Slot): SlotView {
     link: `/admin/generator/${s.event}/${baseOf(s.type)}/${s.type}`,
     path: pathFor(s, st.stage, data, placeholder),
     hold: holdChip(s.waitFor, s.waiting, playbookJobs()),
+    // a draft put on before collaborators existed shows the rule's (approve saves them); anything else shows what's saved
+    collaborators: !s.collabSet && !s.collaborators.length && (s.status === "draft" || s.status === "failed") ? autoCollab(s.slides[0]) : s.collaborators,
   };
 }
 
@@ -428,6 +462,7 @@ export async function addSlot(event: string, type: string, variant: string, at: 
       caption: made?.caption ?? "",
       slides: made ? [made.png] : [],
       notes: "",
+      collaborators: autoCollab(made?.png),
       ...hold,
       createdAt: FieldValue.serverTimestamp(),
     });
@@ -440,11 +475,11 @@ export async function addSlot(event: string, type: string, variant: string, at: 
  */
 export async function saveSlot(
   id: string,
-  patch: { at?: string; caption?: string; notes?: string; slides?: string[]; variant?: string; title?: string; duration?: number; waitFor?: string[] },
+  patch: { at?: string; caption?: string; notes?: string; slides?: string[]; variant?: string; title?: string; duration?: number; waitFor?: string[]; collaborators?: string[] },
 ): Promise<void> {
   const s = await getSlot(id);
   // (the API passes every field, unset ones as undefined)
-  const onlyNotes = Object.entries(patch).every(([k, v]) => v === undefined || k === "notes" || k === "waitFor");
+  const onlyNotes = Object.entries(patch).every(([k, v]) => v === undefined || k === "notes" || k === "waitFor" || k === "collaborators");
   if (s.kind === "post" && s.status !== "draft" && s.status !== "failed" && !onlyNotes) throw new Error("Un-approve it first to change it");
   const up: Record<string, unknown> = {};
   if (patch.title !== undefined && s.kind !== "post") up.title = patch.title.trim() || s.title;
@@ -457,6 +492,13 @@ export async function saveSlot(
     const bad = ids.filter((x) => !known.has(x));
     if (bad.length) throw new Error(`Unknown job: ${bad.join(", ")}`);
     up.waitFor = ids.length ? ids : FieldValue.delete();
+  }
+  if (patch.collaborators !== undefined) {
+    // Like notes, these can change on an approved post that hasn't gone out: the posting job reads them when it sends.
+    if (s.kind !== "post") throw new Error("Only a post has collaborators");
+    if (s.status === "sending" || s.status === "posted") throw new Error("It has gone out (or is going out)");
+    up.collaborators = checkCollab(patch.collaborators);
+    up.collabSet = true;
   }
   if (patch.at !== undefined) {
     const when = eastern(patch.at);
@@ -476,6 +518,7 @@ export async function saveSlot(
     up.title = titleFor(s.event, s.type, m.key);
     up.slides = [m.png];
     if (!s.caption.trim()) up.caption = m.caption;
+    if (!s.collabSet && patch.collaborators === undefined) up.collaborators = autoCollab(m.png); // now we know who it's about
   }
   if (s.kind === "post" && s.status === "failed" && !onlyNotes) up.status = "draft";
   await db().collection(COLLECTION).doc(id).update(up);
@@ -513,6 +556,7 @@ export async function spread(event: string, type: string, variants: string[], fr
       caption: m.caption,
       slides: [m.png],
       notes: "",
+      collaborators: autoCollab(m.png),
       ...hold,
       createdAt: FieldValue.serverTimestamp(),
     }),
@@ -579,6 +623,8 @@ export async function approve(id: string): Promise<void> {
   const blocks = v.checks.filter((c) => c.level === "block");
   if (blocks.length) throw new Error(`Can't approve yet: ${blocks.map((b) => b.text).join("; ")}`);
   if (s.publishAt) await checkHold(s.event, s.waitFor, new Date(s.publishAt));
+  // A post put on the calendar before collaborators existed (25 Oct 2026) gets the rule's ones as it's approved.
+  const collab = !s.collabSet && !s.collaborators.length && s.kind === "post" ? { collaborators: autoCollab(s.slides[0]) } : {};
   const env = metaEnv();
   const fbPhotoIds: string[] = [];
   try {
@@ -597,6 +643,7 @@ export async function approve(id: string): Promise<void> {
       approvedBy: "James",
       approvedAt: FieldValue.serverTimestamp(),
       error: FieldValue.delete(),
+      ...collab,
     });
 }
 
@@ -667,14 +714,21 @@ export async function removeSlot(id: string): Promise<void> {
 export async function forGraphic(event: string, type: string) {
   const posts = madePosts(event, type);
   const snap = await db().collection(COLLECTION).where("event", "==", event).where("type", "==", type).get();
-  const scheduled: Record<string, { id: string; status: SlotStatus; publishAt: string | null }> = {};
+  const scheduled: Record<string, { id: string; status: SlotStatus; publishAt: string | null; collaborators: string[] }> = {};
   for (const d of snap.docs) {
     const s = toSlot(d.id, d.data());
-    if (s.kind === "post" && s.variant) scheduled[s.variant] = { id: s.id, status: s.status, publishAt: s.publishAt };
+    if (s.kind === "post" && s.variant) scheduled[s.variant] = { id: s.id, status: s.status, publishAt: s.publishAt, collaborators: s.collaborators };
   }
   const all = (await db().collection(COLLECTION).where("event", "==", event).get()).docs.map((d) => toSlot(d.id, d.data()));
   const rec = recommend(event, type, all, Math.max(1, posts.length));
-  return { posts, scheduled, recommend: rec.slots, why: rec.why };
+  // what each made post would collab with: a draft's own list (it may have been changed), else the rule's
+  const collab = Object.fromEntries(
+    posts.map((p) => {
+      const sc = snap.docs.map((d) => toSlot(d.id, d.data())).find((s) => s.kind === "post" && s.variant === p.key);
+      return [p.key, sc && (sc.collabSet || sc.collaborators.length) ? sc.collaborators : autoCollab(p.png)];
+    }),
+  );
+  return { posts, scheduled, recommend: rec.slots, why: rec.why, collab };
 }
 
 const toET = (iso: string) => {
@@ -747,9 +801,11 @@ export function recommend(event: string, type: string, slots: Slot[], n = 1): { 
  * Generator step 5: approve a finished post with its caption and time in one go. Reuses a draft already on the
  * Schedule for the same post (so nothing doubles up). `at` null = post now (the cloud job's next pass).
  */
-export async function scheduleApproved(event: string, type: string, variant: string, at: string | null, caption: string): Promise<string> {
+export async function scheduleApproved(event: string, type: string, variant: string, at: string | null, caption: string, collaborators?: string[]): Promise<string> {
   const made = madePosts(event, type).find((m) => m.key === variant);
   if (!made) throw new Error("That post isn't made");
+  // step 5 sends what its "Collab with" box shows; nothing sent = the rule's (a draft keeps its own)
+  const collab = collaborators !== undefined ? { collaborators: checkCollab(collaborators), collabSet: true } : null;
   const existing = (await db().collection(COLLECTION).where("event", "==", event).where("type", "==", type).get()).docs
     .map((d) => toSlot(d.id, d.data()))
     .find((s) => s.kind === "post" && s.variant === variant);
@@ -758,7 +814,7 @@ export async function scheduleApproved(event: string, type: string, variant: str
   let id: string;
   if (existing) {
     id = existing.id;
-    await db().collection(COLLECTION).doc(id).update({ publishAt, caption, slides: [made.png], status: "draft", error: FieldValue.delete() });
+    await db().collection(COLLECTION).doc(id).update({ publishAt, caption, slides: [made.png], status: "draft", error: FieldValue.delete(), ...(collab ?? {}) });
   } else {
     id = (
       await db().collection(COLLECTION).add({
@@ -773,6 +829,7 @@ export async function scheduleApproved(event: string, type: string, variant: str
         caption,
         slides: [made.png],
         notes: "",
+        ...(collab ?? { collaborators: autoCollab(made.png) }),
         ...autoWaitFor(event, type),
         createdAt: FieldValue.serverTimestamp(),
       })

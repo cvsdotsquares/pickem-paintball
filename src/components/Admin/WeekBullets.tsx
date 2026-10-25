@@ -18,7 +18,7 @@ export type BJob = {
   until_date?: string; state: string; vstate: string; when1: string; when2: string; how: string; slot: string;
   built: boolean; writes: string; needs_first: string[];
 };
-export type BSlot = { id: string; kind: string; agent: string; title: string; at: string; status: string; job: string; placeholder: boolean; templated: boolean; hold?: { text: string; waiting: boolean } | null };
+export type BSlot = { id: string; kind: string; agent: string; title: string; at: string; status: string; job: string; placeholder: boolean; templated: boolean; hold?: { text: string; waiting: boolean } | null; collaborators?: string[] };
 export type BAgent = { id: string; name: string; icon: string };
 export type Dot = "green" | "blue" | "orange" | "red";
 export type BItem = { text: string; title: string; state: string; time: string; sort: string; slot: string; kind: string; dot: Dot; again: boolean; hold?: { text: string; waiting: boolean } | null };
@@ -117,7 +117,7 @@ export function bulletDays(jobs: BJob[], slots: BSlot[], today: string, start: s
     const dot: Dot = s.kind === "post" ? postDot(st) : st === "done" ? "green" : s.kind === "action" ? "blue" : "orange";
     const label = BULLET_STATE[st]?.label ?? st;
     put(etDate(s.at), s.agent, {
-      text: s.title, title: `${s.title} · ${fmt(s.at, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} ET · ${label}${s.hold ? ` · ⏳ ${s.hold.text}` : ""}`,
+      text: s.title, title: `${s.title} · ${fmt(s.at, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} ET · ${label}${s.hold ? ` · ⏳ ${s.hold.text}` : ""}${s.collaborators?.length ? ` · collab with ${s.collaborators.map((h) => `@${h}`).join(", ")}` : ""}`,
       state: st, time: timeOf(s.at), sort: fmt(s.at, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }), slot: s.id, kind: s.kind, dot, again: false, hold: s.hold ?? null,
     });
   }

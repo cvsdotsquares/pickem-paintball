@@ -42,7 +42,7 @@ export type Job = {
   when1: string; when2: string; how: string; next_at: string; counts: boolean; // counts = part of "N of M steps done"
 };
 /** One line of the "Approve posts" checklist (James 24 Oct 2026): ticked = approved / scheduled; link opens it on the Schedule. */
-export type CalSlot = { id: string; kind: string; agent: string; title: string; at: string; status: string; job: string; placeholder: boolean; templated: boolean; hold: { text: string; waiting: boolean } | null };
+export type CalSlot = { id: string; kind: string; agent: string; title: string; at: string; status: string; job: string; placeholder: boolean; templated: boolean; hold: { text: string; waiting: boolean } | null; collaborators: string[] };
 export type PostCheck = { id: string; title: string; due: string; done: boolean; note: string; link: string };
 export type Timer = { label: string; name: string; ok: boolean; running: boolean; exit: string; lastOutput: string };
 export type Done = { icon: string; agent: string; task: string; when: string; result: string; link: string; kind: "run" | "post" | "task" };
@@ -338,6 +338,7 @@ export async function view(): Promise<View> {
   const calSlots: CalSlot[] = slots.map((s) => ({
     id: s.id, kind: s.kind, agent: s.agent, title: s.title, at: s.publishAt ?? "", status: s.status,
     job: (s.notes ?? "").match(/job:([a-z_]+)/)?.[1] ?? "", placeholder: !!s.placeholder, templated: !!s.templated, hold: s.hold ?? null,
+    collaborators: s.kind === "post" ? s.collaborators ?? [] : [],
   }));
   return { event: pb.event, eventName: pb.name, date: pb.date, planningStart: pb.planning_start, team, completed, upcoming, brief, inputs, inputsCard: card?.id ?? "", needsYou: inbox, anchors: pb.anchors, listener, timers: tm.timers, slots: calSlots, wakeups: tm.wakeups, cards };
 }
