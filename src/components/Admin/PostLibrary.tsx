@@ -37,6 +37,7 @@ export default function PostLibrary() {
   const [tags, setTags] = useState<TagList | null>(null);
   const [error, setError] = useState("");
   const [view, setView] = useState<"posts" | "tags">("posts");
+  const [filtersOpen, setFiltersOpen] = useState(false); // phone: the filters fold behind a button (James 25 Oct 2026)
   const [f, setF] = useState<Filters>(EMPTY);
   const [open, setOpen] = useState<LibraryItem | null>(null);
   const [shown, setShown] = useState(PAGE);
@@ -106,7 +107,7 @@ export default function PostLibrary() {
 
   return (
     <main>
-      <div className="flex flex-wrap items-start gap-4 border-b border-gray-200 dark:border-white/5 bg-white dark:bg-[#0d0d0d] px-5 py-4">
+      <div className="flex flex-wrap items-start gap-4 border-b border-gray-200 dark:border-white/5 bg-white dark:bg-[#0d0d0d] px-3 py-4 sm:px-5">
         <div>
           <h1 className="text-lg font-black uppercase tracking-wide">Post Library</h1>
           <div className="text-[10px] text-gray-400 dark:text-white/40">
@@ -133,7 +134,7 @@ export default function PostLibrary() {
       ) : (
         <div className="flex flex-col md:flex-row">
           <aside
-            className="flex shrink-0 flex-col gap-5 border-r border-gray-200 dark:border-white/5 bg-white dark:bg-[#0d0d0d] p-5 md:sticky md:top-[49px] md:h-[calc(100vh-49px)] md:w-80 md:overflow-y-auto"
+            className="flex shrink-0 flex-col gap-5 border-r border-gray-200 dark:border-white/5 bg-white dark:bg-[#0d0d0d] p-3 sm:p-5 md:sticky md:top-[49px] md:h-[calc(100vh-49px)] md:w-80 md:overflow-y-auto"
             style={{ scrollbarGutter: "stable" }}
           >
             <input
@@ -142,6 +143,10 @@ export default function PostLibrary() {
               value={f.text}
               onChange={(e) => setF({ ...f, text: e.target.value })}
             />
+            <button className={`${pill(filtersOpen || active > 0)} self-start md:hidden`} onClick={() => setFiltersOpen((v) => !v)}>
+              {filtersOpen ? "Hide filters" : `Filters${active ? ` (${active})` : ""}`}
+            </button>
+            <div className={`${filtersOpen ? "flex" : "hidden"} flex-col gap-5 md:flex`}>
             <div>
               <div className={`${sectionLabel} mb-2`}>Tags</div>
               <div className="flex flex-wrap gap-1.5">
@@ -177,9 +182,10 @@ export default function PostLibrary() {
                 Clear all filters
               </button>
             )}
+            </div>
           </aside>
 
-          <section className="flex-1 p-5">
+          <section className="flex-1 p-3 sm:p-5">
             <div className={`${sectionLabel} mb-3`}>{results.length} posts</div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
               {results.slice(0, shown).map((i) => (

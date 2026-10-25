@@ -173,9 +173,9 @@ export default function WorkflowsBoard() {
     picksIn > 0 ? `Picks open in ${picksIn} day${picksIn === 1 ? "" : "s"}` : lockIn > 0 ? `Picks are open · lock in ${lockIn} day${lockIn === 1 ? "" : "s"}` : dayOneIn >= 0 && inDays(data.anchors.event_end, today) >= 0 ? "Event week" : inDays(data.anchors.event_end, today) < 0 ? "After the event" : "Picks locked";
 
   return (
-    <main className="mx-auto max-w-6xl px-5 py-6">
+    <main className="mx-auto flex max-w-6xl flex-col px-3 py-4 sm:px-5 sm:py-6 md:block">
       {/* ── Today ─────────────────────────────────────────────────────────── */}
-      <div className="mb-5 flex flex-wrap items-end gap-4">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-4">
         <div className="flex-1">
           <div className={sectionLabel}>Workflows · {data.eventName}</div>
           <h1 className="text-2xl font-black uppercase tracking-wide">{dayOf(today + "T12:00:00")}</h1>
@@ -206,7 +206,7 @@ export default function WorkflowsBoard() {
       </div>
 
       {/* ── Roadmap ───────────────────────────────────────────────────────── */}
-      <section className={`${card} mb-4 p-4`}>
+      <section className={`${card} order-3 mb-4 p-4 md:order-none`}>
         <div className={`${sectionLabel} mb-2`}>Two weeks, Monday to Sunday · what each agent does each day · the full calendar is the Schedule tab</div>
         <WeekBullets
           jobs={allJobs}
@@ -219,7 +219,7 @@ export default function WorkflowsBoard() {
       </section>
 
       {/* ── Needs you + Up next ───────────────────────────────────────────── */}
-      <div className="mb-4 grid gap-4 md:grid-cols-2">
+      <div className="order-1 mb-4 grid gap-4 md:order-none md:grid-cols-2 [&>*]:min-w-0">
         <section id="needs-you" className={`${card} scroll-mt-16 p-4`}>
           <div className="mb-2 flex items-baseline justify-between">
             <div className={sectionLabel}>✋ Needs you</div>
@@ -254,14 +254,14 @@ export default function WorkflowsBoard() {
       </div>
 
       {/* ── Team ──────────────────────────────────────────────────────────── */}
-      <section id="team" className={`${card} mb-4 scroll-mt-16 p-4`}>
+      <section id="team" className={`${card} order-4 mb-4 scroll-mt-16 p-4 md:order-none`}>
         <div className={`${sectionLabel} mb-3`}>The team · click someone for their desk</div>
         <OrgChart team={data.team} cards={data.cards} selected={sel?.agent.id ?? ""} onSelect={setSelected} />
         {sel && <Desk c={sel} byId={byId} today={today} busy={busy} act={act} onOpen={openReport} jobName={jobName} />}
       </section>
 
       {/* ── Brief + what happened ─────────────────────────────────────────── */}
-      <div className="grid gap-4 md:grid-cols-[3fr_2fr]">
+      <div className="order-2 mb-4 grid gap-4 md:order-none md:mb-0 md:grid-cols-[3fr_2fr] [&>*]:min-w-0">
         <section className={`${card} p-4`}>
           <div className={`${sectionLabel} mb-3`}>🧢 The Manager&apos;s brief</div>
           {data.brief ? <BriefMessage brief={data.brief} onOpen={openReport} /> : <Empty>No brief yet. Press “Run the Manager now” or wait for 7 AM ET.</Empty>}
@@ -297,17 +297,23 @@ function ApprovePosts({ n, today }: { n: NeedsYou; today: string }) {
           </div>
           <div className="shrink-0 text-right">
             {n.due && <div className={`text-[11px] font-bold ${inDays(n.due, today) <= 2 ? "" : "text-gray-500 dark:text-white/50"}`}>{relDay(n.due, today)}</div>}
-            <span className="text-[10px] text-gray-400">▾</span>
+            <span className="text-[14px] text-gray-400">▾</span>
           </div>
         </summary>
         <ul className="space-y-1 border-t border-gray-100 p-3 dark:border-white/5">
           {posts.map((p) => (
-            <li key={p.id} className="flex items-center gap-2 text-[11px]">
-              <span className="w-4 text-center" aria-label={p.done ? "approved" : "needs approval"}>{p.done ? "☑" : "☐"}</span>
-              <span className={`min-w-0 flex-1 truncate ${p.done ? "text-gray-400 line-through" : "font-bold"}`} title={p.title}>{p.title}</span>
-              <span className="shrink-0 text-gray-500 dark:text-white/50">{p.due ? `${relDay(p.due, today)} ${timeOf(p.due)}` : "no date"}</span>
-              <span className="hidden w-36 shrink-0 truncate text-gray-400 sm:block" title={p.note}>{p.note}</span>
-              <Link href={p.link} className="shrink-0 text-gray-400 underline hover:text-gray-900 dark:hover:text-white">{p.done ? "view" : "approve"}</Link>
+            // phone: the whole row is the link, tall enough to tap; desktop: one line with an "approve" link
+            <li key={p.id}>
+              <Link href={p.link} className="flex items-center gap-2 rounded-lg px-1 py-2 text-[13px] hover:bg-gray-50 dark:hover:bg-white/5 sm:py-0.5 sm:text-[11px]">
+                <span className="w-4 shrink-0 text-center" aria-label={p.done ? "approved" : "needs approval"}>{p.done ? "☑" : "☐"}</span>
+                <span className="min-w-0 flex-1">
+                  <span className={`block truncate ${p.done ? "text-gray-400 line-through" : "font-bold"}`} title={p.title}>{p.title}</span>
+                  <span className="block text-[11px] text-gray-500 dark:text-white/50 sm:hidden">{p.due ? `${relDay(p.due, today)} ${timeOf(p.due)}` : "no date"} · {p.note}</span>
+                </span>
+                <span className="hidden shrink-0 text-gray-500 dark:text-white/50 sm:inline">{p.due ? `${relDay(p.due, today)} ${timeOf(p.due)}` : "no date"}</span>
+                <span className="hidden w-36 shrink-0 truncate text-gray-400 md:block" title={p.note}>{p.note}</span>
+                <span className="shrink-0 text-gray-400 underline">{p.done ? "view" : "approve"}</span>
+              </Link>
             </li>
           ))}
         </ul>
@@ -347,11 +353,12 @@ function Agenda({ items, today }: { items: Upcoming[]; today: string }) {
           <div className="mb-1 text-[10px] font-black uppercase tracking-widest">{relDay(g.day + "T16:00:00Z", today)}{inDays(g.day, today) > 1 ? "" : ` · ${dayOf(g.day + "T16:00:00Z")}`}</div>
           <ul className="space-y-1">
             {g.items.map((u, i) => (
-              <li key={i} className="flex items-center gap-2 text-[11px]">
+              <li key={i} className="flex flex-wrap items-center gap-x-2 text-[12px] sm:flex-nowrap sm:text-[11px]">
                 <span className="w-16 shrink-0 text-gray-400">{timeOf(u.due)}</span>
                 <span className="w-5 text-center">{u.icon}</span>
-                <span className="flex-1 truncate" title={u.task}>{u.task}</span>
-                <span className="max-w-[40%] truncate text-right text-gray-400" title={u.waiting}>{u.waiting}</span>
+                <span className="min-w-0 flex-1 truncate" title={u.task}>{u.task}</span>
+                {/* phone: the note goes on its own line under the job */}
+                <span className="order-last basis-full truncate pl-[5.5rem] text-gray-400 sm:order-none sm:max-w-[40%] sm:basis-auto sm:pl-0 sm:text-right" title={u.waiting}>{u.waiting}</span>
                 {u.link && <Link href={u.link} className="text-gray-400 underline hover:text-gray-900 dark:hover:text-white">open</Link>}
               </li>
             ))}
@@ -392,8 +399,30 @@ function OrgChart({ team, cards, selected, onSelect }: { team: AgentRow[]; cards
   const root = team.find((a) => !a.parent);
   const manager = root ? kids(root.id)[0] : undefined;
   const agents = manager ? kids(manager.id) : [];
+  // Phone (James 25 Oct 2026): the tree is too wide, so the team is a list: tap someone for their desk below
+  const phoneList = [root, manager, ...agents].filter(Boolean) as AgentRow[];
   return (
-    <div className="flex flex-col items-center">
+    <>
+    <div className="space-y-2 md:hidden">
+      {phoneList.map((a) => {
+        const c = cardOf(a.id);
+        const last = c?.lastRun;
+        return (
+          <button key={a.id} disabled={!c} onClick={() => c && onSelect(a.id)} className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left ${selected === a.id ? "border-gray-900 dark:border-white" : "border-gray-100 dark:border-white/5"} ${a.status === "on" ? "" : "opacity-50"} ${a.parent && a.parent !== root?.id ? "ml-4 w-[calc(100%-1rem)]" : ""}`}>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-50 text-2xl dark:bg-white/5">{a.icon}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[12px] font-black uppercase tracking-wide">{a.name}</span>
+              <span className="block truncate text-[12px] text-gray-500 dark:text-white/50">
+                {!c ? a.blurb.split(".")[0] : last ? `${last.result === "running" ? "working on" : last.result === "ok" ? "last did" : "failed"} ${last.name || last.job} · ${ago(last.finished || last.started)}` : "nothing yet"}
+              </span>
+              {c?.nextRun && <span className="block truncate text-[11px] text-gray-400">next: {c.nextRun.when}</span>}
+            </span>
+            {c && <span className="text-gray-300">›</span>}
+          </button>
+        );
+      })}
+    </div>
+    <div className="hidden flex-col items-center md:flex">
       {root && <Avatar a={root} />}
       {manager && (
         <>
@@ -426,6 +455,7 @@ function OrgChart({ team, cards, selected, onSelect }: { team: AgentRow[]; cards
         </>
       )}
     </div>
+    </>
   );
 }
 
@@ -440,12 +470,13 @@ function Desk({ c, byId, today, busy, act, onOpen, jobName }: { c: Card; byId: R
   const total = counted.length;
   const doneN = counted.filter((s) => s.vstate === "done").length;
   return (
-    <div className="mt-5 rounded-2xl border border-gray-200 p-4 dark:border-white/10">
+    <div className="mt-5 rounded-2xl border border-gray-200 p-3 dark:border-white/10 sm:p-4">
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-3xl">{a.icon}</span>
-        <div className="min-w-0 flex-1">
+        {/* phone: the name and blurb take the whole row (blurb cut to 3 lines); the controls wrap below */}
+        <div className="min-w-0 basis-[calc(100%-3.5rem)] sm:basis-0 sm:flex-1">
           <div className="text-sm font-black uppercase tracking-widest">{a.name}&apos;s desk</div>
-          <div className="text-[11px] text-gray-500 dark:text-white/50">{a.blurb}</div>
+          <div className="line-clamp-3 text-[11px] text-gray-500 dark:text-white/50 sm:line-clamp-none" title={a.blurb}>{a.blurb}</div>
         </div>
         <a href={chatLink(a)} className="rounded-lg border border-gray-300 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest hover:border-gray-900 dark:border-white/20 dark:hover:border-white" title={a.id === "gm" ? "Discuss tasks, responsibilities and ways of working" : "Discuss this agent's own work and responsibilities"}>
           💬 Chat to {a.id === "gm" ? "the Manager" : a.name.replace(" media agent", "").replace(" agent", "")}
@@ -588,7 +619,7 @@ function Track({ w, agent, byId, today, busy, act, onOpen, openStep, setOpenStep
               {s.when2 && <span className="text-[9px] leading-tight text-gray-500 dark:text-white/50">{s.when2}</span>}
               <span className="text-[9px] leading-tight text-gray-400">{s.vstate === "today" ? "ran today · " : ""}{s.how}</span>
               {openStep === s.id && (
-                <div className="absolute left-1/2 top-10 z-20 w-64 -translate-x-1/2 rounded-xl border border-gray-200 bg-white p-3 text-left text-[11px] shadow-xl dark:border-white/10 dark:bg-[#111]" onClick={(e) => e.stopPropagation()}>
+                <div className="fixed inset-x-3 bottom-3 z-50 max-h-[70vh] overflow-y-auto rounded-xl border border-gray-200 bg-white p-4 text-left text-[13px] shadow-xl dark:border-white/10 dark:bg-[#111] md:absolute md:inset-x-auto md:bottom-auto md:left-1/2 md:top-10 md:z-20 md:max-h-none md:w-64 md:-translate-x-1/2 md:p-3 md:text-[11px]" onClick={(e) => e.stopPropagation()}>
                   <div className="mb-1 font-black">{s.name}</div>
                   <div className="mb-1 text-gray-500 dark:text-white/50">{byId[s.agent]?.icon} {s.agent_name} · {st.label} · {[s.when1, s.when2].filter(Boolean).join(" · ")} ET · {s.how}</div>
                   {s.next_at && <div className="mb-1">Next run: {dayOf(s.next_at)} {timeOf(s.next_at)} ET</div>}
@@ -620,7 +651,7 @@ function Timers({ timers, wakeups }: { timers: Timer[]; wakeups: string[] }) {
     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-gray-500 dark:text-white/50">
       <span title="launchd timers on this Mac (launchctl list | grep pickem)">⏱ Timers {bad.length ? `· ${bad.length} stopped` : "· all fine"}:</span>
       {timers.map((t) => (
-        <span key={t.label} title={`${t.label} · last exit ${t.exit}${t.running ? " · running now" : ""}${t.lastOutput ? ` · last output ${new Date(t.lastOutput).toLocaleString()}` : ""}`} className={t.ok ? "" : "font-bold text-gray-900 dark:text-white"}>
+        <span key={t.label} title={`${t.label} · last exit ${t.exit}${t.running ? " · running now" : ""}${t.lastOutput ? ` · last output ${new Date(t.lastOutput).toLocaleString()}` : ""}`} className={t.ok ? "hidden sm:inline" : "font-bold text-gray-900 dark:text-white"}>
           {t.ok ? "●" : "✗"} {t.name}{t.ok ? "" : ` (exit ${t.exit})`}{t.lastOutput ? ` · ${ago(t.lastOutput)}` : ""}
         </span>
       ))}

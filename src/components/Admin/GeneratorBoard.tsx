@@ -127,7 +127,7 @@ export default function GeneratorBoard() {
     }, []);
 
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-6">
+    <main className="mx-auto flex max-w-6xl flex-col gap-6 px-3 py-4 sm:px-5 sm:py-6">
       <div className="flex flex-wrap items-center gap-4">
         <h1 className="text-lg font-black uppercase tracking-wide">
           Post Generator
@@ -270,7 +270,7 @@ export default function GeneratorBoard() {
       {/* columns = when it goes out (pre / during / post); in each column: must have, then nice to have.
           Each column stacks on its own, so a short column doesn't leave white space. */}
       <section className="overflow-x-auto">
-        <div className="grid min-w-[720px] grid-cols-3 items-start gap-3">
+        <div className="grid grid-cols-1 items-start gap-6 md:min-w-[720px] md:grid-cols-3 md:gap-3">
           {phases.map((p) => (
             <div key={p.key} className="flex flex-col gap-2">
               <div className="border-b border-gray-200 pb-1 dark:border-white/10">

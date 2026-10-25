@@ -87,9 +87,9 @@ export default function TeamSchedule() {
   const slot = sched?.slots.find((s) => s.id === open) ?? null;
 
   return (
-    <main className="mx-auto max-w-7xl px-5 py-6">
+    <main className="mx-auto max-w-7xl px-3 py-4 sm:px-5 sm:py-6">
       <div className="mb-4 flex flex-wrap items-end gap-3">
-        <div className="flex-1">
+        <div className="basis-full sm:basis-0 sm:flex-1">
           <div className={sectionLabel}>Schedule{view ? ` · ${view.eventName}` : ""}</div>
           <h1 className="text-2xl font-black uppercase tracking-wide">The team&apos;s calendar</h1>
           <div className="text-[12px] text-gray-500 dark:text-white/50">
@@ -101,7 +101,7 @@ export default function TeamSchedule() {
         <button className={primaryButton} disabled={busy || !sched} onClick={() => setAdding(true)}>+ Task</button>
       </div>
       {err && <div className="mb-3 text-[11px] text-red-500">{err}</div>}
-      <section className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-white/5 dark:bg-[#0d0d0d]">
+      <section className="rounded-2xl border border-gray-100 bg-white p-3 dark:border-white/5 dark:bg-[#0d0d0d] sm:p-4">
         {!view ? (
           <div className="text-[11px] text-gray-400">Loading…</div>
         ) : (
