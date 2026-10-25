@@ -91,7 +91,7 @@ export default function PostTypeHub({ event, type }: { event: string; type: stri
       <div className="flex flex-wrap items-start gap-4">
         <div className="flex-1">
           <Link
-            href="/admin/generator"
+            href="/admin/social?tab=generator"
             className="text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:underline"
           >
             ← {data.events.find((e) => e.id === event)?.label ?? event}
@@ -119,7 +119,7 @@ export default function PostTypeHub({ event, type }: { event: string; type: stri
         <div className="flex flex-wrap items-center gap-3">
           <div className={`${sectionLabel} flex-1`}>
             Inspiration + past posts —{" "}
-            <Link href="/admin/library" className="underline">
+            <Link href="/admin/social?tab=library" className="underline">
               open the Post Library
             </Link>
           </div>

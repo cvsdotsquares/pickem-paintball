@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { primaryButton, sectionLabel } from "./types";
+import WeekBullets, { type BSlot } from "./WeekBullets";
 
 /**
  * Workflows (admin page 5, James 18 Oct 2026): the team of agents, for a human to read at a glance.
@@ -37,7 +39,7 @@ type NeedsYou = { text: string; due: string; link: string; kind: "input" | "appr
 type View = {
   event: string; eventName: string; date: string; planningStart: string; team: AgentRow[]; completed: Done[]; upcoming: Upcoming[];
   brief: { text: string; at: string; test: boolean; file: string } | null; inputs: { text: string; done: boolean }[]; inputsCard: string; needsYou: NeedsYou[];
-  anchors: Record<string, string>; listener: { on: boolean; lastWake: string; lastWakeText: string }; timers: Timer[]; wakeups: string[]; cards: Card[]; error?: string;
+  anchors: Record<string, string>; listener: { on: boolean; lastWake: string; lastWakeText: string }; timers: Timer[]; wakeups: string[]; slots: BSlot[]; cards: Card[]; error?: string;
 };
 
 const TZ = "America/New_York";
@@ -119,6 +121,7 @@ export default function WorkflowsBoard() {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<Report | null>(null);
   const [selected, setSelected] = useState<string>("gm");
+  const router = useRouter();
 
   const load = useCallback(() => {
     fetch("/api/admin/workflows", { cache: "no-store" })
@@ -204,8 +207,15 @@ export default function WorkflowsBoard() {
 
       {/* ── Roadmap ───────────────────────────────────────────────────────── */}
       <section className={`${card} mb-4 p-4`}>
-        <div className={`${sectionLabel} mb-2`}>The next two weeks · what each agent does each day</div>
-        <WeekCalendar jobs={allJobs} upcoming={data.upcoming} anchors={data.anchors} today={today} byId={byId} />
+        <div className={`${sectionLabel} mb-2`}>Two weeks, Monday to Sunday · what each agent does each day · the full calendar is the Schedule tab</div>
+        <WeekBullets
+          jobs={allJobs}
+          slots={data.slots}
+          anchors={data.anchors}
+          today={today}
+          byId={byId}
+          onItem={(it) => router.push(it.kind === "post" ? `/admin/social?slot=${it.slot}` : `/admin/scheduler?slot=${it.slot}`)}
+        />
       </section>
 
       {/* ── Needs you + Up next ───────────────────────────────────────────── */}
@@ -323,95 +333,6 @@ function Tile({ icon, n, label, sub, href }: { icon: string; n: number; label: s
   );
 }
 
-/** The next two weeks (James, 18 Oct): this week and next, Monday to Sunday, tall cells, each day's plan grouped by agent.
- *  ‹ › move a week at a time; "This week" comes back. Today outlined, event days shaded, milestones named in their day. */
-function WeekCalendar({ jobs, upcoming, anchors, today, byId }: { jobs: Job[]; upcoming: Upcoming[]; anchors: Record<string, string>; today: string; byId: Record<string, AgentRow> }) {
-  const [offset, setOffset] = useState(0); // weeks from today
-  const monday = new Date(Date.parse(today + "T12:00:00Z") + offset * 7 * DAY); // the window's first day (today, not Monday)
-  const key = (t: number) => new Date(t).toISOString().slice(0, 10);
-  const miles: Record<string, string[]> = {};
-  for (const [k, label] of [["picks_open", "Picks open"], ["lock", "Picks lock"], ["day_one", "Day 1"], ["event_end", "Finals"]] as const) (miles[anchors[k].slice(0, 10)] ??= []).push(label);
-  type Item = { text: string; title: string; state: string; time: string };
-  const byDay: Record<string, Record<string, Item[]>> = {}; // day → agent → items
-  const put = (day: string, agent: string, it: Item) => ((byDay[day] ??= {})[agent] ??= []).push(it);
-  // Every day a job runs (James 24 Oct 2026): once-jobs on their day; repeating and own-timer jobs on each day of their
-  // window (today's real state, "later" after); standing checks and on-message jobs are left out (they'd fill every day).
-  const winEnd = key(monday.getTime() + 13 * DAY);
-  for (const j of jobs) {
-    if (j.repeat === "on_message" || j.workflow.endsWith("_standing")) continue;
-    const title = `${j.name} · ${[j.when1, j.when2].filter(Boolean).join(" · ")} · ${j.how}`;
-    if (j.repeat === "once") {
-      put(etDate(j.vstate === "done" ? j.due : j.next_at || j.due), j.agent, { text: shortName(j), title, state: j.vstate === "done" ? "done" : j.state, time: timeOf(j.first_due) });
-      continue;
-    }
-    const start = etDate(j.first_due);
-    const end = j.until_date || start;
-    for (let t = Math.max(Date.parse(start + "T12:00:00Z"), monday.getTime()); key(t) <= end && key(t) <= winEnd; t += DAY) {
-      const k = key(t);
-      const state = k === today ? (j.vstate === "today" ? "done" : j.repeat === "own_timer" ? "ticking" : j.state) : k < today ? "" : "not_due";
-      put(k, j.agent, { text: shortName(j), title, state, time: timeOf(j.first_due) });
-    }
-  }
-  for (const u of upcoming.filter((u) => u.agent === "posts")) put(etDate(u.due), "posts", { text: u.task.replace(/^Post: /, ""), title: `${u.task} · ${timeOf(u.due)} · ${u.waiting}`, state: u.state, time: timeOf(u.due) });
-  const ev0 = anchors.day_one.slice(0, 10), ev1 = anchors.event_end.slice(0, 10);
-  const monthOf = (t: number) => new Date(t).toLocaleString("en-GB", { month: "short", timeZone: "UTC" });
-  const order = ["gm", "data", "social", "posts", "inspo", "james"];
-  return (
-    <div>
-      <div className="mb-2 flex items-center gap-2 text-[10px]">
-        <button className="rounded border border-gray-200 px-2 py-0.5 hover:border-gray-500 dark:border-white/10" onClick={() => setOffset(offset - 1)} title="A week earlier">‹</button>
-        <button className="rounded border border-gray-200 px-2 py-0.5 hover:border-gray-500 dark:border-white/10" onClick={() => setOffset(offset + 1)} title="A week later">›</button>
-        {offset !== 0 && <button className="underline" onClick={() => setOffset(0)}>From today</button>}
-        <span className="ml-2 text-gray-400">{dayOf(key(monday.getTime()) + "T12:00:00")} – {dayOf(key(monday.getTime() + 13 * DAY) + "T12:00:00")}</span>
-      </div>
-      <div className="overflow-x-auto">
-        <div className="min-w-[760px]">
-          {[0, 1].map((w) => {
-            const t0 = monday.getTime() + w * 7 * DAY;
-            return (
-              <div key={w} className="mb-1 grid grid-cols-[36px_repeat(7,minmax(0,1fr))] gap-1">
-                <div className="pt-2 text-right text-[9px] font-black uppercase tracking-widest text-gray-400">{monthOf(t0) === monthOf(t0 + 6 * DAY) ? monthOf(t0) : `${monthOf(t0)}/${monthOf(t0 + 6 * DAY)}`}</div>
-                {Array.from({ length: 7 }, (_, i) => {
-                  const k = key(t0 + i * DAY);
-                  const isToday = k === today, past = k < today, inEvent = k >= ev0 && k <= ev1;
-                  const agents = Object.keys(byDay[k] ?? {}).sort((a, b) => order.indexOf(a) - order.indexOf(b));
-                  return (
-                    <div key={k} className={`min-h-[170px] min-w-0 rounded-xl border p-1.5 ${isToday ? "border-2 border-gray-900 dark:border-white" : "border-gray-100 dark:border-white/5"} ${inEvent ? "bg-gray-100 dark:bg-white/10" : past ? "bg-gray-50/60 dark:bg-white/[0.02]" : "bg-white dark:bg-[#0d0d0d]"} ${past && !isToday ? "opacity-60" : ""}`}>
-                      <div className="flex items-baseline justify-between gap-1">
-                        <span className={`text-[11px] ${isToday ? "font-black" : "text-gray-400"}`}>{isToday ? "Today" : new Date(t0 + i * DAY).toLocaleString("en-GB", { weekday: "short", day: "numeric", timeZone: "UTC" })}</span>
-                        {miles[k] && <span className="truncate rounded bg-gray-900 px-1 text-[8px] font-black uppercase tracking-wider text-white dark:bg-white dark:text-black" title={miles[k].join(" · ")}>{miles[k].join(" · ")}</span>}
-                      </div>
-                      {agents.length === 0 && <div className="mt-6 text-center text-[9px] text-gray-300 dark:text-white/20">—</div>}
-                      <div className="mt-1 space-y-1.5">
-                        {agents.map((ag) => (
-                          <div key={ag}>
-                            <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wide text-gray-500 dark:text-white/50">
-                              <span className="text-[11px]">{byId[ag]?.icon ?? "•"}</span>
-                              <span className="truncate">{byId[ag]?.name ?? ag}</span>
-                            </div>
-                            <ul className="ml-1 border-l border-gray-200 pl-1.5 dark:border-white/10">
-                              {byDay[k][ag].map((it, n) => (
-                                <li key={n} className={`truncate text-[10px] leading-tight ${it.state === "done" || it.state === "posted" ? "text-gray-400 line-through" : it.state === "not_built" ? "text-gray-400" : ""}`} title={it.title}>
-                                  {STATE[it.state]?.glyph && <span className="mr-0.5">{STATE[it.state].glyph}</span>}{it.text}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** Upcoming as an agenda grouped by day: Today, Tomorrow, then dates. */
 function Agenda({ items, today }: { items: Upcoming[]; today: string }) {
   const groups: { day: string; items: Upcoming[] }[] = [];
   for (const u of items) {
@@ -676,7 +597,7 @@ function Track({ w, agent, byId, today, busy, act, onOpen, openStep, setOpenStep
                   <div className="mb-1"><b>Checks:</b> {s.checks.join("; ")}</div>
                   <div className="mb-2 text-gray-500 dark:text-white/50">{s.writes === "asks" ? "Asks first: a diff in #approvals, your ✅ writes it" : s.writes === "james" ? "This one is yours" : "Writes its own result"}{s.inputs.length ? ` · needs from you: ${s.inputs.join("; ")}` : ""}</div>
                   <div className="flex gap-3 text-gray-400">
-                    {s.slot && <Link href="/admin/scheduler" className="underline">Schedule slot</Link>}
+                    {s.slot && <Link href={`/admin/scheduler?slot=${s.slot}`} className="underline">Schedule slot</Link>}
                     {s.last_report && <button className="underline" onClick={() => onOpen(s.last_report)}>last report</button>}
                     {s.built && s.repeat !== "own_timer" && s.state !== "running" && agent.status === "on" && <button className="underline" disabled={busy} onClick={() => act({ action: "run", agent: s.agent, job: s.id })}>run now</button>}
                     <button className="ml-auto" onClick={() => setOpenStep(null)}>✕</button>

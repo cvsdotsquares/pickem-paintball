@@ -3,14 +3,9 @@ import Link from "next/link";
 /** Admin home: one card per page. New pages (event setup, metrics) get added here as they're built. */
 const PAGES = [
   {
-    href: "/admin/library",
-    title: "Post Library",
-    blurb: "Every past post and Slack inspiration image. Filter by tags, fix tags, sign off the tag list, check inspo.",
-  },
-  {
-    href: "/admin/generator",
-    title: "Post Generator",
-    blurb: "Make an event's posts the agreed way — brief, options A/B/C, review, sign off — and save them as templates for the event.",
+    href: "/admin/social",
+    title: "Social",
+    blurb: "Everything for the posts: the calendar of every post with its preview (Month / Week, greyed where a template is still needed, approve here), the Post Generator and the Post Library.",
   },
   {
     href: "/admin/todo",
@@ -20,7 +15,7 @@ const PAGES = [
   {
     href: "/admin/scheduler",
     title: "Schedule",
-    blurb: "One calendar of an event's posts, the agents' work and what needs you. Click anything for the detail; approve a post and it goes out on Instagram + Facebook by itself.",
+    blurb: "The whole team's calendar as bullet points: every agent's jobs and every post, Monday to Sunday or by month. Click a job to move or tick it; add a task.",
   },
   {
     href: "/admin/workflows",
