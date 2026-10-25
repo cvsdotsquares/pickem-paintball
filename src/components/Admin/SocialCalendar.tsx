@@ -166,7 +166,9 @@ export default function SocialCalendar() {
   const [jump, setJump] = useState(0); // bumps so "Today" scrolls again even when the anchor is already today
   const [visible, setVisible] = useState(todayET()); // the first day in view, for the heading
   const scroller = useRef<HTMLDivElement>(null);
-  const [trayOpen, setTrayOpen] = useState(false); // phone: the tray opens full screen from a button
+  const [trayOpen, setTrayOpen] = useState(false);
+  const [overDay, setOverDay] = useState(""); // the day a dragged post is over (highlighted)
+  const [moved, setMoved] = useState<{ id: string; title: string; from: string; to: string } | null>(null); // last move, for Undo // phone: the tray opens full screen from a button
   const [earlier, setEarlier] = useState(false); // phone list: also show the last two weeks
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState<TrayItem | null>(null);
@@ -298,6 +300,16 @@ export default function SocialCalendar() {
   };
   useEffect(onScroll); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    const clear = () => setOverDay("");
+    window.addEventListener("pickem-dragend", clear);
+    window.addEventListener("dragend", clear);
+    return () => {
+      window.removeEventListener("pickem-dragend", clear);
+      window.removeEventListener("dragend", clear);
+    };
+  }, []);
+
   const goTo = (d: string) => {
     setAnchor(d);
     setJump((n) => n + 1);
@@ -316,6 +328,7 @@ export default function SocialCalendar() {
   /** Drop: a tray item lands as a draft at noon ET; a slot keeps its time and moves day. */
   const onDrop = async (day: string, e: React.DragEvent) => {
     e.preventDefault();
+    setOverDay("");
     const raw = e.dataTransfer.getData("text/plain");
     if (!raw) return;
     const it = JSON.parse(raw) as { tray?: TrayItem; slot?: string };
@@ -327,7 +340,10 @@ export default function SocialCalendar() {
       const s = data?.slots.find((x) => x.id === it.slot);
       if (!s) return;
       if (s.kind === "post" && s.status !== "draft" && s.status !== "failed") return setErr("Un-approve it first to move it");
-      await act({ action: "save", id: s.id, at: `${day}T${et(s.publishAt).time || DEFAULT_TIME}` });
+      const from = et(s.publishAt);
+      if (from.date === day) return;
+      const to = `${day}T${from.time || DEFAULT_TIME}`;
+      if ((await act({ action: "save", id: s.id, at: to })) !== false) setMoved({ id: s.id, title: s.title, from: from.date ? `${from.date}T${from.time}` : "", to });
     }
   };
 
@@ -368,9 +384,14 @@ export default function SocialCalendar() {
   /** One day: its date, milestones and posts; a drop target for the tray and for moving a post. */
   const dayCell = ({ day, past, other, big }: { day: string; past: boolean; other: boolean; big: boolean }) => (
     <div
-      onDragOver={(e) => !past && e.preventDefault()}
+      onDragOver={(e) => {
+        if (past) return;
+        e.preventDefault();
+        if (overDay !== day) setOverDay(day);
+      }}
+      onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setOverDay((d) => (d === day ? "" : d))}
       onDrop={(e) => onDrop(day, e)}
-      className={`flex min-h-[190px] w-full flex-1 flex-col gap-1 border-b border-r border-gray-100 p-1.5 dark:border-white/5 ${!big && (other || past) ? "bg-gray-50/60 dark:bg-white/[0.02]" : ""}`}
+      className={`flex min-h-[190px] w-full flex-1 flex-col gap-1 border-b border-r border-gray-100 p-1.5 dark:border-white/5 ${overDay === day ? "bg-[#39b5e6]/15 outline outline-2 -outline-offset-2 outline-[#39b5e6]" : !big && (other || past) ? "bg-gray-50/60 dark:bg-white/[0.02]" : ""}`}
     >
       {!big && (
         <span className={`text-[11px] font-black ${day === today ? "self-start rounded-full bg-[#1a3c6e] px-1.5 text-white" : other ? "text-gray-300 dark:text-white/20" : ""}`}>
@@ -489,6 +510,28 @@ export default function SocialCalendar() {
         </div>
       )}
 
+      {moved && (
+        <div className="flex items-center gap-3 rounded-lg bg-[#39b5e6]/10 px-3 py-2 text-[12px] text-[#1a3c6e] dark:text-[#39b5e6]">
+          <span className="flex-1">
+            Moved <b>{moved.title}</b> to {parse(moved.to.slice(0, 10)).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} {nice(moved.to.slice(11, 16))}
+          </span>
+          {moved.from && (
+            <button
+              className="font-bold underline"
+              disabled={busy}
+              onClick={async () => {
+                await act({ action: "save", id: moved.id, at: moved.from });
+                setMoved(null);
+              }}
+            >
+              Undo
+            </button>
+          )}
+          <button onClick={() => setMoved(null)} aria-label="Dismiss">
+            <IoMdClose />
+          </button>
+        </div>
+      )}
       {err && (
         <div className="flex items-start gap-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:bg-red-500/10 dark:text-red-300">
           <span className="flex-1">{err}</span>
@@ -732,10 +775,11 @@ function SlotChip({ s, agents, size, onClick }: { s: Slot; agents: Agent[]; size
     <button
       draggable={movable}
       onDragStart={(e) => e.dataTransfer.setData("text/plain", JSON.stringify({ slot: s.id }))}
+      onDragEnd={() => window.dispatchEvent(new Event("pickem-dragend"))}
       onClick={onClick}
-      title={`${a.name}: ${s.title} · ${p.label}`}
+      title={`${a.name}: ${s.title} · ${p.label}${movable ? " · drag to another day to move it" : s.kind === "post" ? " · approved: open it and un-approve to move it" : ""}`}
       style={{ borderLeftColor: a.colour }}
-      className={`flex w-full ${size === "big" ? "flex-col" : "items-center"} ${size === "row" ? "gap-3 p-2 text-[12px]" : "gap-1.5 p-1 text-[10px]"} rounded-md border border-l-4 border-gray-100 bg-white text-left hover:border-gray-400 dark:border-white/5 dark:bg-[#141414] dark:hover:border-white/30 ${
+      className={`flex w-full ${size === "big" ? "flex-col" : "items-center"} ${size === "row" ? "gap-3 p-2 text-[12px]" : "gap-1.5 p-1 text-[10px]"} rounded-md border border-l-4 border-gray-100 bg-white text-left ${movable ? "cursor-grab active:cursor-grabbing" : ""} hover:border-gray-400 dark:border-white/5 dark:bg-[#141414] dark:hover:border-white/30 ${
         s.placeholder ? "border-dashed opacity-80" : ""
       } ${s.placeholder && !s.templated ? "opacity-45 grayscale" : ""} ${s.status === "done" ? "opacity-50" : ""}`}
     >
