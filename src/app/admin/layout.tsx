@@ -17,11 +17,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           Pick&apos;Em Admin
         </Link>
         <nav className="flex gap-4 text-[11px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/40">
-          <Link href="/admin/library" className="hover:text-gray-900 dark:hover:text-white">
-            Post Library
-          </Link>
-          <Link href="/admin/generator" className="hover:text-gray-900 dark:hover:text-white">
-            Post Generator
+          <Link href="/admin/social" className="hover:text-gray-900 dark:hover:text-white">
+            Social
           </Link>
           <Link href="/admin/todo" className="hover:text-gray-900 dark:hover:text-white">
             TO DO
