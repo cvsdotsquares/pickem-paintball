@@ -7,19 +7,21 @@ import { genUrl, toneClass } from "./generatorTypes";
 import { pill, primaryButton, sectionLabel } from "./types";
 
 /**
- * Schedule (admin page 4): one calendar of an event's posts, the agents' work and the things James must do
- * (James, 18 Oct 2026). Views: Month, Week (big previews), Lanes (one row per agent) and Agenda (a list, for
- * the phone). The "needs you" strip at the top lists everything only James can move, oldest deadline first.
- * The left tray is the event's to-do list: tasks, then every post not on the calendar yet, grouped by type
- * ("Spread these" lays a whole group over a date range). Click anything for its panel; a post's panel shows
- * the path behind it (data → populate → approve → post). Approved posts go out on Instagram + Facebook by
- * themselves (cloud job, every 5 min). Times are US Eastern. Plan: pickem-hub/ideas/2026-10-17-scheduler-plan.md.
+ * Social calendar (the Social hub's Calendar tab, James 25 Oct 2026): every post of an event with its preview, Month
+ * and Week. It used to be the whole Schedule (posts + the agents' work + James's tasks, Lanes, Agenda) and got crowded;
+ * the team's calendar is now the Schedule tab as bullet points (TeamSchedule.tsx), and this page is posts only.
+ * Placeholders (no template yet) are greyed out; templated ones (signed off, waiting on data) are dashed. The "needs
+ * you" strip lists the posts only James can move. The left tray is every post not on the calendar yet, grouped by
+ * type ("Spread these" lays a whole group over a date range). Click a post for its panel: the path behind it
+ * (data → populate → approve → post) and Approve. Approved posts go out on Instagram + Facebook by themselves (cloud
+ * job, every 5 min). Times are US Eastern. Plan: pickem-hub/ideas/2026-10-17-scheduler-plan.md.
+ * TaskDrawer / TaskDialog (agent work and James's tasks) are exported for the Schedule tab.
  */
 
 type Check = { level: "block" | "warn"; text: string };
-type Agent = { id: string; name: string; icon: string; colour: string; blurb: string; kind?: "agent" | "job"; parent?: string; enabled?: boolean };
+export type Agent = { id: string; name: string; icon: string; colour: string; blurb: string; kind?: "agent" | "job"; parent?: string; enabled?: boolean };
 type PathStep = { label: string; agent: string; state: "done" | "now" | "next" | "blocked"; when: string };
-type Slot = {
+export type Slot = {
   id: string;
   kind: "post" | "work" | "action";
   agent: string;
@@ -63,8 +65,8 @@ type Data = {
   posts: { png: string; title: string }[];
   error?: string;
 };
-type Mode = "month" | "week" | "lanes" | "agenda";
-type Act = (body: Record<string, unknown>, confirmText?: string) => Promise<string | boolean>;
+type Mode = "month" | "week";
+export type Act = (body: Record<string, unknown>, confirmText?: string) => Promise<string | boolean>;
 
 const TZ = "America/New_York";
 const DEFAULT_TIME = "12:00";
@@ -156,7 +158,7 @@ const LEGEND: [string, string][] = [
 
 const findAgent = (agents: Agent[], id: string): Agent => agents.find((a) => a.id === id) ?? { id, name: id, icon: "•", colour: "#9ca3af", blurb: "" };
 
-export default function SchedulerBoard() {
+export default function SocialCalendar() {
   const [data, setData] = useState<Data | null>(null);
   const [event, setEvent] = useState("");
   const [mode, setMode] = useState<Mode>("month");
@@ -164,7 +166,6 @@ export default function SchedulerBoard() {
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState<TrayItem | null>(null);
   const [spreading, setSpreading] = useState<{ type: string; label: string; items: TrayItem[] } | null>(null);
-  const [addingTask, setAddingTask] = useState(false);
   const [legend, setLegend] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -174,6 +175,12 @@ export default function SchedulerBoard() {
       const r = await fetch(`/api/admin/scheduler${ev ? `?event=${ev}` : ""}`);
       const d = (await r.json()) as Data;
       if (d.error) setErr(d.error);
+      // posts only (James 25 Oct 2026): the agents' work and James's tasks live on the Schedule tab
+      if (d.slots) {
+        const posts = new Set(d.slots.filter((s) => s.kind === "post").map((s) => s.id));
+        d.slots = d.slots.filter((s) => posts.has(s.id));
+        d.needsYou = (d.needsYou ?? []).filter((n) => posts.has(n.id));
+      }
       setData(d);
       if (!ev && d.event) setEvent(d.event);
     },
@@ -240,14 +247,12 @@ export default function SchedulerBoard() {
   }, [data]);
 
   const days = useMemo(() => {
-    if (mode === "week" || mode === "lanes") return Array.from({ length: 7 }, (_, i) => addDays(monday(anchor), i));
-    if (mode === "agenda") return Array.from({ length: 14 }, (_, i) => addDays(anchor, i));
+    if (mode === "week") return Array.from({ length: 7 }, (_, i) => addDays(monday(anchor), i));
     return Array.from({ length: 42 }, (_, i) => addDays(monday(`${anchor.slice(0, 7)}-01`), i));
   }, [mode, anchor]);
 
   const step = (n: number) => {
-    if (mode === "week" || mode === "lanes") return setAnchor(addDays(anchor, 7 * n));
-    if (mode === "agenda") return setAnchor(addDays(anchor, 14 * n));
+    if (mode === "week") return setAnchor(addDays(anchor, 7 * n));
     const d = parse(`${anchor.slice(0, 7)}-01`);
     d.setMonth(d.getMonth() + n);
     setAnchor(ymd(d));
@@ -277,16 +282,14 @@ export default function SchedulerBoard() {
 
   const slot = data?.slots.find((s) => s.id === realId(open ?? "")) ?? null;
   const today = todayET();
-  // Lanes: the agents (never the design reviewer, which is never on the Schedule) plus any job that has something this week.
-  const lanes = agents.filter((a) => a.id !== "reviewer" && (a.kind !== "job" || days.some((d) => (byDay[d] ?? []).some((s) => s.agent === a.id))));
   const needs = data?.needsYou ?? [];
   const [showAllNeeds, setShowAllNeeds] = useState(false);
 
   return (
-    <main className="flex h-[calc(100vh-45px)] flex-col gap-3 px-5 py-4">
+    <main className="flex h-[calc(100vh-95px)] flex-col gap-3 px-5 py-4">
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-sm font-black uppercase tracking-widest">Schedule</h1>
+        <h1 className="text-sm font-black uppercase tracking-widest">Social calendar</h1>
         <select
           value={event}
           onChange={(e) => {
@@ -302,7 +305,7 @@ export default function SchedulerBoard() {
           ))}
         </select>
         <div className="flex gap-1">
-          {(["month", "week", "lanes", "agenda"] as const).map((m) => (
+          {(["month", "week"] as const).map((m) => (
             <button key={m} onClick={() => setMode(m)} className={pill(mode === m)}>
               {m[0].toUpperCase() + m.slice(1)}
             </button>
@@ -384,75 +387,11 @@ export default function SchedulerBoard() {
       )}
 
       <div className="flex min-h-0 flex-1 gap-4">
-        <Tray data={data} agents={agents} onAdd={setAdding} onSpread={setSpreading} onTask={() => setAddingTask(true)} onOpen={setOpen} />
+        <Tray data={data} onAdd={setAdding} onSpread={setSpreading} />
 
         {/* Calendar */}
         <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-100 bg-white dark:border-white/5 dark:bg-[#0d0d0d]">
-          {mode === "agenda" ? (
-            <div className="flex flex-col gap-3 overflow-y-auto p-3">
-              {days.map((day) => {
-                const items = byDay[day] ?? [];
-                const marks = datesByDay[day] ?? [];
-                if (!items.length && !marks.length) return null;
-                return (
-                  <div key={day} className="flex flex-col gap-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[11px] font-black ${day === today ? "rounded-full bg-[#1a3c6e] px-2 text-white" : ""}`}>{dayLabel(day, true)}</span>
-                      {marks.map((l) => (
-                        <span key={l} className="rounded bg-[#00f976]/20 px-1 text-[9px] font-bold text-green-800 dark:text-[#00f976]">
-                          {l}
-                        </span>
-                      ))}
-                    </div>
-                    {items.map((s) => (
-                      <SlotChip key={s.id} s={s} agents={agents} size="row" onClick={() => setOpen(s.id)} />
-                    ))}
-                  </div>
-                );
-              })}
-              {!days.some((d) => byDay[d]?.length) && <p className="text-[12px] text-gray-400">Nothing in these two weeks.</p>}
-            </div>
-          ) : mode === "lanes" ? (
-            <div className="flex min-h-0 flex-1 flex-col overflow-auto">
-              <div className="sticky top-0 z-10 grid grid-cols-[150px_repeat(7,minmax(120px,1fr))] border-b border-gray-100 bg-white text-[9px] font-black uppercase tracking-widest text-gray-400 dark:border-white/5 dark:bg-[#0d0d0d] dark:text-white/40">
-                <div className="px-2 py-1.5">Lane</div>
-                {days.map((day) => (
-                  <div key={day} className={`px-2 py-1.5 ${day === today ? "text-[#1a3c6e] dark:text-[#39b5e6]" : ""}`}>
-                    {dayLabel(day)}
-                    {(datesByDay[day] ?? []).map((l) => (
-                      <span key={l} className="ml-1 rounded bg-[#00f976]/20 px-1 normal-case tracking-normal text-green-800 dark:text-[#00f976]">
-                        {l}
-                      </span>
-                    ))}
-                  </div>
-                ))}
-              </div>
-              {lanes.map((a) => (
-                <div key={a.id} className="grid min-h-[120px] grid-cols-[150px_repeat(7,minmax(120px,1fr))] border-b border-gray-100 dark:border-white/5">
-                  <div className="flex items-start gap-2 border-r border-gray-100 p-2 dark:border-white/5" title={a.blurb}>
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[14px]" style={{ background: a.colour + "22" }}>
-                      {a.icon}
-                    </span>
-                    <span className="text-[11px] font-black leading-tight">{a.name}</span>
-                  </div>
-                  {days.map((day) => (
-                    <div
-                      key={day}
-                      onDragOver={(e) => day >= today && e.preventDefault()}
-                      onDrop={(e) => onDrop(day, e)}
-                      className={`flex flex-col gap-1 border-r border-gray-100 p-1.5 dark:border-white/5 ${day < today ? "bg-gray-50/60 dark:bg-white/[0.02]" : ""}`}
-                    >
-                      {(byDay[day] ?? [])
-                        .filter((s) => s.agent === a.id)
-                        .map((s) => (
-                          <SlotChip key={s.id} s={s} agents={agents} size="big" onClick={() => setOpen(s.id)} />
-                        ))}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          ) : (
+          {(
             <>
               <div className="grid grid-cols-7 border-b border-gray-100 text-[9px] font-black uppercase tracking-widest text-gray-400 dark:border-white/5 dark:text-white/40">
                 {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
@@ -535,46 +474,23 @@ export default function SchedulerBoard() {
           onClose={() => setSpreading(null)}
         />
       )}
-      {addingTask && (
-        <TaskDialog
-          agents={agents}
-          busy={busy}
-          onAdd={async (t) => {
-            const id = await act({ action: "task", event, ...t });
-            if (typeof id === "string") {
-              setAddingTask(false);
-              setAnchor(t.at.slice(0, 10));
-              setOpen(id);
-            }
-          }}
-          onClose={() => setAddingTask(false)}
-        />
-      )}
       {slot && slot.kind === "post" && <SlotDrawer key={slot.id} s={slot} agents={agents} posts={data?.posts ?? []} busy={busy} act={act} onClose={() => setOpen(null)} />}
-      {slot && slot.kind !== "post" && <TaskDrawer key={slot.id} s={slot} agents={agents} busy={busy} act={act} onClose={() => setOpen(null)} />}
     </main>
   );
 }
 
-/** The event's to-do list: open tasks, then every post not on the calendar yet, grouped by type. */
+/** Every post not on the calendar yet, grouped by type (tasks live on the Schedule tab now). */
 function Tray({
   data,
-  agents,
   onAdd,
   onSpread,
-  onTask,
-  onOpen,
 }: {
   data: Data | null;
-  agents: Agent[];
   onAdd: (t: TrayItem) => void;
   onSpread: (g: { type: string; label: string; items: TrayItem[] }) => void;
-  onTask: () => void;
-  onOpen: (id: string) => void;
 }) {
   const [filter, setFilter] = useState<"all" | "made" | "planned">("all");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
-  const tasks = (data?.slots ?? []).filter((s) => s.kind !== "post" && s.status !== "done").sort((a, b) => (a.publishAt ?? "").localeCompare(b.publishAt ?? ""));
   const items = (data?.tray ?? []).filter((t) => filter === "all" || (filter === "made") === !t.placeholder);
   // Group by graphic (type): bracket breakdowns ×24 fold into one row.
   const groups: { type: string; label: string; phase: string; items: TrayItem[] }[] = [];
@@ -617,34 +533,9 @@ function Tray({
   return (
     <aside className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto rounded-xl border border-gray-100 bg-white p-3 dark:border-white/5 dark:bg-[#0d0d0d]">
       <div className="flex items-center justify-between">
-        <span className={sectionLabel}>Event to-do list</span>
-        <button onClick={onTask} className={pill(false)}>
-          + Task
-        </button>
+        <span className={sectionLabel}>Not on the calendar yet</span>
       </div>
 
-      {tasks.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          <div className={sectionLabel}>Tasks ({tasks.length})</div>
-          {tasks.map((s) => {
-            const a = findAgent(agents, s.agent);
-            return (
-              <button key={s.id} onClick={() => onOpen(s.id)} className="flex items-center gap-2 rounded-lg border border-l-4 border-gray-100 p-1.5 text-left text-[11px] hover:border-gray-400 dark:border-white/5" style={{ borderLeftColor: a.colour }}>
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px]" style={{ background: a.colour + "22" }}>
-                  {a.icon}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="line-clamp-2">{s.title}</span>
-                  <span className="block text-[10px] text-gray-400">
-                    {a.name} · {dueText(s.publishAt)}
-                    {s.duration ? ` · ~${s.duration} min` : ""}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       <div className="flex items-center justify-between">
         <span className={sectionLabel}>Not on the calendar ({data?.tray.length ?? 0})</span>
@@ -730,7 +621,7 @@ function SlotChip({ s, agents, size, onClick }: { s: Slot; agents: Agent[]; size
       style={{ borderLeftColor: a.colour }}
       className={`flex w-full ${size === "big" ? "flex-col" : "items-center"} gap-1.5 rounded-md border border-l-4 border-gray-100 bg-white p-1 text-left text-[10px] hover:border-gray-400 dark:border-white/5 dark:bg-[#141414] dark:hover:border-white/30 ${
         s.placeholder ? "border-dashed opacity-80" : ""
-      } ${s.status === "done" ? "opacity-50" : ""}`}
+      } ${s.placeholder && !s.templated ? "opacity-45 grayscale" : ""} ${s.status === "done" ? "opacity-50" : ""}`}
     >
       {thumb}
       <span className="min-w-0 flex-1">
@@ -743,6 +634,9 @@ function SlotChip({ s, agents, size, onClick }: { s: Slot; agents: Agent[]; size
           {size === "small" && isPost && <span className="ml-auto text-[10px]">{a.icon}</span>}
         </span>
         <span className={`block ${size === "small" ? "truncate" : ""}`}>{s.title}</span>
+        {isPost && s.placeholder && (
+          <span className="block text-[9px] text-gray-400">{s.templated ? "template ready · waiting on data" : "needs a template"}</span>
+        )}
         {size !== "small" && (
           <span className="mt-1 flex items-center gap-1.5">
             <span className={`inline-block rounded-full px-2 py-0.5 font-bold ${tone(p.tone)}`}>{p.label}</span>
@@ -876,7 +770,7 @@ function SpreadDialog({
 }
 
 /** A task: an agent's work or something James must do, on the Schedule. */
-function TaskDialog({
+export function TaskDialog({
   agents,
   busy,
   onAdd,
@@ -988,7 +882,7 @@ function Path({ steps, agents }: { steps: PathStep[]; agents: Agent[] }) {
   );
 }
 
-function TaskDrawer({ s, agents, busy, act, onClose }: { s: Slot; agents: Agent[]; busy: boolean; act: Act; onClose: () => void }) {
+export function TaskDrawer({ s, agents, busy, act, onClose }: { s: Slot; agents: Agent[]; busy: boolean; act: Act; onClose: () => void }) {
   const t = et(s.publishAt);
   const a = findAgent(agents, s.agent);
   const [title, setTitle] = useState(s.title);

@@ -185,7 +185,7 @@ function ApproveAndSchedule({ event, type, single, picked, disabled, onChanged }
   if (!g) return null;
   const field = "rounded border border-gray-300 bg-white px-2 py-1 text-[11px] dark:border-white/20 dark:bg-black";
   const schedLink = (
-    <Link href="/admin/scheduler" className="text-[10px] text-gray-500 underline dark:text-white/50">
+    <Link href="/admin/social" className="text-[10px] text-gray-500 underline dark:text-white/50">
       Open the Schedule ↗
     </Link>
   );
@@ -693,7 +693,7 @@ export default function PostTypeView({
       <div className="flex flex-wrap items-start gap-4">
         <div className="flex-1">
           <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-            <Link href="/admin/generator" className="hover:underline">
+            <Link href="/admin/social?tab=generator" className="hover:underline">
               ← {data.eventLabel}
             </Link>
             <span className="mx-1.5">/</span>
@@ -1063,7 +1063,7 @@ export default function PostTypeView({
         <div className={`${sectionLabel} mb-2`}>
           Past versions + inspiration for this post type ({data.examples.length}
           ) —{" "}
-          <Link href="/admin/library" className="underline">
+          <Link href="/admin/social?tab=library" className="underline">
             open the Post Library
           </Link>
         </div>

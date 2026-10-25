@@ -42,6 +42,7 @@ export type Job = {
   when1: string; when2: string; how: string; next_at: string; counts: boolean; // counts = part of "N of M steps done"
 };
 /** One line of the "Approve posts" checklist (James 24 Oct 2026): ticked = approved / scheduled; link opens it on the Schedule. */
+export type CalSlot = { id: string; kind: string; agent: string; title: string; at: string; status: string; job: string; placeholder: boolean; templated: boolean };
 export type PostCheck = { id: string; title: string; due: string; done: boolean; note: string; link: string };
 export type Timer = { label: string; name: string; ok: boolean; running: boolean; exit: string; lastOutput: string };
 export type Done = { icon: string; agent: string; task: string; when: string; result: string; link: string; kind: "run" | "post" | "task" };
@@ -68,6 +69,7 @@ export type View = {
   anchors: Record<string, string>; // picks_open, lock, day_one, event_end (ET ISO)
   listener: { on: boolean; lastWake: string; lastWakeText: string }; // the Slack listener (launchd com.pickem.listener)
   timers: Timer[]; // every launchd com.pickem.* timer: last exit (0 = fine), running, last output
+  slots: CalSlot[]; // the Schedule's slots, slimmed for the bullet calendars (WeekBullets)
   wakeups: string[]; // the day planner's wake-ups still to fire (ET ISO), soonest first
   cards: Card[];
   error?: string;
@@ -255,7 +257,7 @@ export async function view(): Promise<View> {
       .map((j) => ({ icon: j.icon, agent: j.agent, task: j.short || j.name, due: j.next_at || j.due, waiting: waitingText(j), link: j.slot ? "/admin/scheduler" : "", state: j.state })),
     ...slots
       .filter((s) => s.kind === "post" && ["draft", "approved"].includes(s.status) && s.publishAt && Date.parse(s.publishAt) >= now)
-      .map((s) => ({ icon: icon("posts"), agent: "posts", task: `Post: ${s.title}`, due: s.publishAt ?? "", waiting: s.status === "draft" ? "needs your approval" : "approved, goes out by itself", link: "/admin/scheduler", state: s.status })),
+      .map((s) => ({ icon: icon("posts"), agent: "posts", task: `Post: ${s.title}`, due: s.publishAt ?? "", waiting: s.status === "draft" ? "needs your approval" : "approved, goes out by itself", link: `/admin/social?slot=${s.id}`, state: s.status })),
   ]
     .sort((a, b) => Date.parse(a.due) - Date.parse(b.due)) // jobs carry an offset, posts are UTC: compare instants, not strings
     .slice(0, 15);
@@ -307,7 +309,7 @@ export async function view(): Promise<View> {
   const asks = needsYou(slots);
   const postAsks = asks.filter((n) => slotById.get(n.id)?.kind === "post" && POST_ASK.test(n.text));
   const askIds = new Set(postAsks.map((n) => n.id));
-  const toLink = (id: string) => `/admin/scheduler?slot=${id}`;
+  const toLink = (id: string) => (slotById.get(id)?.kind === "post" ? `/admin/social?slot=${id}` : `/admin/scheduler?slot=${id}`);
   const posts: PostCheck[] = [
     ...postAsks.map((n) => ({
       id: n.id, title: n.text.replace(POST_ASK, ""), due: n.due ?? "", done: false, link: toLink(n.id),
@@ -321,7 +323,7 @@ export async function view(): Promise<View> {
   const inbox: View["needsYou"] = [
     ...inputs.filter((i) => !i.done).map((i) => ({ text: i.text, due: inputDue(i.text), link: card ? "/admin/todo" : "", kind: "input" as const })),
     ...asks.filter((n) => !postAsks.includes(n)).map((n) => ({ text: n.text, due: n.due ?? "", link: n.id ? toLink(n.id) : "/admin/scheduler", kind: n.tone === "red" ? ("blocked" as const) : ("input" as const) })), // what's left is your own tasks (a tab to add …), not approvals
-    ...(postAsks.length ? [{ text: "Approve posts", due: firstAsk?.due ?? "", link: "/admin/scheduler", kind: "posts" as const, posts }] : []),
+    ...(postAsks.length ? [{ text: "Approve posts", due: firstAsk?.due ?? "", link: "/admin/social", kind: "posts" as const, posts }] : []),
     ...(planRep ? [{ text: "Review the event plan the Manager put on the Schedule", due: "", link: "/admin/scheduler", kind: "review" as const }] : []),
   ].sort((a, b) => (a.due || "9").localeCompare(b.due || "9"));
 
@@ -333,7 +335,11 @@ export async function view(): Promise<View> {
   const listener = { on, lastWake: wake?.at ?? "", lastWakeText: wake ? `${team.find((a) => a.id === wake.agent)?.icon ?? ""} ${wake.note ?? ""}`.trim() : "" };
 
   const tm = timers();
-  return { event: pb.event, eventName: pb.name, date: pb.date, planningStart: pb.planning_start, team, completed, upcoming, brief, inputs, inputsCard: card?.id ?? "", needsYou: inbox, anchors: pb.anchors, listener, timers: tm.timers, wakeups: tm.wakeups, cards };
+  const calSlots: CalSlot[] = slots.map((s) => ({
+    id: s.id, kind: s.kind, agent: s.agent, title: s.title, at: s.publishAt ?? "", status: s.status,
+    job: (s.notes ?? "").match(/job:([a-z_]+)/)?.[1] ?? "", placeholder: !!s.placeholder, templated: !!s.templated,
+  }));
+  return { event: pb.event, eventName: pb.name, date: pb.date, planningStart: pb.planning_start, team, completed, upcoming, brief, inputs, inputsCard: card?.id ?? "", needsYou: inbox, anchors: pb.anchors, listener, timers: tm.timers, slots: calSlots, wakeups: tm.wakeups, cards };
 }
 
 /** One report by its hub-relative path (agents/runs/<agent>/<file>.json only). */
