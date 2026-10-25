@@ -14,7 +14,7 @@ export default function ThemeToggle() {
       className="flex items-center gap-1.5 rounded-full border border-gray-200 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:border-gray-400 hover:text-gray-900 dark:border-white/10 dark:text-white/50 dark:hover:border-white/30 dark:hover:text-white"
     >
       <span aria-hidden>{dark ? "☀︎" : "☾"}</span>
-      {dark ? "Light" : "Dark"}
+      <span className="hidden sm:inline">{dark ? "Light" : "Dark"}</span>
     </button>
   );
 }

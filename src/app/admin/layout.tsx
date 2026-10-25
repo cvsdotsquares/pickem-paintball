@@ -12,11 +12,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   if (!adminEnabled()) notFound();
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-[#111] text-gray-900 dark:text-white">
-      <header className="sticky top-0 z-30 flex items-center gap-6 border-b border-gray-200 dark:border-white/5 bg-white dark:bg-[#0d0d0d] px-5 py-3">
-        <Link href="/admin" className="text-xs font-black uppercase tracking-widest">
-          Pick&apos;Em Admin
+      {/* Phone (James 25 Oct 2026): the nav scrolls sideways, "Runs on this Mac only" and the theme word hide */}
+      <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-gray-200 bg-white px-3 py-3 dark:border-white/5 dark:bg-[#0d0d0d] sm:gap-6 sm:px-5">
+        <Link href="/admin" className="shrink-0 text-xs font-black uppercase tracking-widest">
+          Pick&apos;Em<span className="hidden sm:inline"> Admin</span>
         </Link>
-        <nav className="flex gap-4 text-[11px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/40">
+        <nav className="flex min-w-0 flex-1 gap-4 overflow-x-auto whitespace-nowrap text-[11px] font-bold uppercase tracking-widest text-gray-400 [scrollbar-width:none] dark:text-white/40">
           <Link href="/admin/social" className="hover:text-gray-900 dark:hover:text-white">
             Social
           </Link>
@@ -30,10 +31,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             Workflows
           </Link>
         </nav>
-        <span className="ml-auto text-[9px] uppercase tracking-widest text-gray-300 dark:text-white/25">
+        <span className="hidden shrink-0 text-[9px] uppercase tracking-widest text-gray-300 dark:text-white/25 lg:inline">
           Runs on this Mac only
         </span>
-        <ThemeToggle />
+        <div className="shrink-0">
+          <ThemeToggle />
+        </div>
       </header>
       {children}
     </div>

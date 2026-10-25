@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { primaryButton, sectionLabel } from "./types";
-import WeekBullets, { type BSlot } from "./WeekBullets";
+import WeekBullets, { DOT, jobDot, type BSlot, type Dot } from "./WeekBullets";
 
 /**
  * Workflows (admin page 5, James 18 Oct 2026): the team of agents, for a human to read at a glance.
@@ -173,9 +173,9 @@ export default function WorkflowsBoard() {
     picksIn > 0 ? `Picks open in ${picksIn} day${picksIn === 1 ? "" : "s"}` : lockIn > 0 ? `Picks are open · lock in ${lockIn} day${lockIn === 1 ? "" : "s"}` : dayOneIn >= 0 && inDays(data.anchors.event_end, today) >= 0 ? "Event week" : inDays(data.anchors.event_end, today) < 0 ? "After the event" : "Picks locked";
 
   return (
-    <main className="mx-auto max-w-6xl px-5 py-6">
+    <main className="mx-auto flex max-w-6xl flex-col px-3 py-4 sm:px-5 sm:py-6 md:block">
       {/* ── Today ─────────────────────────────────────────────────────────── */}
-      <div className="mb-5 flex flex-wrap items-end gap-4">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-4">
         <div className="flex-1">
           <div className={sectionLabel}>Workflows · {data.eventName}</div>
           <h1 className="text-2xl font-black uppercase tracking-wide">{dayOf(today + "T12:00:00")}</h1>
@@ -206,7 +206,7 @@ export default function WorkflowsBoard() {
       </div>
 
       {/* ── Roadmap ───────────────────────────────────────────────────────── */}
-      <section className={`${card} mb-4 p-4`}>
+      <section className={`${card} order-1 mb-4 p-4 md:order-none`}>
         <div className={`${sectionLabel} mb-2`}>Two weeks, Monday to Sunday · what each agent does each day · the full calendar is the Schedule tab</div>
         <WeekBullets
           jobs={allJobs}
@@ -219,7 +219,7 @@ export default function WorkflowsBoard() {
       </section>
 
       {/* ── Needs you + Up next ───────────────────────────────────────────── */}
-      <div className="mb-4 grid gap-4 md:grid-cols-2">
+      <div className="order-2 mb-4 grid gap-4 md:order-none md:grid-cols-2 [&>*]:min-w-0">
         <section id="needs-you" className={`${card} scroll-mt-16 p-4`}>
           <div className="mb-2 flex items-baseline justify-between">
             <div className={sectionLabel}>✋ Needs you</div>
@@ -254,14 +254,14 @@ export default function WorkflowsBoard() {
       </div>
 
       {/* ── Team ──────────────────────────────────────────────────────────── */}
-      <section id="team" className={`${card} mb-4 scroll-mt-16 p-4`}>
+      <section id="team" className={`${card} order-4 mb-4 scroll-mt-16 p-4 md:order-none`}>
         <div className={`${sectionLabel} mb-3`}>The team · click someone for their desk</div>
         <OrgChart team={data.team} cards={data.cards} selected={sel?.agent.id ?? ""} onSelect={setSelected} />
         {sel && <Desk c={sel} byId={byId} today={today} busy={busy} act={act} onOpen={openReport} jobName={jobName} />}
       </section>
 
       {/* ── Brief + what happened ─────────────────────────────────────────── */}
-      <div className="grid gap-4 md:grid-cols-[3fr_2fr]">
+      <div className="order-3 mb-4 grid gap-4 md:order-none md:mb-0 md:grid-cols-[3fr_2fr] [&>*]:min-w-0">
         <section className={`${card} p-4`}>
           <div className={`${sectionLabel} mb-3`}>🧢 The Manager&apos;s brief</div>
           {data.brief ? <BriefMessage brief={data.brief} onOpen={openReport} /> : <Empty>No brief yet. Press “Run the Manager now” or wait for 7 AM ET.</Empty>}
@@ -297,17 +297,23 @@ function ApprovePosts({ n, today }: { n: NeedsYou; today: string }) {
           </div>
           <div className="shrink-0 text-right">
             {n.due && <div className={`text-[11px] font-bold ${inDays(n.due, today) <= 2 ? "" : "text-gray-500 dark:text-white/50"}`}>{relDay(n.due, today)}</div>}
-            <span className="text-[10px] text-gray-400">▾</span>
+            <span className="text-[14px] text-gray-400">▾</span>
           </div>
         </summary>
         <ul className="space-y-1 border-t border-gray-100 p-3 dark:border-white/5">
           {posts.map((p) => (
-            <li key={p.id} className="flex items-center gap-2 text-[11px]">
-              <span className="w-4 text-center" aria-label={p.done ? "approved" : "needs approval"}>{p.done ? "☑" : "☐"}</span>
-              <span className={`min-w-0 flex-1 truncate ${p.done ? "text-gray-400 line-through" : "font-bold"}`} title={p.title}>{p.title}</span>
-              <span className="shrink-0 text-gray-500 dark:text-white/50">{p.due ? `${relDay(p.due, today)} ${timeOf(p.due)}` : "no date"}</span>
-              <span className="hidden w-36 shrink-0 truncate text-gray-400 sm:block" title={p.note}>{p.note}</span>
-              <Link href={p.link} className="shrink-0 text-gray-400 underline hover:text-gray-900 dark:hover:text-white">{p.done ? "view" : "approve"}</Link>
+            // phone: the whole row is the link, tall enough to tap; desktop: one line with an "approve" link
+            <li key={p.id}>
+              <Link href={p.link} className="flex items-center gap-2 rounded-lg px-1 py-2 text-[13px] hover:bg-gray-50 dark:hover:bg-white/5 sm:py-0.5 sm:text-[11px]">
+                <span className="w-4 shrink-0 text-center" aria-label={p.done ? "approved" : "needs approval"}>{p.done ? "☑" : "☐"}</span>
+                <span className="min-w-0 flex-1">
+                  <span className={`block truncate ${p.done ? "text-gray-400 line-through" : "font-bold"}`} title={p.title}>{p.title}</span>
+                  <span className="block text-[11px] text-gray-500 dark:text-white/50 sm:hidden">{p.due ? `${relDay(p.due, today)} ${timeOf(p.due)}` : "no date"} · {p.note}</span>
+                </span>
+                <span className="hidden shrink-0 text-gray-500 dark:text-white/50 sm:inline">{p.due ? `${relDay(p.due, today)} ${timeOf(p.due)}` : "no date"}</span>
+                <span className="hidden w-36 shrink-0 truncate text-gray-400 md:block" title={p.note}>{p.note}</span>
+                <span className="shrink-0 text-gray-400 underline">{p.done ? "view" : "approve"}</span>
+              </Link>
             </li>
           ))}
         </ul>
@@ -347,11 +353,12 @@ function Agenda({ items, today }: { items: Upcoming[]; today: string }) {
           <div className="mb-1 text-[10px] font-black uppercase tracking-widest">{relDay(g.day + "T16:00:00Z", today)}{inDays(g.day, today) > 1 ? "" : ` · ${dayOf(g.day + "T16:00:00Z")}`}</div>
           <ul className="space-y-1">
             {g.items.map((u, i) => (
-              <li key={i} className="flex items-center gap-2 text-[11px]">
+              <li key={i} className="flex flex-wrap items-center gap-x-2 text-[12px] sm:flex-nowrap sm:text-[11px]">
                 <span className="w-16 shrink-0 text-gray-400">{timeOf(u.due)}</span>
                 <span className="w-5 text-center">{u.icon}</span>
-                <span className="flex-1 truncate" title={u.task}>{u.task}</span>
-                <span className="max-w-[40%] truncate text-right text-gray-400" title={u.waiting}>{u.waiting}</span>
+                <span className="min-w-0 flex-1 truncate" title={u.task}>{u.task}</span>
+                {/* phone: the note goes on its own line under the job */}
+                <span className="order-last basis-full truncate pl-[5.5rem] text-gray-400 sm:order-none sm:max-w-[40%] sm:basis-auto sm:pl-0 sm:text-right" title={u.waiting}>{u.waiting}</span>
                 {u.link && <Link href={u.link} className="text-gray-400 underline hover:text-gray-900 dark:hover:text-white">open</Link>}
               </li>
             ))}
@@ -376,9 +383,9 @@ function OrgChart({ team, cards, selected, onSelect }: { team: AgentRow[]; cards
       <button
         disabled={!clickable}
         onClick={() => clickable && onSelect(a.id)}
-        className={`group flex ${big ? "w-56" : "w-44"} flex-col items-center rounded-2xl border p-3 text-center transition-colors ${selected === a.id ? "border-gray-900 dark:border-white" : "border-gray-100 dark:border-white/5"} ${clickable ? "hover:border-gray-400 dark:hover:border-white/30" : "cursor-default"} ${a.status === "on" ? "" : "opacity-50"}`}
+        className={`group flex ${big ? "w-44 sm:w-56" : "w-[9.5rem] sm:w-44"} flex-col items-center rounded-2xl border p-2 text-center sm:p-3 transition-colors ${selected === a.id ? "border-gray-900 dark:border-white" : "border-gray-100 dark:border-white/5"} ${clickable ? "hover:border-gray-400 dark:hover:border-white/30" : "cursor-default"} ${a.status === "on" ? "" : "opacity-50"}`}
       >
-        <span className={`relative flex ${big ? "h-14 w-14 text-3xl" : "h-11 w-11 text-2xl"} items-center justify-center rounded-full border-2 ${last?.result === "running" ? "border-gray-900 border-dashed dark:border-white" : "border-gray-200 dark:border-white/10"} bg-gray-50 dark:bg-white/5`}>
+        <span className={`relative flex ${big ? "h-12 w-12 text-2xl sm:h-14 sm:w-14 sm:text-3xl" : "h-10 w-10 text-xl sm:h-11 sm:w-11 sm:text-2xl"} items-center justify-center rounded-full border-2 ${last?.result === "running" ? "border-gray-900 border-dashed dark:border-white" : "border-gray-200 dark:border-white/10"} bg-gray-50 dark:bg-white/5`}>
           {a.icon}
           {a.status !== "on" && <span className="absolute -bottom-1 -right-1 rounded-full bg-white px-1 text-[9px] dark:bg-black">{a.status === "off" ? "⏻" : "⏸"}</span>}
         </span>
@@ -392,7 +399,9 @@ function OrgChart({ team, cards, selected, onSelect }: { team: AgentRow[]; cards
   const root = team.find((a) => !a.parent);
   const manager = root ? kids(root.id)[0] : undefined;
   const agents = manager ? kids(manager.id) : [];
+  // The tree on every screen (James 25 Oct 2026: show the real structure on the phone too); smaller cards on a phone
   return (
+    <>
     <div className="flex flex-col items-center">
       {root && <Avatar a={root} />}
       {manager && (
@@ -400,7 +409,7 @@ function OrgChart({ team, cards, selected, onSelect }: { team: AgentRow[]; cards
           <div className="h-5 w-px bg-gray-300 dark:bg-white/20" />
           <Avatar a={manager} big />
           <div className="h-5 w-px bg-gray-300 dark:bg-white/20" />
-          <div className="relative flex w-full justify-center gap-10 pt-5">
+          <div className="relative flex w-full justify-center gap-3 pt-5 sm:gap-10">
             <div className="absolute left-1/4 right-1/4 top-0 h-px bg-gray-300 dark:bg-white/20" />
             {agents.map((ag) => (
               <div key={ag.id} className="relative flex flex-col items-center">
@@ -409,11 +418,11 @@ function OrgChart({ team, cards, selected, onSelect }: { team: AgentRow[]; cards
                 {kids(ag.id).length > 0 && (
                   <>
                     <div className="h-4 w-px bg-gray-300 dark:bg-white/20" />
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 sm:gap-2">
                       {kids(ag.id).map((k) => (
-                        <div key={k.id} className="flex w-24 flex-col items-center rounded-xl border border-dashed border-gray-200 p-2 text-center dark:border-white/10" title={k.blurb}>
-                          <span className="text-xl">{k.icon}</span>
-                          <span className="text-[9px] font-black uppercase tracking-wide">{k.name}</span>
+                        <div key={k.id} className="flex w-12 flex-col items-center rounded-xl border border-dashed border-gray-200 p-1 text-center dark:border-white/10 sm:w-24 sm:p-2" title={k.blurb}>
+                          <span className="text-lg sm:text-xl">{k.icon}</span>
+                          <span className="text-[7px] font-black uppercase leading-tight tracking-wide sm:text-[9px]">{k.name}</span>
                           <span className="text-[8px] uppercase tracking-widest text-gray-400">{k.kind}</span>
                         </div>
                       ))}
@@ -426,6 +435,7 @@ function OrgChart({ team, cards, selected, onSelect }: { team: AgentRow[]; cards
         </>
       )}
     </div>
+    </>
   );
 }
 
@@ -437,15 +447,23 @@ function Desk({ c, byId, today, busy, act, onOpen, jobName }: { c: Card; byId: R
   useEffect(() => setPause(a.paused_until), [a.paused_until, a.id]);
   const last = c.lastRun;
   const counted = c.workflows.flatMap((w) => w.steps).filter((s) => s.counts);
+  const builtMap = Object.fromEntries(c.workflows.flatMap((w) => w.steps).map((s) => [s.id, !!s.built]));
+  // Only the stage you're in starts open: the one with something running / due now, else the one with the next run
+  const nextStep = c.workflows.flatMap((w) => w.steps).filter((s) => s.next_at).sort((x, y) => Date.parse(x.next_at) - Date.parse(y.next_at))[0];
+  const openStage =
+    c.workflows.find((w) => w.steps.some((s) => ["running", "due", "overdue", "failed", "waiting"].includes(s.vstate)))?.id ??
+    c.workflows.find((w) => w.steps.some((s) => s.id === nextStep?.id))?.id ??
+    c.workflows.find((w) => w.steps.some((s) => s.counts && s.vstate !== "done"))?.id;
   const total = counted.length;
   const doneN = counted.filter((s) => s.vstate === "done").length;
   return (
-    <div className="mt-5 rounded-2xl border border-gray-200 p-4 dark:border-white/10">
+    <div className="mt-5 rounded-2xl border border-gray-200 p-3 dark:border-white/10 sm:p-4">
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-3xl">{a.icon}</span>
-        <div className="min-w-0 flex-1">
+        {/* phone: the name and blurb take the whole row (blurb cut to 3 lines); the controls wrap below */}
+        <div className="min-w-0 basis-[calc(100%-3.5rem)] sm:basis-0 sm:flex-1">
           <div className="text-sm font-black uppercase tracking-widest">{a.name}&apos;s desk</div>
-          <div className="text-[11px] text-gray-500 dark:text-white/50">{a.blurb}</div>
+          <div className="line-clamp-3 text-[11px] text-gray-500 dark:text-white/50 sm:line-clamp-none" title={a.blurb}>{a.blurb}</div>
         </div>
         <a href={chatLink(a)} className="rounded-lg border border-gray-300 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest hover:border-gray-900 dark:border-white/20 dark:hover:border-white" title={a.id === "gm" ? "Discuss tasks, responsibilities and ways of working" : "Discuss this agent's own work and responsibilities"}>
           💬 Chat to {a.id === "gm" ? "the Manager" : a.name.replace(" media agent", "").replace(" agent", "")}
@@ -508,9 +526,9 @@ function Desk({ c, byId, today, busy, act, onOpen, jobName }: { c: Card; byId: R
             <div className="text-[10px] text-gray-400">{doneN} of {total} steps done</div>
           </div>
           <div className="mb-4 h-1.5 w-full rounded bg-gray-100 dark:bg-white/10"><div className="h-1.5 rounded bg-gray-900 dark:bg-white" style={{ width: `${(100 * doneN) / Math.max(1, total)}%` }} /></div>
-          <div className="space-y-5">
+          <div className="space-y-2">
             {c.workflows.map((w) => (
-              <Track key={w.id} w={w} agent={a} byId={byId} today={today} busy={busy} act={act} onOpen={onOpen} openStep={openStep} setOpenStep={setOpenStep} />
+              <Track key={w.id} w={w} agent={a} byId={byId} today={today} busy={busy} act={act} onOpen={onOpen} openStep={openStep} setOpenStep={setOpenStep} built={builtMap} defaultOpen={w.id === openStage} />
             ))}
           </div>
         </div>
@@ -544,11 +562,16 @@ function Stat({ label, children }: { label: string; children: React.ReactNode })
 }
 
 /**
- * One workflow as a track: nodes on a line in time order, short labels, the day/time and how each starts underneath,
- * click a node for the detail. "now:" only when something is running or due today; otherwise "next:" (James 24 Oct 2026).
+ * One workflow stage (James 25 Oct 2026, "improve the workflow graphic"): it folds open and shut, its summary line says
+ * how far along it is and what's next, and only the stage you're in starts open. Every step carries the calendars'
+ * status dot (green built · blue needs you · orange not built · red blocked) and a "Today" line sits between what has
+ * started and what's still to come. Phone: a vertical timeline, one row per step. Desktop: the horizontal track.
+ * Tap a step for its detail (a bottom sheet on a phone).
  */
 const LIVE = ["running", "due", "overdue", "failed", "waiting"];
-function Track({ w, agent, byId, today, busy, act, onOpen, openStep, setOpenStep }: { w: { id: string; name: string; steps: Job[] }; agent: AgentRow; byId: Record<string, AgentRow>; today: string; busy: boolean; act: (b: Record<string, unknown>) => Promise<void>; onOpen: (f: string) => void; openStep: string | null; setOpenStep: (id: string | null) => void }) {
+function Track({ w, agent, byId, today, busy, act, onOpen, openStep, setOpenStep, built, defaultOpen }: { w: { id: string; name: string; steps: Job[] }; agent: AgentRow; byId: Record<string, AgentRow>; today: string; busy: boolean; act: (b: Record<string, unknown>) => Promise<void>; onOpen: (f: string) => void; openStep: string | null; setOpenStep: (id: string | null) => void; built: Record<string, boolean>; defaultOpen: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  useEffect(() => setOpen(defaultOpen), [defaultOpen]);
   const steps = w.steps;
   const counted = steps.filter((s) => s.counts);
   const done = counted.filter((s) => s.vstate === "done").length;
@@ -562,53 +585,126 @@ function Track({ w, agent, byId, today, busy, act, onOpen, openStep, setOpenStep
     ? "all done"
     : "";
   const ringed = new Set(nowSteps.length ? nowSteps.map((s) => s.id) : next ? [next.id] : []);
-  return (
-    <div>
-      <div className="mb-2 flex items-baseline gap-2">
-        <div className="text-[11px] font-black uppercase tracking-wide">{w.name}</div>
-        <div className="text-[10px] text-gray-400">{counted.length ? `${done}/${counted.length}` : ""}{head ? `${counted.length ? " · " : ""}${head}` : ""}</div>
+  // "Today" goes before the first step that starts after today (on-message steps sit at the end, after it)
+  let todayAt = steps.findIndex((s) => s.repeat === "on_message" || (s.vstate !== "done" && etDate(s.first_due) > today));
+  if (todayAt === -1) todayAt = steps.length;
+  // only where today falls inside the stage: a stage wholly ahead or wholly done gets no marker
+  if (todayAt === 0 || todayAt === steps.length) todayAt = -1;
+  const dotOf = (s: Job) => jobDot(s, today, today, built);
+  const dots = steps.reduce<Record<Dot, number>>((m, s) => ({ ...m, [dotOf(s)]: (m[dotOf(s)] ?? 0) + 1 }), { green: 0, blue: 0, orange: 0, red: 0 });
+
+  const detail = (s: Job) => {
+    const st = STATE[s.vstate] ?? { glyph: "", label: s.vstate };
+    return (
+      <div className="fixed inset-x-3 bottom-3 z-50 max-h-[70vh] overflow-y-auto rounded-xl border border-gray-200 bg-white p-4 text-left text-[13px] shadow-xl dark:border-white/10 dark:bg-[#111] md:absolute md:inset-x-auto md:bottom-auto md:left-1/2 md:top-10 md:z-20 md:max-h-none md:w-64 md:-translate-x-1/2 md:p-3 md:text-[11px]" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-1 font-black">{s.name}</div>
+        <div className="mb-1 flex items-center gap-1.5 text-gray-500 dark:text-white/50">
+          <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${DOT[dotOf(s)].cls}`} />
+          {DOT[dotOf(s)].label}
+        </div>
+        <div className="mb-1 text-gray-500 dark:text-white/50">{byId[s.agent]?.icon} {s.agent_name} · {st.label} · {[s.when1, s.when2].filter(Boolean).join(" · ")} ET · {s.how}</div>
+        {s.next_at && <div className="mb-1">Next run: {dayOf(s.next_at)} {timeOf(s.next_at)} ET</div>}
+        {s.waiting_on?.length ? <div className="mb-1">Waiting on: {s.waiting_on.map((x) => x.replace(/_/g, " ")).join(", ")}</div> : null}
+        <div className="mb-1"><b>Done looks like:</b> {s.done}</div>
+        <div className="mb-1"><b>Checks:</b> {s.checks.join("; ")}</div>
+        <div className="mb-2 text-gray-500 dark:text-white/50">{s.writes === "asks" ? "Asks first: a diff in #approvals, your ✅ writes it" : s.writes === "james" ? "This one is yours" : "Writes its own result"}{s.inputs.length ? ` · needs from you: ${s.inputs.join("; ")}` : ""}</div>
+        <div className="flex gap-3 text-gray-400">
+          {s.slot && <Link href={`/admin/scheduler?slot=${s.slot}`} className="underline">Schedule slot</Link>}
+          {s.last_report && <button className="underline" onClick={() => onOpen(s.last_report)}>last report</button>}
+          {s.built && s.repeat !== "own_timer" && s.state !== "running" && agent.status === "on" && <button className="underline" disabled={busy} onClick={() => act({ action: "run", agent: s.agent, job: s.id })}>run now</button>}
+          <button className="ml-auto" onClick={() => setOpenStep(null)}>✕</button>
+        </div>
       </div>
-      <ol className="relative flex flex-wrap gap-y-4">
+    );
+  };
+  const todayLine = (vertical: boolean) =>
+    vertical ? (
+      <li key="today" className="flex items-center gap-2 py-1 text-[10px] font-black uppercase tracking-widest text-gray-900 dark:text-white">
+        <span className="h-px flex-1 bg-gray-900 dark:bg-white" />Today<span className="h-px flex-1 bg-gray-900 dark:bg-white" />
+      </li>
+    ) : (
+      <li key="today" className="relative flex w-10 flex-col items-center" title="Today">
+        <span className="absolute -top-2 bottom-0 w-0.5 bg-gray-900 dark:bg-white" />
+        <span className="relative z-10 mt-2 rounded bg-gray-900 px-1 text-[8px] font-black uppercase tracking-widest text-white dark:bg-white dark:text-black">Today</span>
+      </li>
+    );
+
+  return (
+    <details open={open} onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)} className="group rounded-xl border border-gray-100 dark:border-white/5">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-2 gap-y-1 p-3">
+        <span className="text-[11px] font-black uppercase tracking-wide">{w.name}</span>
+        {counted.length > 0 && <span className="text-[10px] text-gray-500 dark:text-white/50">{done} of {counted.length} done</span>}
+        <span className="flex items-center gap-1">
+          {(Object.keys(DOT) as Dot[]).filter((d) => dots[d]).map((d) => (
+            <span key={d} className="flex items-center gap-0.5 text-[9px] text-gray-400" title={`${dots[d]} ${DOT[d].label}`}>
+              <span className={`inline-block h-1.5 w-1.5 rounded-full ${DOT[d].cls}`} />{dots[d]}
+            </span>
+          ))}
+        </span>
+        <span className="ml-auto text-[16px] leading-none text-gray-500 transition-transform group-open:rotate-180 dark:text-white/50 md:order-last">▾</span>
+        <span className="min-w-0 basis-full truncate text-[11px] text-gray-500 dark:text-white/50 md:basis-auto md:flex-1">{head}</span>
+      </summary>
+
+      {/* Phone: a vertical timeline */}
+      <ol className="px-3 pb-3 md:hidden">
+        {steps.map((s, i) => {
+          const st = STATE[s.vstate] ?? { glyph: "", label: s.vstate };
+          const isCur = ringed.has(s.id);
+          const d = dotOf(s);
+          return (
+            <Fragment key={s.id}>
+              {i === todayAt && todayLine(true)}
+              <li className="relative flex gap-3">
+                <span className="flex w-5 shrink-0 flex-col items-center">
+                  <span className={`mt-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${s.vstate === "done" ? "bg-gray-900 text-white dark:bg-white dark:text-black" : "border-2 border-gray-300 bg-white dark:border-white/20 dark:bg-[#0d0d0d]"} ${isCur ? "ring-4 ring-gray-200 dark:ring-white/20" : ""}`}>{s.vstate === "done" ? "✓" : st.glyph}</span>
+                  {i < steps.length - 1 && <span className="w-px flex-1 bg-gray-200 dark:bg-white/10" />}
+                </span>
+                <button onClick={() => setOpenStep(openStep === s.id ? null : s.id)} className="min-w-0 flex-1 pb-3 text-left">
+                  <span className={`flex items-center gap-1.5 text-[13px] ${isCur ? "font-black" : "font-bold"} ${s.vstate === "done" ? "text-gray-400" : ""}`}>
+                    <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${DOT[d].cls}`} title={DOT[d].label} />
+                    <span className="truncate">{shortName(s)}</span>
+                  </span>
+                  <span className="block text-[11px] text-gray-500 dark:text-white/50">{s.agent !== agent.id ? `${byId[s.agent]?.icon} ` : ""}{[s.when1, s.when2].filter(Boolean).join(" · ")}</span>
+                  <span className="block text-[11px] text-gray-400">{s.vstate === "today" ? "ran today · " : ""}{s.how}</span>
+                </button>
+                {openStep === s.id && detail(s)}
+              </li>
+            </Fragment>
+          );
+        })}
+      </ol>
+
+      {/* Desktop: the horizontal track */}
+      <ol className="relative hidden flex-wrap gap-y-4 px-3 pb-4 md:flex">
         {steps.map((s, i) => {
           const st = STATE[s.vstate] ?? { glyph: "", label: s.vstate };
           const isCur = ringed.has(s.id);
           const filled = s.vstate === "done";
+          const d = dotOf(s);
           return (
-            <li key={s.id} className="relative flex w-28 flex-col items-center text-center">
-              {i > 0 && <span className={`absolute right-1/2 top-4 h-px w-full ${steps[i - 1].vstate === "done" ? "bg-gray-900 dark:bg-white" : "bg-gray-200 dark:bg-white/10"}`} />}
-              <button
-                onClick={() => setOpenStep(openStep === s.id ? null : s.id)}
-                className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-[12px] ${filled ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-black" : isCur || s.vstate === "today" ? "border-gray-900 bg-white dark:border-white dark:bg-[#0d0d0d]" : s.vstate === "not_built" ? "border-dashed border-gray-300 bg-white dark:border-white/20 dark:bg-[#0d0d0d]" : "border-gray-300 bg-white dark:border-white/20 dark:bg-[#0d0d0d]"} ${isCur ? "ring-4 ring-gray-200 dark:ring-white/20" : ""}`}
-                title={`${s.name} · ${st.label}`}
-              >
-                {st.glyph}
-              </button>
-              <span className={`mt-1.5 line-clamp-2 px-1 text-[10px] leading-tight ${isCur ? "font-bold" : ""}`} title={s.name}>{shortName(s)}</span>
-              <span className="text-[9px] leading-tight text-gray-500 dark:text-white/50">{s.agent !== agent.id ? `${byId[s.agent]?.icon} ` : ""}{s.when1}</span>
-              {s.when2 && <span className="text-[9px] leading-tight text-gray-500 dark:text-white/50">{s.when2}</span>}
-              <span className="text-[9px] leading-tight text-gray-400">{s.vstate === "today" ? "ran today · " : ""}{s.how}</span>
-              {openStep === s.id && (
-                <div className="absolute left-1/2 top-10 z-20 w-64 -translate-x-1/2 rounded-xl border border-gray-200 bg-white p-3 text-left text-[11px] shadow-xl dark:border-white/10 dark:bg-[#111]" onClick={(e) => e.stopPropagation()}>
-                  <div className="mb-1 font-black">{s.name}</div>
-                  <div className="mb-1 text-gray-500 dark:text-white/50">{byId[s.agent]?.icon} {s.agent_name} · {st.label} · {[s.when1, s.when2].filter(Boolean).join(" · ")} ET · {s.how}</div>
-                  {s.next_at && <div className="mb-1">Next run: {dayOf(s.next_at)} {timeOf(s.next_at)} ET</div>}
-                  {s.waiting_on?.length ? <div className="mb-1">Waiting on: {s.waiting_on.map((x) => x.replace(/_/g, " ")).join(", ")}</div> : null}
-                  <div className="mb-1"><b>Done looks like:</b> {s.done}</div>
-                  <div className="mb-1"><b>Checks:</b> {s.checks.join("; ")}</div>
-                  <div className="mb-2 text-gray-500 dark:text-white/50">{s.writes === "asks" ? "Asks first: a diff in #approvals, your ✅ writes it" : s.writes === "james" ? "This one is yours" : "Writes its own result"}{s.inputs.length ? ` · needs from you: ${s.inputs.join("; ")}` : ""}</div>
-                  <div className="flex gap-3 text-gray-400">
-                    {s.slot && <Link href={`/admin/scheduler?slot=${s.slot}`} className="underline">Schedule slot</Link>}
-                    {s.last_report && <button className="underline" onClick={() => onOpen(s.last_report)}>last report</button>}
-                    {s.built && s.repeat !== "own_timer" && s.state !== "running" && agent.status === "on" && <button className="underline" disabled={busy} onClick={() => act({ action: "run", agent: s.agent, job: s.id })}>run now</button>}
-                    <button className="ml-auto" onClick={() => setOpenStep(null)}>✕</button>
-                  </div>
-                </div>
-              )}
-            </li>
+            <Fragment key={s.id}>
+              {i === todayAt && todayLine(false)}
+              <li className="relative flex w-28 flex-col items-center text-center">
+                {i > 0 && i !== todayAt && <span className={`absolute right-1/2 top-4 h-px w-full ${steps[i - 1].vstate === "done" ? "bg-gray-900 dark:bg-white" : "bg-gray-200 dark:bg-white/10"}`} />}
+                <button
+                  onClick={() => setOpenStep(openStep === s.id ? null : s.id)}
+                  className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-[12px] ${filled ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-black" : isCur || s.vstate === "today" ? "border-gray-900 bg-white dark:border-white dark:bg-[#0d0d0d]" : s.vstate === "not_built" ? "border-dashed border-gray-300 bg-white dark:border-white/20 dark:bg-[#0d0d0d]" : "border-gray-300 bg-white dark:border-white/20 dark:bg-[#0d0d0d]"} ${isCur ? "ring-4 ring-gray-200 dark:ring-white/20" : ""}`}
+                  title={`${s.name} · ${st.label} · ${DOT[d].label}`}
+                >
+                  {st.glyph}
+                  <span className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-[#0d0d0d] ${DOT[d].cls}`} />
+                </button>
+                <span className={`mt-1.5 line-clamp-2 px-1 text-[10px] leading-tight ${isCur ? "font-bold" : ""}`} title={s.name}>{shortName(s)}</span>
+                <span className="text-[9px] leading-tight text-gray-500 dark:text-white/50">{s.agent !== agent.id ? `${byId[s.agent]?.icon} ` : ""}{s.when1}</span>
+                {s.when2 && <span className="text-[9px] leading-tight text-gray-500 dark:text-white/50">{s.when2}</span>}
+                <span className="text-[9px] leading-tight text-gray-400">{s.vstate === "today" ? "ran today · " : ""}{s.how}</span>
+                {openStep === s.id && detail(s)}
+              </li>
+            </Fragment>
           );
         })}
       </ol>
-    </div>
+    </details>
   );
 }
 
@@ -620,7 +716,7 @@ function Timers({ timers, wakeups }: { timers: Timer[]; wakeups: string[] }) {
     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-gray-500 dark:text-white/50">
       <span title="launchd timers on this Mac (launchctl list | grep pickem)">⏱ Timers {bad.length ? `· ${bad.length} stopped` : "· all fine"}:</span>
       {timers.map((t) => (
-        <span key={t.label} title={`${t.label} · last exit ${t.exit}${t.running ? " · running now" : ""}${t.lastOutput ? ` · last output ${new Date(t.lastOutput).toLocaleString()}` : ""}`} className={t.ok ? "" : "font-bold text-gray-900 dark:text-white"}>
+        <span key={t.label} title={`${t.label} · last exit ${t.exit}${t.running ? " · running now" : ""}${t.lastOutput ? ` · last output ${new Date(t.lastOutput).toLocaleString()}` : ""}`} className={t.ok ? "hidden sm:inline" : "font-bold text-gray-900 dark:text-white"}>
           {t.ok ? "●" : "✗"} {t.name}{t.ok ? "" : ` (exit ${t.exit})`}{t.lastOutput ? ` · ${ago(t.lastOutput)}` : ""}
         </span>
       ))}
