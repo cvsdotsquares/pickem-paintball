@@ -63,7 +63,16 @@ test("no data (not made yet) or an event post with nobody in it: NXL only", () =
 test("never more than 3, never our own account", () => {
   const out = autoCollaborators({ player: "Pick Em", team: "Heat" }, { ...handles, "Pick Em": "@pickempaintball" }, teams);
   assert.deepEqual(out, ["houstonheatpaintball", "nxlpaintball"]);
-  assert.ok(auto({ player: "James Green", team: "Aftermath" }).length <= 3);
+});
+
+test("James as the headline player: he's left out, his team and NXL stay", () => {
+  assert.deepEqual(auto({ player: "James Green", team: "Aftermath" }), ["asgaftermath", "nxlpaintball"]);
+  assert.deepEqual(auto({ rows: [{ player: "James Green", team: "Aftermath" }, { player: "Pavel Karsliev", team: "Red Legion" }] }), ["asgaftermath", "nxlpaintball"]);
+});
+
+test("typing James's account by hand is refused like Pick'Em's", () => {
+  assert.deepEqual(cleanList(["@greenyy42", "@nxlpaintball"]).own, ["greenyy42"]);
+  assert.deepEqual(cleanList(["@greenyy42", "@nxlpaintball"]).ok, ["nxlpaintball"]);
 });
 
 test("headline: top-level team wins over the rows' teams", () => {

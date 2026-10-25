@@ -2,7 +2,8 @@
  * Instagram collaborators on a post (James, 25 Oct 2026: a must-have on every post). The rule: the post's Player +
  * its Team + NXL (@nxlpaintball), at most 3. Handles come from pickem-hub generator/data/handles.json (name → @handle,
  * built from past captions), team names matched through generator/data/teams.json. A name with no handle is skipped,
- * never guessed. Many players → the headline (#1) player; many teams → the #1 team. Never our own accounts.
+ * never guessed. Many players → the headline (#1) player; many teams → the #1 team. Never our own accounts (Pick'Em's,
+ * or James's, though he's on Aftermath's roster).
  *
  * Stored on the scheduledPosts doc as `collaborators: [username]` (no "@"); the posting job
  * (pickem-paintball-scheduler functions/postScheduler.js) puts them on the Instagram container and drops any that
@@ -12,7 +13,7 @@
 
 export const MAX_COLLABORATORS = 3; // Instagram's limit
 export const NXL = "nxlpaintball";
-export const OWN = ["pickempaintball"]; // never collab with ourselves
+export const OWN = ["pickempaintball", "greenyy42"]; // never collab with ourselves: Pick'Em, and James (also a player)
 
 export type Handles = Record<string, string>; // name → "@handle"
 export type TeamInfo = { name?: string; short?: string; code?: string; handle?: string };
