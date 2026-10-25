@@ -210,16 +210,29 @@ function toSlot(id: string, d: FirebaseFirestore.DocumentData): Slot {
 const packItem = (type: string) => eventPack().find((p) => p.key === baseOf(type));
 const readText = (p: string) => (fs.existsSync(p) ? fs.readFileSync(p, "utf8") : "");
 
-/** The made posts of a graphic (finals/<variant>/post.png + caption.txt), test runs left out. */
+/**
+ * The made posts of a graphic (finals/<variant>/post.png + caption.txt), test runs left out. A carousel keeps its
+ * other slides next to post.png as slide_2.png, slide_3.png … (James 25 Oct 2026: the history features), so it goes
+ * on the calendar whole.
+ */
 function madePosts(event: string, type: string) {
   const f = finals(event, type);
   if (f.test) return [];
-  return f.posts.map((p) => ({
-    key: p.team,
-    name: p.name,
-    png: p.png,
-    caption: readText(path.join(GEN, path.dirname(p.png), "caption.txt")).trim(),
-  }));
+  return f.posts.map((p) => {
+    const dir = path.dirname(p.png);
+    const extra = fs
+      .readdirSync(path.join(GEN, dir))
+      .filter((n) => /^slide_\d+\.png$/.test(n))
+      .sort((a, b) => Number(a.slice(6, -4)) - Number(b.slice(6, -4)))
+      .map((n) => path.join(dir, n));
+    return {
+      key: p.team,
+      name: p.name,
+      png: p.png,
+      slides: [p.png, ...extra],
+      caption: readText(path.join(GEN, dir, "caption.txt")).trim(),
+    };
+  });
 }
 
 function titleFor(event: string, type: string, variant: string): string {
@@ -460,7 +473,7 @@ export async function addSlot(event: string, type: string, variant: string, at: 
       status: "draft",
       publishAt: Timestamp.fromDate(when),
       caption: made?.caption ?? "",
-      slides: made ? [made.png] : [],
+      slides: made ? made.slides : [],
       notes: "",
       collaborators: autoCollab(made?.png),
       ...hold,
@@ -516,7 +529,7 @@ export async function saveSlot(
     if (!m) throw new Error("That post isn't made");
     up.variant = m.key;
     up.title = titleFor(s.event, s.type, m.key);
-    up.slides = [m.png];
+    up.slides = m.slides;
     if (!s.caption.trim()) up.caption = m.caption;
     if (!s.collabSet && patch.collaborators === undefined) up.collaborators = autoCollab(m.png); // now we know who it's about
   }
@@ -554,7 +567,7 @@ export async function spread(event: string, type: string, variants: string[], fr
       status: "draft",
       publishAt: Timestamp.fromDate(eastern(chosen[i])),
       caption: m.caption,
-      slides: [m.png],
+      slides: m.slides,
       notes: "",
       collaborators: autoCollab(m.png),
       ...hold,
@@ -814,7 +827,7 @@ export async function scheduleApproved(event: string, type: string, variant: str
   let id: string;
   if (existing) {
     id = existing.id;
-    await db().collection(COLLECTION).doc(id).update({ publishAt, caption, slides: [made.png], status: "draft", error: FieldValue.delete(), ...(collab ?? {}) });
+    await db().collection(COLLECTION).doc(id).update({ publishAt, caption, slides: made.slides, status: "draft", error: FieldValue.delete(), ...(collab ?? {}) });
   } else {
     id = (
       await db().collection(COLLECTION).add({
@@ -827,7 +840,7 @@ export async function scheduleApproved(event: string, type: string, variant: str
         status: "draft",
         publishAt,
         caption,
-        slides: [made.png],
+        slides: made.slides,
         notes: "",
         ...(collab ?? { collaborators: autoCollab(made.png) }),
         ...autoWaitFor(event, type),
