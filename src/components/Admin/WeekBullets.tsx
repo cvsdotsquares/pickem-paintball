@@ -30,9 +30,10 @@ export const DOT: Record<Dot, { cls: string; label: string }> = {
 };
 
 /** A job's dot on one day. Live states (waiting / failed / overdue) only count for today. */
-function jobDot(j: BJob, day: string, today: string, built: Record<string, boolean>): Dot {
+export function jobDot(j: BJob, day: string, today: string, built: Record<string, boolean>): Dot {
   if (day === today && ["waiting", "failed", "overdue"].includes(j.state)) return "red";
   if (!j.built || j.state === "not_built") return "orange";
+  if (j.repeat === "on_message") return "blue"; // runs when James answers in Slack
   if (j.needs_first.some((n) => built[n] === false)) return "red";
   if (j.agent === "james" || j.writes === "asks" || j.writes === "james") return "blue";
   return "green";
@@ -168,6 +169,42 @@ export default function WeekBullets({
     setOffset(0);
     onModeChange?.(m);
   };
+
+  /** One day's lines grouped by agent. `phone`: bigger text that wraps, always with the time. */
+  const dayItems = (k: string, phone: boolean) => {
+    const agents = Object.keys(byDay[k] ?? {}).sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
+    return (
+      <div className={phone ? "mt-2 space-y-2" : "mt-1 space-y-1.5"}>
+        {agents.map((ag) => (
+          <div key={ag}>
+            <div className={`flex items-center gap-1 font-black uppercase tracking-wide text-gray-500 dark:text-white/50 ${phone ? "text-[10px]" : "text-[9px]"}`}>
+              <span className={phone ? "text-[13px]" : "text-[11px]"}>{byId[ag]?.icon ?? "•"}</span>
+              <span className="truncate">{byId[ag]?.name ?? ag}</span>
+            </div>
+            <ul className={`ml-1 border-l border-gray-200 dark:border-white/10 ${phone ? "space-y-1 pl-2" : "pl-1.5"}`}>
+              {byDay[k][ag].map((it, n) => {
+                const st = BULLET_STATE[it.state];
+                const cls = `block w-full text-left leading-tight ${phone ? "py-0.5 text-[13px]" : "truncate text-[10px]"} ${st?.strike ? "text-gray-400 line-through" : st?.grey || it.again ? "text-gray-400 dark:text-white/35" : ""}`;
+                const body = (
+                  <>
+                    <span className={`mr-1 inline-block rounded-full align-middle ${phone ? "h-2 w-2" : "h-1.5 w-1.5"} ${DOT[it.dot].cls} ${it.again ? "opacity-50" : ""}`} title={DOT[it.dot].label} />
+                    {st?.glyph && <span className="mr-0.5">{st.glyph}</span>}
+                    {(tall || phone) && it.time && <span className="mr-1 text-gray-400">{it.time}</span>}
+                    {it.text}
+                  </>
+                );
+                return (
+                  <li key={n} title={it.title}>
+                    {onItem && it.slot ? <button className={`${cls} hover:underline`} onClick={() => onItem(it)}>{body}</button> : <span className={cls}>{body}</span>}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
+    );
+  };
   const btn = "rounded border border-gray-200 px-2 py-0.5 hover:border-gray-500 dark:border-white/10";
   return (
     <div>
@@ -182,14 +219,36 @@ export default function WeekBullets({
         <button className={btn} aria-label="Next" title={mode === "month" ? "A month later" : "A week later"} onClick={() => setOffset(offset + 1)}>›</button>
         {offset !== 0 && <button className="underline" onClick={() => setOffset(0)}>{mode === "month" ? "This month" : "This week"}</button>}
         <span className="ml-2 font-bold">{mode === "month" ? monthLabel : `${fmtDay(first)} – ${fmtDay(first + (rows * 7 - 1) * DAY)}`}</span>
-        <span className="ml-auto hidden items-center gap-2 text-gray-400 md:flex">
+        <span className="flex w-full flex-wrap items-center gap-x-2 gap-y-0.5 text-gray-400 md:ml-auto md:w-auto">
           {(Object.keys(DOT) as Dot[]).map((d) => (
             <span key={d} className="flex items-center gap-1"><span className={`inline-block h-1.5 w-1.5 rounded-full ${DOT[d].cls}`} />{DOT[d].label}</span>
           ))}
           <span>· ✋ needs your ✅ · ◷ approved · ✓ done · grey = repeat</span>
         </span>
       </div>
-      <div className="overflow-x-auto">
+      {/* Phone: one card per day, top to bottom (James 25 Oct 2026) */}
+      <div className="space-y-2 md:hidden">
+        {Array.from({ length: rows * 7 }, (_, n) => {
+          const t = first + n * DAY;
+          const k = key(t);
+          const isToday = k === today, past = k < today, inEvent = !!ev0 && k >= ev0 && k <= ev1, other = !inMonth(k);
+          const empty = !Object.keys(byDay[k] ?? {}).length;
+          if (other) return null;
+          if (past && offset === 0 && mode === "weeks" && !from) return null; // phone: this week starts today (‹ goes back)
+          return (
+            <div key={k} className={`rounded-xl border p-3 ${isToday ? "border-2 border-gray-900 dark:border-white" : "border-gray-100 dark:border-white/5"} ${inEvent ? "bg-gray-100 dark:bg-white/10" : "bg-white dark:bg-[#0d0d0d]"} ${past && !isToday ? "opacity-60" : ""}`}>
+              <div className="flex items-baseline justify-between gap-2">
+                <span className={`text-[13px] ${isToday ? "font-black" : "font-bold"}`}>
+                  {isToday ? "Today · " : ""}{new Date(t).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })}
+                </span>
+                {miles[k] && <span className="truncate rounded bg-gray-900 px-1.5 text-[9px] font-black uppercase tracking-wider text-white dark:bg-white dark:text-black">{miles[k].join(" · ")}</span>}
+              </div>
+              {empty ? <div className="mt-1 text-[12px] text-gray-400">Nothing planned</div> : dayItems(k, true)}
+            </div>
+          );
+        })}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
         <div className="min-w-[760px]">
           <div className="mb-1 grid grid-cols-7 gap-1 text-[9px] font-black uppercase tracking-widest text-gray-400">
             {Array.from({ length: 7 }, (_, i) => new Date(first + i * DAY).toLocaleString("en-GB", { weekday: "short", timeZone: "UTC" })).map((d) => <div key={d} className="px-1.5">{d}</div>)}
@@ -208,35 +267,7 @@ export default function WeekBullets({
                       {miles[k] && <span className="truncate rounded bg-gray-900 px-1 text-[8px] font-black uppercase tracking-wider text-white dark:bg-white dark:text-black" title={miles[k].join(" · ")}>{miles[k].join(" · ")}</span>}
                     </div>
                     {agents.length === 0 && <div className="mt-6 text-center text-[9px] text-gray-300 dark:text-white/20">—</div>}
-                    <div className="mt-1 space-y-1.5">
-                      {agents.map((ag) => (
-                        <div key={ag}>
-                          <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wide text-gray-500 dark:text-white/50">
-                            <span className="text-[11px]">{byId[ag]?.icon ?? "•"}</span>
-                            <span className="truncate">{byId[ag]?.name ?? ag}</span>
-                          </div>
-                          <ul className="ml-1 border-l border-gray-200 pl-1.5 dark:border-white/10">
-                            {byDay[k][ag].map((it, n) => {
-                              const st = BULLET_STATE[it.state];
-                              const cls = `block w-full truncate text-left text-[10px] leading-tight ${st?.strike ? "text-gray-400 line-through" : st?.grey || it.again ? "text-gray-400 dark:text-white/35" : ""}`;
-                              const body = (
-                                <>
-                                  <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle ${DOT[it.dot].cls} ${it.again ? "opacity-50" : ""}`} title={DOT[it.dot].label} />
-                                  {st?.glyph && <span className="mr-0.5">{st.glyph}</span>}
-                                  {tall && it.time && <span className="mr-1 text-gray-400">{it.time}</span>}
-                                  {it.text}
-                                </>
-                              );
-                              return (
-                                <li key={n} title={it.title}>
-                                  {onItem && it.slot ? <button className={`${cls} hover:underline`} onClick={() => onItem(it)}>{body}</button> : <span className={cls}>{body}</span>}
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
+                    {dayItems(k, false)}
                   </div>
                 );
               })}
