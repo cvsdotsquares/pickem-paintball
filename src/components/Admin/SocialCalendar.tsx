@@ -1154,6 +1154,7 @@ function SlotDrawer({ s, agents, posts, busy, act, onClose }: { s: Slot; agents:
   const [shown, setShown] = useState(0);
   const p = statusPill(s);
   const editable = s.status === "draft" || s.status === "failed";
+  const approvedCaption = s.kind === "post" && s.status === "approved"; // its caption can still change, with a confirm
   const blocks = s.checks.filter((c) => c.level === "block");
   const warns = s.checks.filter((c) => c.level === "warn");
   const slides = s.placeholder ? s.preview : s.slides;
@@ -1353,15 +1354,27 @@ function SlotDrawer({ s, agents, posts, busy, act, onClose }: { s: Slot; agents:
       {/* Caption */}
       <div className="flex flex-col gap-1">
         <span className={sectionLabel}>Caption (same on both)</span>
+        {/* drafts save as you leave the box; an approved post asks first (Save caption / Back) and stays approved */}
         <textarea
           value={caption}
-          disabled={!editable || busy}
+          disabled={!(editable || approvedCaption) || busy}
           onChange={(e) => setCaption(e.target.value)}
-          onBlur={() => caption !== s.caption && act({ action: "save", id: s.id, caption })}
+          onBlur={() => editable && caption !== s.caption && act({ action: "save", id: s.id, caption })}
           rows={9}
           className={`${field} font-mono text-[11px]`}
           placeholder={s.placeholder ? "Comes from the made post (or write it here)" : "Write the caption"}
         />
+        {approvedCaption && caption !== s.caption && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg bg-[#39b5e6]/10 p-2 text-[11px] text-[#1a3c6e] dark:text-[#39b5e6]">
+            <span className="flex-1">This post was approved. Save the new caption? It stays approved and goes out with it.</span>
+            <button className={primaryButton} disabled={busy || caption.length > 2200} onClick={() => act({ action: "caption", id: s.id, caption })}>
+              Save caption
+            </button>
+            <button className={pill(false)} disabled={busy} onClick={() => setCaption(s.caption)}>
+              Back
+            </button>
+          </div>
+        )}
         <span className={`text-[10px] ${caption.length > 2200 || tags > 30 ? "text-red-600" : "text-gray-400"}`}>
           {caption.length}/2,200 characters · {tags}/30 hashtags
         </span>

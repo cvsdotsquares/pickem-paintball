@@ -20,6 +20,7 @@ import {
   spreadApproved,
   listSlots,
   postNow,
+  captionApproved,
   moveApproved,
   removeSlot,
   saveSlot,
@@ -147,6 +148,7 @@ export async function POST(request: Request) {
     else if (b.action === "postnow") await postNow(id);
     else if (b.action === "remove") await removeSlot(id);
     else if (b.action === "move") await moveApproved(id, String(b.at));
+    else if (b.action === "caption") await captionApproved(id, String(b.caption ?? ""));
     else throw new Error("Unknown action");
     if (b.action === "save" || b.action === "remove" || b.action === "move") replan(b.action === "remove" ? "slot removed" : "slot saved");
     return NextResponse.json({ ok: true });

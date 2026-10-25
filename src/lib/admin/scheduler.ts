@@ -539,6 +539,20 @@ export async function moveApproved(id: string, at: string): Promise<void> {
   });
 }
 
+/**
+ * Change an approved post's caption without un-approving it (James 25 Oct 2026: edit captions on every post in the
+ * calendar). Safe because the posting job reads the caption when it sends. Only while it's still "approved".
+ */
+export async function captionApproved(id: string, caption: string): Promise<void> {
+  if (caption.length > 2200) throw new Error("Instagram allows 2,200 characters at most");
+  const ref = db().collection(COLLECTION).doc(id);
+  await db().runTransaction(async (tx) => {
+    const d = await tx.get(ref);
+    if ((d.get("kind") ?? "post") !== "post" || d.get("status") !== "approved") throw new Error("Only an approved post that hasn't gone out can be changed this way");
+    tx.update(ref, { caption, captionEditedAt: FieldValue.serverTimestamp() });
+  });
+}
+
 export async function unapprove(id: string): Promise<void> {
   const ref = db().collection(COLLECTION).doc(id);
   const ids = await db().runTransaction(async (tx) => {
