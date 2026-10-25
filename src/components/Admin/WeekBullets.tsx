@@ -18,10 +18,10 @@ export type BJob = {
   until_date?: string; state: string; vstate: string; when1: string; when2: string; how: string; slot: string;
   built: boolean; writes: string; needs_first: string[];
 };
-export type BSlot = { id: string; kind: string; agent: string; title: string; at: string; status: string; job: string; placeholder: boolean; templated: boolean };
+export type BSlot = { id: string; kind: string; agent: string; title: string; at: string; status: string; job: string; placeholder: boolean; templated: boolean; hold?: { text: string; waiting: boolean } | null };
 export type BAgent = { id: string; name: string; icon: string };
 export type Dot = "green" | "blue" | "orange" | "red";
-export type BItem = { text: string; title: string; state: string; time: string; sort: string; slot: string; kind: string; dot: Dot; again: boolean };
+export type BItem = { text: string; title: string; state: string; time: string; sort: string; slot: string; kind: string; dot: Dot; again: boolean; hold?: { text: string; waiting: boolean } | null };
 export const DOT: Record<Dot, { cls: string; label: string }> = {
   green: { cls: "bg-green-500", label: "built: runs by itself" },
   blue: { cls: "bg-blue-500", label: "ready, needs you on the day" },
@@ -117,8 +117,8 @@ export function bulletDays(jobs: BJob[], slots: BSlot[], today: string, start: s
     const dot: Dot = s.kind === "post" ? postDot(st) : st === "done" ? "green" : s.kind === "action" ? "blue" : "orange";
     const label = BULLET_STATE[st]?.label ?? st;
     put(etDate(s.at), s.agent, {
-      text: s.title, title: `${s.title} · ${fmt(s.at, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} ET · ${label}`,
-      state: st, time: timeOf(s.at), sort: fmt(s.at, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }), slot: s.id, kind: s.kind, dot, again: false,
+      text: s.title, title: `${s.title} · ${fmt(s.at, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} ET · ${label}${s.hold ? ` · ⏳ ${s.hold.text}` : ""}`,
+      state: st, time: timeOf(s.at), sort: fmt(s.at, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }), slot: s.id, kind: s.kind, dot, again: false, hold: s.hold ?? null,
     });
   }
   for (const d of Object.values(byDay)) for (const list of Object.values(d)) list.sort((a, b) => a.sort.localeCompare(b.sort));
@@ -191,6 +191,7 @@ export default function WeekBullets({
                     {st?.glyph && <span className="mr-0.5">{st.glyph}</span>}
                     {(tall || phone) && it.time && <span className="mr-1 text-gray-400">{it.time}</span>}
                     {it.text}
+                    {it.hold && <span className={`ml-1 ${it.hold.waiting ? "font-bold text-orange-500" : "text-gray-400"}`}>⏳ {it.hold.text}</span>}
                   </>
                 );
                 return (
