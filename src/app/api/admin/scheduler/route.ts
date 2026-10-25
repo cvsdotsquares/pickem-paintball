@@ -22,6 +22,7 @@ import {
   postNow,
   captionApproved,
   moveApproved,
+  recordJobResult,
   removeSlot,
   saveSlot,
   tray,
@@ -85,7 +86,7 @@ export async function GET(request: Request) {
 /**
  * POST { action, ... } → { ok, id? }
  *   add       {event, type, variant, at}   put a tray item on the calendar as a draft (at = ET "YYYY-MM-DDTHH:MM")
- *   save      {id, at?, caption?, notes?, slides?, variant?}
+ *   save      {id, at?, caption?, notes?, slides?, variant?, waitFor?}   waitFor = playbook data job ids ([] clears); ok on an approved post
  *   approve   {id}    uploads the slides as hidden Page photos; refused while anything blocks
  *   unapprove {id}
  *   postnow   {id}    goes out at the cloud job's next pass (≤ 5 min)
@@ -95,6 +96,7 @@ export async function GET(request: Request) {
  *   done      {id, done}   tick / untick a task
  *   approve-now   {event, type, variant, at|null, caption}   Generator step 5: approve + schedule (at = ET) or post now (at null)
  *   spread-approved {event, type, variants[], from, to, times[]}   Generator step 5: lay out + approve each
+ *   jobResult {event, job, result: ok|failed, finishedAt: ISO}   a Data job's latest run → agentJobs/{event}__{job} (post holds)
  */
 export async function POST(request: Request) {
   const blocked = adminGate();
@@ -120,6 +122,11 @@ export async function POST(request: Request) {
       const n = await spreadApproved(b.event, b.type, (b.variants ?? []).map(String), String(b.from), String(b.to), (b.times ?? []).map(String));
       return NextResponse.json({ ok: true, added: n });
     }
+    if (b.action === "jobResult") {
+      if (!validId(String(b.event))) throw new Error("Unknown event");
+      await recordJobResult(String(b.event), String(b.job ?? ""), String(b.result ?? ""), String(b.finishedAt ?? ""));
+      return NextResponse.json({ ok: true });
+    }
     if (b.action === "task") {
       if (!validId(String(b.event))) throw new Error("Unknown event");
       if (b.kind !== "work" && b.kind !== "action") throw new Error("A task is work or an action");
@@ -142,6 +149,7 @@ export async function POST(request: Request) {
         variant: b.variant === undefined ? undefined : String(b.variant),
         title: b.title === undefined ? undefined : String(b.title),
         duration: b.duration === undefined ? undefined : Number(b.duration),
+        waitFor: Array.isArray(b.waitFor) ? b.waitFor.map(String) : undefined,
       });
     } else if (b.action === "approve") await approve(id);
     else if (b.action === "unapprove") await unapprove(id);

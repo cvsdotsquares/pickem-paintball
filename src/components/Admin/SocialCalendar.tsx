@@ -51,6 +51,9 @@ export type Slot = {
   checks: Check[];
   link: string;
   path: PathStep[];
+  waitFor?: string[]; // post holds: playbook data jobs it waits for
+  waiting?: string; // set while the posting job holds it
+  hold?: { text: string; waiting: boolean } | null; // the ⏳ chip's words
 };
 type TrayItem = { type: string; variant: string; title: string; label: string; phase: string; priority: string; png: string; placeholder: boolean; templated: boolean };
 type NeedsYou = { id: string; text: string; due: string | null; tone: "orange" | "red" };
@@ -789,6 +792,18 @@ function Tray({
   );
 }
 
+/** Post holds: "⏳ waits for <job>"; orange "waiting for <job>…" while the posting job is holding it. */
+function HoldTag({ hold }: { hold: { text: string; waiting: boolean } }) {
+  return (
+    <span
+      className={`block truncate text-[9px] ${hold.waiting ? "font-bold text-orange-500" : "text-gray-400"}`}
+      title={hold.waiting ? "Due, but held: it goes out on the first pass after that job passes" : "Won't be sent until that job's latest run passed"}
+    >
+      ⏳ {hold.text}
+    </span>
+  );
+}
+
 /** One thing on the calendar. Left edge = who (agent colour); the dot / pill = status. */
 function SlotChip({ s, agents, size, onClick }: { s: Slot; agents: Agent[]; size: "small" | "big" | "row"; onClick: () => void }) {
   const p = statusPill(s);
@@ -837,6 +852,7 @@ function SlotChip({ s, agents, size, onClick }: { s: Slot; agents: Agent[]; size
         {isPost && s.placeholder && (
           <span className="block text-[9px] text-gray-400">{s.templated ? "template ready · waiting on data" : "needs a template"}</span>
         )}
+        {isPost && s.hold && <HoldTag hold={s.hold} />}
         {size !== "small" && (
           <span className="mt-1 flex items-center gap-1.5">
             <span className={`inline-block rounded-full px-2 py-0.5 font-bold ${tone(p.tone)}`}>{p.label}</span>
