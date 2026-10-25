@@ -407,7 +407,7 @@
     {
       "player_id": "100022",
       "Player": "Alex Rodriguez",
-      "team_id": "AFT",
+      "team_id": "SHK",
       "Team": "Aftershock",
       "events": [
         "tampa_bay_open_2025",
@@ -704,7 +704,7 @@
     {
       "player_id": "100039",
       "Player": "Grayson Gladstone",
-      "team_id": "SDA",
+      "team_id": "AFM",
       "Team": "Aftermath",
       "events": [
         "tampa_bay_open_2025",
@@ -1196,7 +1196,7 @@
     {
       "player_id": "100067",
       "Player": "Cody Woodruff",
-      "team_id": "SDA",
+      "team_id": "AFM",
       "Team": "Aftermath",
       "events": [
         "tampa_bay_open_2025",
@@ -1372,7 +1372,7 @@
     {
       "player_id": "100077",
       "Player": "James Green",
-      "team_id": "SDA",
+      "team_id": "AFM",
       "Team": "Aftermath",
       "events": [
         "tampa_bay_open_2025",
@@ -1622,7 +1622,7 @@
     {
       "player_id": "100091",
       "Player": "Ryan Hoskinson",
-      "team_id": "AFT",
+      "team_id": "SHK",
       "Team": "Aftershock",
       "events": [
         "tampa_bay_open_2025",
@@ -1961,7 +1961,7 @@
     {
       "player_id": "100110",
       "Player": "Mark Frans",
-      "team_id": "AFT",
+      "team_id": "SHK",
       "Team": "Aftershock",
       "events": [
         "tampa_bay_open_2025",
@@ -1980,7 +1980,7 @@
     {
       "player_id": "100111",
       "Player": "Julian Velazquez",
-      "team_id": "SDA",
+      "team_id": "AFM",
       "Team": "Aftermath",
       "events": [
         "tampa_bay_open_2025",
@@ -2497,7 +2497,7 @@
     {
       "player_id": "100140",
       "Player": "Stephen Mazurek",
-      "team_id": "SDA",
+      "team_id": "AFM",
       "Team": "Aftermath",
       "events": [
         "tampa_bay_open_2025",
@@ -2669,7 +2669,7 @@
     {
       "player_id": "100152",
       "Player": "Thomas Kim",
-      "team_id": "AFT",
+      "team_id": "SHK",
       "Team": "Aftershock",
       "events": [
         "tampa_bay_open_2025",
@@ -2867,7 +2867,7 @@
     {
       "player_id": "100163",
       "Player": "Jared Lackey",
-      "team_id": "AFT",
+      "team_id": "SHK",
       "Team": "Aftershock",
       "events": [
         "tampa_bay_open_2025",
@@ -2897,7 +2897,7 @@
     {
       "player_id": "100165",
       "Player": "Jeremy Doan",
-      "team_id": "SDA",
+      "team_id": "AFM",
       "Team": "Aftermath",
       "events": [
         "tampa_bay_open_2025",
@@ -2916,7 +2916,7 @@
     {
       "player_id": "100166",
       "Player": "Clayton Hughes",
-      "team_id": "AFT",
+      "team_id": "SHK",
       "Team": "Aftershock",
       "events": [
         "tampa_bay_open_2025",
@@ -2932,7 +2932,7 @@
     {
       "player_id": "100167",
       "Player": "Nick Criscione",
-      "team_id": "AFT",
+      "team_id": "SHK",
       "Team": "Aftershock",
       "events": [
         "tampa_bay_open_2025",
@@ -3496,7 +3496,7 @@
     {
       "player_id": "100220",
       "Player": "Mason Hinds",
-      "team_id": "AFT",
+      "team_id": "SHK",
       "Team": "Aftershock",
       "events": [
         "world_cup_2025",
@@ -3581,7 +3581,7 @@
     {
       "player_id": "100233",
       "Player": "Zack Carter",
-      "team_id": "SDA",
+      "team_id": "AFM",
       "Team": "Aftermath",
       "events": [
         "atlantic_city_2025",
@@ -3612,7 +3612,7 @@
     {
       "player_id": "100240",
       "Player": "Devon Stuart",
-      "team_id": "SDA",
+      "team_id": "AFM",
       "Team": "Aftermath",
       "events": [
         "lonestar_open_2025",
@@ -4014,7 +4014,7 @@
     {
       "player_id": "100323",
       "Player": "Jim McGowan",
-      "team_id": "SDA",
+      "team_id": "AFM",
       "Team": "Aftermath",
       "events": [
         "lonestar_open_2025"
@@ -4425,7 +4425,7 @@
     {
       "player_id": "100359",
       "Player": "Eric Arrieta",
-      "team_id": "SDA",
+      "team_id": "AFM",
       "Team": "Aftermath",
       "events": [
         "tampa_bay_2026",
@@ -4450,7 +4450,7 @@
     {
       "player_id": "100361",
       "Player": "Jet Isidro",
-      "team_id": "AFT",
+      "team_id": "SHK",
       "Team": "Aftershock",
       "events": [
         "tampa_bay_2026",
@@ -4489,7 +4489,7 @@
     {
       "player_id": "100364",
       "Player": "Max Rooney",
-      "team_id": "AFT",
+      "team_id": "SHK",
       "Team": "Aftershock",
       "events": [
         "tampa_bay_2026",
@@ -4503,7 +4503,7 @@
     {
       "player_id": "100365",
       "Player": "Maxim Stancel",
-      "team_id": "AFT",
+      "team_id": "SHK",
       "Team": "Aftershock",
       "events": [
         "tampa_bay_2026",
@@ -4517,7 +4517,7 @@
     {
       "player_id": "100366",
       "Player": "Michael Rojas",
-      "team_id": "AFT",
+      "team_id": "SHK",
       "Team": "Aftershock",
       "events": [
         "tampa_bay_2026",
@@ -5046,7 +5046,7 @@
     {
       "player_id": "100405",
       "Player": "Matthew Helgeson",
-      "team_id": "AFT",
+      "team_id": "SHK",
       "Team": "Aftershock",
       "events": [
         "mid_atlantic_open_2026",

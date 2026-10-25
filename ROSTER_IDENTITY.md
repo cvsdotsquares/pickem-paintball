@@ -171,14 +171,17 @@ prefix; ids don't, which is why `gameId` and everything else keys on the id.
 
 | | | | | | |
 |---|---|---|---|---|---|
-| `ACD` ac DIESEL | `AFT` Aftershock | `ARS` Arsenal | `BKS` Breakout Spa | `COL` Collision | `DAM` Damage |
+| `ACD` ac DIESEL | `AFM` Aftermath | `ARS` Arsenal | `BKS` Breakout Spa | `COL` Collision | `DAM` Damage |
 | `DST` Distortion | `DYN` Dynasty | `FIT` PaintballFIT | `HEA` Heat | `HUR` Hurricanes | `IMF` Infamous |
 | `IMP` Impact | `IRN` Ironmen | `JNG` Jungle Cats | `JYD` Joy Division | `LEG` Red Legion | `LEV` Leverage |
-| `LKY` Lucky15s | `NRG` NRG Elite | `NYX` Xtreme | `PLT` Papeletto | `RCS` Seadogs | `SDA` Aftermath |
+| `LKY` Lucky15s | `NRG` NRG Elite | `NYX` Xtreme | `PLT` Papeletto | `RCS` Seadogs | `SHK` Aftershock |
 | `TON` TonTon | `UPR` Uprising | `XFA` X-Factor | | | |
 
-Two traps in this table: **`IMF` is Infamous, not Ironmen** (`IRN`), and **`AFT` is
-Aftershock, not Aftermath** (`SDA`). Both have been miscoded in production.
+Two traps in this table: **`IMF` is Infamous, not Ironmen** (`IRN`), and the two
+"After-" teams. Until 25 Oct 2026 Aftermath was `SDA` and Aftershock `AFT`, and both
+were miscoded in production. They are now **`AFM` Aftermath** (the Social Media Kit's
+code) and **`SHK` Aftershock**. The league still says `SDA` for Aftermath, so translate
+when copying from its sheets, and treat a stray `AFT` or `SDA` on a roster as a mistake.
 
 ---
 
