@@ -14,6 +14,18 @@
  * then posts Instagram first, Facebook second, and writes back 'posted' + links or 'failed' + why.
  * A doc stuck in 'sending' is never retried automatically — James decides (it may have half-posted).
  *
+ * Holds: a post can wait for Data jobs (pickem-hub/scheduler/playbook.json job ids):
+ *
+ *   waitFor:      [string]                   optional; missing/empty = no hold
+ *   waiting:      string                     courier only: comma-joined jobs still not passed
+ *   waitingSince: Timestamp                  courier only: the first pass that held it
+ *
+ * Each job's latest run is `agentJobs/{event}__{job}` (written by the panel's jobResult action).
+ * A job passes when its result is 'ok' and, unless it repeats 'once', it finished today (ET).
+ * A due post with any job not passed is left 'approved' and marked waiting; it goes out on the
+ * first pass after the last job passes (late is fine), and the claim clears waiting/waitingSince.
+ * Contract: post-holds-contract.md (25 Oct 2026).
+ *
  * Plan: pickem-hub/ideas/2026-10-17-scheduler-plan.md.
  */
 const GRAPH = 'https://graph.facebook.com/v26.0/';
@@ -86,6 +98,34 @@ async function notifySlack(post, text, slackToken, channel) {
   }).catch((e) => console.warn('Slack message failed:', e.message));
 }
 
+const ET_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' });
+
+/** Millis from a Firestore Timestamp, Date, ISO string or number (null if none). */
+function millis(t) {
+  if (t == null) return null;
+  if (typeof t.toMillis === 'function') return t.toMillis();
+  if (t instanceof Date) return t.getTime();
+  const n = typeof t === 'number' ? t : Date.parse(t);
+  return Number.isNaN(n) ? null : n;
+}
+
+/**
+ * Which of the post's waitFor jobs have not passed yet. Pure, so it can be tested.
+ * `jobDocs` = { jobId: agentJobs doc data, or null when the doc is missing }; `now` = millis.
+ * Returns { waiting: [jobId] } — empty means the post may go.
+ */
+function holdState(post, jobDocs, now) {
+  const today = ET_DAY.format(new Date(now));
+  const waiting = (post.waitFor || []).filter((job) => {
+    const j = jobDocs[job];
+    if (!j || j.result !== 'ok') return true;
+    if (j.repeat === 'once') return false;
+    const done = millis(j.finishedAt);
+    return done == null || ET_DAY.format(new Date(done)) !== today;   // a repeating job must have passed today (ET)
+  });
+  return { waiting };
+}
+
 /**
  * One pass: send every approved post whose time has come.
  * `cfg` = { db, Timestamp, FieldValue, token, pageId, igUserId, slackToken?, slackChannel? }.
@@ -101,11 +141,33 @@ async function runDue(cfg) {
   const due = approved.docs.filter((d) => (d.get('kind') ?? 'post') === 'post' && d.get('publishAt') && d.get('publishAt').toMillis() <= now);
 
   for (const doc of due) {
+    // Held? Read each job's latest run; any not passed → leave it approved, mark it waiting, move on.
+    const waitFor = doc.get('waitFor') || [];
+    if (waitFor.length) {
+      const event = doc.get('event');
+      const jobDocs = {};
+      for (const job of waitFor) {
+        const snap = await db.collection('agentJobs').doc(`${event}__${job}`).get();
+        jobDocs[job] = snap.exists ? snap.data() : null;
+      }
+      const { waiting } = holdState({ waitFor }, jobDocs, now);
+      if (waiting.length) {
+        const mark = { waiting: waiting.join(',') };
+        if (!doc.get('waitingSince')) mark.waitingSince = FieldValue.serverTimestamp();
+        await doc.ref.update(mark);
+        console.log(`⏳ Holding ${doc.id} (${event}): waiting for ${mark.waiting}`);
+        continue;
+      }
+    }
+
     // Claim it, so an overlapping pass (or Post now) can't send it twice.
     const claimed = await db.runTransaction(async (tx) => {
       const fresh = await tx.get(doc.ref);
       if (fresh.get('status') !== 'approved') return false;
-      tx.update(doc.ref, { status: 'sending', sendingAt: FieldValue.serverTimestamp() });
+      tx.update(doc.ref, {
+        status: 'sending', sendingAt: FieldValue.serverTimestamp(),
+        waiting: FieldValue.delete(), waitingSince: FieldValue.delete(),
+      });
       return true;
     });
     if (!claimed) continue;
@@ -128,4 +190,4 @@ async function runDue(cfg) {
   return due.length;
 }
 
-module.exports = { runDue };
+module.exports = { runDue, holdState };
