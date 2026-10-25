@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { fetchPlayerSummary } from "@/src/lib/playerSummary";
+import { fetchLivePickPct, type LivePickPct } from "@/src/lib/livePickPct";
 import {
   isAbsent,
   KILL_TYPES,
@@ -21,6 +22,7 @@ import PlayerSearch from "@/src/components/Dashboard/PlayerSearch";
 import ShareCareerButton, { type ShareScopeOption } from "@/src/components/Dashboard/ShareCareerButton";
 import SubscriberBlur, { useBetaGate } from "@/src/components/Dashboard/SubscriberBlur";
 import { cn } from "@/src/lib/utils";
+import PlayerHeadshot from "@/src/components/ui/PlayerHeadshot";
 
 /** Shared column template — header and rows must use the same constant (style guide). */
 /**
@@ -84,30 +86,9 @@ const absenceWord = (a: CareerAppearance) =>
  */
 const SHARE_HEAD = ["% of Team\u2019s", "Kills"];
 
-/**
- * Display-only short codes, for the two ids a reader cannot resolve.
- *
- * Aftershock and Aftermath both begin "After-", so the stored `AFT` names either one,
- * and Aftermath's `SDA` is the city rather than the club. The two therefore SWAP:
- * Aftermath takes `AFT`, the letters a reader gives it unprompted, and Aftershock
- * becomes `SHK`.
- *
- * ⚠️ The displayed `AFT` is NOT the stored `AFT`. They belong to different teams, so
- * this map must never be inverted, reused as a lookup, or written back.
- *
- * DISPLAY ONLY. `team_id` is baked into long-data game ids
- * (`mid_west_open_2026_Friday_HUR-RCS`), which sort on it precisely because it is more
- * stable than the display name, and `syncRoster()` owns the stored value. Renaming the
- * id would orphan every game already recorded against it.
- */
-const TEAM_CODE_OVERRIDES: Record<string, string> = {
-  AFT: "SHK", // stored AFT = Aftershock
-  SDA: "AFT", // stored SDA = Aftermath
-};
-
 /** Three-letter code for a team, falling back to the full name when there is no id. */
 const teamCode = (id: string | null | undefined, fallback: string) =>
-  id ? (TEAM_CODE_OVERRIDES[id] ?? id) : fallback;
+  id || fallback;
 
 const TYPE_HEAD: Record<string, string[]> = {
   Gunfights: ["Gun", "Fights"],
@@ -234,6 +215,7 @@ export default function PlayerPage() {
   const [hovered, setHovered] = useState<string | null>(null);
   const [styleScope, setStyleScope] = useState<StyleScope>("career");
   const [ownership, setOwnership] = useState<Map<string, number> | null>(null);
+  const [livePick, setLivePick] = useState<LivePickPct | null>(null);
   /* Beta gate — see SubscriberBlur. Sharing is a subscriber benefit for the beta. */
   const { locked: betaLocked, showModal: showSubscribeModal } = useBetaGate();
   const canShare = !betaLocked;
@@ -266,6 +248,18 @@ export default function PlayerPage() {
       })
       .catch((e) => console.error("Failed to load player summary:", e))
       .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [playerId]);
+
+  /* The event whose picks are open now: not in the career rows until it produces kills. */
+  useEffect(() => {
+    let cancelled = false;
+    setLivePick(null);
+    fetchLivePickPct(playerId)
+      .then((v) => !cancelled && setLivePick(v))
+      .catch((e) => console.error("Failed to load live pick %:", e));
     return () => {
       cancelled = true;
     };
@@ -666,16 +660,20 @@ export default function PlayerPage() {
             name — so it was the first thing read and the least worth reading.
           */}
           <div className="flex flex-col items-start gap-3.5 border-b border-white/[0.08] p-5 lg:border-b-0 lg:border-r">
-            <div
-              className="h-[104px] w-[104px] flex-none rounded-xl bg-[#1a1a1a] lg:h-[132px] lg:w-[132px]"
-              style={{
-                backgroundImage: `url('${career.imgUrl || "/placeholder.svg"}')`,
-                // portraits are square head-to-waist; favour the upper body so the face
-                // reads at this size
-                backgroundSize: "125%",
-                backgroundPosition: "50% 8%",
-              }}
-            />
+            <div className="relative h-[104px] w-[104px] flex-none overflow-hidden rounded-xl bg-[#1a1a1a] lg:h-[132px] lg:w-[132px]">
+              <PlayerHeadshot
+                src={career.imgUrl}
+                teamId={career.currentTeamId}
+                alt={career.name}
+                className="absolute"
+                photoClassName=""
+                // portraits are square head-to-waist; scale to 125% and favour the upper
+                // body so the face reads at this size (what background-size 125% /
+                // position 50% 8% did before)
+                photoStyle={{ width: "125%", height: "125%", maxWidth: "none", left: "-12.5%", top: "-2%" }}
+                logoBoxClassName="absolute inset-0"
+              />
+            </div>
             <div className="min-w-0">
               <h1
                 className={cn(
@@ -879,6 +877,7 @@ export default function PlayerPage() {
             <p className="mt-2 text-[12px] text-gray-500 dark:text-white/40">
               Cost per kill and player Pick %
             </p>
+            {livePick && <LivePickLine live={livePick} />}
             <PickemStats appearances={labelled} ownership={ownership} />
           </SubscriberBlur>
         </section>
@@ -1186,6 +1185,30 @@ export default function PlayerPage() {
  * the lines cross is an artefact of the two scales, not a fact. The axes are labelled
  * and colour-matched to their series so which-line-is-which is unambiguous.
  */
+/**
+ * One line for the event whose picks are open: how often this player is being picked so far.
+ * Hourly, so it says when it was counted; the frozen number replaces it at the lock.
+ */
+function LivePickLine({ live }: { live: LivePickPct }) {
+  const at = live.updatedAt
+    ? live.updatedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+    : null;
+  return (
+    <div className="mt-3 flex items-baseline justify-between gap-3 rounded-lg bg-white/70 px-3 py-2 dark:bg-white/5">
+      <div className="min-w-0">
+        <p className={LABEL}>{`Picks open · ${individualEventDisplayName({ id: live.eventId, name: live.eventName })}`}</p>
+        <p className="mt-0.5 text-[11px] text-gray-500 dark:text-white/40">
+          {`${live.entries} entries so far${at ? ` · counted ${at}` : ""}`}
+        </p>
+      </div>
+      <div className="text-right">
+        <p className="pickem-numeric text-[18px] font-black text-[#0f9d58] dark:text-white">{`${live.pickPct.toFixed(1)}%`}</p>
+        <p className="pickem-numeric text-[10px] text-gray-500 dark:text-white/40">{`${live.captainPct.toFixed(1)}% captain`}</p>
+      </div>
+    </div>
+  );
+}
+
 function PickemStats({
   appearances,
   ownership,

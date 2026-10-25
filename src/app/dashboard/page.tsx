@@ -13,12 +13,13 @@ import {
   getFirestore,
   onSnapshot,
 } from "firebase/firestore";
-import { getDownloadURL, getStorage, listAll, ref } from "firebase/storage";
+import { getDownloadURL, getStorage, ref } from "firebase/storage";
 import { memo, useEffect, useState } from "react";
 import { useDashboardNestedScrollHandler } from "@/src/contexts/DashboardMainScrollContext";
 import Link from "next/link";
 import { MonochromePillTabs } from "@/src/components/ui/monochrome-pill-tabs";
 import ShareTeamButton from "@/src/components/Dashboard/ShareTeamButton";
+import PlayerHeadshot from "@/src/components/ui/PlayerHeadshot";
 import KillFeed from "@/src/components/Dashboard/KillFeed";
 import { getBannerPhase } from "@/src/lib/bannerPhase";
 import {
@@ -99,6 +100,60 @@ type KillRow = { id: string; player: string; team: string; kills: number };
 
 type StatusRow = { id: string; player: string; team: string; status: PlayerStatus; updatedAt: Date | null };
 
+const formatCost = (v: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
+
+// Defined outside the page so it keeps its identity across renders: inside, every
+// re-render (scrolling does it) made a new component type and re-created all ten cards.
+const SlotCard = memo(({ player, isCaptain, showKills }: { player: Player; isCaptain: boolean; showKills?: boolean }) => (
+  <div
+    className={`relative rounded-lg overflow-hidden h-full w-full ${isCaptain ? "ring-2 ring-yellow-400" : "ring-1 ring-black/10 dark:ring-white/10"}`}
+  >
+    <div className="absolute inset-0 bg-[#1a1a1a]" />
+    {/* Logo sits in the upper part of the card, clear of the name block. */}
+    <PlayerHeadshot
+      src={player.picture}
+      teamId={player.team_id}
+      logoBoxClassName="absolute inset-x-0 top-0 bottom-[38%]"
+      logoClassName="max-h-[72%] max-w-[64%]"
+    />
+    <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 to-transparent" />
+    {isPlayerStatus(player.Status) && (() => {
+      const meta = STATUS_META[player.Status];
+      return (
+        <span
+          className={`absolute top-1.5 right-1.5 z-10 leading-none align-top ${STATUS_TICK_BASE} ${meta.tickClass}`}
+          style={{ width: 14, height: 14, fontSize: 10 }}
+          title={meta.label}
+        >
+          {meta.tickGlyph}
+        </span>
+      );
+    })()}
+    <div className={`absolute bottom-0 inset-x-0 p-1 ${showKills ? "pr-7" : ""}`}>
+      <div className="text-white font-bold text-[8px] truncate">{player.Player}</div>
+      <div className="text-white/40 text-[7px] truncate">{player.Team}</div>
+      <div className="pickem-numeric text-white/60 text-[8px] font-bold">{formatCost(player.Cost)}</div>
+    </div>
+    {isCaptain && (
+      <div className="absolute top-1 left-1 bg-yellow-400 text-black font-black px-1 py-0.5 rounded uppercase tracking-widest flex flex-col items-center leading-none gap-[1px]">
+        <span className="text-[6px]">★ CPT</span>
+        <span className="text-[5px] opacity-80">1.5× PTS</span>
+      </div>
+    )}
+    {showKills && (
+      <div className="absolute bottom-1 right-1 flex flex-col items-end leading-none">
+        <span className="pickem-numeric text-white font-black text-[19px]">
+          {(player as unknown as { ["Confirmed Kills"]?: number })["Confirmed Kills"] ?? 0}
+        </span>
+        <span className="text-white/50 text-[5px] font-bold uppercase tracking-widest mt-[1px]">Kills</span>
+      </div>
+    )}
+  </div>
+));
+
+SlotCard.displayName = "SlotCard";
+
 export default function Dashboard() {
   const { user } = useAuth();
   const db = getFirestore();
@@ -128,9 +183,6 @@ export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState<PlayerStatus | "All">("All");
   const [remainingBudget, setRemainingBudget] = useState(1000000);
   const TOTAL_BUDGET = 1000000;
-
-  const formatCost = (v: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v);
 
   const budgetPct = Math.min(100, ((TOTAL_BUDGET - remainingBudget) / TOTAL_BUDGET) * 100);
 
@@ -288,16 +340,6 @@ export default function Dashboard() {
     return () => unsub();
   }, [user?.uid, liveEvent?.id]);
 
-  const fetchPlayerPicture = async (leagueId: string): Promise<string> => {
-    try {
-      const fileList = await listAll(ref(getStorage(), `players/`));
-      const match = fileList.items.find((item) => item.name.startsWith(`${leagueId}_`));
-      return match ? await getDownloadURL(match) : "/placeholder.svg";
-    } catch {
-      return "/placeholder.svg";
-    }
-  };
-
   useEffect(() => {
     if (!user || !liveEvent?.id) return;
     const fetchPicks = async () => {
@@ -311,18 +353,14 @@ export default function Dashboard() {
         const docs = await Promise.all(
           ids.map((id: string) => getDoc(doc(db, `events/${liveEvent.id}/players`, id.toString()))),
         );
-        const picks: Player[] = await Promise.all(
-          docs.filter((d) => d.exists()).map(async (d) => {
-            const pd = { ...d.data(), player_id: d.id } as Record<string, unknown>;
-            return {
-              ...(pd as unknown as Player),
-              player_id: String(pd.player_id ?? d.id),
-              picture: (pd.img_url as string)?.trim()
-                ? (pd.img_url as string)
-                : await fetchPlayerPicture(String(pd.league_id)),
-            };
-          }),
-        );
+        const picks: Player[] = docs.filter((d) => d.exists()).map((d) => {
+          const pd = { ...d.data(), player_id: d.id } as Record<string, unknown>;
+          return {
+            ...(pd as unknown as Player),
+            player_id: String(pd.player_id ?? d.id),
+            picture: pd.img_url as string | undefined,
+          };
+        });
 
         const captainIdValue = data.pickems?.[`${liveEvent.id}_captain`] || null;
         setCaptainId(captainIdValue);
@@ -342,49 +380,6 @@ export default function Dashboard() {
     };
     fetchPicks();
   }, [user, liveEvent?.id]);
-
-  const SlotCard = memo(({ player, isCaptain, showKills }: { player: Player; isCaptain: boolean; showKills?: boolean }) => (
-    <div
-      className={`relative rounded-lg overflow-hidden h-full w-full ${isCaptain ? "ring-2 ring-yellow-400" : "ring-1 ring-black/10 dark:ring-white/10"}`}
-    >
-      <div
-        className="absolute inset-0 bg-cover bg-top bg-[#1a1a1a]"
-        style={{ backgroundImage: `url(${player.picture || "/placeholder.svg"})` }}
-      />
-      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 to-transparent" />
-      {isPlayerStatus(player.Status) && (() => {
-        const meta = STATUS_META[player.Status];
-        return (
-          <span
-            className={`absolute top-1.5 right-1.5 z-10 leading-none align-top ${STATUS_TICK_BASE} ${meta.tickClass}`}
-            style={{ width: 14, height: 14, fontSize: 10 }}
-            title={meta.label}
-          >
-            {meta.tickGlyph}
-          </span>
-        );
-      })()}
-      <div className={`absolute bottom-0 inset-x-0 p-1 ${showKills ? "pr-7" : ""}`}>
-        <div className="text-white font-bold text-[8px] truncate">{player.Player}</div>
-        <div className="text-white/40 text-[7px] truncate">{player.Team}</div>
-        <div className="pickem-numeric text-white/60 text-[8px] font-bold">{formatCost(player.Cost)}</div>
-      </div>
-      {isCaptain && (
-        <div className="absolute top-1 left-1 bg-yellow-400 text-black font-black px-1 py-0.5 rounded uppercase tracking-widest flex flex-col items-center leading-none gap-[1px]">
-          <span className="text-[6px]">★ CPT</span>
-          <span className="text-[5px] opacity-80">1.5× PTS</span>
-        </div>
-      )}
-      {showKills && (
-        <div className="absolute bottom-1 right-1 flex flex-col items-end leading-none">
-          <span className="pickem-numeric text-white font-black text-[19px]">
-            {(player as unknown as { ["Confirmed Kills"]?: number })["Confirmed Kills"] ?? 0}
-          </span>
-          <span className="text-white/50 text-[5px] font-bold uppercase tracking-widest mt-[1px]">Kills</span>
-        </div>
-      )}
-    </div>
-  ));
 
   const EmptySlot = () => (
     <Link href="/dashboard/pick-em">

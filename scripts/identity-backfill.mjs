@@ -34,6 +34,7 @@
  */
 
 import fs from "node:fs";
+import { registryPath } from "./identity-registry-path.mjs";
 import admin from "firebase-admin";
 import { createRequire } from "module";
 
@@ -47,7 +48,7 @@ admin.initializeApp({ projectId: "fantasy-paintball" });
 const db = admin.firestore();
 
 const registry = JSON.parse(
-  fs.readFileSync(new URL("./player-identity-registry.json", import.meta.url), "utf8"),
+  fs.readFileSync(registryPath(), "utf8"),
 );
 const leagueIdOf = new Map(
   registry.players.map((p) => [String(p.player_id), String(p.league_id ?? "").trim()]),
