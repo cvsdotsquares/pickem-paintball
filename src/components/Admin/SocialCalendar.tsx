@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IoMdClose } from "react-icons/io";
 import { genUrl, toneClass } from "./generatorTypes";
 import { pill, primaryButton, sectionLabel } from "./types";
@@ -162,7 +162,10 @@ export default function SocialCalendar() {
   const [data, setData] = useState<Data | null>(null);
   const [event, setEvent] = useState("");
   const [mode, setMode] = useState<Mode>("month");
-  const [anchor, setAnchor] = useState(todayET());
+  const [anchor, setAnchor] = useState(todayET()); // where to scroll to (‹ › Today, a deep link, a placed post)
+  const [jump, setJump] = useState(0); // bumps so "Today" scrolls again even when the anchor is already today
+  const [visible, setVisible] = useState(todayET()); // the first day in view, for the heading
+  const scroller = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState<TrayItem | null>(null);
   const [spreading, setSpreading] = useState<{ type: string; label: string; items: TrayItem[] } | null>(null);
@@ -246,21 +249,67 @@ export default function SocialCalendar() {
     return m;
   }, [data]);
 
+  /**
+   * One continuous timeline (James 25 Oct 2026: scroll on into the next week / month to explore): every day from
+   * ~3 months back to ~9 months ahead (further if a post or the anchor is beyond). Week = one column per day, sideways;
+   * Month = weeks stacked, downwards. ‹ › and Today jump along it; the heading follows the scroll.
+   */
+  const COL = 240; // Week view column width (px)
   const days = useMemo(() => {
-    if (mode === "week") return Array.from({ length: 7 }, (_, i) => addDays(monday(anchor), i));
-    return Array.from({ length: 42 }, (_, i) => addDays(monday(`${anchor.slice(0, 7)}-01`), i));
-  }, [mode, anchor]);
+    const dated = (data?.slots ?? []).map((s) => et(s.publishAt).date).filter(Boolean).sort();
+    let from = monday(addDays(todayET(), -91));
+    let to = addDays(monday(addDays(todayET(), 7 * 39)), 6);
+    for (const d of [anchor, dated[0], dated[dated.length - 1]].filter(Boolean) as string[]) {
+      if (d < from) from = monday(addDays(d, -28));
+      if (d > to) to = addDays(monday(addDays(d, 28)), 6);
+    }
+    const out: string[] = [];
+    for (let d = from; d <= to; d = addDays(d, 1)) out.push(d);
+    return out;
+  }, [data, anchor]);
 
+  // Scroll to the anchor: its week (Week) or the week holding the 1st of its month (Month)
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el || !data) return;
+    // Month: the first week that is mostly that month (its Thursday is in it), so 1 Nov on a Sunday doesn't land on October
+    const target = mode === "week" ? monday(anchor) : monday(addDays(`${anchor.slice(0, 7)}-01`, 3));
+    const cell = el.querySelector<HTMLElement>(`[data-day="${target}"]`);
+    if (!cell) return;
+    if (mode === "week") el.scrollTo({ left: cell.offsetLeft });
+    else el.scrollTo({ top: cell.offsetTop - 28 });
+  }, [anchor, jump, mode, data]);
+
+  // The heading follows the scroll: the first day in view
+  const onScroll = () => {
+    const el = scroller.current;
+    if (!el) return;
+    if (mode === "week") {
+      const d = days[Math.min(days.length - 1, Math.max(0, Math.round(el.scrollLeft / COL)))];
+      if (d && d !== visible) setVisible(d);
+      return;
+    }
+    const mondays = Array.from(el.querySelectorAll<HTMLElement>("[data-monday]"));
+    const row = mondays.find((m) => m.offsetTop + m.offsetHeight > el.scrollTop + 40) ?? mondays[0];
+    const d = row ? addDays(row.dataset.day ?? "", 3) : ""; // the row's Thursday decides its month
+    if (d && d !== visible) setVisible(d);
+  };
+  useEffect(onScroll); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const goTo = (d: string) => {
+    setAnchor(d);
+    setJump((n) => n + 1);
+  };
   const step = (n: number) => {
-    if (mode === "week") return setAnchor(addDays(anchor, 7 * n));
-    const d = parse(`${anchor.slice(0, 7)}-01`);
+    if (mode === "week") return goTo(addDays(monday(visible), 7 * n));
+    const d = parse(`${visible.slice(0, 7)}-01`);
     d.setMonth(d.getMonth() + n);
-    setAnchor(ymd(d));
+    goTo(ymd(d));
   };
   const heading =
     mode === "month"
-      ? parse(`${anchor.slice(0, 7)}-01`).toLocaleDateString("en-GB", { month: "long", year: "numeric" })
-      : `${parse(days[0]).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${parse(days[days.length - 1]).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
+      ? parse(`${visible.slice(0, 7)}-01`).toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+      : `${parse(monday(visible)).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${parse(addDays(monday(visible), 6)).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
 
   /** Drop: a tray item lands as a draft at noon ET; a slot keeps its time and moves day. */
   const onDrop = async (day: string, e: React.DragEvent) => {
@@ -285,8 +334,31 @@ export default function SocialCalendar() {
   const needs = data?.needsYou ?? [];
   const [showAllNeeds, setShowAllNeeds] = useState(false);
 
+  /** One day: its date, milestones and posts; a drop target for the tray and for moving a post. */
+  const dayCell = ({ day, past, other, big }: { day: string; past: boolean; other: boolean; big: boolean }) => (
+    <div
+      onDragOver={(e) => !past && e.preventDefault()}
+      onDrop={(e) => onDrop(day, e)}
+      className={`flex min-h-[190px] w-full flex-1 flex-col gap-1 border-b border-r border-gray-100 p-1.5 dark:border-white/5 ${!big && (other || past) ? "bg-gray-50/60 dark:bg-white/[0.02]" : ""}`}
+    >
+      {!big && (
+        <span className={`text-[11px] font-black ${day === today ? "self-start rounded-full bg-[#1a3c6e] px-1.5 text-white" : other ? "text-gray-300 dark:text-white/20" : ""}`}>
+          {parse(day).getDate() === 1 ? parse(day).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : parse(day).getDate()}
+        </span>
+      )}
+      {(datesByDay[day] ?? []).map((l) => (
+        <span key={l} className="truncate rounded bg-[#00f976]/20 px-1 text-[9px] font-bold text-green-800 dark:text-[#00f976]">
+          {l}
+        </span>
+      ))}
+      {(byDay[day] ?? []).map((s) => (
+        <SlotChip key={s.id} s={s} agents={agents} size={big ? "big" : "small"} onClick={() => setOpen(s.id)} />
+      ))}
+    </div>
+  );
+
   return (
-    <main className="flex h-[calc(100vh-95px)] flex-col gap-3 px-5 py-4">
+    <main className="flex h-[calc(100vh-86px)] flex-col gap-3 overflow-hidden px-5 py-4">
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-sm font-black uppercase tracking-widest">Social calendar</h1>
@@ -315,7 +387,7 @@ export default function SocialCalendar() {
           <button onClick={() => step(-1)} className={pill(false)} aria-label="Previous">
             ‹
           </button>
-          <button onClick={() => setAnchor(todayET())} className={pill(false)}>
+          <button onClick={() => goTo(todayET())} className={pill(false)}>
             Today
           </button>
           <button onClick={() => step(1)} className={pill(false)} aria-label="Next">
@@ -391,58 +463,39 @@ export default function SocialCalendar() {
 
         {/* Calendar */}
         <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-100 bg-white dark:border-white/5 dark:bg-[#0d0d0d]">
-          {/* Week scrolls sideways (wide columns, big previews); Month scrolls down (rows grow to fit) — James 25 Oct 2026 */}
-          <div className="min-h-0 flex-1 overflow-auto">
-            <div className={mode === "week" ? "min-w-[1680px]" : "min-w-[900px]"}>
-              <div className="sticky top-0 z-10 grid grid-cols-7 border-b border-gray-100 bg-white text-[9px] font-black uppercase tracking-widest text-gray-400 dark:border-white/5 dark:bg-[#0d0d0d] dark:text-white/40">
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-                  <div key={d} className="px-2 py-1.5">
-                    {d}
+          {/* One timeline: Week scrolls sideways day after day, Month scrolls down week after week; the day names stay put */}
+          <div ref={scroller} onScroll={onScroll} className="relative min-h-0 flex-1 overflow-auto">
+            {mode === "week" ? (
+              <div className="flex min-h-full">
+                {days.map((day) => (
+                  <div key={day} data-day={day} style={{ width: COL }} className={`flex shrink-0 flex-col border-r border-gray-100 dark:border-white/5 ${day < today ? "bg-gray-50/60 dark:bg-white/[0.02]" : ""} ${parse(day).getDay() === 1 ? "border-l-2 border-l-gray-200 dark:border-l-white/10" : ""}`}>
+                    <div className="sticky top-0 z-10 border-b border-gray-100 bg-white px-2 py-1.5 dark:border-white/5 dark:bg-[#0d0d0d]">
+                      <span className={`text-[9px] font-black uppercase tracking-widest ${day === today ? "rounded-full bg-[#1a3c6e] px-1.5 text-white" : "text-gray-400 dark:text-white/40"}`}>
+                        {parse(day).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                      </span>
+                    </div>
+                    {dayCell({ day, past: day < today, other: false, big: true })}
                   </div>
                 ))}
               </div>
-              <div className={`grid grid-cols-7 ${mode === "month" ? "auto-rows-[minmax(190px,auto)]" : "min-h-[calc(100vh-300px)]"}`}>
-                {days.map((day) => {
-                  const other = mode === "month" && day.slice(0, 7) !== anchor.slice(0, 7);
-                  const past = day < today;
-                  return (
-                    <div
-                      key={day}
-                      onDragOver={(e) => !past && e.preventDefault()}
-                      onDrop={(e) => onDrop(day, e)}
-                      className={`flex flex-col gap-1 border-b border-r border-gray-100 p-1.5 dark:border-white/5 ${
-                        other || past ? "bg-gray-50/60 dark:bg-white/[0.02]" : ""
-                      }`}
-                    >
-                      <span className={`text-[11px] font-black ${day === today ? "self-start rounded-full bg-[#1a3c6e] px-1.5 text-white" : other ? "text-gray-300 dark:text-white/20" : ""}`}>
-                        {parse(day).getDate()}
-                      </span>
-                      {(datesByDay[day] ?? []).map((l) => (
-                        <span key={l} className="truncate rounded bg-[#00f976]/20 px-1 text-[9px] font-bold text-green-800 dark:text-[#00f976]">
-                          {l}
-                        </span>
-                      ))}
-                      {(byDay[day] ?? [])
-                        .filter((s) => mode === "week" || !s.id.includes("~"))
-                        .map((s) => (
-                          <SlotChip key={s.id} s={s} agents={agents} size={mode === "week" ? "big" : "small"} onClick={() => setOpen(s.id)} />
-                        ))}
-                      {mode !== "week" && (() => {
-                        // Month: a repeating job's later days fold into one line, so posts keep their room (James 24 Oct 2026)
-                        const reps = (byDay[day] ?? []).filter((s) => s.id.includes("~"));
-                        if (!reps.length) return null;
-                        const names = reps.map((s) => `${findAgent(agents, s.agent).icon} ${s.title}`);
-                        return (
-                          <button onClick={() => setOpen(reps[0].id)} title={`Repeats today: ${names.join(", ")}`} className="truncate text-left text-[9px] text-gray-400 hover:text-gray-700 dark:hover:text-white">
-                            ↻ {reps.length === 1 ? names[0] : `${reps.length} daily: ${reps.map((s) => s.title).join(", ")}`}
-                          </button>
-                        );
-                      })()}
+            ) : (
+              <div className="min-w-[900px]">
+                <div className="sticky top-0 z-10 grid grid-cols-7 border-b border-gray-100 bg-white text-[9px] font-black uppercase tracking-widest text-gray-400 dark:border-white/5 dark:bg-[#0d0d0d] dark:text-white/40">
+                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+                    <div key={d} className="px-2 py-1.5">
+                      {d}
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+                <div className="grid auto-rows-[minmax(190px,auto)] grid-cols-7">
+                  {days.map((day) => (
+                    <div key={day} data-day={day} {...(parse(day).getDay() === 1 ? { "data-monday": "" } : {})} className="flex">
+                      {dayCell({ day, past: day < today, other: day.slice(0, 7) !== visible.slice(0, 7), big: false })}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </section>
       </div>
