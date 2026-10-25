@@ -166,7 +166,10 @@ export default function SocialCalendar() {
   const [jump, setJump] = useState(0); // bumps so "Today" scrolls again even when the anchor is already today
   const [visible, setVisible] = useState(todayET()); // the first day in view, for the heading
   const scroller = useRef<HTMLDivElement>(null);
-  const [trayOpen, setTrayOpen] = useState(false); // phone: the tray opens full screen from a button
+  const [trayOpen, setTrayOpen] = useState(false);
+  const [overDay, setOverDay] = useState(""); // the day a dragged post is over (highlighted)
+  const [moved, setMoved] = useState<{ id: string; title: string; from: string; to: string; approved: boolean } | null>(null); // last move, for Undo
+  const [confirmMove, setConfirmMove] = useState<{ id: string; title: string; from: string; to: string } | null>(null); // an approved post dropped on a new day // phone: the tray opens full screen from a button
   const [earlier, setEarlier] = useState(false); // phone list: also show the last two weeks
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState<TrayItem | null>(null);
@@ -270,17 +273,27 @@ export default function SocialCalendar() {
     return out;
   }, [data, anchor]);
 
-  // Scroll to the anchor: its week (Week) or the week holding the 1st of its month (Month)
-  useEffect(() => {
+  // Scroll to the anchor: its week (Week) or the week holding the 1st of its month (Month). Only when asked (‹ › Today, a
+  // link, switching Month / Week) and once when the posts first arrive; never on a reload after a move or a save, so a
+  // drag and drop keeps the view where it is (James 25 Oct 2026).
+  const scrollToAnchor = useCallback(() => {
     const el = scroller.current;
-    if (!el || !data) return;
+    if (!el) return false;
     // Month: the first week that is mostly that month (its Thursday is in it), so 1 Nov on a Sunday doesn't land on October
     const target = mode === "week" ? monday(anchor) : monday(addDays(`${anchor.slice(0, 7)}-01`, 3));
     const cell = el.querySelector<HTMLElement>(`[data-day="${target}"]`);
-    if (!cell) return;
+    if (!cell) return false;
     if (mode === "week") el.scrollTo({ left: cell.offsetLeft });
     else el.scrollTo({ top: cell.offsetTop - 28 });
-  }, [anchor, jump, mode, data]);
+    return true;
+  }, [anchor, mode]);
+  const placed = useRef(false); // the first scroll, once the posts are in
+  useEffect(() => {
+    if (data) scrollToAnchor();
+  }, [anchor, jump, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (data && !placed.current) placed.current = scrollToAnchor();
+  }, [data, scrollToAnchor]);
 
   // The heading follows the scroll: the first day in view
   const onScroll = () => {
@@ -297,6 +310,16 @@ export default function SocialCalendar() {
     if (d && d !== visible) setVisible(d);
   };
   useEffect(onScroll); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const clear = () => setOverDay("");
+    window.addEventListener("pickem-dragend", clear);
+    window.addEventListener("dragend", clear);
+    return () => {
+      window.removeEventListener("pickem-dragend", clear);
+      window.removeEventListener("dragend", clear);
+    };
+  }, []);
 
   const goTo = (d: string) => {
     setAnchor(d);
@@ -316,6 +339,7 @@ export default function SocialCalendar() {
   /** Drop: a tray item lands as a draft at noon ET; a slot keeps its time and moves day. */
   const onDrop = async (day: string, e: React.DragEvent) => {
     e.preventDefault();
+    setOverDay("");
     const raw = e.dataTransfer.getData("text/plain");
     if (!raw) return;
     const it = JSON.parse(raw) as { tray?: TrayItem; slot?: string };
@@ -326,8 +350,14 @@ export default function SocialCalendar() {
     } else if (it.slot) {
       const s = data?.slots.find((x) => x.id === it.slot);
       if (!s) return;
-      if (s.kind === "post" && s.status !== "draft" && s.status !== "failed") return setErr("Un-approve it first to move it");
-      await act({ action: "save", id: s.id, at: `${day}T${et(s.publishAt).time || DEFAULT_TIME}` });
+      const from = et(s.publishAt);
+      if (from.date === day) return;
+      const to = `${day}T${from.time || DEFAULT_TIME}`;
+      const fromAt = from.date ? `${from.date}T${from.time}` : "";
+      // an approved post asks first (James 25 Oct 2026): Yes moves it and it stays approved, Back leaves it
+      if (s.kind === "post" && s.status === "approved") return setConfirmMove({ id: s.id, title: s.title, from: fromAt, to });
+      if (s.kind === "post" && s.status !== "draft" && s.status !== "failed") return setErr("This post is going out or has gone out: it can't be moved");
+      if ((await act({ action: "save", id: s.id, at: to })) !== false) setMoved({ id: s.id, title: s.title, from: fromAt, to, approved: false });
     }
   };
 
@@ -368,9 +398,14 @@ export default function SocialCalendar() {
   /** One day: its date, milestones and posts; a drop target for the tray and for moving a post. */
   const dayCell = ({ day, past, other, big }: { day: string; past: boolean; other: boolean; big: boolean }) => (
     <div
-      onDragOver={(e) => !past && e.preventDefault()}
+      onDragOver={(e) => {
+        if (past) return;
+        e.preventDefault();
+        if (overDay !== day) setOverDay(day);
+      }}
+      onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setOverDay((d) => (d === day ? "" : d))}
       onDrop={(e) => onDrop(day, e)}
-      className={`flex min-h-[190px] w-full flex-1 flex-col gap-1 border-b border-r border-gray-100 p-1.5 dark:border-white/5 ${!big && (other || past) ? "bg-gray-50/60 dark:bg-white/[0.02]" : ""}`}
+      className={`flex min-h-[190px] w-full flex-1 flex-col gap-1 border-b border-r border-gray-100 p-1.5 dark:border-white/5 ${overDay === day ? "bg-[#39b5e6]/15 outline outline-2 -outline-offset-2 outline-[#39b5e6]" : !big && (other || past) ? "bg-gray-50/60 dark:bg-white/[0.02]" : ""}`}
     >
       {!big && (
         <span className={`text-[11px] font-black ${day === today ? "self-start rounded-full bg-[#1a3c6e] px-1.5 text-white" : other ? "text-gray-300 dark:text-white/20" : ""}`}>
@@ -489,6 +524,28 @@ export default function SocialCalendar() {
         </div>
       )}
 
+      {moved && (
+        <div className="flex items-center gap-3 rounded-lg bg-[#39b5e6]/10 px-3 py-2 text-[12px] text-[#1a3c6e] dark:text-[#39b5e6]">
+          <span className="flex-1">
+            Moved <b>{moved.title}</b> to {parse(moved.to.slice(0, 10)).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} {nice(moved.to.slice(11, 16))}
+          </span>
+          {moved.from && (
+            <button
+              className="font-bold underline"
+              disabled={busy}
+              onClick={async () => {
+                await act({ action: moved.approved ? "move" : "save", id: moved.id, at: moved.from });
+                setMoved(null);
+              }}
+            >
+              Undo
+            </button>
+          )}
+          <button onClick={() => setMoved(null)} aria-label="Dismiss">
+            <IoMdClose />
+          </button>
+        </div>
+      )}
       {err && (
         <div className="flex items-start gap-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:bg-red-500/10 dark:text-red-300">
           <span className="flex-1">{err}</span>
@@ -589,6 +646,32 @@ export default function SocialCalendar() {
           }}
           onClose={() => setSpreading(null)}
         />
+      )}
+      {confirmMove && (
+        <Modal onClose={() => setConfirmMove(null)}>
+          <div className="text-sm font-black">This post was approved. Move it?</div>
+          <div className="text-[12px] text-gray-600 dark:text-white/60">
+            <b>{confirmMove.title}</b> moves from {confirmMove.from ? `${parse(confirmMove.from.slice(0, 10)).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} ${nice(confirmMove.from.slice(11, 16))}` : "—"} to{" "}
+            {parse(confirmMove.to.slice(0, 10)).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} {nice(confirmMove.to.slice(11, 16))} ET. It stays approved and goes out by itself at the new time.
+          </div>
+          <div className="flex gap-2">
+            <button
+              className={primaryButton}
+              disabled={busy}
+              autoFocus
+              onClick={async () => {
+                const c = confirmMove;
+                setConfirmMove(null);
+                if ((await act({ action: "move", id: c.id, at: c.to })) !== false) setMoved({ ...c, approved: true });
+              }}
+            >
+              Yes, move it
+            </button>
+            <button className={pill(false)} onClick={() => setConfirmMove(null)}>
+              Back
+            </button>
+          </div>
+        </Modal>
       )}
       {slot && slot.kind === "post" && <SlotDrawer key={slot.id} s={slot} agents={agents} posts={data?.posts ?? []} busy={busy} act={act} onClose={() => setOpen(null)} />}
     </main>
@@ -712,7 +795,7 @@ function SlotChip({ s, agents, size, onClick }: { s: Slot; agents: Agent[]; size
   const a = findAgent(agents, s.agent);
   const time = et(s.publishAt).time;
   const repeat = s.id.includes("~"); // a repeating job's later day: move its first-day slot instead
-  const movable = !repeat && (s.kind !== "post" || s.status === "draft" || s.status === "failed");
+  const movable = !repeat && (s.kind !== "post" || s.status === "draft" || s.status === "failed" || s.status === "approved");
   const isPost = s.kind === "post";
   const thumb = isPost ? (
     s.preview[0] ? (
@@ -732,10 +815,11 @@ function SlotChip({ s, agents, size, onClick }: { s: Slot; agents: Agent[]; size
     <button
       draggable={movable}
       onDragStart={(e) => e.dataTransfer.setData("text/plain", JSON.stringify({ slot: s.id }))}
+      onDragEnd={() => window.dispatchEvent(new Event("pickem-dragend"))}
       onClick={onClick}
-      title={`${a.name}: ${s.title} · ${p.label}`}
+      title={`${a.name}: ${s.title} · ${p.label}${movable ? ` · drag to another day to move it${s.status === "approved" ? " (asks first: it's approved)" : ""}` : ""}`}
       style={{ borderLeftColor: a.colour }}
-      className={`flex w-full ${size === "big" ? "flex-col" : "items-center"} ${size === "row" ? "gap-3 p-2 text-[12px]" : "gap-1.5 p-1 text-[10px]"} rounded-md border border-l-4 border-gray-100 bg-white text-left hover:border-gray-400 dark:border-white/5 dark:bg-[#141414] dark:hover:border-white/30 ${
+      className={`flex w-full ${size === "big" ? "flex-col" : "items-center"} ${size === "row" ? "gap-3 p-2 text-[12px]" : "gap-1.5 p-1 text-[10px]"} rounded-md border border-l-4 border-gray-100 bg-white text-left ${movable ? "cursor-grab active:cursor-grabbing" : ""} hover:border-gray-400 dark:border-white/5 dark:bg-[#141414] dark:hover:border-white/30 ${
         s.placeholder ? "border-dashed opacity-80" : ""
       } ${s.placeholder && !s.templated ? "opacity-45 grayscale" : ""} ${s.status === "done" ? "opacity-50" : ""}`}
     >

@@ -522,6 +522,23 @@ export async function approve(id: string): Promise<void> {
 }
 
 /** Back to draft (only while it hasn't started sending); its hidden photos are removed from the Page. */
+/**
+ * Move an approved post to a new time without un-approving it (James 25 Oct 2026: drag it on the calendar, confirm).
+ * Safe because the posting job (pickem-paintball-scheduler/functions/postScheduler.js) reads publishAt on every pass.
+ * Only while it's still "approved" (not sending / posted), and never to a time under 10 minutes away, so a drag can't
+ * make a post go out by accident.
+ */
+export async function moveApproved(id: string, at: string): Promise<void> {
+  const when = eastern(at);
+  if (when.getTime() < Date.now() + 10 * 60 * 1000) throw new Error("That time has passed (or is under 10 minutes away): pick a later day");
+  const ref = db().collection(COLLECTION).doc(id);
+  await db().runTransaction(async (tx) => {
+    const d = await tx.get(ref);
+    if ((d.get("kind") ?? "post") !== "post" || d.get("status") !== "approved") throw new Error("Only an approved post that hasn't gone out can be moved this way");
+    tx.update(ref, { publishAt: Timestamp.fromDate(when), movedAt: FieldValue.serverTimestamp() });
+  });
+}
+
 export async function unapprove(id: string): Promise<void> {
   const ref = db().collection(COLLECTION).doc(id);
   const ids = await db().runTransaction(async (tx) => {
