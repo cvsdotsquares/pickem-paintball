@@ -98,12 +98,12 @@ export const PICKEM_EVENT_ID = {
  * Fixture club name → our `team_id`, for the events PickEm scores.
  *
  * Only needed where the two disagree; everything else matches on the name. Taken from
- * the live rosters, and deliberately NOT inverted from TEAM_CODE_OVERRIDES on the
- * career page — that map is display-only and swaps AFT/SDA.
+ * the live rosters. Aftermath was `SDA` and Aftershock `AFT` until 25 Oct 2026, when
+ * they became `AFM` (the Social Media Kit's code) and `SHK`.
  */
 export const CLUB_TEAM_ID = {
-  Aftermath: "SDA",
-  Aftershock: "AFT",
+  Aftermath: "AFM",
+  Aftershock: "SHK",
   ALA: "ALA", // ALA, LTF, Ranger, TPP Crew: first NXL event is World Cup 2026
   Arsenal: "ARS",
   "Breakout Spa": "BKS",

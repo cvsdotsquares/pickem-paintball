@@ -5,11 +5,18 @@
 //   team_id changed on an existing doc → 'player_team_changed'   ("X has moved to Dynasty for World Cup")
 //                                         (James, 24 Oct 2026: a roster move notifies pickers too)
 // A new doc (the roster's first sync) only counts for Status, as before; a team change needs a team on both sides,
-// so a field being filled in for the first time notifies nobody.
+// so a field being filled in for the first time notifies nobody. A new code under the same team name (Aftermath
+// SDA → AFM, James 25 Oct 2026) is a rename, not a move, so it notifies nobody either.
 //
 // Notices are only there to tell pickers they may need to change a pick (James, 24 Oct 2026), so a player becoming
 // Confirmed, Unconfirmed or Addition notifies nobody: e.g. Unconfirmed → Confirmed at roster lock, or Out → Confirmed.
 const NO_NOTICE = new Set(['confirmed', 'unconfirmed', 'addition']);
+
+/** Both docs name the same team (case and spacing aside). False when either side has no name. */
+function sameTeamName(a, b) {
+  const norm = (v) => String(v || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  return norm(a) !== '' && norm(a) === norm(b);
+}
 
 function playerChangeNotices({ before = {}, after = {}, beforeExists = false, playerName, eventName }) {
   const out = [];
@@ -23,7 +30,8 @@ function playerChangeNotices({ before = {}, after = {}, beforeExists = false, pl
   }
   const oldTeam = String(before.team_id || '');
   const newTeam = String(after.team_id || '');
-  if (beforeExists && oldTeam && newTeam && oldTeam !== newTeam) {
+  const sameName = sameTeamName(before.Team, after.Team);
+  if (beforeExists && oldTeam && newTeam && oldTeam !== newTeam && !sameName) {
     const teamName = String(after.Team || newTeam);
     out.push({
       type: 'player_team_changed',

@@ -87,30 +87,9 @@ const absenceWord = (a: CareerAppearance) =>
  */
 const SHARE_HEAD = ["% of Team\u2019s", "Kills"];
 
-/**
- * Display-only short codes, for the two ids a reader cannot resolve.
- *
- * Aftershock and Aftermath both begin "After-", so the stored `AFT` names either one,
- * and Aftermath's `SDA` is the city rather than the club. The two therefore SWAP:
- * Aftermath takes `AFT`, the letters a reader gives it unprompted, and Aftershock
- * becomes `SHK`.
- *
- * ⚠️ The displayed `AFT` is NOT the stored `AFT`. They belong to different teams, so
- * this map must never be inverted, reused as a lookup, or written back.
- *
- * DISPLAY ONLY. `team_id` is baked into long-data game ids
- * (`mid_west_open_2026_Friday_HUR-RCS`), which sort on it precisely because it is more
- * stable than the display name, and `syncRoster()` owns the stored value. Renaming the
- * id would orphan every game already recorded against it.
- */
-const TEAM_CODE_OVERRIDES: Record<string, string> = {
-  AFT: "SHK", // stored AFT = Aftershock
-  SDA: "AFT", // stored SDA = Aftermath
-};
-
 /** Three-letter code for a team, falling back to the full name when there is no id. */
 const teamCode = (id: string | null | undefined, fallback: string) =>
-  id ? (TEAM_CODE_OVERRIDES[id] ?? id) : fallback;
+  id || fallback;
 
 const TYPE_HEAD: Record<string, string[]> = {
   Gunfights: ["Gun", "Fights"],

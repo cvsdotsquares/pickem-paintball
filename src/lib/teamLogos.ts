@@ -19,13 +19,13 @@ export function isRealHeadshot(url: string | null | undefined): url is string {
  * Team ids (the player's `team_id`) with a logo in `public/team-logos/{ID}.png`.
  *
  * Source: the Drive Social Media Kit, `03. Team Assets/2026 Logos/Full colour` (signed off
- * 17 Oct 2026), trimmed and shrunk to 256 px. The kit's AFM (Aftermath) and JCT (Jungle
- * Cats) are SDA and JNG on the site. ACD, ARS and NRG have no 2026 logo, so theirs are the
+ * 17 Oct 2026), trimmed and shrunk to 256 px. The kit's JCT (Jungle Cats) is JNG on the
+ * site, and its AFT (Aftershock) is SHK. ACD, ARS and NRG have no 2026 logo, so theirs are the
  * older kit files one folder up. Add a team: drop `{ID}.png` in the folder and its id here.
  */
 const TEAM_LOGO_IDS = new Set([
-  "ACD", "AFT", "ALA", "ARS", "COL", "DAM", "DST", "DYN", "FIT", "HEA", "HUR", "IMF", "IMP",
-  "IRN", "JNG", "LEG", "LEV", "LTF", "NRG", "NYX", "RCS", "RGR", "SDA", "TON", "TPP", "UPR",
+  "ACD", "AFM", "ALA", "ARS", "COL", "DAM", "DST", "DYN", "FIT", "HEA", "HUR", "IMF", "IMP",
+  "IRN", "JNG", "LEG", "LEV", "LTF", "NRG", "NYX", "RCS", "RGR", "SHK", "TON", "TPP", "UPR",
   "XFA",
 ]);
 
