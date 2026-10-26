@@ -16,6 +16,10 @@ module.exports = {
       },
     },
     extend: {
+      screens: {
+        // Wide AND tall enough for side-by-side panels; a phone turned sideways stays on the phone layout.
+        "md-tall": { raw: "(min-width: 768px) and (min-height: 600px)" },
+      },
       fontFamily: {
         inter: ["var(--font-industry)", "system-ui", "sans-serif"],
         hanson: ["var(--font-industry)", "system-ui", "sans-serif"],

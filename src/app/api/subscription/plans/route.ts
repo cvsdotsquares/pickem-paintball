@@ -59,36 +59,15 @@ function getPriceIdsForCurrency(currency: string): Record<string, string> {
   return ids;
 }
 
-// Fallback plans if Stripe API fails
-const FALLBACK_PLANS = [
-  {
-    id: 'monthly',
-    name: 'Monthly',
-    price: '$4.99',
-    period: '/month',
-    popular: false,
-    savings: null,
-    features: []
-  },
-  {
-    id: 'quarterly',
-    name: 'Quarterly',
-    price: '$12.99',
-    period: '/3 months',
-    popular: true,
-    savings: 'Save 13%',
-    features: []
-  },
-  {
-    id: 'yearly',
-    name: 'Yearly',
-    price: '$49.99',
-    period: '/year',
-    popular: false,
-    savings: 'Save 17%',
-    features: []
-  }
-];
+// Fallback plans if Stripe API fails (same numbers in every currency, like the live Stripe prices)
+function fallbackPlans(currency: string) {
+  const features = ['Join and Create custom leagues', 'Early access to new features'];
+  return [
+    { id: 'quarterly', name: 'Event Subscription', price: formatPrice(1399, currency), period: '/month', popular: false, savings: null, features: [features[0], 'Pay only in event months', features[1]] },
+    { id: 'monthly', name: 'Monthly Subscription', price: formatPrice(499, currency), period: '/month', popular: true, savings: null, features },
+    { id: 'yearly', name: 'Yearly Subscription', price: formatPrice(4999, currency), period: '/year', popular: false, savings: 'Save 17% vs monthly', features },
+  ];
+}
 
 function formatPrice(amount: number, currency: string): string {
   const symbols: Record<string, string> = { usd: '$', gbp: '£', eur: '€' };
@@ -102,10 +81,11 @@ function formatPeriod(interval: string, intervalCount: number): string {
 }
 
 // Determine plan order and metadata
-const PLAN_META: Record<string, { order: number; popular: boolean; savings: string | null }> = {
-  quarterly: { order: 0, popular: false, savings: null },
-  monthly: { order: 1, popular: true, savings: 'Save 14%' },
-  yearly: { order: 2, popular: false, savings: 'Save 29%' },
+// Savings are worked out below from the live prices (yearly vs 12 × monthly), so they hold in every currency.
+const PLAN_META: Record<string, { order: number; popular: boolean }> = {
+  quarterly: { order: 0, popular: false },
+  monthly: { order: 1, popular: true },
+  yearly: { order: 2, popular: false },
 };
 
 export async function GET(request: NextRequest) {
@@ -156,7 +136,7 @@ export async function GET(request: NextRequest) {
           features = ['Custom Leagues', 'Advanced Statistics', 'Priority Support', 'Early Access to Features'];
         }
 
-        const meta = PLAN_META[planKey] || { order: 99, popular: false, savings: null };
+        const meta = PLAN_META[planKey] || { order: 99, popular: false };
 
         return {
           id: planKey,
@@ -165,33 +145,23 @@ export async function GET(request: NextRequest) {
           price: formatPrice(price.unit_amount || 0, price.currency),
           period: formatPeriod(price.recurring?.interval || 'month', price.recurring?.interval_count || 1),
           popular: meta.popular,
-          savings: meta.savings,
+          savings: null as string | null,
           features,
           _order: meta.order,
         };
       });
 
-    // Now calculate savings dynamically
+    // Yearly is the only plan that is a straight discount on monthly; say so in plain words.
     const monthlyPlan = plans.find(p => p.id === 'monthly');
-    if (monthlyPlan) {
+    const yearlyPlan = plans.find(p => p.id === 'yearly');
+    if (monthlyPlan && yearlyPlan) {
       const monthlyAmount = parseFloat(monthlyPlan.price.replace(/[^0-9.]/g, ''));
-      plans.forEach(plan => {
-        if (plan.id === 'quarterly') {
-          const qAmount = parseFloat(plan.price.replace(/[^0-9.]/g, ''));
-          const equivalent = monthlyAmount * 3;
-          if (equivalent > qAmount) {
-            const pct = Math.round(((equivalent - qAmount) / equivalent) * 100);
-            //plan.savings = `Save ${pct}%`;
-          }
-        } else if (plan.id === 'yearly') {
-          const yAmount = parseFloat(plan.price.replace(/[^0-9.]/g, ''));
-          const equivalent = monthlyAmount * 12;
-          if (equivalent > yAmount) {
-            const pct = Math.round(((equivalent - yAmount) / equivalent) * 100);
-            //plan.savings = `Save ${pct}%`;
-          }
-        }
-      });
+      const yearlyAmount = parseFloat(yearlyPlan.price.replace(/[^0-9.]/g, ''));
+      const equivalent = monthlyAmount * 12;
+      if (equivalent > yearlyAmount) {
+        const pct = Math.round(((equivalent - yearlyAmount) / equivalent) * 100);
+        yearlyPlan.savings = `Save ${pct}% vs monthly`;
+      }
     }
 
     // Sort by order and remove internal field
@@ -223,7 +193,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ plans: cacheEntry.plans, currency });
     }
     return NextResponse.json({
-      plans: FALLBACK_PLANS,
+      plans: fallbackPlans(currency),
       currency
     });
   }
