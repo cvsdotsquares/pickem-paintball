@@ -201,6 +201,15 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Subscribe pop-up funnel — one row per step, written by /api/subscription/track
+    // (and a `paid` row by the Stripe webhook). Same shape as shareEvents: create-only,
+    // nobody reads it back from a browser; scripts/subscribe-report.mjs uses the Admin SDK.
+    match /subscribeEvents/{recordId} {
+      allow read: if false;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+
     // ── Default deny ─────────────────────────────────────────────────────────
     // Anything not named above is unreachable from a client. Adding a collection
     // means adding a rule for it.

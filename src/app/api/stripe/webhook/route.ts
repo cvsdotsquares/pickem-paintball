@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { db } from '@/src/lib/firebaseClient';
-import { doc, updateDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { doc, updateDoc, addDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-02-25.clover'
@@ -80,6 +80,22 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     subscriptionCancelAtPeriodEnd: false,
     updatedAt: new Date().toISOString()
   });
+
+  // Close the subscribe-funnel loop (see /api/subscription/track). Never let reporting break a payment.
+  try {
+    await addDoc(collection(db, 'subscribeEvents'), {
+      step: 'paid',
+      reason: session.metadata?.subscribeReason || null,
+      viewId: session.metadata?.subscribeViewId || null,
+      uid: userId,
+      plan,
+      currency: session.currency ?? null,
+      amountTotal: session.amount_total ?? null,
+      createdAt: Date.now(),
+    });
+  } catch (err) {
+    console.error('subscribeEvents paid row failed:', err);
+  }
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {

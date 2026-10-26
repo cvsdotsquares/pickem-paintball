@@ -77,7 +77,7 @@ export default function ProfileBadgesSection() {
         ) : (
           <button
             type="button"
-            onClick={() => showModal("soft-gate")}
+            onClick={() => showModal("soft-gate", "badges")}
             className="bg-[#00f976] hover:opacity-90 text-black font-black text-xs uppercase tracking-widest rounded-lg px-6 py-3"
           >
             Subscribe to Display

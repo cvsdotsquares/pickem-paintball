@@ -75,7 +75,7 @@ export default function CreateLeagueModal({ isOpen, onClose }: CreateLeagueModal
         setLoading(false);
         onClose();
         // Trigger hard-gate modal from parent
-        window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate' } }));
+        window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate', reason: 'leagues' } }));
         return;
       }
 
