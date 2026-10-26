@@ -5,6 +5,7 @@ import { AuthProvider } from "@/src/contexts/authProvider";
 import { SubscriptionProvider } from "@/src/contexts/SubscriptionContext";
 import { ThemeProvider } from "@/src/contexts/ThemeContext";
 import SubscriptionModalManager from "@/src/components/Subscription/SubscriptionModalManager";
+import CheckoutReturn from "@/src/components/Subscription/CheckoutReturn";
 import NextTopLoader from "nextjs-toploader";
 import ErrorBoundary from "@/src/components/Layout/ErrorBoundary";
 
@@ -33,6 +34,7 @@ export default function AppProviders({
 
             {children}
             <SubscriptionModalManager />
+            <CheckoutReturn />
             <Analytics />
           </SubscriptionProvider>
         </AuthProvider>

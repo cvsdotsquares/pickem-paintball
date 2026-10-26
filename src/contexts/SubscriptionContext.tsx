@@ -5,13 +5,18 @@ import { useAuth } from './authProvider';
 import { db } from '@/src/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 
+export type SubscriptionModalType = 'passive' | 'soft-gate' | 'hard-gate';
+/** What the person was trying to do when the pop-up opened; it picks the headline and leads the benefits list. */
+export type SubscribeReason = 'general' | 'career' | 'share' | 'leagues' | 'badges' | 'picks';
+
 interface SubscriptionContextType {
   isSubscribed: boolean;
   subscriptionTier: 'monthly' | 'quarterly' | 'yearly' | null;
   loading: boolean;
-  showModal: (type: 'passive' | 'soft-gate' | 'hard-gate') => void;
+  showModal: (type: SubscriptionModalType, reason?: SubscribeReason) => void;
   hideModal: () => void;
-  modalType: 'passive' | 'soft-gate' | 'hard-gate' | null;
+  modalType: SubscriptionModalType | null;
+  modalReason: SubscribeReason;
   refreshSubscription: () => Promise<void>;
 }
 
@@ -30,7 +35,8 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscriptionTier, setSubscriptionTier] = useState<'monthly' | 'quarterly' | 'yearly' | null>(null);
   const [loading, setLoading] = useState(true);
-  const [modalType, setModalType] = useState<'passive' | 'soft-gate' | 'hard-gate' | null>(null);
+  const [modalType, setModalType] = useState<SubscriptionModalType | null>(null);
+  const [modalReason, setModalReason] = useState<SubscribeReason>('general');
 
   const refreshSubscription = async () => {
     if (!user) {
@@ -58,7 +64,8 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
     refreshSubscription();
   }, [user]);
 
-  const showModal = (type: 'passive' | 'soft-gate' | 'hard-gate') => {
+  const showModal = (type: SubscriptionModalType, reason: SubscribeReason = 'general') => {
+    setModalReason(reason);
     setModalType(type);
   };
 
@@ -75,6 +82,7 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
         showModal,
         hideModal,
         modalType,
+        modalReason,
         refreshSubscription
       }}
     >
