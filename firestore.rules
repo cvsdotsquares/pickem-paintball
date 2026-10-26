@@ -210,6 +210,21 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Crash log: one row per error a visitor's browser reports, written by
+    // /api/client-error (src/lib/reportClientError.ts). Same shape as subscribeEvents:
+    // create-only, nobody reads it back from a browser; scripts/client-errors-report.mjs
+    // uses the Admin SDK. Only the route's own fields are accepted.
+    match /clientErrors/{recordId} {
+      allow read: if false;
+      allow create: if request.resource.data.keys().hasOnly([
+          'kind', 'message', 'name', 'stack', 'path', 'ua', 'vw', 'vh', 'standalone',
+          'translated', 'dark', 'dvh', 'vvOffsetTop', 'vvHeight', 'extra', 'createdAt', 'expireAt'
+        ])
+        && request.resource.data.kind is string
+        && request.resource.data.kind.size() <= 20;
+      allow update, delete: if false;
+    }
+
     // ── Default deny ─────────────────────────────────────────────────────────
     // Anything not named above is unreachable from a client. Adding a collection
     // means adding a rule for it.

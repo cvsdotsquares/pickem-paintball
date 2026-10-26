@@ -1,6 +1,7 @@
 'use client';
 
 import React, { ErrorInfo, ReactNode } from 'react';
+import { reportClientError } from '@/src/lib/reportClientError';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -25,6 +26,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // You can log the error info here if needed
     console.error("Uncaught error:", error, errorInfo);
+    reportClientError("site-crash", error);
   }
 
   render() {

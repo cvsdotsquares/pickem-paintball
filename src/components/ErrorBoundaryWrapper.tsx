@@ -1,6 +1,7 @@
 "use client";
 
 import { Component, ReactNode } from "react";
+import { reportClientError } from "@/src/lib/reportClientError";
 
 interface Props {
   children: ReactNode;
@@ -24,6 +25,7 @@ export class ErrorBoundaryWrapper extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: any) {
     console.error("ErrorBoundary caught:", error, errorInfo);
+    reportClientError("page-crash", error);
   }
 
   render() {
