@@ -684,13 +684,15 @@ export default function DashboardTopNav({
       ref={headerRef}
       className={cn(
         "z-[60] w-full border-b-0 bg-white dark:bg-[#101010]",
-        "md:border-b md:border-gray-200 dark:md:border-white/30",
-        "relative md:sticky md:top-0",
+        // md-tall, not md: a phone turned sideways is wider than 768px but only ~400px tall,
+        // so it keeps the phone header (☰ menu + subscribe strip) instead of the desktop one.
+        "md-tall:border-b md-tall:border-gray-200 dark:md-tall:border-white/30",
+        "relative md-tall:sticky md-tall:top-0",
         scrolled && "shadow-sm dark:shadow-black/40",
       )}
     >
       {/* —— Mobile: promo banner + toolbar (logo + bell + theme; CTA is the banner) —— */}
-      <div className="flex flex-col md:hidden">
+      <div className="flex flex-col md-tall:hidden">
         {/* Fills the iOS safe-area zone with brand green so status bar region matches the CTA bar */}
         <div style={{ height: "env(safe-area-inset-top, 0px)", backgroundColor: PICKEM_BRAND_GREEN }} aria-hidden />
         <div className="relative z-0 shrink-0">
@@ -700,7 +702,7 @@ export default function DashboardTopNav({
           z-10 keeps the toolbar above the green strip in the stacking order so promo text/anti-aliasing
           cannot paint over the menu row (Safari compositing).
         */}
-        <div className="relative z-10 flex items-center gap-x-2 border-t border-[#00f976] bg-white px-3 py-3 dark:bg-[#101010]">
+        <div className="relative z-10 flex items-center gap-x-2 border-t border-[#00f976] bg-white py-3 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] dark:bg-[#101010]">
           <button
             type="button"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-white/10"
@@ -724,8 +726,9 @@ export default function DashboardTopNav({
       </div>
 
       {/* —— Desktop: profile | logo | utilities + main nav row —— */}
-      <div className="hidden md:block">
-        <div className="grid min-h-[56px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-2">
+      <div className="hidden md-tall:block">
+        {/* Side padding clears the notch / rounded corners (the page uses viewport-fit=cover). */}
+        <div className="grid min-h-[56px] grid-cols-[1fr_auto_1fr] items-center gap-3 py-2 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
           <div className="flex items-center justify-start">
             <Link
               href="/dashboard/profile"
@@ -775,7 +778,7 @@ export default function DashboardTopNav({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: reduceMotion ? 0 : 0.2 }}
-              className="fixed bottom-0 left-0 right-0 z-40 bg-black/40 md:hidden"
+              className="fixed bottom-0 left-0 right-0 z-40 bg-black/40 md-tall:hidden"
               style={{ top: mobileOverlayTop }}
               aria-label="Close menu backdrop"
               onClick={closeAll}
@@ -785,10 +788,12 @@ export default function DashboardTopNav({
               animate={{ x: 0 }}
               exit={reduceMotion ? { x: 0 } : { x: "-100%" }}
               transition={mobileMenuSlideTransition}
-              className="fixed bottom-0 left-0 right-0 z-50 flex max-w-full flex-col border-t border-gray-200 bg-white dark:border-white/10 dark:bg-[#101010] md:hidden"
+              className="fixed bottom-0 left-0 right-0 z-50 flex max-w-full flex-col border-t border-gray-200 bg-white dark:border-white/10 dark:bg-[#101010] md-tall:hidden"
               style={{
                 top: mobileOverlayTop,
                 paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px))",
+                paddingLeft: "env(safe-area-inset-left, 0px)",
+                paddingRight: "env(safe-area-inset-right, 0px)",
               }}
               role="dialog"
               aria-modal="true"
