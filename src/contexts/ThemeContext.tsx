@@ -38,16 +38,36 @@ function applyThemeToDocument(theme: Theme) {
   }
 }
 
+/**
+ * Storage can throw (Safari / Chrome "Block all cookies", some in-app browsers). This
+ * provider sits above the whole app, so an unguarded read here took the entire site down.
+ */
+function readStoredTheme(): string | null {
+  try {
+    return localStorage.getItem("theme");
+  } catch {
+    return null;
+  }
+}
+
+function storeTheme(theme: Theme) {
+  try {
+    localStorage.setItem("theme", theme);
+  } catch {
+    /* Storage blocked: the choice just isn't remembered. */
+  }
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
-    const stored = localStorage.getItem("theme") as Theme;
+    const stored = readStoredTheme();
     // Default is light; only apply dark when user explicitly chose it
     const resolved = stored === "dark" ? "dark" : "light";
     setTheme(resolved);
     if (stored !== "dark" && stored !== "light") {
-      localStorage.setItem("theme", resolved);
+      storeTheme(resolved);
     }
   }, []);
 
@@ -58,7 +78,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
+    storeTheme(newTheme);
   };
 
   return (

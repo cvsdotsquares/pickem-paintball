@@ -1,5 +1,7 @@
 "use client";
 
+// Side effect: keep browser page translation from crashing React (see the file).
+import "@/src/lib/translationGuard";
 import { Analytics } from "@vercel/analytics/react";
 import { AuthProvider } from "@/src/contexts/authProvider";
 import { SubscriptionProvider } from "@/src/contexts/SubscriptionContext";
