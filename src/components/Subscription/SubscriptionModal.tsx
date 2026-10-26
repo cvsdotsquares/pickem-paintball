@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { IoMdClose } from 'react-icons/io';
-import { FaCheck, FaChevronDown } from 'react-icons/fa';
+import { FaCheck } from 'react-icons/fa';
 import { useAuth } from '../../contexts/authProvider';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import type { SubscriptionModalType, SubscribeReason } from '@/src/contexts/SubscriptionContext';
@@ -114,11 +114,12 @@ function periodLabel(plan: Plan): string {
   return isEventPlan(plan) ? '/event' : plan.period;
 }
 
-/** One line under a price: how the Event plan bills, and Yearly as a monthly figure. Monthly needs none. */
+/** The second line on every card, so all three share one two-line shape. */
 function yearLine(plan: Plan): string | null {
   const { symbol, amount } = splitPrice(plan.price);
   if (!amount) return null;
   if (isEventPlan(plan)) return 'Billed for each event';
+  if (plan.id === 'monthly') return 'Billed monthly, cancel anytime';
   if (plan.id === 'yearly') return `${money(symbol, amount / 12)}/month, billed yearly`;
   return null;
 }
@@ -348,12 +349,12 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
             <img
               src={theme === 'light' ? '/logo.svg' : '/logo-dark.svg'}
               alt="Pick'Em Paintball"
-              className="h-7 w-auto md-tall:h-8 [@media(max-height:500px)]:hidden"
+              className="h-7 w-auto md-tall:h-8 [@media(max-height:620px)]:hidden"
             />
           </div>
           <h2
             id="subscription-modal-title"
-            className="mt-2 text-center text-xl font-black uppercase tracking-tight text-gray-900 dark:text-white md-tall:text-2xl"
+            className="mt-2 px-9 text-center text-xl font-black uppercase tracking-tight text-gray-900 dark:text-white md-tall:text-2xl"
           >
             {content.title}
           </h2>
@@ -373,7 +374,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
           onScroll={updateMoreBelow}
           className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 [-webkit-overflow-scrolling:touch] md-tall:px-6 md-tall:pt-5"
         >
-          <p className="mx-auto mb-3 max-w-xl text-center text-[14px] leading-snug text-gray-600 dark:text-white/70">
+          <p className="mx-auto mb-3 max-w-xl text-center text-[14px] leading-snug text-gray-600 dark:text-white/70 [@media(max-height:620px)]:hidden">
             {content.lead}
           </p>
 
@@ -383,8 +384,11 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
               return (
                 <li
                   key={b.id}
-                  className={`flex items-center gap-2 text-[13px] ${
-                    lead ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-700 dark:text-white/75'
+                  // Short screens (iPhone SE, small Androids) keep three, so Monthly stays above the fold.
+                  className={`flex items-center gap-2 ${i >= 3 ? '[@media(max-height:700px)]:hidden' : ''} ${
+                    lead
+                      ? 'text-[14px] font-black text-gray-900 dark:text-white'
+                      : 'text-[13px] text-gray-500 dark:text-white/55'
                   }`}
                 >
                   <FaCheck className="shrink-0 text-[11px] text-green-500" />
@@ -402,7 +406,8 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
             {plans.map((plan) => {
               const selected = selectedPlan === plan.id;
               const line = yearLine(plan);
-              // Phones: every card the same height (the tallest, Yearly), so the plan we push isn't the smallest.
+              // Phones: one shape for every card (name + price, then one grey line), ~64px, so none looks empty
+              // and the three fit above the fold. The chosen card stands out by its green border, not its size.
               return (
                 <button
                   type="button"
@@ -413,9 +418,9 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
                     if (!selected) track('plan_selected', { plan: plan.id });
                     setSelectedPlan(plan.id);
                   }}
-                  className={`relative flex min-h-[84px] flex-col justify-center rounded-xl border-2 px-4 py-3 text-left transition-colors md-tall:min-h-0 md-tall:justify-start md-tall:px-5 md-tall:py-5 md-tall:text-center ${
+                  className={`relative rounded-xl border-2 px-4 py-2 text-left transition-colors md-tall:px-5 md-tall:py-5 md-tall:text-center ${
                     selected
-                      ? 'border-gray-900 bg-gray-50 dark:border-white dark:bg-white/5'
+                      ? 'border-[#00b85a] bg-[#00f976]/10 dark:border-[#00f976] dark:bg-[#00f976]/[0.08]'
                       : 'border-gray-200 bg-white dark:border-white/10 dark:bg-transparent'
                   }`}
                 >
@@ -428,17 +433,19 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
                     <div className="flex items-center gap-3 md-tall:block">
                       <span
                         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 md-tall:hidden ${
-                          selected ? 'border-gray-900 dark:border-white' : 'border-gray-300 dark:border-white/30'
+                          selected ? 'border-[#00b85a] dark:border-[#00f976]' : 'border-gray-300 dark:border-white/30'
                         }`}
                       >
-                        {selected && <span className="h-2.5 w-2.5 rounded-full bg-gray-900 dark:bg-white" />}
+                        {selected && <span className="h-2.5 w-2.5 rounded-full bg-[#00b85a] dark:bg-[#00f976]" />}
                       </span>
-                      <div>
-                        <div className="text-[12px] font-black uppercase tracking-widest text-gray-900 dark:text-white md-tall:mb-2">
+                      <div className="flex items-center gap-2 md-tall:mb-2 md-tall:justify-center">
+                        <span className="text-[12px] font-black uppercase tracking-widest text-gray-900 dark:text-white">
                           {shortName(plan.name)}
-                        </div>
+                        </span>
                         {plan.savings && (
-                          <div className="text-[11px] font-bold text-green-600 dark:text-green-400 md-tall:hidden">{plan.savings}</div>
+                          <span className="whitespace-nowrap rounded bg-green-600/10 px-1.5 py-0.5 text-[11px] font-bold text-green-700 dark:bg-green-400/10 dark:text-green-400 md-tall:hidden">
+                            {plan.savings}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -450,10 +457,10 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
                     </div>
                   </div>
                   {plan.savings && (
-                    <div className="mt-1 hidden text-[12px] font-bold text-green-600 dark:text-green-400 md-tall:block">{plan.savings}</div>
+                    <div className="mt-1 hidden text-[12px] font-bold text-green-700 dark:text-green-400 md-tall:block">{plan.savings}</div>
                   )}
                   {line && (
-                    <div className="mt-1 pl-8 text-[11px] text-gray-500 dark:text-white/50 md-tall:mt-2 md-tall:pl-0">{line}</div>
+                    <div className="mt-0.5 pl-8 text-[11px] text-gray-500 dark:text-white/50 md-tall:mt-2 md-tall:pl-0">{line}</div>
                   )}
                 </button>
               );
@@ -482,18 +489,9 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
             )}
           </div>
 
-          {/* Cue that there is more below: a fade plus a tap target that scrolls down. */}
+          {/* Cue that there is more below: a soft fade only, so it never covers words. */}
           {moreBelow && (
-            <div className="pointer-events-none sticky bottom-0 -mx-5 -mt-10 flex h-10 items-end justify-center bg-gradient-to-t from-white to-transparent pb-1 dark:from-[#0d0d0d] md-tall:-mx-6">
-              <button
-                type="button"
-                aria-label="Scroll for more"
-                onClick={() => scrollRef.current?.scrollBy({ top: scrollRef.current.clientHeight * 0.6, behavior: 'smooth' })}
-                className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-gray-900/80 text-white shadow dark:bg-white/80 dark:text-black"
-              >
-                <FaChevronDown className="text-[11px]" />
-              </button>
-            </div>
+            <div className="pointer-events-none sticky bottom-0 -mx-5 -mt-8 h-8 bg-gradient-to-t from-white to-transparent dark:from-[#0d0d0d] md-tall:-mx-6" />
           )}
         </div>
 
@@ -509,15 +507,19 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
               type="button"
               onClick={handleSubscribe}
               disabled={loading || plansLoading}
-              className="w-full rounded-lg bg-[#00f976] px-6 py-3.5 text-[13px] font-black uppercase tracking-widest text-black hover:opacity-90 disabled:opacity-50"
+              className="w-full whitespace-nowrap rounded-lg bg-[#00f976] px-4 py-3.5 text-[13px] font-black uppercase tracking-wider text-black hover:opacity-90 disabled:opacity-50"
             >
               {loading
                 ? 'Opening checkout…'
-                : !user
-                  ? 'Log in to subscribe'
-                  : chosen
-                    ? `Subscribe · ${chosen.price}${periodLabel(chosen)}`
-                    : 'Subscribe now'}
+                : (
+                  <>
+                    {user ? 'Subscribe' : 'Log in to subscribe'}
+                    {chosen && (
+                      // Kept to one line: the price drops on the narrowest phones, where it would wrap.
+                      <span className="max-[359px]:hidden">{` · ${chosen.price}${periodLabel(chosen)}`}</span>
+                    )}
+                  </>
+                )}
             </button>
             <p className="text-center text-[11px] text-gray-500 dark:text-white/40">
               Cancel anytime · Secure checkout with Stripe
