@@ -19,6 +19,7 @@ import Button from "@/src/components/ui/button";
 import { sendPasswordResetEmail } from "firebase/auth"; // Import reset function
 import LocalDevFirebaseHint from "@/src/components/Login/LocalDevFirebaseHint";
 import Navbar from "@/src/components/Landing/Navbar";
+import InAppBrowserNotice from "@/src/components/Login/InAppBrowserNotice";
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState<string>("");
@@ -191,6 +192,7 @@ const LoginPage: React.FC = () => {
                 </span>
               </div>
             </div>
+            <InAppBrowserNotice />
             <Button
               type="button"
               onClick={handleGoogleLogin}
