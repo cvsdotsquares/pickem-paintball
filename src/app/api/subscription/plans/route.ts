@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { productFeaturesFromStripe } from '@/src/lib/stripeProductFeatures';
+import { EVENT_MONTHS_PER_YEAR } from '@/src/utils/eventMonths';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -63,9 +64,9 @@ function getPriceIdsForCurrency(currency: string): Record<string, string> {
 function fallbackPlans(currency: string) {
   const features = ['Join and Create custom leagues', 'Early access to new features'];
   return [
-    { id: 'quarterly', name: 'Event Subscription', price: formatPrice(1399, currency), period: '/month', popular: false, savings: null, features: [features[0], 'Pay only in event months', features[1]] },
-    { id: 'monthly', name: 'Monthly Subscription', price: formatPrice(499, currency), period: '/month', popular: true, savings: null, features },
-    { id: 'yearly', name: 'Yearly Subscription', price: formatPrice(4999, currency), period: '/year', popular: false, savings: 'Save 17% vs monthly', features },
+    { id: 'quarterly', name: 'Event Subscription', price: formatPrice(1399, currency), period: '/month', popular: false, savings: null as string | null, features: [features[0], 'Pay only in event months', features[1]] },
+    { id: 'monthly', name: 'Monthly Subscription', price: formatPrice(499, currency), period: '/month', popular: true, savings: null as string | null, features },
+    { id: 'yearly', name: 'Yearly Subscription', price: formatPrice(4999, currency), period: '/year', popular: false, savings: null as string | null, features },
   ];
 }
 
@@ -81,12 +82,29 @@ function formatPeriod(interval: string, intervalCount: number): string {
 }
 
 // Determine plan order and metadata
-// Savings are worked out below from the live prices (yearly vs 12 × monthly), so they hold in every currency.
+// Savings are worked out from the live prices in applySavings, so they hold in every currency.
 const PLAN_META: Record<string, { order: number; popular: boolean }> = {
   quarterly: { order: 0, popular: false },
   monthly: { order: 1, popular: true },
   yearly: { order: 2, popular: false },
 };
+
+const amountOf = (price: string) => parseFloat(price.replace(/[^0-9.]/g, ''));
+
+/**
+ * Monthly and Yearly against a year on the Event plan (it bills only in event months, see utils/eventMonths).
+ * One baseline for both, so the badges can be compared with each other; the pop-up shows the yearly totals behind them.
+ */
+function applySavings(plans: { id: string; price: string; savings: string | null }[]) {
+  const event = plans.find(p => p.id === 'quarterly');
+  if (!event) return;
+  const eventYear = amountOf(event.price) * EVENT_MONTHS_PER_YEAR;
+  for (const plan of plans) {
+    const year = plan.id === 'monthly' ? amountOf(plan.price) * 12 : plan.id === 'yearly' ? amountOf(plan.price) : null;
+    if (year == null || !(eventYear > year)) continue;
+    plan.savings = `Save ${Math.round(((eventYear - year) / eventYear) * 100)}% vs Event plan`;
+  }
+}
 
 export async function GET(request: NextRequest) {
   console.log('>>> Incoming request to /api/subscription/plans');
@@ -97,7 +115,7 @@ export async function GET(request: NextRequest) {
     // Return cached plans instantly if available
     if (cacheEntry && Date.now() - cacheEntry.timestamp < CACHE_TTL) {
       console.log('Returning CACHED plans for currency:', currency);
-      return NextResponse.json({ plans: cacheEntry.plans, currency });
+      return NextResponse.json({ plans: cacheEntry.plans, currency, eventMonthsPerYear: EVENT_MONTHS_PER_YEAR });
     }
 
     console.log('Fetching FRESH plans from Stripe for currency:', currency);
@@ -151,18 +169,7 @@ export async function GET(request: NextRequest) {
         };
       });
 
-    // Yearly is the only plan that is a straight discount on monthly; say so in plain words.
-    const monthlyPlan = plans.find(p => p.id === 'monthly');
-    const yearlyPlan = plans.find(p => p.id === 'yearly');
-    if (monthlyPlan && yearlyPlan) {
-      const monthlyAmount = parseFloat(monthlyPlan.price.replace(/[^0-9.]/g, ''));
-      const yearlyAmount = parseFloat(yearlyPlan.price.replace(/[^0-9.]/g, ''));
-      const equivalent = monthlyAmount * 12;
-      if (equivalent > yearlyAmount) {
-        const pct = Math.round(((equivalent - yearlyAmount) / equivalent) * 100);
-        yearlyPlan.savings = `Save ${pct}% vs monthly`;
-      }
-    }
+    applySavings(plans);
 
     // Sort by order and remove internal field
     plans.sort((a, b) => a._order - b._order);
@@ -176,7 +183,8 @@ export async function GET(request: NextRequest) {
 
     const response = NextResponse.json({
       plans: cleanPlans,
-      currency
+      currency,
+      eventMonthsPerYear: EVENT_MONTHS_PER_YEAR
     });
 
     // Completely disable Vercel CDN cache
@@ -190,11 +198,14 @@ export async function GET(request: NextRequest) {
 
     // Return cached plans if available (even if stale), otherwise fallback
     if (cacheEntry) {
-      return NextResponse.json({ plans: cacheEntry.plans, currency });
+      return NextResponse.json({ plans: cacheEntry.plans, currency, eventMonthsPerYear: EVENT_MONTHS_PER_YEAR });
     }
+    const plans = fallbackPlans(currency);
+    applySavings(plans);
     return NextResponse.json({
-      plans: fallbackPlans(currency),
-      currency
+      plans,
+      currency,
+      eventMonthsPerYear: EVENT_MONTHS_PER_YEAR
     });
   }
 }

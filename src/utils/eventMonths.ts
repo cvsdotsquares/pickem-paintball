@@ -1,6 +1,9 @@
 // Event months: March(2), April(3), June(5), September(8), November(10)
 const EVENT_MONTHS = [2, 3, 5, 8, 10]; // 0-indexed
 
+/** How many months a year the Event plan bills: the subscribe pop-up compares plans on this. */
+export const EVENT_MONTHS_PER_YEAR = EVENT_MONTHS.length;
+
 export function isEventMonth(date: Date = new Date()): boolean {
   return EVENT_MONTHS.includes(date.getMonth());
 }

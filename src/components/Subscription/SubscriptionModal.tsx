@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { IoMdClose } from 'react-icons/io';
-import { FaCheck } from 'react-icons/fa';
+import { FaCheck, FaChevronDown } from 'react-icons/fa';
 import { useAuth } from '../../contexts/authProvider';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import type { SubscriptionModalType, SubscribeReason } from '@/src/contexts/SubscriptionContext';
@@ -33,13 +33,14 @@ interface Plan {
 export const RESUME_KEY = 'pickem_resume_subscribe';
 
 type BenefitId = 'career' | 'leagues' | 'badges' | 'share' | 'early';
+type DismissHow = 'continue' | 'close' | 'backdrop' | 'escape';
 
 /** What a subscription gets you, in one place. The benefit matching the reason moves to the top and is highlighted. */
 const BENEFITS: { id: BenefitId; text: string }[] = [
-  { id: 'career', text: 'Full career stats for every pro player (beta)' },
+  { id: 'career', text: 'Unlock advanced stats' },
   { id: 'leagues', text: 'Create and join custom leagues' },
-  { id: 'badges', text: 'Your badges next to your name on every leaderboard' },
-  { id: 'share', text: 'Share player career cards' },
+  { id: 'badges', text: 'Display your badges' },
+  { id: 'share', text: 'Share career cards' },
   { id: 'early', text: 'Early access to new features' },
 ];
 
@@ -47,7 +48,7 @@ const BENEFITS: { id: BenefitId; text: string }[] = [
 const REASON_CONTENT: Record<SubscribeReason, { title: string; lead: string; benefit?: BenefitId }> = {
   general: {
     title: "Get more from Pick'Em",
-    lead: 'Career stats, custom leagues and badges, and you keep Pick\'Em growing.',
+    lead: "Advanced stats, custom leagues and badges, and you keep Pick'Em growing.",
   },
   career: {
     title: 'Unlock career stats',
@@ -71,7 +72,7 @@ const REASON_CONTENT: Record<SubscribeReason, { title: string; lead: string; ben
   },
   picks: {
     title: 'Picks saved. Want more?',
-    lead: 'Subscribers get full career stats, custom leagues and badges on the leaderboard.',
+    lead: 'Subscribers get advanced stats, custom leagues and badges on the leaderboard.',
   },
 };
 
@@ -89,6 +90,9 @@ const CONTINUE_TEXT: Record<SubscriptionModalType, string> = {
 
 const CURRENCY_SYMBOLS: Record<string, string> = { usd: '$', gbp: '£', eur: '€' };
 
+/** Used only if the plans API can't be reached; the API sends the real figure (utils/eventMonths). */
+const DEFAULT_EVENT_MONTHS = 5;
+
 function regionFromTimezone(): string {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   if (timezone.includes('Europe/London')) return 'UK';
@@ -96,30 +100,41 @@ function regionFromTimezone(): string {
   return '';
 }
 
-function featureText(feature: string | { name?: string }): string {
-  return typeof feature === 'string' ? feature : feature?.name || '';
+/** "£49.99" → { symbol: "£", amount: 49.99 } */
+function splitPrice(price: string): { symbol: string; amount: number } {
+  return { symbol: price.replace(/[0-9.,\s]/g, ''), amount: parseFloat(price.replace(/[^0-9.]/g, '')) || 0 };
 }
 
-/** A plan's own lines: Stripe features that not every plan has (e.g. "Pay only in event months"). */
-function planNotes(plan: Plan, plans: Plan[]): string[] {
-  const shared = (f: string) => plans.every((p) => p.features.some((g) => featureText(g) === f));
-  return plan.features.map(featureText).filter((f) => f && (plans.length < 2 || !shared(f)));
-}
+const money = (symbol: string, amount: number) => `${symbol}${amount.toFixed(2)}`;
 
-/** "£49.99" → "£4.17": the yearly price as a monthly figure, so it compares directly with Monthly. */
-function perMonth(price: string): string | null {
-  const amount = parseFloat(price.replace(/[^0-9.]/g, ''));
-  if (!amount) return null;
-  return `${price.replace(/[0-9.,\s]/g, '')}${(amount / 12).toFixed(2)}`;
-}
+/** The Event plan is Stripe's "quarterly" price: billed monthly, paused outside event months. */
+const isEventPlan = (plan: Plan) => plan.id === 'quarterly';
 
 function periodLabel(plan: Plan): string {
-  return plan.name === 'Event Subscription' ? '/event' : plan.period;
+  return isEventPlan(plan) ? '/event month' : plan.period;
+}
+
+/** One line under each price, so every plan can be compared over a year (the savings badges use the same yardstick). */
+function yearLine(plan: Plan, eventMonths: number): string | null {
+  const { symbol, amount } = splitPrice(plan.price);
+  if (!amount) return null;
+  if (isEventPlan(plan)) return `${money(symbol, amount * eventMonths)} a year · billed only in the ${eventMonths} event months`;
+  if (plan.id === 'monthly') return `${money(symbol, amount * 12)} a year`;
+  if (plan.id === 'yearly') return `${money(symbol, amount / 12)}/month, billed yearly`;
+  return null;
 }
 
 /** Stripe product names are "Monthly Subscription" etc.; the card already says what it is. */
 function shortName(name: string): string {
   return name.replace(/\s+Subscription$/i, '');
+}
+
+function newViewId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  }
 }
 
 export default function SubscriptionModal({ isOpen, onClose, type, reason = 'general', onContinueFree }: SubscriptionModalProps) {
@@ -130,14 +145,57 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
   const [loading, setLoading] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [currency, setCurrency] = useState('usd');
+  const [eventMonths, setEventMonths] = useState(DEFAULT_EVENT_MONTHS);
   const [showMore, setShowMore] = useState(false);
+  const [moreBelow, setMoreBelow] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [viewId] = useState(newViewId);
   const overlayRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fansRef = useRef<HTMLDivElement>(null);
   const content = REASON_CONTENT[reason];
   const benefits = content.benefit
     ? [...BENEFITS.filter((b) => b.id === content.benefit), ...BENEFITS.filter((b) => b.id !== content.benefit)]
     : BENEFITS;
+
+  /** One row in the subscribe funnel (see /api/subscription/track). Fire-and-forget; `keepalive` survives the checkout redirect. */
+  const track = useCallback(
+    (step: string, extra: Record<string, string | undefined> = {}) => {
+      try {
+        void fetch('/api/subscription/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          keepalive: true,
+          body: JSON.stringify({
+            step,
+            type,
+            reason,
+            viewId,
+            uid: user?.uid,
+            path: window.location.pathname,
+            ...extra,
+          }),
+        }).catch(() => {});
+      } catch {
+        // Reporting never gets in the way of subscribing.
+      }
+    },
+    [type, reason, viewId, user?.uid],
+  );
+
+  const dismiss = useCallback(
+    (how: DismissHow) => {
+      track('dismissed', { how });
+      onClose();
+    },
+    [track, onClose],
+  );
+
+  useEffect(() => {
+    if (isOpen) track('opened');
+    // Once per showing; viewId is fixed for this mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   useEffect(() => {
     async function fetchPlans() {
@@ -147,6 +205,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
         const data = await response.json();
         setPlans(data.plans || []);
         if (data.currency) setCurrency(data.currency);
+        if (typeof data.eventMonthsPerYear === 'number') setEventMonths(data.eventMonthsPerYear);
       } catch (err) {
         console.error('Error fetching plans:', err);
         const fallbackCurrency = region === 'UK' ? 'gbp' : region === 'EU' ? 'eur' : 'usd';
@@ -159,7 +218,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
             period: '/month',
             popular: true,
             savings: null,
-            features: ['Join and Create custom leagues', 'Early access to new features'],
+            features: [],
           },
         ]);
       }
@@ -183,7 +242,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
     html.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') dismiss('escape');
     };
     window.addEventListener('keydown', onKey);
     return () => {
@@ -193,10 +252,29 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
       overlay?.removeEventListener('touchmove', blockOutside);
       overlay?.removeEventListener('wheel', blockOutside);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, dismiss]);
+
+  // "More below" cue: shown whenever the middle has content past the bottom edge.
+  const updateMoreBelow = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setMoreBelow(el.scrollHeight - el.scrollTop - el.clientHeight > 8);
+  }, []);
+
+  useEffect(() => {
+    updateMoreBelow();
+    window.addEventListener('resize', updateMoreBelow);
+    return () => window.removeEventListener('resize', updateMoreBelow);
+  }, [updateMoreBelow, plans, showMore]);
+
+  // Opening "Read more" adds text below the fold: bring it up into view rather than leave it hidden.
+  useEffect(() => {
+    if (showMore) fansRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [showMore]);
 
   const handleSubscribe = async () => {
     if (!user) {
+      track('login_redirect', { plan: selectedPlan });
       try {
         sessionStorage.setItem(RESUME_KEY, JSON.stringify({ type, reason, at: Date.now() }));
       } catch {
@@ -209,11 +287,12 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
 
     setLoading(true);
     setError(null);
+    track('checkout_started', { plan: selectedPlan, currency });
     try {
       const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: selectedPlan, userId: user.uid, currency }),
+        body: JSON.stringify({ plan: selectedPlan, userId: user.uid, currency, reason, viewId }),
       });
 
       const { url } = await response.json();
@@ -226,6 +305,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
       console.error('Error:', err);
       setError("We couldn't open checkout. Please check your connection and try again.");
     }
+    track('checkout_failed', { plan: selectedPlan, currency });
     setLoading(false);
   };
 
@@ -236,14 +316,17 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
 
   /**
    * Portal + z above `DashboardTopNav` (`z-[60]`) so the overlay is not trapped in a lower stacking context.
-   * Phones (and anything short, like a phone turned sideways): bottom sheet. Desktop: centred panel. Header and footer never scroll, so ✕ and Subscribe stay
-   * on screen; only the middle scrolls. `dvh` keeps the sheet clear of mobile browser toolbars.
+   * Phones (and anything short, like a phone turned sideways): bottom sheet. Desktop: centred panel. Header and
+   * footer never scroll, so ✕ and Subscribe stay on screen; only the middle scrolls. `dvh` keeps the sheet clear
+   * of mobile browser toolbars.
+   *
+   * Text is 11px at the smallest (Apple's minimum for legible text); there are no inputs, so iOS never zooms.
    */
   return createPortal(
     <div
       ref={overlayRef}
       className="fixed inset-0 z-[100] flex items-end justify-center bg-black/80 md-tall:items-center md-tall:p-4"
-      onClick={onClose}
+      onClick={() => dismiss('backdrop')}
       role="presentation"
     >
       <motion.div
@@ -268,23 +351,27 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
           </div>
           <h2
             id="subscription-modal-title"
-            className="mt-2 text-center text-lg font-black uppercase tracking-tight text-gray-900 dark:text-white md-tall:text-2xl"
+            className="mt-2 text-center text-xl font-black uppercase tracking-tight text-gray-900 dark:text-white md-tall:text-2xl"
           >
             {content.title}
           </h2>
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => dismiss('close')}
             aria-label="Close"
-            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-900 dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white"
+            className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-900 dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white"
           >
             <IoMdClose className="text-xl" />
           </button>
         </div>
 
         {/* Middle: the only part that scrolls */}
-        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 [-webkit-overflow-scrolling:touch] md-tall:px-6 md-tall:py-5">
-          <p className="mx-auto mb-3 max-w-xl text-center text-[12px] leading-relaxed text-gray-500 dark:text-white/60">
+        <div
+          ref={scrollRef}
+          onScroll={updateMoreBelow}
+          className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 [-webkit-overflow-scrolling:touch] md-tall:px-6 md-tall:pt-5"
+        >
+          <p className="mx-auto mb-3 max-w-xl text-center text-[14px] leading-snug text-gray-600 dark:text-white/70">
             {content.lead}
           </p>
 
@@ -294,11 +381,11 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
               return (
                 <li
                   key={b.id}
-                  className={`flex items-start gap-2 text-[11px] ${
-                    lead ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-600 dark:text-white/70'
+                  className={`flex items-center gap-2 text-[13px] ${
+                    lead ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-700 dark:text-white/75'
                   }`}
                 >
-                  <FaCheck className="mt-0.5 shrink-0 text-[10px] text-green-500" />
+                  <FaCheck className="shrink-0 text-[11px] text-green-500" />
                   {b.text}
                 </li>
               );
@@ -308,20 +395,21 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
           <div role="radiogroup" aria-label="Choose a plan" className="grid grid-cols-1 gap-2 md-tall:grid-cols-3 md-tall:gap-3">
             {plansLoading &&
               [0, 1, 2].map((i) => (
-                <div key={i} className="h-[58px] animate-pulse rounded-xl bg-gray-100 dark:bg-white/5 md-tall:h-[180px]" />
+                <div key={i} className="h-[64px] animate-pulse rounded-xl bg-gray-100 dark:bg-white/5 md-tall:h-[150px]" />
               ))}
             {plans.map((plan) => {
               const selected = selectedPlan === plan.id;
-              const period = periodLabel(plan);
-              const monthly = plan.id === 'yearly' ? perMonth(plan.price) : null;
-              const notes = planNotes(plan, plans);
+              const line = yearLine(plan, eventMonths);
               return (
                 <button
                   type="button"
                   role="radio"
                   aria-checked={selected}
                   key={plan.id}
-                  onClick={() => setSelectedPlan(plan.id)}
+                  onClick={() => {
+                    if (!selected) track('plan_selected', { plan: plan.id });
+                    setSelectedPlan(plan.id);
+                  }}
                   className={`relative rounded-xl border-2 px-4 py-3 text-left transition-colors md-tall:px-5 md-tall:py-5 md-tall:text-center ${
                     selected
                       ? 'border-gray-900 bg-gray-50 dark:border-white dark:bg-white/5'
@@ -329,25 +417,25 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
                   }`}
                 >
                   {plan.popular && (
-                    <span className="absolute -top-2 right-3 rounded-full bg-[#00f976] px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-black md-tall:left-1/2 md-tall:right-auto md-tall:-translate-x-1/2">
+                    <span className="absolute -top-2.5 right-3 rounded-full bg-[#00f976] px-2 py-0.5 text-[11px] font-black uppercase tracking-wider text-black md-tall:left-1/2 md-tall:right-auto md-tall:-translate-x-1/2">
                       Most popular
                     </span>
                   )}
                   <div className="flex items-center justify-between gap-3 md-tall:block">
                     <div className="flex items-center gap-3 md-tall:block">
                       <span
-                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 md-tall:hidden ${
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 md-tall:hidden ${
                           selected ? 'border-gray-900 dark:border-white' : 'border-gray-300 dark:border-white/30'
                         }`}
                       >
-                        {selected && <span className="h-2 w-2 rounded-full bg-gray-900 dark:bg-white" />}
+                        {selected && <span className="h-2.5 w-2.5 rounded-full bg-gray-900 dark:bg-white" />}
                       </span>
                       <div>
-                        <div className="text-[11px] font-black uppercase tracking-widest text-gray-900 dark:text-white md-tall:mb-2">
+                        <div className="text-[12px] font-black uppercase tracking-widest text-gray-900 dark:text-white md-tall:mb-2">
                           {shortName(plan.name)}
                         </div>
                         {plan.savings && (
-                          <div className="text-[10px] font-bold text-green-500 md-tall:hidden">{plan.savings}</div>
+                          <div className="text-[11px] font-bold text-green-600 dark:text-green-400 md-tall:hidden">{plan.savings}</div>
                         )}
                       </div>
                     </div>
@@ -355,49 +443,61 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
                       <span className="text-xl font-black tabular-nums text-gray-900 dark:text-white md-tall:text-3xl">
                         {plan.price}
                       </span>
-                      <span className="text-[11px] text-gray-400 dark:text-white/40">{period}</span>
-                      {monthly && (
-                        <div className="text-[10px] text-gray-400 dark:text-white/40">{monthly}/month, billed yearly</div>
-                      )}
+                      <span className="text-[12px] text-gray-500 dark:text-white/50">{periodLabel(plan)}</span>
                     </div>
                   </div>
                   {plan.savings && (
-                    <div className="mt-1 hidden text-[11px] font-bold text-green-500 md-tall:block">{plan.savings}</div>
+                    <div className="mt-1 hidden text-[12px] font-bold text-green-600 dark:text-green-400 md-tall:block">{plan.savings}</div>
                   )}
-                  {notes.length > 0 && (
-                    <div className="mt-1 pl-7 text-[10px] text-gray-500 dark:text-white/50 md-tall:mt-2 md-tall:pl-0">
-                      {notes.join(' · ')}
-                    </div>
+                  {line && (
+                    <div className="mt-1 pl-8 text-[11px] text-gray-500 dark:text-white/50 md-tall:mt-2 md-tall:pl-0">{line}</div>
                   )}
                 </button>
               );
             })}
           </div>
 
-          <div className="mx-auto mt-4 max-w-xl text-center text-[11px] leading-relaxed text-gray-400 dark:text-white/40">
-            <span className="font-bold text-gray-600 dark:text-white/60">Built by fans, for fans.</span>{' '}
+          <div ref={fansRef} className="mx-auto max-w-xl pb-4 pt-4 text-center text-[12px] leading-relaxed text-gray-500 dark:text-white/50">
+            <span className="font-bold text-gray-700 dark:text-white/70">Built by fans, for fans.</span>{' '}
             {showMore ? (
-              FANS_TEXT.map((line) => (
-                <p key={line} className="mt-1">
-                  {line}
+              FANS_TEXT.map((text) => (
+                <p key={text} className="mt-1">
+                  {text}
                 </p>
               ))
             ) : (
               <button
                 type="button"
-                onClick={() => setShowMore(true)}
-                className="font-bold uppercase tracking-widest text-[9px] hover:text-gray-900 dark:hover:text-white"
+                onClick={() => {
+                  track('read_more');
+                  setShowMore(true);
+                }}
+                className="text-[11px] font-bold uppercase tracking-wider underline-offset-2 hover:text-gray-900 hover:underline dark:hover:text-white"
               >
                 Read more
               </button>
             )}
           </div>
+
+          {/* Cue that there is more below: a fade plus a tap target that scrolls down. */}
+          {moreBelow && (
+            <div className="pointer-events-none sticky bottom-0 -mx-5 -mt-10 flex h-10 items-end justify-center bg-gradient-to-t from-white to-transparent pb-1 dark:from-[#0d0d0d] md-tall:-mx-6">
+              <button
+                type="button"
+                aria-label="Scroll for more"
+                onClick={() => scrollRef.current?.scrollBy({ top: scrollRef.current.clientHeight * 0.6, behavior: 'smooth' })}
+                className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-gray-900/80 text-white shadow dark:bg-white/80 dark:text-black"
+              >
+                <FaChevronDown className="text-[11px]" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Footer: always visible */}
         <div className="shrink-0 border-t border-gray-100 px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-white/5 md-tall:px-6 md-tall:pb-5 md-tall:pt-4">
           {error && (
-            <p role="alert" className="mb-2 text-center text-[11px] font-bold text-red-400">
+            <p role="alert" className="mb-2 text-center text-[12px] font-bold text-red-500">
               {error}
             </p>
           )}
@@ -406,7 +506,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
               type="button"
               onClick={handleSubscribe}
               disabled={loading || plansLoading}
-              className="w-full rounded-lg bg-[#00f976] px-6 py-3 text-xs font-black uppercase tracking-widest text-black hover:opacity-90 disabled:opacity-50"
+              className="w-full rounded-lg bg-[#00f976] px-6 py-3.5 text-[13px] font-black uppercase tracking-widest text-black hover:opacity-90 disabled:opacity-50"
             >
               {loading
                 ? 'Opening checkout…'
@@ -416,16 +516,16 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
                     ? `Subscribe · ${chosen.price}${periodLabel(chosen)}`
                     : 'Subscribe now'}
             </button>
-            <p className="text-center text-[9px] uppercase tracking-widest text-gray-400 dark:text-white/30">
+            <p className="text-center text-[11px] text-gray-500 dark:text-white/40">
               Cancel anytime · Secure checkout with Stripe
             </p>
             <button
               type="button"
               onClick={() => {
                 onContinueFree?.();
-                onClose();
+                dismiss('continue');
               }}
-              className="w-full py-2 text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 dark:text-white/50 dark:hover:text-white"
+              className="w-full py-2 text-[12px] font-bold uppercase tracking-wider text-gray-500 hover:text-gray-900 dark:text-white/50 dark:hover:text-white"
             >
               {CONTINUE_TEXT[type]}
             </button>
