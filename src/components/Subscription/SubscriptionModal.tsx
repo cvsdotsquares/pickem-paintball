@@ -90,9 +90,6 @@ const CONTINUE_TEXT: Record<SubscriptionModalType, string> = {
 
 const CURRENCY_SYMBOLS: Record<string, string> = { usd: '$', gbp: '£', eur: '€' };
 
-/** Used only if the plans API can't be reached; the API sends the real figure (utils/eventMonths). */
-const DEFAULT_EVENT_MONTHS = 5;
-
 function regionFromTimezone(): string {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   if (timezone.includes('Europe/London')) return 'UK';
@@ -111,14 +108,14 @@ const money = (symbol: string, amount: number) => `${symbol}${amount.toFixed(2)}
 const isEventPlan = (plan: Plan) => plan.id === 'quarterly';
 
 function periodLabel(plan: Plan): string {
-  return isEventPlan(plan) ? '/event month' : plan.period;
+  return isEventPlan(plan) ? '/event' : plan.period;
 }
 
-/** One line under each price, so every plan can be compared over a year (the savings badges use the same yardstick). */
-function yearLine(plan: Plan, eventMonths: number): string | null {
+/** One line under each price: how the Event plan bills, and Monthly / Yearly over a year. */
+function yearLine(plan: Plan): string | null {
   const { symbol, amount } = splitPrice(plan.price);
   if (!amount) return null;
-  if (isEventPlan(plan)) return `${money(symbol, amount * eventMonths)} a year · billed only in the ${eventMonths} event months`;
+  if (isEventPlan(plan)) return 'Billed for each event';
   if (plan.id === 'monthly') return `${money(symbol, amount * 12)} a year`;
   if (plan.id === 'yearly') return `${money(symbol, amount / 12)}/month, billed yearly`;
   return null;
@@ -145,7 +142,6 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
   const [loading, setLoading] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [currency, setCurrency] = useState('usd');
-  const [eventMonths, setEventMonths] = useState(DEFAULT_EVENT_MONTHS);
   const [showMore, setShowMore] = useState(false);
   const [moreBelow, setMoreBelow] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -205,7 +201,6 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
         const data = await response.json();
         setPlans(data.plans || []);
         if (data.currency) setCurrency(data.currency);
-        if (typeof data.eventMonthsPerYear === 'number') setEventMonths(data.eventMonthsPerYear);
       } catch (err) {
         console.error('Error fetching plans:', err);
         const fallbackCurrency = region === 'UK' ? 'gbp' : region === 'EU' ? 'eur' : 'usd';
@@ -399,7 +394,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
               ))}
             {plans.map((plan) => {
               const selected = selectedPlan === plan.id;
-              const line = yearLine(plan, eventMonths);
+              const line = yearLine(plan);
               return (
                 <button
                   type="button"

@@ -102,7 +102,7 @@ function applySavings(plans: { id: string; price: string; savings: string | null
   for (const plan of plans) {
     const year = plan.id === 'monthly' ? amountOf(plan.price) * 12 : plan.id === 'yearly' ? amountOf(plan.price) : null;
     if (year == null || !(eventYear > year)) continue;
-    plan.savings = `Save ${Math.round(((eventYear - year) / eventYear) * 100)}% vs Event plan`;
+    plan.savings = `Save ${Math.round(((eventYear - year) / eventYear) * 100)}%`;
   }
 }
 
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
     // Return cached plans instantly if available
     if (cacheEntry && Date.now() - cacheEntry.timestamp < CACHE_TTL) {
       console.log('Returning CACHED plans for currency:', currency);
-      return NextResponse.json({ plans: cacheEntry.plans, currency, eventMonthsPerYear: EVENT_MONTHS_PER_YEAR });
+      return NextResponse.json({ plans: cacheEntry.plans, currency });
     }
 
     console.log('Fetching FRESH plans from Stripe for currency:', currency);
@@ -183,8 +183,7 @@ export async function GET(request: NextRequest) {
 
     const response = NextResponse.json({
       plans: cleanPlans,
-      currency,
-      eventMonthsPerYear: EVENT_MONTHS_PER_YEAR
+      currency
     });
 
     // Completely disable Vercel CDN cache
@@ -198,14 +197,13 @@ export async function GET(request: NextRequest) {
 
     // Return cached plans if available (even if stale), otherwise fallback
     if (cacheEntry) {
-      return NextResponse.json({ plans: cacheEntry.plans, currency, eventMonthsPerYear: EVENT_MONTHS_PER_YEAR });
+      return NextResponse.json({ plans: cacheEntry.plans, currency });
     }
     const plans = fallbackPlans(currency);
     applySavings(plans);
     return NextResponse.json({
       plans,
-      currency,
-      eventMonthsPerYear: EVENT_MONTHS_PER_YEAR
+      currency
     });
   }
 }
