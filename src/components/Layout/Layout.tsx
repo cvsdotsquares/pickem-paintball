@@ -11,6 +11,7 @@ import DashboardFloatingBanner from "./DashboardFloatingBanner";
 import DashboardFooterBanner from "./DashboardFooterBanner";
 import { DashboardMainScrollContext } from "@/src/contexts/DashboardMainScrollContext";
 import { ErrorBoundaryWrapper } from "@/src/components/ErrorBoundaryWrapper";
+import { reportClientError } from "@/src/lib/reportClientError";
 
 interface LayoutProps {
   children: ReactNode;
@@ -104,6 +105,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   useEffect(() => {
     if (typeof window === "undefined" || !window.CSS?.supports?.("height", "100dvh")) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let shiftReported = false;
     const resetDocumentScroll = () => {
       if (timer) clearTimeout(timer);
       // After the keyboard's own animation; never while the user is typing.
@@ -112,13 +114,36 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         const typing =
           el instanceof HTMLElement &&
           (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
-        if (!typing && (window.scrollY !== 0 || window.scrollX !== 0)) {
+        if (typing) return;
+        if (window.scrollY !== 0 || window.scrollX !== 0) {
           // "instant": :root sets scroll-behavior: smooth, which would glide back visibly.
           try {
             window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
           } catch {
             window.scrollTo(0, 0);
           }
+        }
+        // The iOS 26 bug our reset can't undo: the visible screen itself stays shifted
+        // (visualViewport.offsetTop > 0) with no keyboard up. Logged once per page load,
+        // so the crash log shows whether the stronger fix (moving pinned UI by hand) is needed.
+        if (!shiftReported) {
+          setTimeout(() => {
+            const vv = window.visualViewport;
+            const el = document.activeElement;
+            const stillTyping =
+              el instanceof HTMLElement &&
+              (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
+            if (!vv || stillTyping || shiftReported) return;
+            if (vv.offsetTop > 1 && vv.scale <= 1.01) {
+              shiftReported = true;
+              reportClientError("viewport-shift", "visualViewport stayed shifted after keyboard closed", {
+                offsetTop: Math.round(vv.offsetTop),
+                vvHeight: Math.round(vv.height),
+                innerHeight: window.innerHeight,
+                scrollY: Math.round(window.scrollY),
+              });
+            }
+          }, 400);
         }
       }, 150);
     };
