@@ -63,6 +63,17 @@ function featureText(feature: string | { name?: string }): string {
   return typeof feature === 'string' ? feature : feature?.name || '';
 }
 
+/** "£49.99" → "£4.17": the yearly price as a monthly figure, so it compares directly with Monthly. */
+function perMonth(price: string): string | null {
+  const amount = parseFloat(price.replace(/[^0-9.]/g, ''));
+  if (!amount) return null;
+  return `${price.replace(/[0-9.,\s]/g, '')}${(amount / 12).toFixed(2)}`;
+}
+
+function periodLabel(plan: Plan): string {
+  return plan.name === 'Event Subscription' ? '/event' : plan.period;
+}
+
 /** Stripe product names are "Monthly Subscription" etc.; the card already says what it is. */
 function shortName(name: string): string {
   return name.replace(/\s+Subscription$/i, '');
@@ -170,6 +181,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
   if (!isOpen) return null;
 
   const plansLoading = plans.length === 0;
+  const chosen = plans.find((p) => p.id === selectedPlan);
 
   /**
    * Portal + z above `DashboardTopNav` (`z-[60]`) so the overlay is not trapped in a lower stacking context.
@@ -248,7 +260,8 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
               ))}
             {plans.map((plan) => {
               const selected = selectedPlan === plan.id;
-              const period = plan.name === 'Event Subscription' ? '/event' : plan.period;
+              const period = periodLabel(plan);
+              const monthly = plan.id === 'yearly' ? perMonth(plan.price) : null;
               return (
                 <button
                   type="button"
@@ -290,6 +303,9 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
                         {plan.price}
                       </span>
                       <span className="text-[11px] text-gray-400 dark:text-white/40">{period}</span>
+                      {monthly && (
+                        <div className="text-[10px] text-gray-400 dark:text-white/40">{monthly}/month, billed yearly</div>
+                      )}
                     </div>
                   </div>
                   {plan.savings && (
@@ -323,8 +339,17 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
               disabled={loading || plansLoading}
               className="w-full rounded-lg bg-[#00f976] px-6 py-3 text-xs font-black uppercase tracking-widest text-black hover:opacity-90 disabled:opacity-50"
             >
-              {loading ? 'Opening checkout…' : user ? 'Subscribe now' : 'Log in to subscribe'}
+              {loading
+                ? 'Opening checkout…'
+                : !user
+                  ? 'Log in to subscribe'
+                  : chosen
+                    ? `Subscribe · ${chosen.price}${periodLabel(chosen)}`
+                    : 'Subscribe now'}
             </button>
+            <p className="text-center text-[9px] uppercase tracking-widest text-gray-400 dark:text-white/30">
+              Cancel anytime · Secure checkout with Stripe
+            </p>
             <button
               type="button"
               onClick={() => {
