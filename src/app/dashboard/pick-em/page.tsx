@@ -692,22 +692,24 @@ export default function Pickems() {
     }
   }, [saveStatus, user, temporaryPicks, captainId, liveEvent?.lockDate, writeOfficialPicks]);
 
-  const MODAL_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes, persisted in localStorage
-  const MODAL_COOLDOWN_KEY = 'pickem_modal_last_shown';
+  // Once per event: after every saved team it trained people to tap "Continue for free" without reading.
+  const MODAL_SHOWN_KEY_PREFIX = 'pickem_subscribe_prompt_';
 
   // Keep isSubscribed in a ref so autosave's setTimeout always reads the latest value
   const isSubscribedRef = useRef(isSubscribed);
   useEffect(() => { isSubscribedRef.current = isSubscribed; }, [isSubscribed]);
 
   const maybeShowSupportModal = useCallback(() => {
-    if (isSubscribedRef.current) return;
-    const lastShown = parseInt(localStorage.getItem(MODAL_COOLDOWN_KEY) || '0', 10);
-    const now = Date.now();
-    if (now - lastShown > MODAL_COOLDOWN_MS) {
-      localStorage.setItem(MODAL_COOLDOWN_KEY, String(now));
-      showModal('soft-gate');
+    if (isSubscribedRef.current || !liveEvent?.id) return;
+    const key = `${MODAL_SHOWN_KEY_PREFIX}${liveEvent.id}`;
+    try {
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, String(Date.now()));
+    } catch {
+      return; // Storage blocked: never risk showing it on every save.
     }
-  }, [showModal]);
+    showModal('soft-gate', 'picks');
+  }, [showModal, liveEvent?.id]);
 
   // Auto-save with 2s debounce when team is complete (official picks — drives scoring)
   useEffect(() => {

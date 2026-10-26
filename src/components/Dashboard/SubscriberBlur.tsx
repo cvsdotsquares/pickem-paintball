@@ -44,7 +44,7 @@ export default function SubscriberBlur({
   className,
   compact = false,
   align = "center",
-  message = "Beta access to career stats available to Pick\u2019Em subscribers",
+  message = "See the full career: every match, point and season. Subscriber beta.",
 }: {
   children: React.ReactNode;
   className?: string;
@@ -101,10 +101,10 @@ export default function SubscriberBlur({
         </p>
         <button
           type="button"
-          onClick={() => showModal("soft-gate")}
+          onClick={() => showModal("soft-gate", "career")}
           className="rounded-lg bg-[#1a3c6e] px-5 py-2.5 font-azonix text-[10px] font-black uppercase tracking-[0.16em] text-white transition-colors hover:bg-[#1a3c6e]/90 dark:bg-[#00f976] dark:text-neutral-950 dark:hover:bg-[#00f976]/90"
         >
-          Subscribe
+          Unlock career stats
         </button>
       </div>
     </div>

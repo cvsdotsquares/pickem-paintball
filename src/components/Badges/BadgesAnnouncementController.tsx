@@ -75,7 +75,7 @@ export default function BadgesAnnouncementController() {
       onClose={close}
       badges={(userData?.badges ?? null) as UserBadges | null}
       isSubscribed={isSubscribed}
-      onSubscribeClick={() => showModal("soft-gate")}
+      onSubscribeClick={() => showModal("soft-gate", "badges")}
     />
   );
 }

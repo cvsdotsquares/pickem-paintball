@@ -11,11 +11,11 @@ export default function SupportButton({ className }: { className?: string }) {
     return (
       <div
         className={cn(
-          "flex items-center gap-2 rounded-lg bg-[#00f976] px-4 py-2 text-sm font-semibold text-neutral-950",
+          "flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-600 dark:border-white/10 dark:text-white/60",
           className,
         )}
       >
-        <FaHeart className="shrink-0" />
+        <FaHeart className="shrink-0 text-[#00f976]" />
         <span className="hidden sm:inline">Subscriber - Thank You!</span>
         <span className="sm:hidden">Subscribed</span>
       </div>
@@ -27,13 +27,11 @@ export default function SupportButton({ className }: { className?: string }) {
       type="button"
       onClick={() => showModal("passive")}
       className={cn(
-        "flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700",
+        "flex items-center rounded-lg bg-[#00f976] px-4 py-2 text-[10px] font-black uppercase tracking-widest text-neutral-950 transition hover:opacity-90",
         className,
       )}
     >
-      <FaHeart className="shrink-0" />
-      <span className="hidden sm:inline">Support Pick&apos;Em</span>
-      <span className="sm:hidden">Support</span>
+      Subscribe
     </button>
   );
 }

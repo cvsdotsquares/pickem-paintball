@@ -8,11 +8,14 @@ import { IoMdClose } from 'react-icons/io';
 import { FaCheck } from 'react-icons/fa';
 import { useAuth } from '../../contexts/authProvider';
 import { useTheme } from '@/src/contexts/ThemeContext';
+import type { SubscriptionModalType, SubscribeReason } from '@/src/contexts/SubscriptionContext';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  type: 'passive' | 'soft-gate' | 'hard-gate';
+  type: SubscriptionModalType;
+  /** What the person was trying to do; picks the headline and which benefit leads. */
+  reason?: SubscribeReason;
   onContinueFree?: () => void;
 }
 
@@ -26,28 +29,62 @@ interface Plan {
   features: (string | { name?: string })[];
 }
 
-/** Shown under the lead line once "Read more" is tapped, so the first screen stays short on phones. */
-const MORE_TEXT = [
-  'Our goal is to develop paintball stats and build a site for the fans.',
+/** sessionStorage key: a logged-out "Log in to subscribe" tap, replayed by SubscriptionModalManager after login. */
+export const RESUME_KEY = 'pickem_resume_subscribe';
+
+type BenefitId = 'career' | 'leagues' | 'badges' | 'share' | 'early';
+
+/** What a subscription gets you, in one place. The benefit matching the reason moves to the top and is highlighted. */
+const BENEFITS: { id: BenefitId; text: string }[] = [
+  { id: 'career', text: 'Full career stats for every pro player (beta)' },
+  { id: 'leagues', text: 'Create and join custom leagues' },
+  { id: 'badges', text: 'Your badges next to your name on every leaderboard' },
+  { id: 'share', text: 'Share player career cards' },
+  { id: 'early', text: 'Early access to new features' },
+];
+
+/** Value first: the headline says what they get, matched to what they just tried to do. */
+const REASON_CONTENT: Record<SubscribeReason, { title: string; lead: string; benefit?: BenefitId }> = {
+  general: {
+    title: "Get more from Pick'Em",
+    lead: 'Career stats, custom leagues and badges, and you keep Pick\'Em growing.',
+  },
+  career: {
+    title: 'Unlock career stats',
+    lead: 'Every match, point and season for every pro player.',
+    benefit: 'career',
+  },
+  share: {
+    title: 'Share career cards',
+    lead: "Share any player's career with your team and your group chats.",
+    benefit: 'share',
+  },
+  leagues: {
+    title: 'Play in custom leagues',
+    lead: 'Start a league for your team or friends, or join one with an invite code.',
+    benefit: 'leagues',
+  },
+  badges: {
+    title: 'Show off your badges',
+    lead: 'The badges you have won appear next to your name on every leaderboard.',
+    benefit: 'badges',
+  },
+  picks: {
+    title: 'Picks saved. Want more?',
+    lead: 'Subscribers get full career stats, custom leagues and badges on the leaderboard.',
+  },
+};
+
+/** Shown once "Read more" is tapped, so the first screen stays short on phones. */
+const FANS_TEXT = [
+  'The core game and basic stats will always be free. Our goal is to develop paintball stats and build a site for the fans.',
   'Even if you choose not to subscribe, just playing, sharing, and being part of the community means a huge amount to us. Thank you!',
 ];
 
-const MODAL_CONTENT = {
-  passive: {
-    title: "Support Pick'Em Paintball",
-    lead: "The core game and basic stats will always be free. Subscriptions help support the extra work that makes Pick'Em better for everyone.",
-    continueButtonText: 'Not today',
-  },
-  'soft-gate': {
-    title: "Support Pick'Em Paintball",
-    lead: 'To reward those who support us, some features are subscriber only. The core game and basic stats will always be free.',
-    continueButtonText: 'Continue for free',
-  },
-  'hard-gate': {
-    title: 'Premium Feature',
-    lead: 'To reward those who support us, some features are subscriber only. The core game and basic stats will always be free.',
-    continueButtonText: 'Maybe later',
-  },
+const CONTINUE_TEXT: Record<SubscriptionModalType, string> = {
+  passive: 'Not today',
+  'soft-gate': 'Continue for free',
+  'hard-gate': 'Maybe later',
 };
 
 const CURRENCY_SYMBOLS: Record<string, string> = { usd: '$', gbp: '£', eur: '€' };
@@ -61,6 +98,12 @@ function regionFromTimezone(): string {
 
 function featureText(feature: string | { name?: string }): string {
   return typeof feature === 'string' ? feature : feature?.name || '';
+}
+
+/** A plan's own lines: Stripe features that not every plan has (e.g. "Pay only in event months"). */
+function planNotes(plan: Plan, plans: Plan[]): string[] {
+  const shared = (f: string) => plans.every((p) => p.features.some((g) => featureText(g) === f));
+  return plan.features.map(featureText).filter((f) => f && (plans.length < 2 || !shared(f)));
 }
 
 /** "£49.99" → "£4.17": the yearly price as a monthly figure, so it compares directly with Monthly. */
@@ -79,7 +122,7 @@ function shortName(name: string): string {
   return name.replace(/\s+Subscription$/i, '');
 }
 
-export default function SubscriptionModal({ isOpen, onClose, type, onContinueFree }: SubscriptionModalProps) {
+export default function SubscriptionModal({ isOpen, onClose, type, reason = 'general', onContinueFree }: SubscriptionModalProps) {
   const { user } = useAuth();
   const { theme } = useTheme();
   const router = useRouter();
@@ -91,7 +134,10 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
   const [error, setError] = useState<string | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const content = MODAL_CONTENT[type];
+  const content = REASON_CONTENT[reason];
+  const benefits = content.benefit
+    ? [...BENEFITS.filter((b) => b.id === content.benefit), ...BENEFITS.filter((b) => b.id !== content.benefit)]
+    : BENEFITS;
 
   useEffect(() => {
     async function fetchPlans() {
@@ -151,6 +197,11 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
 
   const handleSubscribe = async () => {
     if (!user) {
+      try {
+        sessionStorage.setItem(RESUME_KEY, JSON.stringify({ type, reason, at: Date.now() }));
+      } catch {
+        // Private mode: they just land on the dashboard after login.
+      }
       onClose();
       router.push('/login');
       return;
@@ -233,25 +284,26 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
 
         {/* Middle: the only part that scrolls */}
         <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 [-webkit-overflow-scrolling:touch] md-tall:px-6 md-tall:py-5">
-          <div className="mx-auto mb-4 max-w-xl text-center">
-            <p className="text-[13px] font-bold text-gray-900 dark:text-white">Built by fans, for fans.</p>
-            <p className="mt-1 text-[12px] leading-relaxed text-gray-500 dark:text-white/60">{content.lead}</p>
-            {showMore ? (
-              MORE_TEXT.map((line) => (
-                <p key={line} className="mt-2 text-[12px] leading-relaxed text-gray-500 dark:text-white/60">
-                  {line}
-                </p>
-              ))
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowMore(true)}
-                className="mt-1 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-900 dark:text-white/40 dark:hover:text-white"
-              >
-                Read more
-              </button>
-            )}
-          </div>
+          <p className="mx-auto mb-3 max-w-xl text-center text-[12px] leading-relaxed text-gray-500 dark:text-white/60">
+            {content.lead}
+          </p>
+
+          <ul className="mx-auto mb-4 grid max-w-xl gap-1.5 md-tall:grid-cols-2 md-tall:gap-x-6">
+            {benefits.map((b, i) => {
+              const lead = !!content.benefit && i === 0;
+              return (
+                <li
+                  key={b.id}
+                  className={`flex items-start gap-2 text-[11px] ${
+                    lead ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-600 dark:text-white/70'
+                  }`}
+                >
+                  <FaCheck className="mt-0.5 shrink-0 text-[10px] text-green-500" />
+                  {b.text}
+                </li>
+              );
+            })}
+          </ul>
 
           <div role="radiogroup" aria-label="Choose a plan" className="grid grid-cols-1 gap-2 md-tall:grid-cols-3 md-tall:gap-3">
             {plansLoading &&
@@ -262,6 +314,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
               const selected = selectedPlan === plan.id;
               const period = periodLabel(plan);
               const monthly = plan.id === 'yearly' ? perMonth(plan.price) : null;
+              const notes = planNotes(plan, plans);
               return (
                 <button
                   type="button"
@@ -311,17 +364,33 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
                   {plan.savings && (
                     <div className="mt-1 hidden text-[11px] font-bold text-green-500 md-tall:block">{plan.savings}</div>
                   )}
-                  <ul className={`mt-3 space-y-1.5 md-tall:mt-4 md-tall:block ${selected ? 'block' : 'hidden'}`}>
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-2 text-[11px] text-gray-600 dark:text-white/70 md-tall:justify-center">
-                        <FaCheck className="mt-0.5 shrink-0 text-[10px] text-green-500" />
-                        <span dangerouslySetInnerHTML={{ __html: featureText(feature) }} />
-                      </li>
-                    ))}
-                  </ul>
+                  {notes.length > 0 && (
+                    <div className="mt-1 pl-7 text-[10px] text-gray-500 dark:text-white/50 md-tall:mt-2 md-tall:pl-0">
+                      {notes.join(' · ')}
+                    </div>
+                  )}
                 </button>
               );
             })}
+          </div>
+
+          <div className="mx-auto mt-4 max-w-xl text-center text-[11px] leading-relaxed text-gray-400 dark:text-white/40">
+            <span className="font-bold text-gray-600 dark:text-white/60">Built by fans, for fans.</span>{' '}
+            {showMore ? (
+              FANS_TEXT.map((line) => (
+                <p key={line} className="mt-1">
+                  {line}
+                </p>
+              ))
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowMore(true)}
+                className="font-bold uppercase tracking-widest text-[9px] hover:text-gray-900 dark:hover:text-white"
+              >
+                Read more
+              </button>
+            )}
           </div>
         </div>
 
@@ -358,7 +427,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, onContinueFre
               }}
               className="w-full py-2 text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 dark:text-white/50 dark:hover:text-white"
             >
-              {content.continueButtonText}
+              {CONTINUE_TEXT[type]}
             </button>
           </div>
         </div>

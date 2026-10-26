@@ -29,7 +29,7 @@ export default function DashboardSupportWidget() {
         onClick={() => showModal('passive')}
         className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
       >
-        Learn More
+        See plans
       </button>
     </div>
   );

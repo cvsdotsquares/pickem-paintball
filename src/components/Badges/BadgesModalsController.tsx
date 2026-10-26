@@ -116,7 +116,7 @@ export default function BadgesModalsController({ onSubscribeClick }: Props) {
   const { userId } = useAuth();
   const { isSubscribed, showModal } = useSubscription();
   const subscribeHandler =
-    onSubscribeClick ?? (() => showModal("soft-gate"));
+    onSubscribeClick ?? (() => showModal("soft-gate", "badges"));
 
   const [userData, setUserData] = useState<Record<string, unknown> | null>(
     null,
