@@ -402,6 +402,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
             {plans.map((plan) => {
               const selected = selectedPlan === plan.id;
               const line = yearLine(plan);
+              // Phones: every card the same height (the tallest, Yearly), so the plan we push isn't the smallest.
               return (
                 <button
                   type="button"
@@ -412,7 +413,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
                     if (!selected) track('plan_selected', { plan: plan.id });
                     setSelectedPlan(plan.id);
                   }}
-                  className={`relative rounded-xl border-2 px-4 py-3 text-left transition-colors md-tall:px-5 md-tall:py-5 md-tall:text-center ${
+                  className={`relative flex min-h-[84px] flex-col justify-center rounded-xl border-2 px-4 py-3 text-left transition-colors md-tall:min-h-0 md-tall:justify-start md-tall:px-5 md-tall:py-5 md-tall:text-center ${
                     selected
                       ? 'border-gray-900 bg-gray-50 dark:border-white dark:bg-white/5'
                       : 'border-gray-200 bg-white dark:border-white/10 dark:bg-transparent'
