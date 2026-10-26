@@ -44,7 +44,7 @@ export default function SubscriberBlur({
   className,
   compact = false,
   align = "center",
-  message = "See the full career: every match, point and season. Subscriber beta.",
+  message = "See the full career: every match, point and season. Subscriber early access.",
 }: {
   children: React.ReactNode;
   className?: string;

@@ -175,7 +175,7 @@ export default function AllTimeStatsPage() {
           {!full && rows.length > FREE_ROWS && (
             <SubscriberBlur
               className="mt-1"
-              message={"See the full all-time table, and every player\u2019s career. Subscriber beta."}
+              message={"See the full all-time table, and every player\u2019s career. Subscriber early access."}
             >
               <div className="divide-y divide-gray-200/70 dark:divide-white/5">
                 {rows.slice(FREE_ROWS, FREE_ROWS + 6).map((r, i) => (

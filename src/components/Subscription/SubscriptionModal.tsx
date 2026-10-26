@@ -32,6 +32,9 @@ interface Plan {
 /** sessionStorage key: a logged-out "Log in to subscribe" tap, replayed by SubscriptionModalManager after login. */
 export const RESUME_KEY = 'pickem_resume_subscribe';
 
+/** sessionStorage key: the showing that sent someone to Stripe, read by CheckoutReturn when they come back. */
+export const CHECKOUT_VIEW_KEY = 'pickem_checkout_view';
+
 type BenefitId = 'career' | 'leagues' | 'badges' | 'share' | 'early';
 type DismissHow = 'continue' | 'close' | 'backdrop' | 'escape';
 
@@ -111,12 +114,11 @@ function periodLabel(plan: Plan): string {
   return isEventPlan(plan) ? '/event' : plan.period;
 }
 
-/** One line under each price: how the Event plan bills, and Monthly / Yearly over a year. */
+/** One line under a price: how the Event plan bills, and Yearly as a monthly figure. Monthly needs none. */
 function yearLine(plan: Plan): string | null {
   const { symbol, amount } = splitPrice(plan.price);
   if (!amount) return null;
   if (isEventPlan(plan)) return 'Billed for each event';
-  if (plan.id === 'monthly') return `${money(symbol, amount * 12)} a year`;
   if (plan.id === 'yearly') return `${money(symbol, amount / 12)}/month, billed yearly`;
   return null;
 }
@@ -283,6 +285,11 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
     setLoading(true);
     setError(null);
     track('checkout_started', { plan: selectedPlan, currency });
+    try {
+      sessionStorage.setItem(CHECKOUT_VIEW_KEY, JSON.stringify({ viewId, type, reason }));
+    } catch {
+      // Storage blocked: a cancelled checkout just isn't counted.
+    }
     try {
       const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',

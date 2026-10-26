@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { productFeaturesFromStripe } from '@/src/lib/stripeProductFeatures';
-import { EVENT_MONTHS_PER_YEAR } from '@/src/utils/eventMonths';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -91,18 +90,15 @@ const PLAN_META: Record<string, { order: number; popular: boolean }> = {
 
 const amountOf = (price: string) => parseFloat(price.replace(/[^0-9.]/g, ''));
 
-/**
- * Monthly and Yearly against a year on the Event plan (it bills only in event months, see utils/eventMonths).
- * One baseline for both, so the badges can be compared with each other; the pop-up shows the yearly totals behind them.
- */
+/** Yearly against twelve months of Monthly: a figure buyers can check against the "£4.17/month" line beside it. */
 function applySavings(plans: { id: string; price: string; savings: string | null }[]) {
-  const event = plans.find(p => p.id === 'quarterly');
-  if (!event) return;
-  const eventYear = amountOf(event.price) * EVENT_MONTHS_PER_YEAR;
-  for (const plan of plans) {
-    const year = plan.id === 'monthly' ? amountOf(plan.price) * 12 : plan.id === 'yearly' ? amountOf(plan.price) : null;
-    if (year == null || !(eventYear > year)) continue;
-    plan.savings = `Save ${Math.round(((eventYear - year) / eventYear) * 100)}%`;
+  const monthly = plans.find(p => p.id === 'monthly');
+  const yearly = plans.find(p => p.id === 'yearly');
+  if (!monthly || !yearly) return;
+  const monthlyYear = amountOf(monthly.price) * 12;
+  const yearlyAmount = amountOf(yearly.price);
+  if (monthlyYear > yearlyAmount) {
+    yearly.savings = `Save ${Math.round(((monthlyYear - yearlyAmount) / monthlyYear) * 100)}%`;
   }
 }
 

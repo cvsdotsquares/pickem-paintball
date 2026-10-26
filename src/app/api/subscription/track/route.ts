@@ -22,6 +22,7 @@ const STEPS = [
   "read_more",
   "checkout_started",
   "checkout_failed",
+  "checkout_cancelled",
   "login_redirect",
   "dismissed",
 ] as const;
