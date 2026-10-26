@@ -340,7 +340,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
         initial={{ y: '100%', opacity: 0.6 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="flex w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-gray-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#0d0d0d] max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] md-tall:max-w-3xl md-tall:rounded-2xl md-tall:max-h-[90vh] md-tall:supports-[height:100dvh]:max-h-[90dvh]"
+        className="flex w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-gray-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#0d0d0d] max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] md-tall:max-w-[660px] md-tall:rounded-2xl md-tall:max-h-[90vh] md-tall:supports-[height:100dvh]:max-h-[90dvh]"
       >
         {/* Header: always visible */}
         <div className="relative shrink-0 border-b border-gray-100 px-5 pb-3 pt-2 dark:border-white/5 md-tall:px-6 md-tall:pt-5">
@@ -354,7 +354,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
           </div>
           <h2
             id="subscription-modal-title"
-            className="mt-2 px-9 text-center text-xl font-black uppercase tracking-tight text-gray-900 dark:text-white md-tall:text-2xl"
+            className="mt-2 px-9 text-center text-xl max-[359px]:text-[17px] font-black uppercase tracking-tight text-gray-900 dark:text-white md-tall:text-2xl"
           >
             {content.title}
           </h2>
@@ -378,7 +378,7 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
             {content.lead}
           </p>
 
-          <ul className="mx-auto mb-4 grid max-w-xl gap-1.5 md-tall:grid-cols-2 md-tall:gap-x-6">
+          <ul className="mx-auto mb-4 grid max-w-xl gap-1.5 md-tall:mb-5 md-tall:w-fit md-tall:grid-cols-2 md-tall:gap-x-8 md-tall:gap-y-2">
             {benefits.map((b, i) => {
               const lead = !!content.benefit && i === 0;
               return (
@@ -387,8 +387,8 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
                   // Short screens (iPhone SE, small Androids) keep three, so Monthly stays above the fold.
                   className={`flex items-center gap-2 ${i >= 3 ? '[@media(max-height:700px)]:hidden' : ''} ${
                     lead
-                      ? 'text-[14px] font-black text-gray-900 dark:text-white'
-                      : 'text-[13px] text-gray-500 dark:text-white/55'
+                      ? 'text-[14px] font-black text-gray-900 dark:text-white md-tall:text-[16px]'
+                      : 'text-[13px] text-gray-500 dark:text-white/55 md-tall:text-[15px]'
                   }`}
                 >
                   <FaCheck className="shrink-0 text-[11px] text-green-500" />
@@ -418,14 +418,14 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
                     if (!selected) track('plan_selected', { plan: plan.id });
                     setSelectedPlan(plan.id);
                   }}
-                  className={`relative rounded-xl border-2 px-4 py-2 text-left transition-colors md-tall:px-5 md-tall:py-5 md-tall:text-center ${
+                  className={`relative rounded-xl border-2 px-4 py-2 text-left transition-colors md-tall:px-3 md-tall:py-5 md-tall:text-center ${plan.popular ? 'md-tall:-my-2 md-tall:py-7' : ''} ${
                     selected
                       ? 'border-[#00b85a] bg-[#00f976]/10 dark:border-[#00f976] dark:bg-[#00f976]/[0.08]'
                       : 'border-gray-200 bg-white dark:border-white/10 dark:bg-transparent'
                   }`}
                 >
                   {plan.popular && (
-                    <span className="absolute -top-2.5 right-3 rounded-full bg-[#00f976] px-2 py-0.5 text-[11px] font-black uppercase tracking-wider text-black md-tall:left-1/2 md-tall:right-auto md-tall:-translate-x-1/2">
+                    <span className="absolute -top-2.5 right-3 whitespace-nowrap rounded-full bg-[#00f976] px-2 py-0.5 text-[11px] font-black uppercase tracking-wider text-black md-tall:left-1/2 md-tall:right-auto md-tall:-translate-x-1/2">
                       Most popular
                     </span>
                   )}
@@ -438,12 +438,12 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
                       >
                         {selected && <span className="h-2.5 w-2.5 rounded-full bg-[#00b85a] dark:bg-[#00f976]" />}
                       </span>
-                      <div className="flex items-center gap-2 md-tall:mb-2 md-tall:justify-center">
+                      <div className="flex items-center gap-2 md-tall:mb-2 md-tall:flex-col md-tall:gap-1">
                         <span className="text-[12px] font-black uppercase tracking-widest text-gray-900 dark:text-white">
                           {shortName(plan.name)}
                         </span>
                         {plan.savings && (
-                          <span className="whitespace-nowrap rounded bg-green-600/10 px-1.5 py-0.5 text-[11px] font-bold text-green-700 dark:bg-green-400/10 dark:text-green-400 md-tall:hidden">
+                          <span className="whitespace-nowrap rounded bg-green-600/10 px-1.5 py-0.5 text-[11px] font-bold text-green-700 dark:bg-green-400/10 dark:text-green-400">
                             {plan.savings}
                           </span>
                         )}
@@ -456,9 +456,6 @@ export default function SubscriptionModal({ isOpen, onClose, type, reason = 'gen
                       <span className="text-[12px] text-gray-500 dark:text-white/50">{periodLabel(plan)}</span>
                     </div>
                   </div>
-                  {plan.savings && (
-                    <div className="mt-1 hidden text-[12px] font-bold text-green-700 dark:text-green-400 md-tall:block">{plan.savings}</div>
-                  )}
                   {line && (
                     <div className="mt-0.5 pl-8 text-[11px] text-gray-500 dark:text-white/50 md-tall:mt-2 md-tall:pl-0">{line}</div>
                   )}
