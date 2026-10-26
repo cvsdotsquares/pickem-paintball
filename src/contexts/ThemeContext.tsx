@@ -60,20 +60,24 @@ function storeTheme(theme: Theme) {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
+  /** False until the stored theme is read, so the first pass can't undo the boot script's dark. */
+  const [themeResolved, setThemeResolved] = useState(false);
 
   useEffect(() => {
     const stored = readStoredTheme();
     // Default is light; only apply dark when user explicitly chose it
     const resolved = stored === "dark" ? "dark" : "light";
     setTheme(resolved);
+    setThemeResolved(true);
     if (stored !== "dark" && stored !== "light") {
       storeTheme(resolved);
     }
   }, []);
 
   useEffect(() => {
+    if (!themeResolved) return;
     applyThemeToDocument(theme);
-  }, [theme]);
+  }, [theme, themeResolved]);
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";

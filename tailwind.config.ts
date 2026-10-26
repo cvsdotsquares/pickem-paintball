@@ -16,10 +16,6 @@ module.exports = {
       },
     },
     extend: {
-      screens: {
-        // Wide AND tall enough for side-by-side panels; a phone turned sideways stays on the phone layout.
-        "md-tall": { raw: "(min-width: 768px) and (min-height: 600px)" },
-      },
       fontFamily: {
         inter: ["var(--font-industry)", "system-ui", "sans-serif"],
         hanson: ["var(--font-industry)", "system-ui", "sans-serif"],
@@ -106,5 +102,16 @@ module.exports = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    /**
+     * `md-tall:` — wide AND tall enough for side-by-side panels; a phone turned sideways stays
+     * on the phone layout. A variant, not a `screens` entry: a `{ raw }` object in `screens`
+     * makes Tailwind drop every `max-*:` / `min-*:` class site-wide (`max-md:` etc. silently
+     * produced no CSS).
+     */
+    ({ addVariant }: { addVariant: (name: string, definition: string) => void }) => {
+      addVariant("md-tall", "@media (min-width: 768px) and (min-height: 600px)");
+    },
+  ],
 };
