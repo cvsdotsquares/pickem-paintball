@@ -40,7 +40,8 @@ if (!rows.length) {
 }
 
 /** "iOS 26.1 Safari", "Android Instagram", "Mac Chrome" — enough to spot a pattern. */
-function browserLabel(ua = "") {
+function browserLabel(ua) {
+  ua = ua || ""; // rows can carry ua: null (the route stores null for a missing value)
   const ios = ua.match(/OS (\d+)[_.](\d+)/);
   const os = /iPhone|iPad|iPod/.test(ua)
     ? `iOS ${ios ? `${ios[1]}.${ios[2]}` : "?"}`
