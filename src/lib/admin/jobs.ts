@@ -24,6 +24,7 @@ type JobDef = {
 };
 
 const SLACK = "mcp__claude_ai_Slack__";
+const TOKEN_FILE = path.join(os.homedir(), ".config/pickem/claude_token");
 /**
  * Model + effort per job (James, 17 Oct). Opus 5.5 for judgment and building; Sonnet 5.5 (~30% faster, half
  * the cost) for routine work and the rough-layout drafts; Fable 5.1 for a new event's look (once per event,
@@ -261,6 +262,14 @@ export function startJob(job: string, params: JobParams = {}): JobRun | { error:
   // A clean environment: nothing from the panel, and no sign of a parent Claude session.
   const env = { ...process.env };
   for (const k of Object.keys(env)) if (k === "ADMIN_PANEL" || k.startsWith("CLAUDE_CODE") || k === "CLAUDECODE") delete env[k];
+  // The long-lived login (`claude setup-token`), as agents/run.py does: without it `claude -p` falls back on the
+  // app login, which expires ("OAuth session expired and could not be refreshed", Post Generator on the mini, 29 Oct).
+  try {
+    const token = fs.readFileSync(TOKEN_FILE, "utf8").trim();
+    if (token) env.CLAUDE_CODE_OAUTH_TOKEN = token;
+  } catch {
+    // no token file: the app login it is
+  }
   const prompt = typeof def.prompt === "function" ? def.prompt(params) : def.prompt;
   // JSON output: the final message plus duration, steps and tokens, so every run's cost is logged.
   // Always pass the model: the Mac's CLI default was the older Opus 5 at high effort (3–7x slower per step, 17 Oct).
