@@ -3,13 +3,7 @@
   "configurations": [
     {
       "name": "Admin panel",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run",
-        "admin"
-      ],
-      "port": 3005,
-      "url": "http://127.0.0.1:3005"
+      "url": "https://jamess-mac-mini.tail542618.ts.net/admin"
     },
     {
       "name": "Next.js Dev",
