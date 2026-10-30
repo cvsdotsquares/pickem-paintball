@@ -8,9 +8,12 @@ export const MODEL_CHOICES = [
   { id: "claude-fable-5-1", label: "Fable 5.1 (more creative)" },
 ] as const;
 
-/** Steps with a model picker, and the model each uses when James leaves it on Default. */
+/**
+ * Steps with a model picker, and the model each uses when James leaves it on Default.
+ * Options = the three first layouts, where the idea turns into designs: Fable by default (James, 30 Oct; was Sonnet).
+ */
 export const PICKABLE_DEFAULTS: Record<string, string> = {
-  "post-options": "claude-sonnet-5-5",
+  "post-options": "claude-fable-5-1",
   "post-revise": "claude-opus-5-5",
 };
 

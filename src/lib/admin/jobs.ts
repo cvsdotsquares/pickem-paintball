@@ -27,8 +27,8 @@ const SLACK = "mcp__claude_ai_Slack__";
 const TOKEN_FILE = path.join(os.homedir(), ".config/pickem/claude_token");
 /**
  * Model + effort per job (James, 17 Oct). Opus 5.5 for judgment and building; Sonnet 5.5 (~30% faster, half
- * the cost) for routine work and the rough-layout drafts; Fable 5.1 for a new event's look (once per event,
- * where the idea matters most). Every run's time/tokens go to generator/feedback/runs.jsonl, so these get
+ * the cost) for routine work; Fable 5.1 for a new event's look (once per event, where the idea matters most) and,
+ * from 30 Oct, the first three layouts (Options). Every run's time/tokens go to generator/feedback/runs.jsonl, so these get
  * reviewed against real numbers. ADMIN_JOB_MODEL overrides all (for a quick test).
  */
 const JOB_SETUP: Record<string, { model: string; effort: "low" | "medium" | "high" }> = {
