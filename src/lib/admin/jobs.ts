@@ -150,8 +150,8 @@ const g = globalThis as unknown as { __adminJobs?: JobRun[] };
 const runs = (g.__adminJobs ??= []);
 const gc = globalThis as unknown as { __adminChildren?: Map<string, import("child_process").ChildProcess> };
 const children = (gc.__adminChildren ??= new Map());
-/** At most this many Claude runs at once — each uses James's subscription limit. */
-export const MAX_PARALLEL = 3;
+/** At most this many Claude runs at once — each uses James's subscription limit (James, 30 Oct: 3 → 5). */
+export const MAX_PARALLEL = 5;
 
 export const listRuns = () => runs.slice(-10).reverse();
 /** Newest run for one event + post type (Post Generator page). */
