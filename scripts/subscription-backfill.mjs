@@ -5,6 +5,13 @@
  *   STRIPE_SECRET_KEY=rk_live_… node scripts/subscription-backfill.mjs --apply    # write the fixes
  *   … --apply --include-missing   # also revoke subscriptions this Stripe account has never heard of
  *   … --apply --include-free-ended  # also revoke ended subscriptions that never took a payment (free promo)
+ *   … --apply --include-event-ended # also revoke Event plan users whose subscription really ended
+ *
+ * EVENT PLAN (the "quarterly" price, our highest-value customers): between events the
+ * subscription-manager cron pauses payment collection; the subscription stays "active", so
+ * these users keep premium. The dry run lists every Event plan subscription on its own —
+ * status, whether payments are paused, how many charges went through and how many were
+ * skipped — and --apply never changes an Event plan user without --include-event-ended.
  *   … --json                      # the whole plan as JSON
  *
  * A restricted key with READ access to Subscriptions, Invoices, Prices, Products and
@@ -41,6 +48,7 @@ const args = process.argv.slice(2);
 const APPLY = args.includes("--apply");
 const INCLUDE_MISSING = args.includes("--include-missing");
 const INCLUDE_FREE_ENDED = args.includes("--include-free-ended");
+const INCLUDE_EVENT_ENDED = args.includes("--include-event-ended");
 const AS_JSON = args.includes("--json");
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -59,8 +67,12 @@ const hasAccess = (status) => LIVE.has(status);
 
 const productNames = new Map(); // product id → name, filled below (list calls can't expand that deep)
 
+// Price ids from the same env names checkout uses, when set (otherwise the product name decides).
+const envIds = (plan) => ["", "_USD", "_GBP", "_EUR"].flatMap((c) => (process.env[`STRIPE_PRICE_${plan}${c}`] ?? "").split("|")).filter(Boolean);
+
 function planFromPrice(price) {
   if (!price) return "monthly";
+  for (const plan of ["MONTHLY", "QUARTERLY", "YEARLY"]) if (envIds(plan).includes(price.id)) return plan.toLowerCase();
   const product = typeof price.product === "object" && price.product ? price.product.name ?? "" : productNames.get(price.product) ?? "";
   const label = `${product} ${price.nickname ?? ""}`.toLowerCase();
   if (price.recurring?.interval === "year") return "yearly";
@@ -117,18 +129,19 @@ for (const sub of stripeSubs.values()) {
 }
 const stripeLive = [...stripeSubs.values()].filter((s) => hasAccess(s.status));
 
-/** Money actually taken on a subscription: paid invoices with amount_paid > 0. */
+/** Money actually taken on a subscription (paid invoices with amount_paid > 0), plus skipped (void) invoices. */
 async function paymentsOn(subId) {
-  let count = 0, total = 0, currency = null, last = null;
-  for await (const inv of stripe.invoices.list({ subscription: subId, status: "paid", limit: 100 })) {
-    if (inv.amount_paid > 0) {
+  let count = 0, total = 0, currency = null, last = null, skipped = 0;
+  for await (const inv of stripe.invoices.list({ subscription: subId, limit: 100 })) {
+    if (inv.status === "void") skipped += 1;
+    if (inv.status === "paid" && inv.amount_paid > 0) {
       count += 1;
       total += inv.amount_paid;
       currency = inv.currency;
       last = Math.max(last ?? 0, inv.created);
     }
   }
-  return { count, total: total / 100, currency, lastPaid: last ? new Date(last * 1000).toISOString().slice(0, 10) : null };
+  return { count, total: total / 100, currency, skipped, lastPaid: last ? new Date(last * 1000).toISOString().slice(0, 10) : null };
 }
 
 // ── Firestore side ────────────────────────────────────────────────────────────
@@ -170,10 +183,14 @@ for (const d of users) {
   const changes = changedKeys(before, after);
   let category = !hasAccess(sub.status) ? (u.isSubscribed === true ? "ended" : "ok") : changes.length ? "refresh" : "ok";
   // Free accounts given through a 100% promo code never took money; keep them apart from paying customers.
+  const isEventPlan = planFromPrice(sub.items?.data?.[0]?.price) === "quarterly";
   const paid = category === "ended" || hasAccess(sub.status) ? await paymentsOn(sub.id) : null;
   if (category === "ended" && paid.count === 0) category = "freeEnded";
+  else if (category === "ended" && isEventPlan) category = "eventEnded";
   rows.push({
-    ...base, category, after, changes, paid,
+    ...base, category, after, changes, paid, isEventPlan,
+    paymentsPaused: !!sub.pause_collection,
+    product: productNames.get(sub.items?.data?.[0]?.price?.product) ?? sub.items?.data?.[0]?.price?.product?.name ?? null,
     freeInStripe: hasAccess(sub.status) && paid?.count === 0,
     canceledAt: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString().slice(0, 10) : null,
     stripeStatus: sub.status,
@@ -190,7 +207,8 @@ const unlinked = stripeLive
 const by = (c) => rows.filter((r) => r.category === c);
 const toWrite = rows.filter((r) => ["refresh", "ended"].includes(r.category)
   || (INCLUDE_MISSING && r.category === "missing")
-  || (INCLUDE_FREE_ENDED && r.category === "freeEnded"));
+  || (INCLUDE_FREE_ENDED && r.category === "freeEnded")
+  || (INCLUDE_EVENT_ENDED && r.category === "eventEnded"));
 const firestoreSubscribed = rows.filter((r) => r.before.isSubscribed === true).length;
 const testSubscribed = rows.filter((r) => r.test && r.before.isSubscribed === true);
 
@@ -215,6 +233,7 @@ if (AS_JSON) {
   const line = (r) => `    ${r.test ? "[test] " : ""}${r.uid}  ${r.subId ?? "-"}  ${r.stripeStatus ?? ""}${r.canceledAt ? ` cancelled ${r.canceledAt}` : ""}${r.endedAt ? ` ended ${r.endedAt}` : ""}${money(r.paid)}${r.freeInStripe ? "  FREE (no payment yet)" : ""}${r.changes?.length ? `  fix: ${r.changes.join(", ")}` : ""}`;
   for (const [cat, label] of [
     ["ended", "PAID, then cancelled/ended in Stripe, still premium here → revoke"],
+    ["eventEnded", `Event plan, PAID, then really ended in Stripe → ${INCLUDE_EVENT_ENDED ? "revoke" : "listed only (add --include-event-ended to revoke)"}`],
     ["freeEnded", `Free (never paid) and ended in Stripe, still premium here → ${INCLUDE_FREE_ENDED ? "revoke" : "listed only (add --include-free-ended to revoke)"}`],
     ["missing", `Not found in this Stripe account → ${INCLUDE_MISSING ? "revoke" : "listed only (add --include-missing to revoke)"}`],
     ["manual", "Premium with no Stripe subscription (comp/admin?) → left alone"],
@@ -225,6 +244,20 @@ if (AS_JSON) {
     console.log(`\n${label}: ${list.length}`);
     if (cat !== "ok") list.forEach((r) => console.log(line(r)));
   }
+  // Which product is which plan, so the Event plan is identified correctly (not guessed).
+  const products = {};
+  for (const sub of stripeSubs.values()) {
+    const price = sub.items?.data?.[0]?.price;
+    const key = `${productNames.get(price?.product) ?? price?.product} / ${price?.recurring?.interval ?? "?"} → ${planFromPrice(price)}`;
+    products[key] = (products[key] ?? 0) + (hasAccess(sub.status) ? 1 : 0);
+  }
+  console.log("\nProducts → plan the script assigns (live subscriptions each):");
+  for (const [k, n] of Object.entries(products)) console.log(`    ${k}: ${n}`);
+
+  const eventRows = rows.filter((r) => r.isEventPlan);
+  console.log(`\nEvent plan subscribers: ${eventRows.length} (keep premium while Stripe says active, paused or not)`);
+  eventRows.forEach((r) => console.log(`    ${r.test ? "[test] " : ""}${r.uid}  ${r.stripeStatus}${r.paymentsPaused ? "  payments PAUSED" : ""}  charged ${r.paid?.count ?? 0}×, skipped ${r.paid?.skipped ?? 0}×${r.paid?.lastPaid ? `, last paid ${r.paid.lastPaid}` : ""}  → ${["ended", "eventEnded", "freeEnded"].includes(r.category) ? "ENDED in Stripe" : "keeps premium"}`));
+
   const freeLive = rows.filter((r) => r.freeInStripe);
   console.log(`\nLive in Stripe but never charged (free promo code): ${freeLive.length}${freeLive.length ? ` — ${freeLive.map((r) => r.uid).join(", ")}` : ""}`);
   console.log(`\nDev/test accounts among the premium ones (also counted in the groups above): ${testSubscribed.length}`);
@@ -233,7 +266,7 @@ if (AS_JSON) {
   unlinked.forEach((s) => console.log(`    ${s.subId}  ${s.status}  ${s.plan}  user by customer id: ${s.uidByCustomer ?? "none"}`));
 
   const afterCount = firestoreSubscribed - by("ended").length - (INCLUDE_MISSING ? by("missing").length : 0)
-    - (INCLUDE_FREE_ENDED ? by("freeEnded").length : 0);
+    - (INCLUDE_FREE_ENDED ? by("freeEnded").length : 0) - (INCLUDE_EVENT_ENDED ? by("eventEnded").length : 0);
   console.log(`\nAfter ${APPLY ? "this run" : "--apply"}: ${afterCount} users premium (${by("manual").length} of them manual).`);
 }
 
