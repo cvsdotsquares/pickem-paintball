@@ -1218,6 +1218,19 @@ function SlotDrawer({ s, agents, posts, busy, act, onClose }: { s: Slot; agents:
   const warns = s.checks.filter((c) => c.level === "warn");
   const slides = s.placeholder ? s.preview : s.slides;
   const tags = (caption.match(/#\w+/g) ?? []).length;
+  const at = Math.min(shown, Math.max(slides.length - 1, 0));
+  const step = useCallback((by: number) => slides.length > 1 && setShown((i) => (Math.min(i, slides.length - 1) + by + slides.length) % slides.length), [slides.length]);
+  // ← / → flip a carousel's slides, like swiping it (James, 2 Nov 2026); not while typing in the caption or a field
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (el.closest("input, textarea, select, [contenteditable]")) return;
+      if (e.key === "ArrowRight") step(1);
+      else if (e.key === "ArrowLeft") step(-1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [step]);
 
   const saveWhen = (d: string, tm: string) => d && tm && act({ action: "save", id: s.id, at: `${d}T${tm}` });
   const setSlides = (next: string[]) => act({ action: "save", id: s.id, slides: next });
@@ -1262,8 +1275,23 @@ function SlotDrawer({ s, agents, posts, busy, act, onClose }: { s: Slot; agents:
       <div className="flex flex-col gap-2">
         {slides.length ? (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={genUrl(slides[Math.min(shown, slides.length - 1)])} alt="" className={`w-full rounded-lg border border-gray-100 dark:border-white/5 ${s.placeholder ? "opacity-60 grayscale" : ""}`} />
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={genUrl(slides[at])} alt="" className={`w-full rounded-lg border border-gray-100 dark:border-white/5 ${s.placeholder ? "opacity-60 grayscale" : ""}`} />
+              {slides.length > 1 && (
+                <>
+                  <button onClick={() => step(-1)} aria-label="Previous slide" className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-lg text-white hover:bg-black/80">
+                    ‹
+                  </button>
+                  <button onClick={() => step(1)} aria-label="Next slide" className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-lg text-white hover:bg-black/80">
+                    ›
+                  </button>
+                  <span className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-bold text-white">
+                    {at + 1} / {slides.length}
+                  </span>
+                </>
+              )}
+            </div>
             {s.placeholder && <p className="text-[11px] text-gray-500">Preview of a made version. This slot isn&apos;t linked to a post yet.</p>}
             {slides.length > 1 && (
               <div className="flex flex-wrap gap-2">
@@ -1271,7 +1299,7 @@ function SlotDrawer({ s, agents, posts, busy, act, onClose }: { s: Slot; agents:
                   <div key={`${sl}-${i}`} className="flex flex-col items-center gap-1">
                     <button onClick={() => setShown(i)}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={genUrl(sl, true)} alt="" className={`h-14 w-14 rounded object-cover ${i === shown ? "ring-2 ring-[#1a3c6e]" : ""}`} />
+                      <img src={genUrl(sl, true)} alt="" className={`h-14 w-14 rounded object-cover ${i === at ? "ring-2 ring-[#1a3c6e]" : ""}`} />
                     </button>
                     {editable && !s.placeholder && (
                       <span className="flex gap-1 text-[10px] text-gray-400">
