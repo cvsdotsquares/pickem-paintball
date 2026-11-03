@@ -21,6 +21,8 @@
  *   ended     canceled / unpaid / incomplete_expired in Stripe              → revoke premium
  *   missing   Stripe has no such subscription (e.g. a test-mode one)        → listed; revoked only with --include-missing
  *   manual    isSubscribed true with no Stripe subscription (comp/admin)    → listed, never touched
+ * Dev/test accounts (dotsquares, yopmail, "test" addresses) are tagged [test] and counted
+ * on their own line, so the real-account total can be compared with Stripe.
  * Plus the other direction: live Stripe subscriptions that no user doc points at.
  *
  * The rules match src/lib/stripeSubscriptionSync.ts (premium while active, trialing or
@@ -84,6 +86,9 @@ const REVOKED_MISSING = {
   subscriptionCancelAtPeriodEnd: false,
 };
 
+// Dev/test accounts (agency, throwaway or "test" addresses). Their email is only tested here, never printed.
+const isTestAccount = (email) => /dotsquares|yopmail|mailinator|example\.com|test/i.test(String(email ?? ""));
+
 const KEYS = ["isSubscribed", "subscriptionStatus", "subscriptionTier", "subscriptionCurrentPeriodEnd", "subscriptionCancelAtPeriodEnd"];
 const changedKeys = (before, after) => KEYS.filter((k) => k in after && (before[k] ?? null) !== (after[k] ?? null));
 
@@ -122,7 +127,7 @@ for (const d of users) {
   if (u.isSubscribed !== true && !u.stripeSubscriptionId) continue;
 
   const before = Object.fromEntries(KEYS.map((k) => [k, u[k] ?? null]));
-  const base = { uid: d.id, subId: u.stripeSubscriptionId || null, before };
+  const base = { uid: d.id, subId: u.stripeSubscriptionId || null, test: isTestAccount(u.email), before };
 
   if (!u.stripeSubscriptionId) {
     rows.push({ ...base, category: "manual", note: "isSubscribed with no Stripe subscription" });
@@ -163,6 +168,7 @@ const unlinked = stripeLive
 const by = (c) => rows.filter((r) => r.category === c);
 const toWrite = rows.filter((r) => ["refresh", "ended"].includes(r.category) || (INCLUDE_MISSING && r.category === "missing"));
 const firestoreSubscribed = rows.filter((r) => r.before.isSubscribed === true).length;
+const testSubscribed = rows.filter((r) => r.test && r.before.isSubscribed === true);
 
 if (AS_JSON) {
   console.log(JSON.stringify({ liveMode: LIVE_MODE, endpoints, stripeLive: stripeLive.length, firestoreSubscribed, rows, unlinked }, null, 2));
@@ -171,7 +177,7 @@ if (AS_JSON) {
   const byStatus = {};
   for (const s of stripeSubs.values()) byStatus[s.status] = (byStatus[s.status] ?? 0) + 1;
   console.log(`  all subscriptions by status: ${JSON.stringify(byStatus)}`);
-  console.log(`Firestore: ${firestoreSubscribed} users with isSubscribed = true\n`);
+  console.log(`Firestore: ${firestoreSubscribed} users with isSubscribed = true (${testSubscribed.length} dev/test, ${firestoreSubscribed - testSubscribed.length} real)\n`);
 
   console.log("Stripe webhook endpoints:");
   for (const ep of endpoints) {
@@ -181,7 +187,7 @@ if (AS_JSON) {
     console.log(`  ${ep.url} [${ep.status}] ${ep.events.length} events${missing.length ? ` — NOT sent: ${missing.join(", ")}` : ""}`);
   }
 
-  const line = (r) => `    ${r.uid}  ${r.subId ?? "-"}  ${r.stripeStatus ?? ""}${r.endedAt ? ` ended ${r.endedAt}` : ""}${r.changes?.length ? `  fix: ${r.changes.join(", ")}` : ""}`;
+  const line = (r) => `    ${r.test ? "[test] " : ""}${r.uid}  ${r.subId ?? "-"}  ${r.stripeStatus ?? ""}${r.endedAt ? ` ended ${r.endedAt}` : ""}${r.changes?.length ? `  fix: ${r.changes.join(", ")}` : ""}`;
   for (const [cat, label] of [
     ["ended", "Cancelled/ended in Stripe, still premium here → revoke"],
     ["missing", `Not found in this Stripe account → ${INCLUDE_MISSING ? "revoke" : "listed only (add --include-missing to revoke)"}`],
@@ -193,6 +199,8 @@ if (AS_JSON) {
     console.log(`\n${label}: ${list.length}`);
     if (cat !== "ok") list.forEach((r) => console.log(line(r)));
   }
+  console.log(`\nDev/test accounts among the premium ones (also counted in the groups above): ${testSubscribed.length}`);
+  testSubscribed.forEach((r) => console.log(`    ${r.uid}  ${r.category}`));
   console.log(`\nLive in Stripe but no user doc points at the subscription: ${unlinked.length}`);
   unlinked.forEach((s) => console.log(`    ${s.subId}  ${s.status}  ${s.plan}  user by customer id: ${s.uidByCustomer ?? "none"}`));
 
