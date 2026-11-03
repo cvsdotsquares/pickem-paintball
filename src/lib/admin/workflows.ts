@@ -85,8 +85,22 @@ function readAgents(): AgentRow[] {
   });
 }
 
-function playbook(): { event: string; name: string; date: string; planning_start: string; anchors: Record<string, string>; workflows: { id: string; agent: string; name: string }[]; jobs: Omit<Job, "slot">[] } {
-  return JSON.parse(execFileSync("python3", ["-I", PLAYBOOK_PY, "schedule"], { cwd: HUB, encoding: "utf8", timeout: 20000 }));
+/** The event playbook.py plans by default: the first in scheduler/playbook.json. */
+function playbookEvent(): string {
+  try {
+    return Object.keys(JSON.parse(fs.readFileSync(path.join(HUB, "scheduler", "playbook.json"), "utf8")).events ?? {})[0] ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * The playbook's jobs, with this event's Schedule slots handed in on stdin (3 Nov 2026): playbook.py asking the panel
+ * back from inside this request timed out (execFileSync holds the server), so a moved slot never moved its job here.
+ */
+function playbook(event: string, slots: SlotView[]): { event: string; name: string; date: string; planning_start: string; anchors: Record<string, string>; workflows: { id: string; agent: string; name: string }[]; jobs: Omit<Job, "slot">[] } {
+  const given = slots.filter((s) => s.kind !== "post").map((s) => ({ id: s.id, kind: s.kind, notes: s.notes, publishAt: s.publishAt, status: s.status, title: s.title }));
+  return JSON.parse(execFileSync("python3", ["-I", PLAYBOOK_PY, "schedule", ...(event ? ["--event", event] : []), "--slots-stdin"], { cwd: HUB, encoding: "utf8", timeout: 20000, input: JSON.stringify(given) }));
 }
 
 function reports(): Report[] {
@@ -222,15 +236,16 @@ const niceWhen = (iso: string) => {
 
 export async function view(): Promise<View> {
   const team = readAgents();
-  const pb = playbook();
-  const reps = reports();
-  const log = logLines();
+  const event = playbookEvent();
   let slots: SlotView[] = [];
   try {
-    slots = await listSlots(pb.event);
+    slots = event ? await listSlots(event) : [];
   } catch {
     slots = [];
   }
+  const pb = playbook(event, slots);
+  const reps = reports();
+  const log = logLines();
   const slotFor = (jobId: string) => slots.find((s) => s.kind !== "post" && (s.notes ?? "").includes(`job:${jobId}`));
   const now = Date.now();
   const jobs: Job[] = pb.jobs.map((j) => {

@@ -113,8 +113,9 @@ export function bulletDays(jobs: BJob[], slots: BSlot[], today: string, start: s
   for (const s of slots) {
     if (!s.at || (s.kind !== "post" && s.job)) continue;
     const st = s.kind === "post" ? postState(s) : s.status === "done" ? "done" : s.kind === "action" ? "you" : "not_due";
-    // posts by their state; James's own tasks need him (blue); other free tasks aren't a built job (orange)
-    const dot: Dot = s.kind === "post" ? postDot(st) : st === "done" ? "green" : s.kind === "action" ? "blue" : "orange";
+    // posts by their state; James's own tasks need him (blue); an extra email runs by itself (Klaviyo sends it, the Email
+    // agent keeps its line, 3 Nov 2026); other free tasks aren't a built job (orange)
+    const dot: Dot = s.kind === "post" ? postDot(st) : st === "done" || s.agent === "email" ? "green" : s.kind === "action" ? "blue" : "orange";
     const label = BULLET_STATE[st]?.label ?? st;
     put(etDate(s.at), s.agent, {
       text: s.title, title: `${s.title} · ${fmt(s.at, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} ET · ${label}${s.hold ? ` · ⏳ ${s.hold.text}` : ""}${s.collaborators?.length ? ` · collab with ${s.collaborators.map((h) => `@${h}`).join(", ")}` : ""}`,
