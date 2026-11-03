@@ -12,11 +12,11 @@ import {
   signInWithPopup,
   signOut,
   GoogleAuthProvider,
-  sendEmailVerification,
   updateProfile,
 } from "firebase/auth";
 import { auth, db } from "../lib/firebaseClient";
 import { devAllowUnverifiedLogin } from "../lib/firebasePublicEnv";
+import { sendVerificationEmail } from "../lib/authEmails";
 import { doc, getDoc } from "firebase/firestore";
 
 interface AuthContextType {
@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Modified registerWithEmail to send verification email and sign out
   const registerWithEmail = async (email: string, password: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    await sendEmailVerification(userCredential.user); // Send verification email
+    await sendVerificationEmail(userCredential.user); // Our branded email, or Firebase's if that's off
     await signOut(auth); // Sign out user after registration
     // Handle any UI feedback outside this function
   };

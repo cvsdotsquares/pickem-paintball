@@ -6,10 +6,10 @@ import {
     createUserWithEmailAndPassword,
     signInWithPopup,
     signOut,
-    sendEmailVerification
 } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL, StorageReference } from "firebase/storage";
 import { auth, db, googleProvider, storage } from "./firebaseClient";
+import { sendVerificationEmail } from "./authEmails";
 import { NextRouter } from "next/router";
 import { doc, setDoc } from "firebase/firestore";
 
@@ -20,7 +20,7 @@ export const loginWithEmail = (email: string, password: string) => {
 
 export const registerWithEmail = async (email: string, password: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    await sendEmailVerification(userCredential.user);
+    await sendVerificationEmail(userCredential.user);
     return userCredential;
 };
 
@@ -51,7 +51,7 @@ export const checkEmailVerification = (router: NextRouter, setError: (message: s
                 router.push('/dashboard');
             } else {
                 setError('Please verify your email before accessing the dashboard.');
-                sendEmailVerification(user);
+                sendVerificationEmail(user);
             }
         }
     });
