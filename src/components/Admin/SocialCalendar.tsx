@@ -1231,6 +1231,11 @@ function SlotDrawer({ s, agents, posts, busy, act, onClose }: { s: Slot; agents:
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [step]);
+  // load every slide up front so flipping is instant (each full render took seconds over Tailscale)
+  const slideKey = slides.join("|");
+  useEffect(() => {
+    for (const sl of slideKey ? slideKey.split("|") : []) new Image().src = genUrl(sl, "view");
+  }, [slideKey]);
 
   const saveWhen = (d: string, tm: string) => d && tm && act({ action: "save", id: s.id, at: `${d}T${tm}` });
   const setSlides = (next: string[]) => act({ action: "save", id: s.id, slides: next });
@@ -1277,7 +1282,7 @@ function SlotDrawer({ s, agents, posts, busy, act, onClose }: { s: Slot; agents:
           <>
             <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={genUrl(slides[at])} alt="" className={`w-full rounded-lg border border-gray-100 dark:border-white/5 ${s.placeholder ? "opacity-60 grayscale" : ""}`} />
+              <img src={genUrl(slides[at], "view")} alt="" className={`w-full rounded-lg border border-gray-100 dark:border-white/5 ${s.placeholder ? "opacity-60 grayscale" : ""}`} />
               {slides.length > 1 && (
                 <>
                   <button onClick={() => step(-1)} aria-label="Previous slide" className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-lg text-white hover:bg-black/80">
@@ -1292,6 +1297,9 @@ function SlotDrawer({ s, agents, posts, busy, act, onClose }: { s: Slot; agents:
                 </>
               )}
             </div>
+            <a href={genUrl(slides[at])} target="_blank" rel="noreferrer" className="self-end text-[11px] text-gray-500 hover:underline dark:text-white/50">
+              Full size ↗
+            </a>
             {s.placeholder && <p className="text-[11px] text-gray-500">Preview of a made version. This slot isn&apos;t linked to a post yet.</p>}
             {slides.length > 1 && (
               <div className="flex flex-wrap gap-2">

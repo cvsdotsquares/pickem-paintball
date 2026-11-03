@@ -24,8 +24,9 @@ export type RoundFile = { label: string; png: string; pdf: string; caption: stri
 export type Round = { name: string; options: RoundFile[]; post: RoundFile | null; notes: string; review: string; checks: string[] };
 export type Busy = { label: string; params: { event?: string; type?: string } } | null;
 
-export const genUrl = (rel: string, thumb = false) =>
-  `/api/admin/genfile?path=${encodeURIComponent(rel)}${thumb ? "&thumb=1" : ""}`;
+/** thumb: true = 480px card copy; "view" = 1080px copy for the slide viewer; false = the full render. */
+export const genUrl = (rel: string, thumb: boolean | "view" = false) =>
+  `/api/admin/genfile?path=${encodeURIComponent(rel)}${thumb === "view" ? "&view=1" : thumb ? "&thumb=1" : ""}`;
 export type Preview = { kind: "final" | "current" | "options" | "none"; images: string[] };
 
 /**
