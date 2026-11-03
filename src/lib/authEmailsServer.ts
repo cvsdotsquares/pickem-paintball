@@ -21,8 +21,17 @@ const METRIC: Record<AuthEmailType, string> = {
 const SITE_URL = process.env.AUTH_EMAIL_SITE_URL || "https://www.pickempaintball.com";
 const MAX_PER_HOUR = 5;
 
-export function authEmailsEnabled(): boolean {
-  return process.env.AUTH_EMAILS_VIA_KLAVIYO === "on" && !!process.env.KLAVIYO_PRIVATE_KEY;
+/**
+ * AUTH_EMAILS_VIA_KLAVIYO: "on" = everyone; "seeds" = only the addresses in AUTH_EMAILS_SEEDS (comma-separated),
+ * for the first live test; anything else = off (Firebase's own emails, as before).
+ */
+export function authEmailsEnabled(email?: string): boolean {
+  if (!process.env.KLAVIYO_PRIVATE_KEY) return false;
+  const mode = process.env.AUTH_EMAILS_VIA_KLAVIYO;
+  if (mode === "on") return true;
+  if (mode !== "seeds" || !email) return false;
+  const seeds = (process.env.AUTH_EMAILS_SEEDS || "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
+  return seeds.includes(email.trim().toLowerCase());
 }
 
 export function ensureAdmin(): boolean {

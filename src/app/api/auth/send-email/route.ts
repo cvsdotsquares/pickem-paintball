@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
  * reset takes the address from the body and answers the same whether or not an account exists.
  */
 export async function POST(request: Request) {
-  if (!authEmailsEnabled() || !ensureAdmin()) return NextResponse.json({ handled: false });
+  if (!process.env.AUTH_EMAILS_VIA_KLAVIYO || !ensureAdmin()) return NextResponse.json({ handled: false });
 
   let body: Record<string, unknown>;
   try {
@@ -53,6 +53,8 @@ export async function POST(request: Request) {
     }
     email = raw;
   }
+
+  if (!authEmailsEnabled(email)) return NextResponse.json({ handled: false });
 
   try {
     if (!(await underRateLimit(type, email))) return NextResponse.json({ handled: true });
