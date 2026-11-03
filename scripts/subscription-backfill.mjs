@@ -4,10 +4,11 @@
  *   STRIPE_SECRET_KEY=rk_live_… node scripts/subscription-backfill.mjs            # dry run, writes nothing
  *   STRIPE_SECRET_KEY=rk_live_… node scripts/subscription-backfill.mjs --apply    # write the fixes
  *   … --apply --include-missing   # also revoke subscriptions this Stripe account has never heard of
+ *   … --apply --include-free-ended  # also revoke ended subscriptions that never took a payment (free promo)
  *   … --json                      # the whole plan as JSON
  *
- * A restricted key with READ access to Subscriptions, Prices, Products and Webhook
- * Endpoints is enough; the script never writes to Stripe. Firestore uses the same
+ * A restricted key with READ access to Subscriptions, Invoices, Prices, Products and
+ * Webhook Endpoints is enough; the script never writes to Stripe. Firestore uses the same
  * `gcloud auth application-default login` as the other admin scripts.
  *
  * WHY (2 Nov 2026): Firestore said 54 subscribers, Stripe 33. The webhook only ever wrote
@@ -18,7 +19,8 @@
  * WHAT IT DOES, per user marked subscribed or carrying a stripeSubscriptionId:
  *   ok        live in Stripe, fields already right                          → nothing
  *   refresh   live in Stripe, but period end / tier / cancel flag stale     → rewrite fields
- *   ended     canceled / unpaid / incomplete_expired in Stripe              → revoke premium
+ *   ended     PAID at least once, then canceled / unpaid / expired in Stripe → revoke premium
+ *   freeEnded ended in Stripe but never took a payment (100% promo code)    → listed; revoked only with --include-free-ended
  *   missing   Stripe has no such subscription (e.g. a test-mode one)        → listed; revoked only with --include-missing
  *   manual    isSubscribed true with no Stripe subscription (comp/admin)    → listed, never touched
  * Dev/test accounts (dotsquares, yopmail, "test" addresses) are tagged [test] and counted
@@ -38,6 +40,7 @@ import Stripe from "stripe";
 const args = process.argv.slice(2);
 const APPLY = args.includes("--apply");
 const INCLUDE_MISSING = args.includes("--include-missing");
+const INCLUDE_FREE_ENDED = args.includes("--include-free-ended");
 const AS_JSON = args.includes("--json");
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -114,6 +117,20 @@ for (const sub of stripeSubs.values()) {
 }
 const stripeLive = [...stripeSubs.values()].filter((s) => hasAccess(s.status));
 
+/** Money actually taken on a subscription: paid invoices with amount_paid > 0. */
+async function paymentsOn(subId) {
+  let count = 0, total = 0, currency = null, last = null;
+  for await (const inv of stripe.invoices.list({ subscription: subId, status: "paid", limit: 100 })) {
+    if (inv.amount_paid > 0) {
+      count += 1;
+      total += inv.amount_paid;
+      currency = inv.currency;
+      last = Math.max(last ?? 0, inv.created);
+    }
+  }
+  return { count, total: total / 100, currency, lastPaid: last ? new Date(last * 1000).toISOString().slice(0, 10) : null };
+}
+
 // ── Firestore side ────────────────────────────────────────────────────────────
 const users = (await db.collection("users").get()).docs;
 const rows = [];
@@ -151,9 +168,14 @@ for (const d of users) {
 
   const after = fieldsFor(sub);
   const changes = changedKeys(before, after);
-  const category = !hasAccess(sub.status) ? (u.isSubscribed === true ? "ended" : "ok") : changes.length ? "refresh" : "ok";
+  let category = !hasAccess(sub.status) ? (u.isSubscribed === true ? "ended" : "ok") : changes.length ? "refresh" : "ok";
+  // Free accounts given through a 100% promo code never took money; keep them apart from paying customers.
+  const paid = category === "ended" || hasAccess(sub.status) ? await paymentsOn(sub.id) : null;
+  if (category === "ended" && paid.count === 0) category = "freeEnded";
   rows.push({
-    ...base, category, after, changes,
+    ...base, category, after, changes, paid,
+    freeInStripe: hasAccess(sub.status) && paid?.count === 0,
+    canceledAt: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString().slice(0, 10) : null,
     stripeStatus: sub.status,
     cancelAtPeriodEnd: !!sub.cancel_at_period_end,
     endedAt: sub.ended_at ? new Date(sub.ended_at * 1000).toISOString().slice(0, 10) : null,
@@ -166,7 +188,9 @@ const unlinked = stripeLive
 
 // ── report ────────────────────────────────────────────────────────────────────
 const by = (c) => rows.filter((r) => r.category === c);
-const toWrite = rows.filter((r) => ["refresh", "ended"].includes(r.category) || (INCLUDE_MISSING && r.category === "missing"));
+const toWrite = rows.filter((r) => ["refresh", "ended"].includes(r.category)
+  || (INCLUDE_MISSING && r.category === "missing")
+  || (INCLUDE_FREE_ENDED && r.category === "freeEnded"));
 const firestoreSubscribed = rows.filter((r) => r.before.isSubscribed === true).length;
 const testSubscribed = rows.filter((r) => r.test && r.before.isSubscribed === true);
 
@@ -187,24 +211,29 @@ if (AS_JSON) {
     console.log(`  ${ep.url} [${ep.status}] ${ep.events.length} events${missing.length ? ` — NOT sent: ${missing.join(", ")}` : ""}`);
   }
 
-  const line = (r) => `    ${r.test ? "[test] " : ""}${r.uid}  ${r.subId ?? "-"}  ${r.stripeStatus ?? ""}${r.endedAt ? ` ended ${r.endedAt}` : ""}${r.changes?.length ? `  fix: ${r.changes.join(", ")}` : ""}`;
+  const money = (p) => (p?.count ? `  paid ${p.count}× (${p.total} ${p.currency?.toUpperCase()}, last ${p.lastPaid})` : "");
+  const line = (r) => `    ${r.test ? "[test] " : ""}${r.uid}  ${r.subId ?? "-"}  ${r.stripeStatus ?? ""}${r.canceledAt ? ` cancelled ${r.canceledAt}` : ""}${r.endedAt ? ` ended ${r.endedAt}` : ""}${money(r.paid)}${r.freeInStripe ? "  FREE (no payment yet)" : ""}${r.changes?.length ? `  fix: ${r.changes.join(", ")}` : ""}`;
   for (const [cat, label] of [
-    ["ended", "Cancelled/ended in Stripe, still premium here → revoke"],
+    ["ended", "PAID, then cancelled/ended in Stripe, still premium here → revoke"],
+    ["freeEnded", `Free (never paid) and ended in Stripe, still premium here → ${INCLUDE_FREE_ENDED ? "revoke" : "listed only (add --include-free-ended to revoke)"}`],
     ["missing", `Not found in this Stripe account → ${INCLUDE_MISSING ? "revoke" : "listed only (add --include-missing to revoke)"}`],
     ["manual", "Premium with no Stripe subscription (comp/admin?) → left alone"],
-    ["refresh", "Paying, fields stale → refresh"],
+    ["refresh", "Live in Stripe, fields stale → refresh"],
     ["ok", "Already right"],
   ]) {
     const list = by(cat);
     console.log(`\n${label}: ${list.length}`);
     if (cat !== "ok") list.forEach((r) => console.log(line(r)));
   }
+  const freeLive = rows.filter((r) => r.freeInStripe);
+  console.log(`\nLive in Stripe but never charged (free promo code): ${freeLive.length}${freeLive.length ? ` — ${freeLive.map((r) => r.uid).join(", ")}` : ""}`);
   console.log(`\nDev/test accounts among the premium ones (also counted in the groups above): ${testSubscribed.length}`);
   testSubscribed.forEach((r) => console.log(`    ${r.uid}  ${r.category}`));
   console.log(`\nLive in Stripe but no user doc points at the subscription: ${unlinked.length}`);
   unlinked.forEach((s) => console.log(`    ${s.subId}  ${s.status}  ${s.plan}  user by customer id: ${s.uidByCustomer ?? "none"}`));
 
-  const afterCount = firestoreSubscribed - by("ended").length - (INCLUDE_MISSING ? by("missing").length : 0);
+  const afterCount = firestoreSubscribed - by("ended").length - (INCLUDE_MISSING ? by("missing").length : 0)
+    - (INCLUDE_FREE_ENDED ? by("freeEnded").length : 0);
   console.log(`\nAfter ${APPLY ? "this run" : "--apply"}: ${afterCount} users premium (${by("manual").length} of them manual).`);
 }
 
