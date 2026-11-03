@@ -46,11 +46,17 @@ export async function GET(request: Request) {
       // fall back to the full render
     }
   }
+  const type = TYPES[path.extname(p).toLowerCase()] ?? "application/octet-stream";
+  if (view) {
+    // the slide viewer preloads a carousel's slides: the browser keeps them but asks every time, so a re-made post
+    // shows at once (a 10-min keep showed the old cards after Populate, James 2 Nov) and an unchanged one is a quick 304
+    const modified = new Date(Math.floor(fs.statSync(p).mtimeMs / 1000) * 1000);
+    const since = request.headers.get("if-modified-since");
+    const headers = { "Cache-Control": "private, no-cache", "Last-Modified": modified.toUTCString() };
+    if (since && new Date(since).getTime() >= modified.getTime()) return new NextResponse(null, { status: 304, headers });
+    return new NextResponse(new Uint8Array(fs.readFileSync(p)), { headers: { ...headers, "Content-Type": type } });
+  }
   return new NextResponse(new Uint8Array(fs.readFileSync(p)), {
-    headers: {
-      "Content-Type": TYPES[path.extname(p).toLowerCase()] ?? "application/octet-stream",
-      // the slide viewer preloads a carousel's slides, so those may be kept briefly; everything else is always fresh
-      "Cache-Control": view ? "private, max-age=600" : "no-store",
-    },
+    headers: { "Content-Type": type, "Cache-Control": "no-store" },
   });
 }
