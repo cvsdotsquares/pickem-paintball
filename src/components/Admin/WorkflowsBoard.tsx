@@ -98,13 +98,15 @@ function humanAction(l: LogLine, byId: Record<string, AgentRow>, jobName: (id: s
  * is for its own work and responsibilities. Stage 2 gives Data and Social their skills.
  */
 function chatLink(a: AgentRow): string {
-  const skill = { gm: "pickem-manager", data: "pickem-data", social: "pickem-social-growth" }[a.id] ?? "";
+  const skill = { gm: "pickem-manager", data: "pickem-data", social: "pickem-social-growth", email: "pickem-email" }[a.id] ?? "";
   const lines = [
     `Let's talk. You are the ${a.name} ${a.icon} on Pick'Em Paintball's team of agents (plan: ideas/2026-10-18-agents-plan.md; the team: scheduler/agents.json; every job: scheduler/playbook.json; how runs work: agents/README.md).`,
     a.id === "data"
       ? "Follow the pickem-data skill. Every Data job is built and runs on its own (docs/DATA_FLOW.md): the Manager's day planner starts dated jobs at their Schedule slot time, timers run the rest, and my ✅s in Slack wake the listener. Use this chat to run one by hand, change one (its task file + the playbook; my OK before `built` changes), or explain a result. Log anything you touch with agents/log.py. Changes to your responsibilities or to the team's rules go to the Manager."
       : a.id === "social"
       ? "Follow the pickem-social-growth skill. You plan and run our Instagram + Facebook content and coach me on growth: when you suggest something, say why in one line (which signal, which past result). World Cup 2026 is the learning event: we do each social job together here, and as each one is done you write or update its task file in the skill's tasks/ folder, record it with python3 agents/record.py social <job_id> --result ok --minutes <n> --summary \"…\", and log what you touched. You only draft on the Schedule (agents/schedule.py); you never approve or post. Changes to your responsibilities or the team's rules go to the Manager."
+      : a.id === "email"
+      ? "Follow the pickem-email skill. You run every Pick'Em email through Klaviyo and report to the Social media agent. The daily site → Klaviyo sync and the send checks run on their own (com.pickem.emailsync); event emails are drafted in my voice (agents/email/events/<event>.json, layout agents/email/template.py), max 3 pick emails per event, only to people who haven't picked, and nothing is scheduled or sent without my yes after a test send. Use this chat to draft or change emails, adjust lists and segments, read results, or build the next job (results email, evergreen flows, the monthly report): write its task file in the skill's tasks/ folder and record it with python3 agents/record.py email <job_id> --result ok --minutes <n> --summary \"…\". Log what you touch with agents/log.py email …. Changes to your responsibilities or the team's rules go to the Manager."
       : a.id === "gm"
       ? "Follow the pickem-manager skill (section “Chat with James”). This chat is where we discuss tasks, the agents' responsibilities and our ways of working. When I ask for a change: a responsibility → agents.json blurb and the playbook; a task → the playbook (and a Schedule slot through the admin API if it's dated); a way of working → your skill and the plan doc. Cascade anything that belongs to the Data agent or the Social media agent: change their playbook jobs and leave them a dated note under “From the Manager” in their skill (pickem-data / pickem-social-growth) and, for a Data job, its task file."
       : `${skill ? `Your skill will be ${skill} (stage 2); until it exists, this chat is for your responsibilities and how your jobs should work, not for doing them. ` : ""}When I ask for a change to your work: edit your jobs in scheduler/playbook.json (when, needs-first, done-looks-like, checks, writes vs asks) and note decisions in ideas/2026-10-18-agents-plan.md under “Notes for stage 2”. Anything that changes another agent's work or the team's rules goes to the Manager: say so and I'll take it there.`,
@@ -419,13 +421,23 @@ function OrgChart({ team, cards, selected, onSelect }: { team: AgentRow[]; cards
                   <>
                     <div className="h-4 w-px bg-gray-300 dark:bg-white/20" />
                     <div className="flex gap-1 sm:gap-2">
-                      {kids(ag.id).map((k) => (
-                        <div key={k.id} className="flex w-12 flex-col items-center rounded-xl border border-dashed border-gray-200 p-1 text-center dark:border-white/10 sm:w-24 sm:p-2" title={k.blurb}>
-                          <span className="text-lg sm:text-xl">{k.icon}</span>
-                          <span className="text-[7px] font-black uppercase leading-tight tracking-wide sm:text-[9px]">{k.name}</span>
-                          <span className="text-[8px] uppercase tracking-widest text-gray-400">{k.kind}</span>
-                        </div>
-                      ))}
+                      {kids(ag.id).map((k) =>
+                        cardOf(k.id) ? (
+                          // an agent with its own desk under another agent (Email under Social, James 3 Nov 2026): clickable
+                          <button key={k.id} onClick={() => onSelect(k.id)} title={k.blurb}
+                            className={`flex w-12 flex-col items-center rounded-xl border p-1 text-center transition-colors sm:w-24 sm:p-2 ${selected === k.id ? "border-gray-900 dark:border-white" : "border-gray-200 hover:border-gray-400 dark:border-white/10 dark:hover:border-white/30"} ${k.status === "on" ? "" : "opacity-50"}`}>
+                            <span className="text-lg sm:text-xl">{k.icon}</span>
+                            <span className="text-[7px] font-black uppercase leading-tight tracking-wide sm:text-[9px]">{k.name}</span>
+                            <span className="text-[8px] uppercase tracking-widest text-gray-400">{k.kind}</span>
+                          </button>
+                        ) : (
+                          <div key={k.id} className="flex w-12 flex-col items-center rounded-xl border border-dashed border-gray-200 p-1 text-center dark:border-white/10 sm:w-24 sm:p-2" title={k.blurb}>
+                            <span className="text-lg sm:text-xl">{k.icon}</span>
+                            <span className="text-[7px] font-black uppercase leading-tight tracking-wide sm:text-[9px]">{k.name}</span>
+                            <span className="text-[8px] uppercase tracking-widest text-gray-400">{k.kind}</span>
+                          </div>
+                        )
+                      )}
                     </div>
                   </>
                 )}

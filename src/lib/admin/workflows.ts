@@ -179,7 +179,7 @@ function stepView(j: Omit<Job, "vstate" | "when1" | "when2" | "how" | "next_at" 
 const TIMER_NAME: Record<string, string> = {
   "com.pickem.manager": "Manager 7 AM", "com.pickem.dayplan": "Day planner 00:01", "com.pickem.listener": "Slack listener",
   "com.pickem.livecrawl": "Live crawl", "com.pickem.eventday": "Event-day runner", "com.pickem.longdatacheck": "Long data check",
-  "com.pickem.safetydiff": "Safety diff", "com.pickem.surveyrefresh": "Survey refresh",
+  "com.pickem.safetydiff": "Safety diff", "com.pickem.surveyrefresh": "Survey refresh", "com.pickem.emailsync": "Email sync",
 };
 
 /** Every launchd com.pickem.* timer (handoff 24 Oct 2026: the Manager sat at exit 78 for two days and nobody saw). */
@@ -275,10 +275,13 @@ export async function view(): Promise<View> {
   }
 
   const panelRuns = listRuns();
+  const hasDesk = (a: AgentRow) => a.kind === "agent" && a.id !== "james" && a.id !== "reviewer";
   const cards: Card[] = team
-    .filter((a) => a.kind === "agent" && a.id !== "james" && a.id !== "reviewer")
+    .filter(hasDesk)
     .map((agent) => {
-      const mine = jobs.filter((j) => j.agent === agent.id || team.find((c) => c.id === j.agent)?.parent === agent.id);
+      // a child agent with its own desk (Email under Social, 3 Nov 2026) keeps its jobs and log lines on its own card
+      const sub = (id: string) => { const c = team.find((x) => x.id === id); return !!c && c.parent === agent.id && !hasDesk(c); };
+      const mine = jobs.filter((j) => j.agent === agent.id || sub(j.agent));
       const lastRun = reps.find((r) => r.agent === agent.id) ?? null;
       const next = mine.filter((j) => j.next_at && j.built && agent.status === "on").sort((a, b) => Date.parse(a.next_at) - Date.parse(b.next_at))[0];
       const nextRun = agent.id === "gm" ? { when: "7:00 AM ET daily", why: "the brief; the day planner sets today's wake-ups at 00:01 and whenever you move a slot", job: "daily_brief" } : next ? { when: niceWhen(next.next_at), why: `${next.short || next.name} · starts itself`, job: next.id } : null;
@@ -288,8 +291,7 @@ export async function view(): Promise<View> {
       // in time order (James 24 Oct 2026): by first date, then time; on-message jobs last
       const order = (j: Job) => (j.repeat === "on_message" ? "9" : j.first_due ? new Date(j.first_due).toISOString() : "8");
       const workflows = pb.workflows.filter((w) => w.agent === agent.id).map((w) => ({ id: w.id, name: w.name, steps: mine.filter((j) => j.workflow === w.id).sort((a, b) => order(a).localeCompare(order(b))) }));
-      const childIds = team.filter((c) => c.parent === agent.id).map((c) => c.id);
-      const actions = log.filter((l) => l.agent === agent.id || childIds.includes(l.agent)).slice(0, 10);
+      const actions = log.filter((l) => l.agent === agent.id || sub(l.agent)).slice(0, 10);
       const jobRuns = agent.id === "social" ? panelRuns.filter((r) => r.job === "check-inspo").slice(0, 3).map((r) => ({ id: r.id, label: r.label, status: r.status, startedAt: r.startedAt, summary: r.summary ?? "" })) : [];
       return { agent, children: team.filter((c) => c.parent === agent.id), lastRun, nextRun, waitingOn, workflows, actions, jobRuns };
     });

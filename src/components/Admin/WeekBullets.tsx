@@ -125,7 +125,7 @@ export function bulletDays(jobs: BJob[], slots: BSlot[], today: string, start: s
   return byDay;
 }
 
-const ORDER = ["gm", "data", "social", "posts", "inspo", "james"];
+const ORDER = ["gm", "data", "social", "posts", "inspo", "email", "james"];
 
 export default function WeekBullets({
   jobs, slots, anchors, today, byId, months = false, weeks = 2, tall = false, from, onItem, onModeChange,
