@@ -3,6 +3,7 @@ import path from "path";
 import { NextResponse } from "next/server";
 import { HUB } from "@/src/lib/admin/library";
 import { adminGate } from "@/src/lib/admin/gate";
+import { eventEmails } from "@/src/lib/admin/emails";
 import { validId } from "@/src/lib/admin/generator";
 import {
   addSlot,
@@ -47,7 +48,7 @@ function replan(why: string) {
 }
 
 /**
- * GET ?event= → the event's calendar: slots, what's not on it yet (tray), key dates, made posts for carousels.
+ * GET ?event= → the event's calendar: slots, what's not on it yet (tray), key dates, made posts for carousels, emails.
  * GET ?event=&type= → what Generator step 5 needs for one graphic (made posts + captions, what's scheduled, a recommended time).
  */
 export async function GET(request: Request) {
@@ -77,6 +78,7 @@ export async function GET(request: Request) {
       tray: event ? tray(event, slots) : [],
       dates: keyDates(event),
       posts: event ? eventPosts(event) : [],
+      emails: event ? eventEmails(event) : [],
     });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

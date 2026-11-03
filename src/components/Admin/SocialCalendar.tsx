@@ -16,6 +16,7 @@ import { readCollab, showCollab } from "@/src/lib/admin/collab";
  * type ("Spread these" lays a whole group over a date range). Click a post for its panel: the path behind it
  * (data → populate → approve → post) and Approve. Approved posts go out on Instagram + Facebook by themselves (cloud
  * job, every 5 min). Times are US Eastern. Plan: pickem-hub/ideas/2026-10-17-scheduler-plan.md.
+ * The event's emails show too (✉️, James 3 Nov 2026), read-only: the Email agent gets James's OK in chat and Klaviyo sends.
  * TaskDrawer / TaskDialog (agent work and James's tasks) are exported for the Schedule tab.
  */
 
@@ -58,6 +59,17 @@ export type Slot = {
   collaborators?: string[]; // Instagram collab usernames (no "@"), max 3: Player + Team + NXL by the rule
   collabSet?: boolean; // changed by hand
 };
+type Email = {
+  id: string;
+  name: string;
+  subject: string;
+  preview: string;
+  audience: string;
+  sendAt: string | null;
+  status: "scheduled" | "checking" | "sent" | "failed" | "unscheduled";
+  note: string;
+  campaignId: string;
+};
 type TrayItem = { type: string; variant: string; title: string; label: string; phase: string; priority: string; png: string; placeholder: boolean; templated: boolean };
 type NeedsYou = { id: string; text: string; due: string | null; tone: "orange" | "red" };
 type Data = {
@@ -69,6 +81,7 @@ type Data = {
   tray: TrayItem[];
   dates: { date: string; label: string }[];
   posts: { png: string; title: string }[];
+  emails?: Email[];
   error?: string;
 };
 type Mode = "month" | "week";
@@ -178,6 +191,7 @@ export default function SocialCalendar() {
   const [confirmMove, setConfirmMove] = useState<{ id: string; title: string; from: string; to: string } | null>(null); // an approved post dropped on a new day // phone: the tray opens full screen from a button
   const [earlier, setEarlier] = useState(false); // phone list: also show the last two weeks
   const [open, setOpen] = useState<string | null>(null);
+  const [openEmail, setOpenEmail] = useState<Email | null>(null);
   const [adding, setAdding] = useState<TrayItem | null>(null);
   const [spreading, setSpreading] = useState<{ type: string; label: string; items: TrayItem[] } | null>(null);
   const [legend, setLegend] = useState(false);
@@ -252,6 +266,11 @@ export default function SocialCalendar() {
     const m: Record<string, Slot[]> = {};
     for (const s of withRepeats(data?.slots ?? [])) (m[et(s.publishAt).date || "unscheduled"] ??= []).push(s);
     for (const k of Object.keys(m)) m[k].sort((a, b) => (a.publishAt ?? "").localeCompare(b.publishAt ?? ""));
+    return m;
+  }, [data]);
+  const emailsByDay = useMemo(() => {
+    const m: Record<string, Email[]> = {};
+    for (const e of data?.emails ?? []) if (e.sendAt) (m[et(e.sendAt).date] ??= []).push(e);
     return m;
   }, [data]);
   const datesByDay = useMemo(() => {
@@ -375,7 +394,7 @@ export default function SocialCalendar() {
   /** Phone: days that have posts (or a milestone), from today (or two weeks back), each post a tappable row with its preview. */
   const phoneList = () => {
     const from = earlier ? addDays(today, -14) : today;
-    const list = days.filter((d) => d >= from && ((byDay[d] ?? []).length || (datesByDay[d] ?? []).length || d === today));
+    const list = days.filter((d) => d >= from && ((byDay[d] ?? []).length || (emailsByDay[d] ?? []).length || (datesByDay[d] ?? []).length || d === today));
     return (
       <div className="w-full space-y-3 md:hidden">
         <button onClick={() => setEarlier((v) => !v)} className="text-[12px] text-gray-500 underline dark:text-white/50">
@@ -389,10 +408,13 @@ export default function SocialCalendar() {
                 <span key={l} className="rounded bg-[#00f976]/20 px-1 text-[10px] font-bold text-green-800 dark:text-[#00f976]">{l}</span>
               ))}
             </div>
-            {(byDay[day] ?? []).length === 0 && <div className="text-[12px] text-gray-400">No posts</div>}
+            {(byDay[day] ?? []).length === 0 && (emailsByDay[day] ?? []).length === 0 && <div className="text-[12px] text-gray-400">No posts</div>}
             <div className="space-y-2">
               {(byDay[day] ?? []).map((s) => (
                 <SlotChip key={s.id} s={s} agents={agents} size="row" onClick={() => setOpen(s.id)} />
+              ))}
+              {(emailsByDay[day] ?? []).map((e) => (
+                <EmailChip key={e.id} e={e} agents={agents} size="row" onClick={() => setOpenEmail(e)} />
               ))}
             </div>
           </div>
@@ -425,6 +447,9 @@ export default function SocialCalendar() {
       ))}
       {(byDay[day] ?? []).map((s) => (
         <SlotChip key={s.id} s={s} agents={agents} size={big ? "big" : "small"} onClick={() => setOpen(s.id)} />
+      ))}
+      {(emailsByDay[day] ?? []).map((e) => (
+        <EmailChip key={e.id} e={e} agents={agents} size={big ? "big" : "small"} onClick={() => setOpenEmail(e)} />
       ))}
     </div>
   );
@@ -471,7 +496,7 @@ export default function SocialCalendar() {
         </div>
         <span className="hidden text-sm font-black md:inline">{heading}</span>
         <span className="ml-auto hidden items-center gap-2 text-[10px] text-gray-400 dark:text-white/40 md:flex">
-          <span>Times are US Eastern · posts go to Instagram + Facebook</span>
+          <span>Times are US Eastern · posts go to Instagram + Facebook · ✉️ emails go by Klaviyo</span>
           <span className="relative">
             <button onClick={() => setLegend((v) => !v)} className={pill(legend)} aria-label="What the colours mean">
               ?
@@ -679,6 +704,7 @@ export default function SocialCalendar() {
           </div>
         </Modal>
       )}
+      {openEmail && <EmailPanel e={openEmail} agents={agents} onClose={() => setOpenEmail(null)} />}
       {slot && slot.kind === "post" && <SlotDrawer key={slot.id} s={slot} agents={agents} posts={data?.posts ?? []} busy={busy} act={act} onClose={() => setOpen(null)} />}
     </main>
   );
@@ -864,6 +890,102 @@ function SlotChip({ s, agents, size, onClick }: { s: Slot; agents: Agent[]; size
         )}
       </span>
     </button>
+  );
+}
+
+const EMAIL_PILL: Record<Email["status"], { label: string; tone: string }> = {
+  unscheduled: { label: "Not scheduled", tone: "grey" },
+  scheduled: { label: "Scheduled", tone: "blue" },
+  checking: { label: "Sending…", tone: "blue" },
+  sent: { label: "Sent ✓", tone: "green" },
+  failed: { label: "Failed", tone: "red" },
+};
+
+/** The Email agent's audience codes (agents/email/events/<event>.json) in words: [short for the chip, long for the panel]. */
+const AUDIENCE: Record<string, [string, string]> = {
+  "master minus picks_saved": ["no picks yet", "Everyone on the site list who hasn't saved picks for this event"],
+  "draft_not_saved minus picks_saved": ["unsaved rosters", "People who started a roster but haven't saved it"],
+  "picks_saved (World Cup players) + seeds": ["event players", "Everyone who saved picks for this event (+ seeds)"],
+  "season_players minus picks_saved minus seeds": ["season-only players", "2026 season players who didn't play this event"],
+};
+
+/** An email on its day (read-only: it can't be dragged; times change with the Email agent in chat). */
+function EmailChip({ e, agents, size, onClick }: { e: Email; agents: Agent[]; size: "small" | "big" | "row"; onClick: () => void }) {
+  const p = EMAIL_PILL[e.status];
+  const a = findAgent(agents, "email");
+  const time = et(e.sendAt).time;
+  return (
+    <button
+      onClick={onClick}
+      title={`Email: ${e.subject} · ${p.label} · sent by Klaviyo; change it with the Email agent`}
+      style={{ borderLeftColor: a.colour }}
+      className={`flex w-full items-center ${size === "row" ? "gap-3 p-2 text-[12px]" : "gap-1.5 p-1 text-[10px]"} rounded-md border border-l-4 border-gray-100 bg-white text-left hover:border-gray-400 dark:border-white/5 dark:bg-[#141414] dark:hover:border-white/30`}
+    >
+      <span className={`${size === "small" ? "h-8 w-8 text-[14px]" : "h-10 w-10 text-[18px]"} flex shrink-0 items-center justify-center rounded-full`} style={{ background: a.colour + "22" }}>
+        ✉️
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1 font-bold">
+          {size === "small" && <span className={`h-2 w-2 shrink-0 rounded-full ${dot[p.tone]}`} />}
+          {time ? nice(time) : "—"}
+          <span className="font-normal text-gray-400">· email</span>
+        </span>
+        <span className={`block ${size === "small" ? "truncate" : ""}`}>{e.subject}</span>
+        {AUDIENCE[e.audience] && <span className="block truncate text-[9px] text-gray-400">to {AUDIENCE[e.audience][0]}</span>}
+        {size !== "small" && (
+          <span className="mt-1 flex items-center gap-1.5">
+            <span className={`inline-block rounded-full px-2 py-0.5 font-bold ${tone(p.tone)}`}>{p.label}</span>
+            <span className="text-gray-400">{a.name}</span>
+          </span>
+        )}
+      </span>
+    </button>
+  );
+}
+
+function EmailPanel({ e, agents, onClose }: { e: Email; agents: Agent[]; onClose: () => void }) {
+  const p = EMAIL_PILL[e.status];
+  const a = findAgent(agents, "email");
+  const when = et(e.sendAt);
+  return (
+    <Modal onClose={onClose}>
+      <div className="flex items-start gap-2">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[18px]" style={{ background: a.colour + "22" }}>
+          ✉️
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-black">{e.subject}</div>
+          <div className="text-[11px] text-gray-500 dark:text-white/50">{e.name}</div>
+        </div>
+        <button onClick={onClose} aria-label="Close">
+          <IoMdClose />
+        </button>
+      </div>
+      <span className={`self-start rounded-full px-2 py-0.5 text-[11px] font-bold ${tone(p.tone)}`}>{p.label}</span>
+      <dl className="grid grid-cols-[80px_1fr] gap-x-2 gap-y-1.5 text-[12px]">
+        <dt className="text-gray-400">{e.status === "sent" ? "Sent" : "Sends"}</dt>
+        <dd>
+          {e.sendAt ? `${dayLabel(when.date)} ${nice(when.time)} ET` : "Not scheduled yet"}
+          {e.sendAt && <span className="block text-[11px] text-gray-400">{local(e.sendAt)} your time</span>}
+          {e.note && <span className="block text-[11px] text-gray-500 dark:text-white/50">{e.note}</span>}
+        </dd>
+        {e.preview && (
+          <>
+            <dt className="text-gray-400">Preview</dt>
+            <dd>{e.preview}</dd>
+          </>
+        )}
+        {e.audience && (
+          <>
+            <dt className="text-gray-400">To</dt>
+            <dd>{AUDIENCE[e.audience]?.[1] ?? e.audience}</dd>
+          </>
+        )}
+      </dl>
+      <div className="rounded-lg bg-gray-50 px-3 py-2 text-[11px] text-gray-600 dark:bg-white/5 dark:text-white/60">
+        Klaviyo sends this by itself. To change the copy, audience or time, ask the Email agent (Chat to Email on the Workflows page).
+      </div>
+    </Modal>
   );
 }
 
