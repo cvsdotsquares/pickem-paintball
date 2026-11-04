@@ -13,6 +13,7 @@
  * status, whether payments are paused, how many charges went through and how many were
  * skipped — and --apply never changes an Event plan user without --include-event-ended.
  *   … --keep uid1,uid2            # never change these users (free access James switched on by hand)
+ *   … --names                     # show first name + last initial beside each id, for James to recognise people
  *   … --json                      # the whole plan as JSON
  *
  * A restricted key with READ access to Subscriptions, Invoices, Prices, Products and
@@ -51,6 +52,7 @@ const INCLUDE_MISSING = args.includes("--include-missing");
 const INCLUDE_FREE_ENDED = args.includes("--include-free-ended");
 const INCLUDE_EVENT_ENDED = args.includes("--include-event-ended");
 const AS_JSON = args.includes("--json");
+const NAMES = args.includes("--names");
 // Free access is switched on by hand, sometimes for someone who once paid and cancelled; their doc
 // still points at the old subscription, so it looks "paid then cancelled". --keep protects them.
 const KEEP = new Set(args.includes("--keep") ? (args[args.indexOf("--keep") + 1] ?? "").split(",").map((x) => x.trim()).filter(Boolean) : []);
@@ -161,7 +163,8 @@ for (const d of users) {
   if (u.isSubscribed !== true && !u.stripeSubscriptionId) continue;
 
   const before = Object.fromEntries(KEYS.map((k) => [k, u[k] ?? null]));
-  const base = { uid: d.id, subId: u.stripeSubscriptionId || null, test: isTestAccount(u.email), before };
+  const name = NAMES ? `${u.firstName ?? ""} ${String(u.lastName ?? "").slice(0, 1)}`.trim() || null : null;
+  const base = { uid: d.id, name, subId: u.stripeSubscriptionId || null, test: isTestAccount(u.email), before };
 
   if (KEEP.has(d.id)) {
     rows.push({ ...base, category: "kept", note: "--keep" });
@@ -238,7 +241,7 @@ if (AS_JSON) {
   }
 
   const money = (p) => (p?.count ? `  paid ${p.count}× (${p.total} ${p.currency?.toUpperCase()}, last ${p.lastPaid})` : "");
-  const line = (r) => `    ${r.test ? "[test] " : ""}${r.uid}  ${r.subId ?? "-"}  ${r.stripeStatus ?? ""}${r.canceledAt ? ` cancelled ${r.canceledAt}` : ""}${r.endedAt ? ` ended ${r.endedAt}` : ""}${money(r.paid)}${r.freeInStripe ? "  FREE (no payment yet)" : ""}${r.changes?.length ? `  fix: ${r.changes.join(", ")}` : ""}`;
+  const line = (r) => `    ${r.test ? "[test] " : ""}${r.uid}${r.name ? ` (${r.name})` : ""}  ${r.subId ?? "-"}  ${r.stripeStatus ?? ""}${r.canceledAt ? ` cancelled ${r.canceledAt}` : ""}${r.endedAt ? ` ended ${r.endedAt}` : ""}${money(r.paid)}${r.freeInStripe ? "  FREE (no payment yet)" : ""}${r.changes?.length ? `  fix: ${r.changes.join(", ")}` : ""}`;
   for (const [cat, label] of [
     ["ended", "PAID, then cancelled/ended in Stripe, still premium here → revoke"],
     ["eventEnded", `Event plan, PAID, then really ended in Stripe → ${INCLUDE_EVENT_ENDED ? "revoke" : "listed only (add --include-event-ended to revoke)"}`],
