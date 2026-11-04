@@ -44,6 +44,21 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+/** Once a day per browser: save this visit's country so our emails quote the price in the right currency (/api/user/region). */
+function saveRegionDaily(user: User) {
+  try {
+    const key = `pickem_region_${user.uid}`;
+    if (Date.now() - Number(localStorage.getItem(key) || 0) < 24 * 3600 * 1000) return;
+    localStorage.setItem(key, String(Date.now()));
+  } catch {
+    return;
+  }
+  user
+    .getIdToken()
+    .then((token) => fetch("/api/user/region", { method: "POST", headers: { Authorization: `Bearer ${token}` } }))
+    .catch(() => undefined);
+}
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -51,6 +66,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) saveRegionDaily(currentUser);
       setUser(currentUser);
       setUserId(currentUser ? currentUser.uid : null);
       setLoading(false);

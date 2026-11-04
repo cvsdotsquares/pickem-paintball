@@ -7,7 +7,7 @@ import { doc, getDoc } from 'firebase/firestore';
 
 export type SubscriptionModalType = 'passive' | 'soft-gate' | 'hard-gate';
 /** What the person was trying to do when the pop-up opened; it picks the headline and leads the benefits list. */
-export type SubscribeReason = 'general' | 'career' | 'share' | 'leagues' | 'badges' | 'picks';
+export type SubscribeReason = 'general' | 'career' | 'share' | 'leagues' | 'badges' | 'picks' | 'email';
 
 interface SubscriptionContextType {
   isSubscribed: boolean;
