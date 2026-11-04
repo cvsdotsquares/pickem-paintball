@@ -12,6 +12,7 @@
  * these users keep premium. The dry run lists every Event plan subscription on its own —
  * status, whether payments are paused, how many charges went through and how many were
  * skipped — and --apply never changes an Event plan user without --include-event-ended.
+ *   … --keep uid1,uid2            # never change these users (free access James switched on by hand)
  *   … --json                      # the whole plan as JSON
  *
  * A restricted key with READ access to Subscriptions, Invoices, Prices, Products and
@@ -50,6 +51,9 @@ const INCLUDE_MISSING = args.includes("--include-missing");
 const INCLUDE_FREE_ENDED = args.includes("--include-free-ended");
 const INCLUDE_EVENT_ENDED = args.includes("--include-event-ended");
 const AS_JSON = args.includes("--json");
+// Free access is switched on by hand, sometimes for someone who once paid and cancelled; their doc
+// still points at the old subscription, so it looks "paid then cancelled". --keep protects them.
+const KEEP = new Set(args.includes("--keep") ? (args[args.indexOf("--keep") + 1] ?? "").split(",").map((x) => x.trim()).filter(Boolean) : []);
 
 if (!process.env.STRIPE_SECRET_KEY) {
   console.error("Set STRIPE_SECRET_KEY (a read-only restricted live key is enough).");
@@ -159,6 +163,10 @@ for (const d of users) {
   const before = Object.fromEntries(KEYS.map((k) => [k, u[k] ?? null]));
   const base = { uid: d.id, subId: u.stripeSubscriptionId || null, test: isTestAccount(u.email), before };
 
+  if (KEEP.has(d.id)) {
+    rows.push({ ...base, category: "kept", note: "--keep" });
+    continue;
+  }
   if (!u.stripeSubscriptionId) {
     rows.push({ ...base, category: "manual", note: "isSubscribed with no Stripe subscription" });
     continue;
@@ -237,6 +245,7 @@ if (AS_JSON) {
     ["freeEnded", `Free (never paid) and ended in Stripe, still premium here → ${INCLUDE_FREE_ENDED ? "revoke" : "listed only (add --include-free-ended to revoke)"}`],
     ["missing", `Not found in this Stripe account → ${INCLUDE_MISSING ? "revoke" : "listed only (add --include-missing to revoke)"}`],
     ["manual", "Premium with no Stripe subscription (comp/admin?) → left alone"],
+    ["kept", "Protected with --keep (free access given by hand) → left alone"],
     ["refresh", "Live in Stripe, fields stale → refresh"],
     ["ok", "Already right"],
   ]) {
