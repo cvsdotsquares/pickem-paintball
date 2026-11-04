@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { currencyForRegion } from '@/src/lib/regionCurrency';
 import Stripe from 'stripe';
 import { productFeaturesFromStripe } from '@/src/lib/stripeProductFeatures';
 
@@ -32,12 +33,7 @@ function resolveCurrency(req: NextRequest): string {
   const targetRegion = region || countryHeader || '';
   console.log('Final Target Region:', targetRegion);
 
-  let currency = 'usd';
-  if (targetRegion === 'UK' || targetRegion === 'GB') {
-    currency = 'gbp';
-  } else if (targetRegion === 'EU' || ['FR', 'DE', 'IT', 'ES', 'NL', 'BE', 'AT', 'PT', 'IE', 'FI', 'GR', 'CY', 'MT', 'EE', 'LT', 'LV', 'SI', 'SK', 'LU'].includes(targetRegion)) {
-    currency = 'eur';
-  }
+  const currency = currencyForRegion(targetRegion);
 
   console.log('Resolved Currency:', currency);
   console.log('--------------------------');

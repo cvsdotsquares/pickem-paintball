@@ -49,6 +49,10 @@ const BENEFITS: { id: BenefitId; text: string }[] = [
 
 /** Value first: the headline says what they get, matched to what they just tried to do. */
 const REASON_CONTENT: Record<SubscribeReason, { title: string; lead: string; benefit?: BenefitId }> = {
+  email: {   // the "Support Pick'Em" button in the welcome series' first-event email (?subscribe=monthly)
+    title: "Support Pick'Em",
+    lead: "Full careers, the complete all-time table, badges and private leagues, and you keep Pick'Em growing.",
+  },
   general: {
     title: "Get more from Pick'Em",
     lead: "Advanced stats, custom leagues and badges, and you keep Pick'Em growing.",
