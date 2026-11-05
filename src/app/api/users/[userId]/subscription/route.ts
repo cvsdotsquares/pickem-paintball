@@ -3,6 +3,7 @@ import { db } from '@/src/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 import Stripe from 'stripe';
 import { productFeaturesFromStripe } from '@/src/lib/stripeProductFeatures';
+import { hasAccess, periodEndOf, planFromPrice } from '@/src/lib/stripeSubscriptionSync';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-02-25.clover' as any
@@ -45,29 +46,14 @@ export async function GET(
         console.log('Current Period End:', (stripeSubscription as any).current_period_end);
 
         subscriptionStatus = stripeSubscription.status;
-        isSubscribed = stripeSubscription.status === 'active';
+        isSubscribed = hasAccess(stripeSubscription.status);
         
-        const periodEnd = (stripeSubscription as any).current_period_end;
+        const periodEnd = periodEndOf(stripeSubscription);
         if (periodEnd) {
           currentPeriodEnd = new Date(periodEnd * 1000).toISOString();
         }
 
-        // Map price ID to tier
-        const priceId = stripeSubscription.items.data[0]?.price.id;
-        console.log('Price ID found:', priceId);
-        
-        if (priceId) {
-          const monthlyPrices = process.env.STRIPE_MONTHLY_PRICE_IDS?.split('|') || [];
-          const quarterlyPrices = process.env.STRIPE_QUARTERLY_PRICE_IDS?.split('|') || [];
-          const yearlyPrices = process.env.STRIPE_YEARLY_PRICE_IDS?.split('|') || [];
-          if (monthlyPrices.includes(priceId)) {
-            subscriptionTier = 'monthly';
-          } else if (quarterlyPrices.includes(priceId)) {
-            subscriptionTier = 'quarterly';
-          } else if (yearlyPrices.includes(priceId)) {
-            subscriptionTier = 'yearly';
-          }
-        }
+        subscriptionTier = isSubscribed ? planFromPrice(stripeSubscription.items.data[0]?.price) : null;
       } catch (stripeError: any) {
         console.error('Error fetching from Stripe:', stripeError);
 
@@ -84,8 +70,8 @@ export async function GET(
     // Check if subscription is still valid
     let validSubscription = isSubscribed;
 
-    // If subscription status is 'active', consider it valid regardless of period end
-    if (subscriptionStatus === 'active') {
+    // A live Stripe status (active, trialing, past_due) is valid regardless of period end
+    if (hasAccess(subscriptionStatus)) {
       validSubscription = true;
     } else if (currentPeriodEnd) {
       const periodEnd = new Date(currentPeriodEnd);
