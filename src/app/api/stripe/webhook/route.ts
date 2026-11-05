@@ -8,7 +8,32 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-02-25.clover'
 });
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+// The endpoint's signing secret (Stripe → Developers → Webhooks → the endpoint → Signing secret).
+// Several, separated by |, while two endpoints point here. Trimmed: a stray space or newline
+// pasted into Vercel fails every signature.
+const webhookSecrets = (process.env.STRIPE_WEBHOOK_SECRET ?? '').split('|').map((s) => s.trim()).filter(Boolean);
+
+function verify(body: string, signature: string): Stripe.Event {
+  let lastError: unknown = new Error('STRIPE_WEBHOOK_SECRET is not set');
+  for (const secret of webhookSecrets) {
+    try {
+      return stripe.webhooks.constructEvent(body, signature, secret);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
+
+/** What a rejected event claims to be (unverified, for the log only): tells test-mode or a second endpoint apart. */
+function describe(body: string): string {
+  try {
+    const e = JSON.parse(body);
+    return `${e.type} ${e.id} livemode=${e.livemode}`;
+  } catch {
+    return 'unparseable body';
+  }
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -17,9 +42,9 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    event = verify(body, signature);
   } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error(`Webhook signature verification failed (${request.nextUrl.pathname}, ${describe(body)}, ${webhookSecrets.length} secret(s) set):`, err.message);
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
