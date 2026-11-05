@@ -59,6 +59,26 @@ function saveRegionDaily(user: User) {
     .catch(() => undefined);
 }
 
+/** The welcome email the moment a confirmed player is logged in (/api/user/welcome). Asks until the site says it's
+ * settled (welcomed, already welcomed, or signed up before the series), then never again on this browser. */
+function startWelcome(user: User) {
+  if (!user.emailVerified && !user.providerData.some((p) => p.providerId === "google.com")) return;
+  const key = `pickem_welcome_${user.uid}`;
+  try {
+    if (localStorage.getItem(key)) return;
+  } catch {
+    return;
+  }
+  user
+    .getIdToken()
+    .then((token) => fetch("/api/user/welcome", { method: "POST", headers: { Authorization: `Bearer ${token}` } }))
+    .then((r) => r.json())
+    .then((r: { final?: boolean }) => {
+      if (r.final) localStorage.setItem(key, String(Date.now()));
+    })
+    .catch(() => undefined);
+}
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -66,7 +86,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) saveRegionDaily(currentUser);
+      if (currentUser) {
+        saveRegionDaily(currentUser);
+        startWelcome(currentUser);
+      }
       setUser(currentUser);
       setUserId(currentUser ? currentUser.uid : null);
       setLoading(false);
