@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { db } from '@/src/lib/firebaseClient';
 import { doc, updateDoc, addDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { planFromPrice, syncSubscriptionToUser } from '@/src/lib/stripeSubscriptionSync';
+import { sendSubscribedEmail } from '@/src/lib/subscriberEmails';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-02-25.clover'
@@ -86,6 +87,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription.id;
   const { subscription } = await syncFromStripe(subscriptionId, userId);
+  const plan = planFromPrice(subscription.items.data[0]?.price);
+
+  // "Thank you for backing Pick'Em": queued in Klaviyo, never blocks the payment (src/lib/subscriberEmails.ts).
+  await sendSubscribedEmail(userId, session, plan);
 
   // Close the subscribe-funnel loop (see /api/subscription/track). Never let reporting break a payment.
   try {
@@ -94,7 +99,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       reason: session.metadata?.subscribeReason || null,
       viewId: session.metadata?.subscribeViewId || null,
       uid: userId,
-      plan: planFromPrice(subscription.items.data[0]?.price),
+      plan,
       currency: session.currency ?? null,
       amountTotal: session.amount_total ?? null,
       createdAt: Date.now(),
