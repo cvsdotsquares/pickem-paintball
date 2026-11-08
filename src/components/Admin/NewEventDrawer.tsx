@@ -28,6 +28,9 @@ export default function NewEventDrawer({
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [show, setShow] = useState<"inspo" | "past">("inspo");
   const [picked, setPicked] = useState<string[]>([]);
+  // post types this event needs (James, 8 Nov 2026: a season only needs top 10, Big 3, category leaders); all ticked = the whole pack
+  const [pack, setPack] = useState<{ key: string; label: string }[]>([]);
+  const [types, setTypes] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -36,6 +39,12 @@ export default function NewEventDrawer({
     fetch("/api/admin/library", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setItems(d.items ?? []));
+    fetch("/api/admin/generator/event", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        setPack(d.pack ?? []);
+        setTypes((d.pack ?? []).map((p: { key: string }) => p.key));
+      });
   }, []);
 
   useEffect(() => {
@@ -76,6 +85,7 @@ export default function NewEventDrawer({
     form.append("dates", dates);
     form.append("brief", brief);
     form.append("inspo", JSON.stringify(picked));
+    if (types.length < pack.length) form.append("postTypes", JSON.stringify(types));
     files.forEach((f) => form.append("files", f));
     const res = await fetch("/api/admin/generator/event", {
       method: "POST",
@@ -214,6 +224,38 @@ export default function NewEventDrawer({
             />
           </div>
 
+          {pack.length > 0 && (
+            <div>
+              <div className="mb-1.5 flex items-center gap-2">
+                <div className={`${sectionLabel} flex-1`}>
+                  Post types{" "}
+                  <span className="text-gray-900 dark:text-white">
+                    · {types.length} of {pack.length}
+                  </span>
+                </div>
+                <button className={pill(types.length === pack.length)} onClick={() => setTypes(pack.map((p) => p.key))}>
+                  All
+                </button>
+                <button className={pill(types.length === 0)} onClick={() => setTypes([])}>
+                  None
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {pack.map((p) => (
+                  <button
+                    key={p.key}
+                    className={pill(types.includes(p.key))}
+                    onClick={() =>
+                      setTypes((t) => (t.includes(p.key) ? t.filter((x) => x !== p.key) : [...t, p.key]))
+                    }
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col">
             <div className="mb-2 flex items-center gap-2">
               <div className={`${sectionLabel} flex-1`}>
@@ -302,7 +344,7 @@ export default function NewEventDrawer({
           )}
           <button
             className={primaryButton}
-            disabled={sending || !name.trim()}
+            disabled={sending || !name.trim() || (pack.length > 0 && types.length === 0)}
             onClick={create}
           >
             {sending ? "Creating…" : "Create event"}

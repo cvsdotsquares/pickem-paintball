@@ -53,6 +53,7 @@ export type EventRequest = {
   files: string[]; // uploaded assets, relative to generator/ (work/<id>/inputs/...)
   created: string;
   board_feedback?: { at: string; comment: string }[];
+  post_types?: string[]; // the event's own shorter list of post types (event pack keys); none = the whole pack (James, 8 Nov 2026)
 };
 
 const readRequest = (id: string) => readJson<EventRequest | null>(path.join(WORK, id, "event_request.json"), null);
@@ -86,6 +87,7 @@ export function createEventRequest(
   brief: string,
   inspo: string[],
   uploads: { name: string; data: Buffer }[],
+  postTypes: string[] = [],
 ): EventRequest {
   const id = eventId(name);
   const inputs = path.join(WORK, id, "inputs");
@@ -105,6 +107,7 @@ export function createEventRequest(
     files: Array.from(new Set([...(prev?.files ?? []), ...files])),
     created: prev?.created ?? now(),
     board_feedback: prev?.board_feedback ?? [],
+    ...(postTypes.length ? { post_types: postTypes } : prev?.post_types ? { post_types: prev.post_types } : {}),
   };
   fs.writeFileSync(path.join(WORK, id, "event_request.json"), JSON.stringify(req, null, 2) + "\n");
   return req;
@@ -120,7 +123,12 @@ export function addBoardFeedback(event: string, comment: string) {
   if (fs.existsSync(b)) fs.rmSync(b); // a changed board needs approving again
 }
 
-export const eventPack = (): PackItem[] => readJson<{ post_types: PackItem[] }>(path.join(GEN, "event_pack.json"), { post_types: [] }).post_types;
+/** The event pack; with an event, only the post types it asked for (event_request.json post_types, e.g. a season's top 10, Big 3, category leaders). */
+export const eventPack = (event?: string): PackItem[] => {
+  const all = readJson<{ post_types: PackItem[] }>(path.join(GEN, "event_pack.json"), { post_types: [] }).post_types;
+  const only = event ? readRequest(event)?.post_types : undefined;
+  return only?.length ? all.filter((p) => only.includes(p.key)) : all;
+};
 
 export function board(event: string) {
   const b = readJson<{ approved?: boolean; approved_at?: string }>(path.join(WORK, event, "board.json"), {});

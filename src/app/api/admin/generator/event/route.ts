@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server";
 import { adminGate } from "@/src/lib/admin/gate";
-import { createEventRequest, eventId, listEvents } from "@/src/lib/admin/generator";
+import { createEventRequest, eventId, eventPack, listEvents } from "@/src/lib/admin/generator";
 import { MAX_PARALLEL, runningAll, startJob } from "@/src/lib/admin/jobs";
 
 export const dynamic = "force-dynamic";
 
 const MAX_FILE = 25 * 1024 * 1024;
 
+/** The whole event pack, for the New event form's post type ticks. */
+export async function GET() {
+  const blocked = adminGate();
+  if (blocked) return blocked;
+  return NextResponse.json({ pack: eventPack().map((p) => ({ key: p.key, label: p.label, phase: p.phase })) });
+}
+
 /**
  * New event (multipart form): name, dates, brief, inspo (JSON list of Post Library ids), files[].
  * Saves everything to generator/work/<event>/ and starts the event-setup job (theme + brand board).
+ * postTypes (JSON list of event pack keys, optional): the event's own shorter list, e.g. a season's three post types.
  */
 export async function POST(request: Request) {
   const blocked = adminGate();
@@ -34,7 +42,14 @@ export async function POST(request: Request) {
   } catch {
     inspo = [];
   }
-  const req = createEventRequest(name, String(form.get("dates") ?? ""), String(form.get("brief") ?? ""), inspo, uploads);
+  let postTypes: string[] = [];
+  try {
+    const known = new Set(eventPack().map((p) => p.key));
+    postTypes = JSON.parse(String(form.get("postTypes") ?? "[]")).map(String).filter((k: string) => known.has(k));
+  } catch {
+    postTypes = [];
+  }
+  const req = createEventRequest(name, String(form.get("dates") ?? ""), String(form.get("brief") ?? ""), inspo, uploads, postTypes);
   const run = startJob("event-setup", { event: req.id });
   if ("error" in run) return NextResponse.json(run, { status: 409 });
   return NextResponse.json({ event: req.id, run });

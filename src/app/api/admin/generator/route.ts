@@ -45,7 +45,7 @@ export async function GET(request: Request) {
   const events = listEvents();
   const event = q.get("event") || events.find((e) => e.id === "world_cup_2026")?.id || events[0]?.id || "";
   if (!validId(event)) return NextResponse.json({ error: "Bad event" }, { status: 400 });
-  const pack = eventPack();
+  const pack = eventPack(event);
   const type = q.get("type");
   const all = runningAll();
   const busy = all[0];
@@ -158,7 +158,7 @@ export async function POST(request: Request) {
     const r = startJob("event-setup", { event });
     return "error" in r ? NextResponse.json(r, { status: 409 }) : NextResponse.json({ run: r });
   }
-  if (!validId(type) || !eventPack().some((p) => p.key === baseOf(type)))
+  if (!validId(type) || !eventPack(event).some((p) => p.key === baseOf(type)))
     return NextResponse.json({ error: "Unknown post type" }, { status: 404 });
   if (!board(event).approved) return NextResponse.json({ error: "Approve the brand board first" }, { status: 409 });
 
