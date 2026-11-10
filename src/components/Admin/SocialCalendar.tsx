@@ -603,6 +603,7 @@ export default function SocialCalendar() {
               setTrayOpen(false);
               setSpreading(g);
             }}
+            onClear={() => act({ action: "clear-tray", event }, `Clear all ${data?.tray.length ?? 0} from "Not on the calendar"? A post made later still shows.`)}
           />
         </div>
 
@@ -715,10 +716,12 @@ function Tray({
   data,
   onAdd,
   onSpread,
+  onClear,
 }: {
   data: Data | null;
   onAdd: (t: TrayItem) => void;
   onSpread: (g: { type: string; label: string; items: TrayItem[] }) => void;
+  onClear: () => void;
 }) {
   const [filter, setFilter] = useState<"all" | "made" | "planned">("all");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
@@ -765,6 +768,11 @@ function Tray({
     <aside className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto rounded-xl border border-gray-100 bg-white p-3 dark:border-white/5 dark:bg-[#0d0d0d]">
       <div className="flex items-center justify-between">
         <span className={sectionLabel}>Not on the calendar yet</span>
+        {!!data?.tray.length && (
+          <button onClick={onClear} className={pill(false)} title="Dealt with: clear them all from this list (a post made later still shows)">
+            Clear
+          </button>
+        )}
       </div>
 
 

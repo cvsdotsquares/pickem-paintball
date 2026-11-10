@@ -27,6 +27,7 @@ import {
   removeSlot,
   saveSlot,
   tray,
+  clearTray,
   unapprove,
 } from "@/src/lib/admin/scheduler";
 
@@ -99,6 +100,7 @@ export async function GET(request: Request) {
  *   done      {id, done}   tick / untick a task
  *   approve-now   {event, type, variant, at|null, caption, collaborators?}   Generator step 5: approve + schedule (at = ET) or post now (at null)
  *   spread-approved {event, type, variants[], from, to, times[]}   Generator step 5: lay out + approve each
+ *   clear-tray {event}   everything now in "Not on the calendar" is cleared (James has dealt with it); later posts still show
  *   jobResult {event, job, result: ok|failed, finishedAt: ISO}   a Data job's latest run → agentJobs/{event}__{job} (post holds)
  */
 export async function POST(request: Request) {
@@ -124,6 +126,10 @@ export async function POST(request: Request) {
       if (!validId(String(b.event)) || !/^[a-z0-9_]+$/.test(String(b.type))) throw new Error("Unknown post");
       const n = await spreadApproved(b.event, b.type, (b.variants ?? []).map(String), String(b.from), String(b.to), (b.times ?? []).map(String));
       return NextResponse.json({ ok: true, added: n });
+    }
+    if (b.action === "clear-tray") {
+      if (!validId(String(b.event))) throw new Error("Unknown event");
+      return NextResponse.json({ ok: true, cleared: clearTray(b.event, await listSlots(b.event)) });
     }
     if (b.action === "jobResult") {
       if (!validId(String(b.event))) throw new Error("Unknown event");

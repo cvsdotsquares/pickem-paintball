@@ -381,14 +381,38 @@ export async function listSlots(event: string): Promise<SlotView[]> {
   return snap.docs.map((d) => view(toSlot(d.id, d.data()))).sort((a, b) => (a.publishAt ?? "").localeCompare(b.publishAt ?? ""));
 }
 
+/** Tray items James cleared ("I've tackled them all", 10 Nov 2026): pickem-hub scheduler/tray_cleared.json,
+ * {event: ["type|variant", …]}. A post made later (a new key) still shows. */
+const TRAY_CLEARED = path.join(HUB, "scheduler", "tray_cleared.json");
+
+function trayCleared(): Record<string, string[]> {
+  try {
+    return JSON.parse(fs.readFileSync(TRAY_CLEARED, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+/** Clear everything in the event's tray now. Returns how many were cleared. */
+export function clearTray(event: string, slots: Slot[]): number {
+  const now = tray(event, slots).map((t) => `${t.type}|${t.variant}`);
+  const all = trayCleared();
+  all[event] = Array.from(new Set([...(all[event] ?? []), ...now]));
+  fs.writeFileSync(TRAY_CLEARED, JSON.stringify(all, null, 1) + "\n");
+  return now.length;
+}
+
 /**
  * What isn't on the calendar yet: each made post (one per variant) and a placeholder for every graphic of the
  * event pack that has no made posts. Something already on the calendar (same graphic + variant, or a
- * placeholder for the graphic) is left out.
+ * placeholder for the graphic), or cleared by James, is left out.
  */
 export function tray(event: string, slots: Slot[]): TrayItem[] {
   const out: TrayItem[] = [];
-  const taken = new Set(slots.filter((s) => s.kind === "post").map((s) => `${s.type}|${s.variant}`));
+  const taken = new Set([
+    ...slots.filter((s) => s.kind === "post").map((s) => `${s.type}|${s.variant}`),
+    ...(trayCleared()[event] ?? []),
+  ]);
   for (const p of eventPack()) {
     for (const g of graphics(event, p.key)) {
       const made = madePosts(event, g.key);
