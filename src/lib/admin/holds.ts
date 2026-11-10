@@ -23,7 +23,9 @@ export function jobShort(id: string, jobs: HoldJob[]): string {
  * "waits for <short>" when it has a hold, null when it has none.
  */
 export function holdChip(waitFor: string[], waiting: string, jobs: HoldJob[]): HoldChip | null {
-  const held = waiting.split(",").map((x) => x.trim()).filter(Boolean);
+  // only jobs it still waits for: the posting job clears `waiting` when it sends, so a hold taken off since it was
+  // held left a stale "waiting for …" on an approved post (Damage's roster post, 10 Nov 2026)
+  const held = waiting.split(",").map((x) => x.trim()).filter((x) => x && waitFor.includes(x));
   if (held.length) return { text: `waiting for ${held.map((id) => jobShort(id, jobs)).join(", ")}…`, waiting: true };
   if (waitFor.length) return { text: `waits for ${waitFor.map((id) => jobShort(id, jobs)).join(", ")}`, waiting: false };
   return null;
