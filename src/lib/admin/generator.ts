@@ -282,9 +282,12 @@ export function preview(event: string, type: string): { kind: "final" | "current
   return { kind: "none", images: [] };
 }
 
-/** Past versions of this post type + matching inspiration, from the Post Library, newest first (all of them: James, 17 Oct). */
-export function examples(tags: string[], limit = Infinity): LibraryItem[] {
-  const hits = loadLibrary().filter((i) => i.postTypes.some((t) => tags.includes(t)));
+/**
+ * Past versions of this post type + matching inspiration, from the Post Library, newest first (all of them: James, 17 Oct).
+ * `starred` = this graphic's key inspiration: those are listed too, whatever their post type (starred from the Explore panel).
+ */
+export function examples(tags: string[], starred: string[] = [], limit = Infinity): LibraryItem[] {
+  const hits = loadLibrary().filter((i) => starred.includes(i.id) || i.postTypes.some((t) => tags.includes(t)));
   hits.sort((a, b) => (a.source === b.source ? b.date.localeCompare(a.date) : a.source === "inspo" ? -1 : 1));
   return hits.slice(0, limit);
 }

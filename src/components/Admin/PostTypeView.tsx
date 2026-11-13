@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import InspoExplorer from "./InspoExplorer";
 import { Markdown } from "./ReelStudy";
 import StagePill from "./StagePill";
 import { readCollab, showCollab } from "@/src/lib/admin/collab";
@@ -530,6 +531,7 @@ export default function PostTypeView({
   const [error, setError] = useState("");
   const [comment, setComment] = useState("");
   const [photos, setPhotos] = useState<string[]>([]); // added to the comment box (generator/-relative paths)
+  const [exploring, setExploring] = useState(false); // Explore panel: star references from the whole library
   const [uploading, setUploading] = useState(0);
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState("");
@@ -1096,11 +1098,20 @@ export default function PostTypeView({
             open the Post Library
           </Link>
         </div>
-        <p className="mb-2 text-[11px] text-gray-500 dark:text-white/50">
-          Click ☆ on the ones that matter most for this graphic. Claude gives starred references the most weight
-          in the brief, the layouts and the build
-          {data.keyInspo.length ? ` (${data.keyInspo.length} starred)` : ""}. Scroll down for older ones.
-        </p>
+        <div className="mb-2 flex flex-wrap items-center gap-3">
+          <p className="min-w-[240px] flex-1 text-[11px] text-gray-500 dark:text-white/50">
+            Click ☆ on the ones that matter most for this graphic. Claude gives starred references the most weight
+            in the brief, the layouts and the build
+            {data.keyInspo.length ? ` (${data.keyInspo.length} starred)` : ""}. Scroll down for older ones. Want
+            something from another post type? Explore the whole library.
+          </p>
+          <button className={primaryButton} onClick={() => setExploring(true)}>
+            Explore more inspo
+          </button>
+        </div>
+        {exploring && (
+          <InspoExplorer starred={data.keyInspo} onToggle={toggleKey} onClose={() => setExploring(false)} />
+        )}
         <div className="grid max-h-[560px] grid-cols-3 gap-2 overflow-y-auto rounded-xl bg-white p-2 sm:grid-cols-6 lg:grid-cols-8 dark:bg-[#0d0d0d]">
           {[...data.examples]
             .sort((a, b) => Number(data.keyInspo.includes(b.id)) - Number(data.keyInspo.includes(a.id)))

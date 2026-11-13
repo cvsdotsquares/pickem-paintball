@@ -91,7 +91,7 @@ export async function GET(request: Request) {
     board: board(event),
     ...detail(event, type),
     finals: finals(event, type),
-    examples: examples(item.tags),
+    examples: examples(item.tags, keyInspo(event, type)),
     graphicName: graphicName(event, type),
     graphicNumber: Number(type.split("__")[1] ?? 1),
     keyInspo: keyInspo(event, type),
