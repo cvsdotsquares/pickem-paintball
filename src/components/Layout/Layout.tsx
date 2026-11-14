@@ -9,6 +9,7 @@ import { ToastContainer } from "react-toastify";
 import ProfileCompletion from "./ProfileCompletion";
 import DashboardFloatingBanner from "./DashboardFloatingBanner";
 import DashboardFooterBanner from "./DashboardFooterBanner";
+import SiteNoticeBanner from "./SiteNoticeBanner";
 import { DashboardMainScrollContext } from "@/src/contexts/DashboardMainScrollContext";
 import { ErrorBoundaryWrapper } from "@/src/components/ErrorBoundaryWrapper";
 import { reportClientError } from "@/src/lib/reportClientError";
@@ -207,6 +208,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             draggable
             pauseOnHover
           />
+          <SiteNoticeBanner />
           <div
             className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain"
             onScroll={onMainColumnScroll}
