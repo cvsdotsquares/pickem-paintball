@@ -133,7 +133,7 @@ export const BADGES_LAUNCH_DATE = new Date("2026-04-20T00:00:00.000Z");
  * Add new years here once their season finishes (or wire up automation).
  * Each entry maps to a Firestore doc at `leaderboards/season_{year}`.
  */
-export const COMPLETED_SEASON_YEARS: readonly string[] = ["2025"];
+export const COMPLETED_SEASON_YEARS: readonly string[] = ["2025", "2026"];
 
 export function rankToEventBadge(rank: number): BadgeId | null {
   if (!Number.isFinite(rank) || rank < 1) return null;
