@@ -133,7 +133,23 @@ export const BADGES_LAUNCH_DATE = new Date("2026-04-20T00:00:00.000Z");
  * Add new years here once their season finishes (or wire up automation).
  * Each entry maps to a Firestore doc at `leaderboards/season_{year}`.
  */
-export const COMPLETED_SEASON_YEARS: readonly string[] = ["2025"];
+export const COMPLETED_SEASON_YEARS: readonly string[] = ["2025", "2026"];
+
+/**
+ * The season badge to announce in an event's post-event pop-up, or null.
+ * Only the event that closes a completed season announces one: the pop-up is
+ * only ever shown for the most recent closed event, so "this event's year is a
+ * completed season" means this event was that season's last.
+ */
+export function seasonBadgeForEvent(
+  eventId: string,
+  seasonRank: number | null,
+): BadgeId | null {
+  const year = eventId.match(/(20\d{2})/)?.[1];
+  if (!year || !COMPLETED_SEASON_YEARS.includes(year)) return null;
+  if (seasonRank == null) return null;
+  return rankToSeasonBadge(seasonRank);
+}
 
 export function rankToEventBadge(rank: number): BadgeId | null {
   if (!Number.isFinite(rank) || rank < 1) return null;
