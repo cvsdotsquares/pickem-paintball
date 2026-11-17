@@ -50,6 +50,8 @@ function replan(why: string) {
 
 /**
  * GET ?event= → the event's calendar: slots, what's not on it yet (tray), key dates, made posts for carousels, emails.
+ * GET ?event=all → the same for every event in one calendar (James, 17 Nov 2026: a season post was "missing" because the
+ *   calendar opened on World Cup). Tray items carry their `event`; their section is "<event> · <phase>".
  * GET ?event=&type= → what Generator step 5 needs for one graphic (made posts + captions, what's scheduled, a recommended time).
  */
 export async function GET(request: Request) {
@@ -63,6 +65,26 @@ export async function GET(request: Request) {
     if (!validId(q) || !/^[a-z0-9_]+$/.test(type)) return NextResponse.json({ error: "Unknown graphic" }, { status: 400 });
     try {
       return NextResponse.json(await forGraphic(q, type));
+    } catch (e) {
+      return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    }
+  }
+  if (q === "all") {
+    try {
+      const per = await Promise.all(list.map(async (e) => ({ e, slots: await listSlots(e.id) })));
+      const slots = per.flatMap((p) => p.slots).sort((a, b) => (a.publishAt ?? "").localeCompare(b.publishAt ?? ""));
+      return NextResponse.json({
+        event: "all",
+        current: list.find((e) => e.id === "world_cup_2026")?.id ?? list[0]?.id ?? "", // the event a new task is filed under
+        events: list,
+        agents: agents(),
+        needsYou: needsYou(slots),
+        slots,
+        tray: per.flatMap((p) => tray(p.e.id, p.slots).map((t) => ({ ...t, event: p.e.id, phase: `${p.e.label} · ${t.phase}` }))),
+        dates: per.flatMap((p) => keyDates(p.e.id)),
+        posts: per.flatMap((p) => eventPosts(p.e.id)),
+        emails: per.flatMap((p) => eventEmails(p.e.id)),
+      });
     } catch (e) {
       return NextResponse.json({ error: (e as Error).message }, { status: 500 });
     }
@@ -128,6 +150,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, added: n });
     }
     if (b.action === "clear-tray") {
+      if (b.event === "all") {
+        let cleared = 0;
+        for (const e of events()) cleared += clearTray(e.id, await listSlots(e.id));
+        return NextResponse.json({ ok: true, cleared });
+      }
       if (!validId(String(b.event))) throw new Error("Unknown event");
       return NextResponse.json({ ok: true, cleared: clearTray(b.event, await listSlots(b.event)) });
     }

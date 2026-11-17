@@ -70,7 +70,7 @@ type Email = {
   note: string;
   campaignId: string;
 };
-type TrayItem = { type: string; variant: string; title: string; label: string; phase: string; priority: string; png: string; placeholder: boolean; templated: boolean };
+type TrayItem = { event?: string; type: string; variant: string; title: string; label: string; phase: string; priority: string; png: string; placeholder: boolean; templated: boolean };
 type NeedsYou = { id: string; text: string; due: string | null; tone: "orange" | "red" };
 type Data = {
   event: string;
@@ -179,7 +179,7 @@ const findAgent = (agents: Agent[], id: string): Agent => agents.find((a) => a.i
 
 export default function SocialCalendar() {
   const [data, setData] = useState<Data | null>(null);
-  const [event, setEvent] = useState("");
+  const [event, setEvent] = useState("all"); // All posts is the default (James, 17 Nov 2026): every event on one calendar
   const [mode, setMode] = useState<Mode>("month");
   const [anchor, setAnchor] = useState(todayET()); // where to scroll to (‹ › Today, a deep link, a placed post)
   const [jump, setJump] = useState(0); // bumps so "Today" scrolls again even when the anchor is already today
@@ -370,7 +370,7 @@ export default function SocialCalendar() {
     const it = JSON.parse(raw) as { tray?: TrayItem; slot?: string };
     if (day < todayET()) return setErr("That day has passed");
     if (it.tray) {
-      const id = await act({ action: "add", event, type: it.tray.type, variant: it.tray.variant, at: `${day}T${DEFAULT_TIME}` });
+      const id = await act({ action: "add", event: it.tray.event ?? event, type: it.tray.type, variant: it.tray.variant, at: `${day}T${DEFAULT_TIME}` });
       if (typeof id === "string") setOpen(id);
     } else if (it.slot) {
       const s = data?.slots.find((x) => x.id === it.slot);
@@ -467,6 +467,7 @@ export default function SocialCalendar() {
           }}
           className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[12px] dark:border-white/10 dark:bg-white/5"
         >
+          <option value="all">All posts</option>
           {data?.events.map((e) => (
             <option key={e.id} value={e.id}>
               {e.label}
@@ -656,7 +657,7 @@ export default function SocialCalendar() {
           item={adding}
           busy={busy}
           onAdd={async (at) => {
-            const id = await act({ action: "add", event, type: adding.type, variant: adding.variant, at });
+            const id = await act({ action: "add", event: adding.event ?? event, type: adding.type, variant: adding.variant, at });
             if (typeof id === "string") {
               setAdding(null);
               setAnchor(at.slice(0, 10));
@@ -671,7 +672,7 @@ export default function SocialCalendar() {
           group={spreading}
           busy={busy}
           onSpread={async (variants, from, to, times) => {
-            if (await act({ action: "spread", event, type: spreading.type, variants, from, to, times })) {
+            if (await act({ action: "spread", event: spreading.items[0]?.event ?? event, type: spreading.type, variants, from, to, times })) {
               setSpreading(null);
               setAnchor(from);
             }
@@ -727,11 +728,13 @@ function Tray({
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const items = (data?.tray ?? []).filter((t) => filter === "all" || (filter === "made") === !t.placeholder);
   // Group by graphic (type): bracket breakdowns ×24 fold into one row.
-  const groups: { type: string; label: string; phase: string; items: TrayItem[] }[] = [];
+  // (All posts view: two events can share a type, so the group is the event + the type.)
+  const groups: { key: string; type: string; label: string; phase: string; items: TrayItem[] }[] = [];
   for (const t of items) {
-    const g = groups.find((x) => x.type === t.type);
+    const key = `${t.event ?? ""}|${t.type}`;
+    const g = groups.find((x) => x.key === key);
     if (g) g.items.push(t);
-    else groups.push({ type: t.type, label: t.title.split(" · ")[0], phase: t.phase, items: [t] });
+    else groups.push({ key, type: t.type, label: t.title.split(" · ")[0], phase: t.phase, items: [t] });
   }
   const phases = Array.from(new Set(groups.map((g) => g.phase)));
 
@@ -794,13 +797,13 @@ function Tray({
             .filter((g) => g.phase === ph)
             .map((g) => {
               const many = g.items.length > 1;
-              const isOpen = openGroups[g.type] ?? !many;
+              const isOpen = openGroups[g.key] ?? !many;
               const made = g.items.filter((t) => !t.placeholder);
               return (
-                <div key={g.type} className="flex flex-col gap-1">
+                <div key={g.key} className="flex flex-col gap-1">
                   {many && (
                     <div className="flex items-center gap-1">
-                      <button onClick={() => setOpenGroups((o) => ({ ...o, [g.type]: !isOpen }))} className="flex flex-1 items-center gap-1.5 text-left text-[11px] font-bold">
+                      <button onClick={() => setOpenGroups((o) => ({ ...o, [g.key]: !isOpen }))} className="flex flex-1 items-center gap-1.5 text-left text-[11px] font-bold">
                         <span className="text-gray-400">{isOpen ? "▾" : "▸"}</span>
                         {g.label} <span className="font-normal text-gray-400">· {g.items.length}</span>
                       </button>
@@ -814,7 +817,7 @@ function Tray({
                   {isOpen && (
                     <div className={`flex flex-col gap-1 ${many ? "ml-2" : ""}`}>
                       {g.items.map((t) => (
-                        <Item key={`${t.type}|${t.variant}`} t={t} />
+                        <Item key={`${t.event ?? ""}|${t.type}|${t.variant}`} t={t} />
                       ))}
                     </div>
                   )}

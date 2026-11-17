@@ -83,6 +83,7 @@ export type TrayItem = {
   png: string; // "" for a placeholder
   placeholder: boolean;
   templated: boolean;
+  event?: string; // set in the All posts view, where the tray holds every event's posts
 };
 
 const COLLECTION = "scheduledPosts";

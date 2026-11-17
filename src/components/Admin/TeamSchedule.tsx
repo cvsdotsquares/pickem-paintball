@@ -20,7 +20,7 @@ type View = {
   event: string; eventName: string; date: string; anchors: Record<string, string>; slots: BSlot[];
   team: (BAgent & { kind: string })[]; cards: { workflows: { steps: BJob[] }[] }[]; needsYou: unknown[]; error?: string;
 };
-type Sched = { event: string; slots: Slot[]; agents: Agent[]; error?: string };
+type Sched = { event: string; current?: string; slots: Slot[]; agents: Agent[]; error?: string };
 
 export default function TeamSchedule() {
   const router = useRouter();
@@ -40,7 +40,7 @@ export default function TeamSchedule() {
   const load = useCallback(async () => {
     const [v, s] = await Promise.all([
       fetch("/api/admin/workflows", { cache: "no-store" }).then((r) => r.json() as Promise<View>),
-      fetch("/api/admin/scheduler", { cache: "no-store" }).then((r) => r.json() as Promise<Sched>),
+      fetch("/api/admin/scheduler?event=all", { cache: "no-store" }).then((r) => r.json() as Promise<Sched>), // every event (James, 17 Nov 2026)
     ]);
     if (v.error || s.error) setErr(v.error || s.error || "");
     setView(v);
@@ -115,7 +115,7 @@ export default function TeamSchedule() {
           agents={sched.agents}
           busy={busy}
           onAdd={async (t) => {
-            const id = await act({ action: "task", event: sched.event, ...t });
+            const id = await act({ action: "task", event: sched.current ?? sched.event, ...t });
             if (typeof id === "string") {
               setAdding(false);
               setOpen(id);
