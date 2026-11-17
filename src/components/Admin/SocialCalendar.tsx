@@ -298,14 +298,17 @@ export default function SocialCalendar() {
     return out;
   }, [data, anchor]);
 
-  // Scroll to the anchor: its week (Week) or the week holding the 1st of its month (Month). Only when asked (‹ › Today, a
+  // Scroll to the anchor: its week (Week, and Month unless ‹ › asked for a month). Only when asked (‹ › Today, a
   // link, switching Month / Week) and once when the posts first arrive; never on a reload after a move or a save, so a
   // drag and drop keeps the view where it is (James 25 Oct 2026).
   const scrollToAnchor = useCallback(() => {
     const el = scroller.current;
     if (!el) return false;
-    // Month: the first week that is mostly that month (its Thursday is in it), so 1 Nov on a Sunday doesn't land on October
-    const target = mode === "week" ? monday(anchor) : monday(addDays(`${anchor.slice(0, 7)}-01`, 3));
+    // Month: opening the calendar, Today, a link or a placed post put that day's own week at the top (James, 17 Nov 2026:
+    // "always opens up to the current week… saves me scrolling"). Only ‹ › (the anchor is the 1st of a month) goes to the
+    // first week that is mostly that month (its Thursday is in it), so 1 Nov on a Sunday doesn't land on October.
+    const monthStart = anchor.endsWith("-01") && anchor !== todayET();
+    const target = mode === "week" || !monthStart ? monday(anchor) : monday(addDays(`${anchor.slice(0, 7)}-01`, 3));
     const cell = el.querySelector<HTMLElement>(`[data-day="${target}"]`);
     if (!cell) return false;
     if (mode === "week") el.scrollTo({ left: cell.offsetLeft });
