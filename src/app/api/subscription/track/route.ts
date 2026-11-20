@@ -34,6 +34,7 @@ const REASONS = [
   "leagues",
   "badges",
   "picks",
+  "email",
 ] as const;
 const PLANS = ["monthly", "quarterly", "yearly"] as const;
 const HOWS = ["continue", "close", "backdrop", "escape"] as const;

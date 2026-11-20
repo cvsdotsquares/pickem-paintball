@@ -39,10 +39,10 @@ export default function ProfileBadgesSection() {
     let next: BadgeId[];
     if (current.includes(id)) {
       next = current.filter((x) => x !== id);
-    } else if (current.length < MAX_DISPLAY_BADGES) {
-      next = [...current, id];
     } else {
-      return; // at max
+      // At the limit, a new pick swaps out the oldest one (the first tapped),
+      // so every earned badge can always be picked in one tap.
+      next = [...current, id].slice(-MAX_DISPLAY_BADGES);
     }
     setDisplayBadges(next); // optimistic
     void updateDoc(doc(db, "users", userId), { displayBadges: next });
@@ -61,7 +61,6 @@ export default function ProfileBadgesSection() {
         selectable={isSubscribed}
         selected={displayBadges}
         onToggleSelect={handleToggle}
-        maxSelect={MAX_DISPLAY_BADGES}
         emptyHint={
           isSubscribed
             ? "Tap up to 3 badges to feature on your team card — the order you tap is the order they show"

@@ -30,6 +30,7 @@ const isPro = (h) =>
 const text = (h) =>
   String(h)
     .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;|&#160;| /g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&#039;|&apos;/g, "'")
     .replace(/&quot;/g, '"')

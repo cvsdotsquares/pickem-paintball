@@ -22,6 +22,20 @@ export default function SubscriptionModalManager() {
     return () => window.removeEventListener('show-subscription-modal' as any, handleShowModal);
   }, []);
 
+  // An email's "Support Pick'Em" button lands on ?subscribe=monthly: queue the offer like a "Log in to subscribe" tap, so
+  // the effect below shows it now, or straight after login if they were signed out. The query is then removed from the URL.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('subscribe')) return;
+    try {
+      sessionStorage.setItem(RESUME_KEY, JSON.stringify({ type: 'passive', reason: 'email', at: Date.now() }));
+    } catch {
+      /* no storage: they can still subscribe from the menu */
+    }
+    url.searchParams.delete('subscribe');
+    window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+  }, []);
+
   // Someone tapped "Log in to subscribe": once they're back and logged in, put the offer they chose in front of them again.
   useEffect(() => {
     if (!user || loading) return;
