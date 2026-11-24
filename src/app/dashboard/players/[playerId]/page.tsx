@@ -603,7 +603,7 @@ export default function PlayerPage() {
     ) : (
       <button
         type="button"
-        onClick={() => showSubscribeModal("soft-gate")}
+        onClick={() => showSubscribeModal("soft-gate", "share")}
         className={cn(SHARE_CELL, "inline-flex items-center justify-center gap-2")}
       >
         <span className="inline-flex shrink-0" aria-hidden="true">

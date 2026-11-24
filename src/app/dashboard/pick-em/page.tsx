@@ -692,22 +692,24 @@ export default function Pickems() {
     }
   }, [saveStatus, user, temporaryPicks, captainId, liveEvent?.lockDate, writeOfficialPicks]);
 
-  const MODAL_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes, persisted in localStorage
-  const MODAL_COOLDOWN_KEY = 'pickem_modal_last_shown';
+  // Once per event: after every saved team it trained people to tap "Continue for free" without reading.
+  const MODAL_SHOWN_KEY_PREFIX = 'pickem_subscribe_prompt_';
 
   // Keep isSubscribed in a ref so autosave's setTimeout always reads the latest value
   const isSubscribedRef = useRef(isSubscribed);
   useEffect(() => { isSubscribedRef.current = isSubscribed; }, [isSubscribed]);
 
   const maybeShowSupportModal = useCallback(() => {
-    if (isSubscribedRef.current) return;
-    const lastShown = parseInt(localStorage.getItem(MODAL_COOLDOWN_KEY) || '0', 10);
-    const now = Date.now();
-    if (now - lastShown > MODAL_COOLDOWN_MS) {
-      localStorage.setItem(MODAL_COOLDOWN_KEY, String(now));
-      showModal('soft-gate');
+    if (isSubscribedRef.current || !liveEvent?.id) return;
+    const key = `${MODAL_SHOWN_KEY_PREFIX}${liveEvent.id}`;
+    try {
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, String(Date.now()));
+    } catch {
+      return; // Storage blocked: never risk showing it on every save.
     }
-  }, [showModal]);
+    showModal('soft-gate', 'picks');
+  }, [showModal, liveEvent?.id]);
 
   // Auto-save with 2s debounce when team is complete (official picks — drives scoring)
   useEffect(() => {
@@ -809,7 +811,10 @@ export default function Pickems() {
   }, [liveEvent]);
 
   return (
-    <div className="flex flex-col w-full overflow-hidden bg-[#f0f0f0] dark:bg-[#111] h-[calc(100dvh-106px)] md:h-[calc(100dvh_-_var(--pickem-dashboard-header-bottom,110px))]">
+    // Height = screen minus the header's measured height (`--pickem-dashboard-header-bottom`,
+    // set by DashboardTopNav). It used to assume a 106px phone header, which cut the page off
+    // wherever the header is taller (notch spacing, larger text). vh first for browsers without dvh.
+    <div className="flex flex-col w-full overflow-hidden bg-[#f0f0f0] dark:bg-[#111] h-[calc(100vh_-_var(--pickem-dashboard-header-bottom,106px))] supports-[height:100dvh]:h-[calc(100dvh_-_var(--pickem-dashboard-header-bottom,106px))]">
 
       {/* ── EVENT BANNER (shared component) ───────────────────────────────────── */}
       {pickEmBannerModel ? (
@@ -1115,10 +1120,16 @@ export default function Pickems() {
       </div>
 
       {/* ── MOBILE DRAWER ─────────────────────────────────────────────────────── */}
+      {/* From the header's measured bottom to the bottom of the visible screen. It was
+          pinned at 112px and 80vh tall, which slid under a taller header and ran behind
+          Safari's toolbar on short phones, hiding the last players in the list. */}
       <AnimatePresence>
         {isDrawerOpen && (
-          <motion.div className="fixed md:hidden top-28 left-0 right-0 z-30 bg-white dark:bg-[#0d0d0d] shadow-xl border-t border-gray-200 dark:border-white/10"
-            style={{ height: "80vh" }} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 30, stiffness: 400 }}>
+          <motion.div className="fixed md:hidden left-0 right-0 bottom-0 z-30 bg-white dark:bg-[#0d0d0d] shadow-xl border-t border-gray-200 dark:border-white/10"
+            style={{
+              top: "var(--pickem-dashboard-header-bottom, 106px)",
+              paddingBottom: "env(safe-area-inset-bottom, 0px)",
+            }} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 30, stiffness: 400 }}>
             <div className="flex flex-col h-full">
               <div className="flex justify-between items-center px-4 pt-4 pb-3 border-b border-gray-100 dark:border-white/10">
                 <div>

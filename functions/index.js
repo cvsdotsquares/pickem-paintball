@@ -19,6 +19,11 @@ const db = admin.firestore();
 // See DATA_PIPELINE.md.
 exports.onLongDataUpload = require('./longDataRecompute').onLongDataUpload;
 
+// ─── Broadcast control: which Pick'Em graphic is on the NXL stream ─────────
+// One live link for Darren's stream, switched from a control page; writes
+// public/broadcast/control.json in the images bucket. See broadcastControl.js.
+exports.broadcastControl = require('./broadcastControl').broadcastControl;
+
 // ─── Career-stats projection ───────────────────────────────────────────────
 // `playerSummaries/*` and `aggregates/*` are derived from the same player docs
 // onLongDataUpload writes, so every upload leaves them behind. They are rebuilt

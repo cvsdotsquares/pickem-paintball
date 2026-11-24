@@ -36,6 +36,7 @@ import Button from "@/src/components/ui/button";
 import { FaGoogle, FaEye, FaEyeSlash } from "react-icons/fa6";
 import Image from "next/image";
 import Navbar from "@/src/components/Landing/Navbar";
+import InAppBrowserNotice from "@/src/components/Login/InAppBrowserNotice";
 import { containsProfanity } from "@/src/lib/profanity";
 
 const RegisterPageClient: React.FC = () => {
@@ -503,6 +504,7 @@ const RegisterPageClient: React.FC = () => {
                   </span>
                 </div>
               </div>
+              <InAppBrowserNotice />
               <Button
                 type="button"
                 onClick={handleGoogleLogin}

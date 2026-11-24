@@ -205,9 +205,9 @@ export default function TodoBoard() {
   };
 
   return (
-    <main className="flex h-[calc(100vh-45px)] flex-col gap-4 px-5 py-5">
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex-1">
+    <main className="flex h-[calc(100dvh-49px)] flex-col gap-4 px-3 py-4 sm:px-5 sm:py-5">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="basis-full sm:basis-0 sm:flex-1">
           <h1 className="text-lg font-black uppercase tracking-wide">TO DO</h1>
           <div className="text-[10px] text-gray-400 dark:text-white/40">
             {live.filter((c) => c.stage !== "done").length} open · {live.length} cards
@@ -253,7 +253,8 @@ export default function TodoBoard() {
       </div>
       {error && <div className="text-[11px] text-red-500">{error}</div>}
 
-      <div className="flex flex-1 items-start gap-3 overflow-x-auto pb-3">
+      {/* phone: one column per swipe (snaps), the next one peeking in */}
+      <div className="flex min-h-0 flex-1 snap-x snap-mandatory items-start gap-3 overflow-x-auto pb-3 md:snap-none">
         {columns.map((col, ci) => {
           const cards = inColumn(col.key);
           return (
@@ -261,7 +262,7 @@ export default function TodoBoard() {
               key={col.key}
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => drop(col.key, null)}
-              className="flex max-h-full w-72 shrink-0 flex-col rounded-xl bg-gray-200/70 dark:bg-white/5"
+              className="flex max-h-full w-[85vw] shrink-0 snap-start flex-col rounded-xl bg-gray-200/70 dark:bg-white/5 sm:w-72"
             >
               <div className="group flex items-center gap-2 px-3 pb-1 pt-3">
                 {col.color && (

@@ -29,6 +29,7 @@ import {
   ensurePlanned,
   genFile,
 } from "@/src/lib/admin/generator";
+import { graphicHolds } from "@/src/lib/admin/scheduler";
 import { failedFor, lastRunFor, MAX_PARALLEL, readLog, runningAll, runningClaude, runningFor, startJob, stopJob } from "@/src/lib/admin/jobs";
 
 export const dynamic = "force-dynamic";
@@ -94,6 +95,7 @@ export async function GET(request: Request) {
     graphicName: graphicName(event, type),
     graphicNumber: Number(type.split("__")[1] ?? 1),
     keyInspo: keyInspo(event, type),
+    holds: graphicHolds(event, type), // post holds: what this graphic's posts wait for (status.json waits_for)
     // an old failure the graphic has since moved past is shown as done, not as a red "stopped" box
     run: run
       ? run.status === "failed" && !failedFor(event, type, readStatus(event, type))

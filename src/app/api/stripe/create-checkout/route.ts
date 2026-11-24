@@ -21,7 +21,7 @@ function getPriceId(plan: string, currency: string = 'usd'): string | undefined 
 
 export async function POST(request: NextRequest) {
   try {
-    const { plan, userId, currency = 'usd' } = await request.json();
+    const { plan, userId, currency = 'usd', reason, viewId } = await request.json();
     console.log('--- CHECKOUT INITIATED ---');
     console.log('Payload:', { plan, userId, currency });
 
@@ -52,7 +52,10 @@ export async function POST(request: NextRequest) {
       success_url: `${baseUrl}/dashboard?subscription=success`,
       cancel_url: `${baseUrl}/dashboard?subscription=cancelled`,
       metadata: {
-        userId: userId
+        userId: userId,
+        // Which subscribe prompt sold this; the webhook files a `paid` row in subscribeEvents with them.
+        subscribeReason: typeof reason === 'string' ? reason.slice(0, 20) : '',
+        subscribeViewId: typeof viewId === 'string' ? viewId.slice(0, 64) : '',
       }
     });
 

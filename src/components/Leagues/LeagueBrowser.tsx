@@ -87,7 +87,7 @@ export default function LeagueBrowser({
 
       if (!subscriptionData.isSubscribed) {
         onClose();
-        window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate' } }));
+        window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate', reason: 'leagues' } }));
         return;
       }
     } catch (error) {
@@ -127,7 +127,7 @@ export default function LeagueBrowser({
         console.log('Non-subscriber trying to join league from browser, showing modal');
         onClose();
         // Trigger subscription modal
-        window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate' } }));
+        window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate', reason: 'leagues' } }));
         return;
       }
     } catch (error) {

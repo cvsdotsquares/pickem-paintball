@@ -20,7 +20,6 @@ interface Props {
   /** Currently selected badge ids, in display order. */
   selected?: BadgeId[];
   onToggleSelect?: (id: BadgeId) => void;
-  maxSelect?: number;
 }
 
 export default function BadgeCollectionGrid({
@@ -30,7 +29,6 @@ export default function BadgeCollectionGrid({
   selectable = false,
   selected = [],
   onToggleSelect,
-  maxSelect = 3,
 }: Props) {
   const alignClass = align === "start" ? "items-start" : "items-center";
   const textAlignClass = align === "start" ? "text-left" : "text-center";
@@ -57,7 +55,6 @@ export default function BadgeCollectionGrid({
           const isHovered = hoveredBadge === id;
           const selIndex = selectable ? selected.indexOf(id) : -1;
           const isSelected = selIndex >= 0;
-          const atMax = selected.length >= maxSelect;
           const canSelect = selectable && isEarned;
           return (
             <button
@@ -84,9 +81,7 @@ export default function BadgeCollectionGrid({
                   : isEarned
                     ? "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/30"
                     : "bg-gray-50/50 dark:bg-white/[0.02] border-gray-100 dark:border-white/5 hover:border-gray-300 dark:hover:border-white/20"
-              } ${isHovered && !isSelected ? "border-gray-500 dark:border-white/40" : ""} ${
-                canSelect && !isSelected && atMax ? "opacity-40" : ""
-              }`}
+              } ${isHovered && !isSelected ? "border-gray-500 dark:border-white/40" : ""}`}
             >
               <div className="relative">
                 <Image

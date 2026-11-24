@@ -42,6 +42,11 @@ export default function GeneratorBoard() {
   const [adding, setAdding] = useState(false);
   const [comment, setComment] = useState("");
   const [message, setMessage] = useState("");
+  // Pre / During / Post fold open and shut (James 25 Oct 2026): a phone starts with Pre-event open only, a desktop with all three
+  const [openPhases, setOpenPhases] = useState<Record<string, boolean>>({ pre: true, live: true, post: true });
+  useEffect(() => {
+    if (!window.matchMedia("(min-width: 768px)").matches) setOpenPhases({ pre: true, live: false, post: false });
+  }, []);
 
   const stopGraphic = async (key: string, label: string) => {
     if (!window.confirm(`Stop Claude on "${label}"? What it has done so far is kept.`)) return;
@@ -127,7 +132,7 @@ export default function GeneratorBoard() {
     }, []);
 
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-6">
+    <main className="mx-auto flex max-w-6xl flex-col gap-6 px-3 py-4 sm:px-5 sm:py-6">
       <div className="flex flex-wrap items-center gap-4">
         <h1 className="text-lg font-black uppercase tracking-wide">
           Post Generator
@@ -270,17 +275,27 @@ export default function GeneratorBoard() {
       {/* columns = when it goes out (pre / during / post); in each column: must have, then nice to have.
           Each column stacks on its own, so a short column doesn't leave white space. */}
       <section className="overflow-x-auto">
-        <div className="grid min-w-[720px] grid-cols-3 items-start gap-3">
+        <div className="grid grid-cols-1 items-start gap-6 md:min-w-[720px] md:grid-cols-3 md:gap-3">
           {phases.map((p) => (
-            <div key={p.key} className="flex flex-col gap-2">
-              <div className="border-b border-gray-200 pb-1 dark:border-white/10">
-                <h2 className="text-sm font-black uppercase tracking-wide">
-                  {p.title}
-                </h2>
-                <div className="text-[10px] text-gray-400 dark:text-white/40">
-                  {p.hint}
+            <details
+              key={p.key}
+              open={openPhases[p.key]}
+              onToggle={(e) => {
+                const isOpen = (e.currentTarget as HTMLDetailsElement).open;
+                setOpenPhases((o) => (o[p.key] === isOpen ? o : { ...o, [p.key]: isOpen }));
+              }}
+              className="group flex flex-col gap-2"
+            >
+              <summary className="flex cursor-pointer list-none items-end gap-2 border-b border-gray-200 pb-1 dark:border-white/10">
+                <div className="flex-1">
+                  <h2 className="text-sm font-black uppercase tracking-wide">{p.title}</h2>
+                  <div className="text-[10px] text-gray-400 dark:text-white/40">
+                    {p.hint} · {buckets([...p.must, ...p.nice]).length} post types
+                  </div>
                 </div>
-              </div>
+                <span className="text-[18px] leading-none text-gray-500 transition-transform group-open:rotate-180 dark:text-white/50">▾</span>
+              </summary>
+              <div className="mt-2 flex flex-col gap-2">
               {(["must", "nice"] as const).map((row) => (
                 <Fragment key={row}>
                   <div className={`${sectionLabel} pt-2`}>
@@ -335,7 +350,8 @@ export default function GeneratorBoard() {
                   </div>
                 </Fragment>
               ))}
-            </div>
+              </div>
+            </details>
           ))}
         </div>
       </section>

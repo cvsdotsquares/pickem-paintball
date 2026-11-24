@@ -39,10 +39,10 @@ export default function ProfileBadgesSection() {
     let next: BadgeId[];
     if (current.includes(id)) {
       next = current.filter((x) => x !== id);
-    } else if (current.length < MAX_DISPLAY_BADGES) {
-      next = [...current, id];
     } else {
-      return; // at max
+      // At the limit, a new pick swaps out the oldest one (the first tapped),
+      // so every earned badge can always be picked in one tap.
+      next = [...current, id].slice(-MAX_DISPLAY_BADGES);
     }
     setDisplayBadges(next); // optimistic
     void updateDoc(doc(db, "users", userId), { displayBadges: next });
@@ -61,7 +61,6 @@ export default function ProfileBadgesSection() {
         selectable={isSubscribed}
         selected={displayBadges}
         onToggleSelect={handleToggle}
-        maxSelect={MAX_DISPLAY_BADGES}
         emptyHint={
           isSubscribed
             ? "Tap up to 3 badges to feature on your team card — the order you tap is the order they show"
@@ -77,7 +76,7 @@ export default function ProfileBadgesSection() {
         ) : (
           <button
             type="button"
-            onClick={() => showModal("soft-gate")}
+            onClick={() => showModal("soft-gate", "badges")}
             className="bg-[#00f976] hover:opacity-90 text-black font-black text-xs uppercase tracking-widest rounded-lg px-6 py-3"
           >
             Subscribe to Display

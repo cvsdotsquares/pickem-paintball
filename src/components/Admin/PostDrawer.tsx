@@ -96,11 +96,15 @@ export default function PostDrawer({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose}>
+      {/* phone: a close button that stays put while the panel scrolls */}
+      <button onClick={onClose} aria-label="Close" className="fixed right-3 top-3 z-[60] rounded-full bg-black/70 px-3 py-1.5 text-[13px] font-bold text-white md:hidden">
+        Close ✕
+      </button>
       <aside
         className="flex h-full w-full max-w-3xl flex-col overflow-y-auto bg-white dark:bg-[#0d0d0d] md:flex-row"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative flex shrink-0 flex-col items-center justify-center bg-black p-4 md:w-1/2">
+        <div className="relative flex min-h-[45vh] shrink-0 flex-col items-center justify-center bg-black p-4 md:min-h-0 md:w-1/2">
           {isReel ? (
             <ReelPlayer study={study} poster={imageUrl(item.source, file)} />
           ) : isVideo(file) ? (
@@ -137,7 +141,7 @@ export default function PostDrawer({
           )}
         </div>
 
-        <div className="flex flex-1 flex-col gap-5 p-5">
+        <div className="flex flex-1 flex-col gap-5 p-4 sm:p-5">
           <div className="flex items-start gap-3">
             <div className="flex-1">
               <div className={sectionLabel}>

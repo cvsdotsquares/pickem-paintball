@@ -20,6 +20,7 @@ import {
   type BadgeId,
   type UserBadges,
   rankToEventBadge,
+  seasonBadgeForEvent,
 } from "@/src/lib/badges";
 import PostEventModal, { type TeamHighlight } from "./PostEventModal";
 
@@ -116,7 +117,7 @@ export default function BadgesModalsController({ onSubscribeClick }: Props) {
   const { userId } = useAuth();
   const { isSubscribed, showModal } = useSubscription();
   const subscribeHandler =
-    onSubscribeClick ?? (() => showModal("soft-gate"));
+    onSubscribeClick ?? (() => showModal("soft-gate", "badges"));
 
   const [userData, setUserData] = useState<Record<string, unknown> | null>(
     null,
@@ -301,6 +302,14 @@ export default function BadgesModalsController({ onSubscribeClick }: Props) {
     const rankRaw = userData[`${target.id}Rank`];
     const rank = typeof rankRaw === "number" ? rankRaw : Number(rankRaw);
     const storedBadges = (userData.badges ?? {}) as UserBadges;
+
+    // Season badge first: it's the headline when this event closed the season.
+    const seasonBadge = seasonBadgeForEvent(target.id, seasonRankFromDoc);
+    if (seasonBadge) {
+      const cumulative = storedBadges[seasonBadge]?.count ?? 1;
+      result.push({ id: seasonBadge, count: cumulative, delta: 1 });
+    }
+
     const eventBadge = rankToEventBadge(rank);
     if (eventBadge) {
       const cumulative = storedBadges[eventBadge]?.count ?? 1;
@@ -320,7 +329,7 @@ export default function BadgesModalsController({ onSubscribeClick }: Props) {
     }
 
     return result;
-  }, [showPostEvent, target, userData, killLeaderId]);
+  }, [showPostEvent, target, userData, killLeaderId, seasonRankFromDoc]);
 
   const eventRank = useMemo(() => {
     if (!target || !userData) return null;

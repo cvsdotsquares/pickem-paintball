@@ -16,9 +16,10 @@ import {
 import { Input } from "@/src/components/ui/input";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import Button from "@/src/components/ui/button";
-import { sendPasswordResetEmail } from "firebase/auth"; // Import reset function
+import { sendResetEmail } from "@/src/lib/authEmails";
 import LocalDevFirebaseHint from "@/src/components/Login/LocalDevFirebaseHint";
 import Navbar from "@/src/components/Landing/Navbar";
+import InAppBrowserNotice from "@/src/components/Login/InAppBrowserNotice";
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState<string>("");
@@ -104,7 +105,7 @@ const LoginPage: React.FC = () => {
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await sendPasswordResetEmail(auth, resetEmail); // Send reset email
+      await sendResetEmail(resetEmail); // Our branded email, or Firebase's if that's off
       alert("Your password reset email has been sent. Please check your inbox and spam folder.");
       setShowResetForm(false); // Hide the reset form
     } catch (err) {
@@ -191,6 +192,7 @@ const LoginPage: React.FC = () => {
                 </span>
               </div>
             </div>
+            <InAppBrowserNotice />
             <Button
               type="button"
               onClick={handleGoogleLogin}

@@ -95,6 +95,14 @@ const hitmarkerCondensed = localFont({
   fallback: ["system-ui", "sans-serif"],
 });
 
+/**
+ * Applies a saved dark theme before the first paint. ThemeProvider only runs after React
+ * loads, so dark-mode users used to get a white flash on every load, and iOS 26 Safari
+ * (which tints its bars from the page background, ignoring theme-color) stayed light.
+ * Must match `applyThemeToDocument` in ThemeContext. Storage can throw, hence the try.
+ */
+const THEME_BOOT_SCRIPT = `try{if(localStorage.getItem("theme")==="dark"){var r=document.documentElement;r.classList.add("dark");r.style.colorScheme="dark";r.style.backgroundColor="#101010"}}catch(e){}`;
+
 export default function RootLayout({
   children,
 }: {
@@ -104,7 +112,12 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${industryDemi.variable} ${industryUltra.variable} ${hitmarkerCondensed.variable} ${hitmarkerVariable.variable}`}
+      // The boot script below may add `dark` + inline styles before React hydrates.
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body
         className="min-h-screen bg-background antialiased"
         suppressHydrationWarning

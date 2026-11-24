@@ -1,12 +1,19 @@
 "use client";
 
+// Side effect: keep browser page translation from crashing React (see the file).
+import "@/src/lib/translationGuard";
+import { listenForScriptErrors } from "@/src/lib/reportClientError";
 import { Analytics } from "@vercel/analytics/react";
 import { AuthProvider } from "@/src/contexts/authProvider";
 import { SubscriptionProvider } from "@/src/contexts/SubscriptionContext";
 import { ThemeProvider } from "@/src/contexts/ThemeContext";
 import SubscriptionModalManager from "@/src/components/Subscription/SubscriptionModalManager";
+import CheckoutReturn from "@/src/components/Subscription/CheckoutReturn";
 import NextTopLoader from "nextjs-toploader";
 import ErrorBoundary from "@/src/components/Layout/ErrorBoundary";
+
+// Uncaught errors in our own scripts go to the crash log (see the file).
+listenForScriptErrors();
 
 export default function AppProviders({
   children,
@@ -33,6 +40,7 @@ export default function AppProviders({
 
             {children}
             <SubscriptionModalManager />
+            <CheckoutReturn />
             <Analytics />
           </SubscriptionProvider>
         </AuthProvider>

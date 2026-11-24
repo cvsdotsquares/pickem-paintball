@@ -41,7 +41,7 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
         console.log('Non-subscriber trying to join by code, showing modal');
         onClose();
         // Trigger subscription modal
-        window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate' } }));
+        window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate', reason: 'leagues' } }));
         return;
       }
     } catch (error) {
@@ -121,7 +121,7 @@ export default function JoinLeagueModal({ isOpen, onClose }: JoinLeagueModalProp
         console.log('Non-subscriber trying to join league, showing modal');
         onClose();
         // Trigger subscription modal
-        window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate' } }));
+        window.dispatchEvent(new CustomEvent('show-subscription-modal', { detail: { type: 'hard-gate', reason: 'leagues' } }));
         return;
       }
     } catch (error) {

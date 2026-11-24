@@ -44,6 +44,7 @@ type Data = {
   graphicName: string;
   graphicNumber: number;
   keyInspo: string[];
+  holds?: { waitsFor: string[] | null; flags: string[] }; // post holds: the Data jobs this graphic's posts wait for (short names)
   run: Run;
   busy: Busy;
   full: boolean; // the most Claude runs at once are going: no room for another
@@ -715,6 +716,14 @@ export default function PostTypeView({
             {data.item.priority === "must" ? "Must" : "Nice to have"} ·
             template: at the event only logos, photos, names and stats change
           </div>
+          {data.holds?.waitsFor && (
+            <div className="mt-1 text-[11px] text-gray-500 dark:text-white/50" title="Its posts aren't sent until these Data jobs' latest run passed">
+              ⏳ Waits for: {data.holds.waitsFor.length ? data.holds.waitsFor.join(", ") : "nothing"}
+            </div>
+          )}
+          {data.holds?.flags.map((f) => (
+            <div key={f} className="mt-1 text-[11px] font-bold text-orange-500">⚠ {f}</div>
+          ))}
         </div>
         <StagePill
           stage={status.stage}

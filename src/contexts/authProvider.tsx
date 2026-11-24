@@ -12,11 +12,11 @@ import {
   signInWithPopup,
   signOut,
   GoogleAuthProvider,
-  sendEmailVerification,
   updateProfile,
 } from "firebase/auth";
 import { auth, db } from "../lib/firebaseClient";
 import { devAllowUnverifiedLogin } from "../lib/firebasePublicEnv";
+import { sendVerificationEmail } from "../lib/authEmails";
 import { doc, getDoc } from "firebase/firestore";
 
 interface AuthContextType {
@@ -44,6 +44,41 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+/** Once a day per browser: save this visit's country so our emails quote the price in the right currency (/api/user/region). */
+function saveRegionDaily(user: User) {
+  try {
+    const key = `pickem_region_${user.uid}`;
+    if (Date.now() - Number(localStorage.getItem(key) || 0) < 24 * 3600 * 1000) return;
+    localStorage.setItem(key, String(Date.now()));
+  } catch {
+    return;
+  }
+  user
+    .getIdToken()
+    .then((token) => fetch("/api/user/region", { method: "POST", headers: { Authorization: `Bearer ${token}` } }))
+    .catch(() => undefined);
+}
+
+/** The welcome email the moment a confirmed player is logged in (/api/user/welcome). Asks until the site says it's
+ * settled (welcomed, already welcomed, or signed up before the series), then never again on this browser. */
+function startWelcome(user: User) {
+  if (!user.emailVerified && !user.providerData.some((p) => p.providerId === "google.com")) return;
+  const key = `pickem_welcome_${user.uid}`;
+  try {
+    if (localStorage.getItem(key)) return;
+  } catch {
+    return;
+  }
+  user
+    .getIdToken()
+    .then((token) => fetch("/api/user/welcome", { method: "POST", headers: { Authorization: `Bearer ${token}` } }))
+    .then((r) => r.json())
+    .then((r: { final?: boolean }) => {
+      if (r.final) localStorage.setItem(key, String(Date.now()));
+    })
+    .catch(() => undefined);
+}
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -51,6 +86,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        saveRegionDaily(currentUser);
+        startWelcome(currentUser);
+      }
       setUser(currentUser);
       setUserId(currentUser ? currentUser.uid : null);
       setLoading(false);
@@ -95,7 +134,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Modified registerWithEmail to send verification email and sign out
   const registerWithEmail = async (email: string, password: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    await sendEmailVerification(userCredential.user); // Send verification email
+    await sendVerificationEmail(userCredential.user); // Our branded email, or Firebase's if that's off
     await signOut(auth); // Sign out user after registration
     // Handle any UI feedback outside this function
   };
