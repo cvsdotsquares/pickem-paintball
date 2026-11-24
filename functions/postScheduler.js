@@ -136,13 +136,25 @@ async function postFacebook(post, cfg) {
   return { id, permalink: `https://www.facebook.com/${id}` };
 }
 
-async function notifySlack(post, text, slackToken, channel) {
-  if (!slackToken || !channel) return;
-  await fetch('https://slack.com/api/chat.postMessage', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${slackToken}` },
-    body: JSON.stringify({ channel, text }),
-  }).catch((e) => console.warn('Slack message failed:', e.message));
+const JAMES_SLACK = 'U0C9U476CMQ';   // every agent message @mentions James so Slack notifies him (James, 28 Oct 2026)
+
+/** Never throws: a Slack problem must not turn a sent post into a failed one. Returns Slack's reply (or null). */
+async function notifySlack(text, slackToken, channel, fetchImpl = fetch) {
+  if (!slackToken || !channel) return null;
+  if (!text.includes(`<@${JAMES_SLACK}>`)) text = `<@${JAMES_SLACK}> ${text}`;
+  try {
+    const res = await fetchImpl('https://slack.com/api/chat.postMessage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8', Authorization: `Bearer ${slackToken}` },
+      body: JSON.stringify({ channel, text, unfurl_links: false, unfurl_media: false }),
+    });
+    const reply = await res.json();
+    if (!reply.ok) console.warn('Slack message refused:', reply.error);   // Slack answers 200 even when it refuses
+    return reply;
+  } catch (e) {
+    console.warn('Slack message failed:', e.message);
+    return null;
+  }
 }
 
 const ET_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -175,7 +187,7 @@ function holdState(post, jobDocs, now) {
 
 /**
  * One pass: send every approved post whose time has come.
- * `cfg` = { db, Timestamp, FieldValue, token, pageId, igUserId, slackToken?, slackChannel? }.
+ * `cfg` = { db, Timestamp, FieldValue, token, pageId, igUserId, slackToken?, slackChannel?, slackFailChannel?, fetch? }.
  * Shared by the scheduled function and the local test runner (pickem-hub/scheduler/).
  */
 async function runDue(cfg) {
@@ -227,15 +239,15 @@ async function runDue(cfg) {
       await doc.ref.update({ status: 'posted', postedAt: FieldValue.serverTimestamp(), result });
       console.log(`✅ Posted ${doc.id}`, result);
       const dropped = result.instagram.collaboratorsDropped;
-      await notifySlack(post, `✅ Posted *${post.title || doc.id}*\nInstagram: ${result.instagram.permalink}\nFacebook: ${result.facebook.permalink}${dropped ? `\n⚠️ Instagram refused collaborator(s) ${dropped.map((n) => '@' + n).join(', ')} (private or unknown account), posted without them` : ''}`, cfg.slackToken, cfg.slackChannel);
+      await notifySlack(`✅ Posted *${post.title || doc.id}*\nInstagram: ${result.instagram.permalink}\nFacebook: ${result.facebook.permalink}${dropped ? `\n⚠️ Instagram refused collaborator(s) ${dropped.map((n) => '@' + n).join(', ')} (private or unknown account), posted without them` : ''}`, cfg.slackToken, cfg.slackChannel, cfg.fetch);
     } catch (e) {
       // Keep whatever did go out, so James can see a half-post (e.g. Instagram yes, Facebook no).
       await doc.ref.update({ status: 'failed', failedAt: FieldValue.serverTimestamp(), error: e.message, result });
       console.error(`❌ Failed ${doc.id}:`, e.message);
-      await notifySlack(post, `❌ Failed to post *${post.title || doc.id}*: ${e.message}${result.instagram ? `\n(Instagram did go out: ${result.instagram.permalink})` : ''}`, cfg.slackToken, cfg.slackChannel);
+      await notifySlack(`❌ Failed to post *${post.title || doc.id}*: ${e.message}${result.instagram ? `\n(Instagram did go out: ${result.instagram.permalink})` : '\nNothing went out.'}\nTo retry: change it on the Schedule (it goes back to a draft), then Approve it again.`, cfg.slackToken, cfg.slackFailChannel || cfg.slackChannel, cfg.fetch);
     }
   }
   return due.length;
 }
 
-module.exports = { runDue, holdState, cleanCollaborators, postInstagram };
+module.exports = { runDue, holdState, cleanCollaborators, postInstagram, notifySlack };

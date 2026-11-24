@@ -1030,9 +1030,16 @@ exports.scheduleBadgeRecalc = functions.firestore
 const metaPageToken = defineSecret('META_PAGE_TOKEN');
 const PICKEM_FB_PAGE_ID = '631336470063664';
 const PICKEM_IG_USER_ID = '17841472212962207'; // @pickempaintball
+// Slack on posted / failed: the agents' bot key (the same one as pickem-hub/agents/slack.py), set once with
+// firebase functions:secrets:set SLACK_BOT_TOKEN. Both go to #alerts (James, 24 Nov 2026). Change without a
+// deploy: projections/scheduler.slackChannel (posted; "none" = no posted messages) and .slackFailChannel
+// (failed), as Slack channel ids.
+const slackBotToken = defineSecret('SLACK_BOT_TOKEN');
+const SCHEDULER_SLACK_CHANNEL = 'C0CA6QEERDX';      // #alerts
+const SCHEDULER_SLACK_FAIL_CHANNEL = 'C0CA6QEERDX'; // #alerts
 
 exports.postScheduler = functions
-  .runWith({ timeoutSeconds: 300, memory: '256MB', secrets: [metaPageToken] })
+  .runWith({ timeoutSeconds: 300, memory: '256MB', secrets: [metaPageToken, slackBotToken] })
   .pubsub.schedule('every 5 minutes')
   .onRun(async () => {
     const cfgSnap = await db.doc('projections/scheduler').get();
@@ -1048,6 +1055,9 @@ exports.postScheduler = functions
       token: metaPageToken.value(),
       pageId: PICKEM_FB_PAGE_ID,
       igUserId: PICKEM_IG_USER_ID,
+      slackToken: slackBotToken.value(),
+      slackChannel: cfgSnap.get('slackChannel') === 'none' ? '' : (cfgSnap.get('slackChannel') || SCHEDULER_SLACK_CHANNEL),
+      slackFailChannel: cfgSnap.get('slackFailChannel') || SCHEDULER_SLACK_FAIL_CHANNEL,
     });
     return null;
   });
