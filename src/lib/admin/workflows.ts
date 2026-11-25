@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { HUB } from "./library";
 import { agents as scheduleAgents, listSlots, needsYou, type SlotView } from "./scheduler";
-import { readBoard } from "./todo";
+import { panelBoard } from "./todo";
 import { listRuns } from "./jobs";
 
 /**
@@ -280,7 +280,7 @@ export async function view(): Promise<View> {
   // The Manager's latest brief (real or test) + the Inputs needed card
   const briefRep = reps.find((r) => r.agent === "gm" && r.job === "daily_brief" && (r.brief || r.would_send?.length));
   const brief = briefRep ? { text: briefRep.brief || briefRep.would_send?.[0]?.text || "", at: briefRep.finished || briefRep.started, test: !!briefRep.test, file: briefRep.file } : null;
-  const board = readBoard();
+  const board = await panelBoard();
   const card = board.cards.find((c) => c.title.toLowerCase().startsWith("inputs needed") && !c.archived);
   let inputs = card ? card.checklist.map((i) => ({ text: i.text, done: i.done })) : [];
   if (!inputs.length) {

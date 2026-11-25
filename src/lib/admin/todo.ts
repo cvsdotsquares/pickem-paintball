@@ -1,4 +1,5 @@
 import fs from "fs";
+import os from "os";
 import path from "path";
 import { HUB } from "./library";
 
@@ -38,6 +39,32 @@ const EMPTY: Board = { stages: [], streams: [], cards: [] };
 const now = () => new Date().toISOString();
 export const newId = () => Math.random().toString(36).slice(2, 10);
 
+/**
+ * One board only (James, 25 Nov 2026: "I don't want two boards"). The board file lives on the mini, where
+ * the panel always runs. A panel on any other Mac (the MacBook's dev copy) passes every TO DO request to
+ * the mini's panel over Tailscale and never reads or writes its own stale copy. pickem-hub/todo/todo.py
+ * does the same over SSH.
+ */
+export const onMini = () => os.hostname().toLowerCase().startsWith("jamess-mac-mini");
+const MINI_PANEL = process.env.PICKEM_MINI_PANEL || "https://jamess-mac-mini.tail542618.ts.net";
+const ONLY_ON_MINI = "The TO DO board lives on the mini, and the mini can't be reached right now. Nothing was read or changed.";
+
+/** The mini panel's answer to a TO DO API request (GET, or a POST with the same body). 502 if it can't be reached. */
+export async function askMini(init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(`${MINI_PANEL}/api/admin/todo`, { cache: "no-store", signal: AbortSignal.timeout(10000), ...init });
+  } catch {
+    return new Response(JSON.stringify({ error: ONLY_ON_MINI }), { status: 502, headers: { "Content-Type": "application/json" } });
+  }
+}
+
+/** The board for any panel page: the file on the mini, the mini's board from anywhere else (empty if unreachable). */
+export async function panelBoard(): Promise<Board> {
+  if (onMini()) return readBoard();
+  const r = await askMini();
+  return r.ok ? { ...EMPTY, ...(await r.json()) } : EMPTY;
+}
+
 export function readBoard(): Board {
   try {
     const b: Board = { ...EMPTY, ...JSON.parse(fs.readFileSync(TODO_FILE, "utf8")) };
@@ -49,6 +76,7 @@ export function readBoard(): Board {
 }
 
 function writeBoard(b: Board) {
+  if (!onMini()) throw new Error(ONLY_ON_MINI);
   fs.mkdirSync(path.dirname(TODO_FILE), { recursive: true });
   if (fs.existsSync(TODO_FILE)) {
     fs.mkdirSync(BACKUPS, { recursive: true });

@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
 import { adminGate } from "@/src/lib/admin/gate";
-import { addComment, clearDone, deleteCard, readBoard, saveCard, saveColumns } from "@/src/lib/admin/todo";
+import { addComment, askMini, clearDone, deleteCard, onMini, readBoard, saveCard, saveColumns } from "@/src/lib/admin/todo";
 
 export const dynamic = "force-dynamic";
+
+/** The mini's answer, passed straight back (a panel off the mini has no board of its own: see onMini). */
+async function fromMini(init?: RequestInit) {
+  const r = await askMini(init);
+  return new NextResponse(await r.text(), { status: r.status, headers: { "Content-Type": "application/json" } });
+}
 
 /** The TODO board: stages, work streams and every card. */
 export async function GET() {
   const blocked = adminGate();
   if (blocked) return blocked;
+  if (!onMini()) return fromMini();
   return NextResponse.json(readBoard());
 }
 
@@ -22,6 +29,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const blocked = adminGate();
   if (blocked) return blocked;
+  if (!onMini()) return fromMini({ method: "POST", headers: { "Content-Type": "application/json" }, body: await request.text() });
   const b = await request.json();
   try {
     if (b.action === "card") return NextResponse.json(saveCard(b.card ?? {}));
